@@ -1,0 +1,1839 @@
+{
+  "schema_version": "1.0.0",
+  "created_on": "2026-09-09",
+  "ordering": "traditional_surah_onset_study_order",
+  "exact_per_ayah_chronology": false,
+  "ordering_source_id": "S1",
+  "order": [
+    96,
+    68,
+    73,
+    74,
+    1,
+    111,
+    81,
+    87,
+    92,
+    89,
+    93,
+    94,
+    103,
+    100,
+    108,
+    102,
+    107,
+    109,
+    105,
+    113,
+    114,
+    112,
+    53,
+    80,
+    97,
+    91,
+    85,
+    95,
+    106,
+    101,
+    75,
+    104,
+    77,
+    50,
+    90,
+    86,
+    54,
+    38,
+    7,
+    72,
+    36,
+    25,
+    35,
+    19,
+    20,
+    56,
+    26,
+    27,
+    28,
+    17,
+    10,
+    11,
+    12,
+    15,
+    6,
+    37,
+    31,
+    34,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    51,
+    88,
+    18,
+    16,
+    71,
+    14,
+    21,
+    23,
+    32,
+    52,
+    67,
+    69,
+    70,
+    78,
+    79,
+    82,
+    84,
+    30,
+    29,
+    83,
+    2,
+    8,
+    3,
+    33,
+    60,
+    4,
+    99,
+    57,
+    47,
+    13,
+    55,
+    76,
+    65,
+    98,
+    59,
+    24,
+    22,
+    63,
+    58,
+    49,
+    66,
+    64,
+    61,
+    62,
+    48,
+    5,
+    9,
+    110
+  ],
+  "semantics": {
+    "study_rank": "A reproducible surah study sequence based on the selected onset tradition, not a verse revelation date or a total chronological ordering of 6236 verses.",
+    "within_surah_order": "Canonical verse number. Keep commentary units and dependency links even when historical passages differ.",
+    "empty_exception_notes": "Selected table lists no exception; this is not evidence of universal agreement or simultaneous revelation.",
+    "exception_notes": "Factual source reports, not independently authenticated determinations. Conflicting reports are retained in context_notes.",
+    "null_verse_ranges": "Source note concerns the surah as a whole; no additional per-verse interval is inferred.",
+    "classification": "Meccan/Medinan labels in the selected table are copied as classification metadata; physical location and period must not be conflated.",
+    "chronology_source_sha256": "832f828439065f8f06177747b51ec2a090bf0dd6524033a691062b449d1e5e55"
+  },
+  "sources": {
+    "S1": {
+      "title": "Tanzil: Revelation Order",
+      "url": "https://tanzil.net/docs/revelation_order",
+      "kind": "compiled traditional table; cites al-Zanjani",
+      "accessed": "2026-09-09"
+    },
+    "S2": {
+      "title": "Ma'arif al-Qur'an, 96:1",
+      "url": "https://quran.com/al-alaq/1/tafsirs/en-tafsir-maarif-ul-quran",
+      "kind": "named tafsir, English web edition",
+      "accessed": "2026-09-09"
+    },
+    "S3": {
+      "title": "Ibn Kathir (Abridged), 96:6-19",
+      "url": "https://quran.com/al-alaq/6/tafsirs/en-tafisr-ibn-kathir",
+      "kind": "named tafsir, abridged English web edition",
+      "accessed": "2026-09-09"
+    },
+    "S4": {
+      "title": "Ma'arif al-Qur'an, 73:20",
+      "url": "https://quran.com/al-muzzammil/20/tafsirs/en-tafsir-maarif-ul-quran",
+      "kind": "named tafsir, English web edition",
+      "accessed": "2026-09-09"
+    },
+    "S5": {
+      "title": "Quran.com Al-Muzzammil information, adapted from Tafsir Ibn Ashur",
+      "url": "https://quran.com/al-muzzammil/info",
+      "kind": "editorial adaptation of named tafsir; not a direct original quotation",
+      "accessed": "2026-09-09"
+    },
+    "S6": {
+      "title": "Quran.com Al-Qalam information, adapted from Tafsir Ibn Ashur",
+      "url": "https://quran.com/al-qalam/info",
+      "kind": "editorial adaptation of named tafsir; not a direct original quotation",
+      "accessed": "2026-09-09"
+    },
+    "S7": {
+      "title": "Sahih Muslim 746a",
+      "url": "https://sunnah.com/muslim:746a",
+      "kind": "narrated report, English and Arabic web edition",
+      "accessed": "2026-09-09"
+    }
+  },
+  "chapters": [
+    {
+      "study_rank": 1,
+      "surah_id": 96,
+      "surah_name_in_ordering_source": "Al-Alaq",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": [
+        {
+          "verse_ranges": [
+            [
+              1,
+              5
+            ]
+          ],
+          "note": "Opening revelation unit distinguished from the later remainder of this surah.",
+          "source_ids": [
+            "S2"
+          ]
+        },
+        {
+          "verse_ranges": [
+            [
+              6,
+              19
+            ]
+          ],
+          "note": "Read as a separate commentary unit. Ibn Kathir associates the opposition-to-prayer passage with Abu Jahl. Do not assign the first revelation occasion to this whole unit.",
+          "source_ids": [
+            "S2",
+            "S3"
+          ]
+        }
+      ]
+    },
+    {
+      "study_rank": 2,
+      "surah_id": 68,
+      "surah_name_in_ordering_source": "Al-Qalam",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              17,
+              33
+            ],
+            [
+              48,
+              50
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": [
+        {
+          "verse_ranges": [
+            [
+              17,
+              33
+            ],
+            [
+              48,
+              50
+            ]
+          ],
+          "note": "Disagreement retained: S1 assigns these passages to Medina; S6 describes the surah as Makkan. This file reports the difference without resolving it.",
+          "source_ids": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "verse_ranges": null,
+          "note": "S6 reports a second-place order attributed to Jabir ibn Zayd and also mentions placement after Al-Muddaththir and Al-Muzzammil. Study rank 2 is a selected convention.",
+          "source_ids": [
+            "S6"
+          ]
+        }
+      ]
+    },
+    {
+      "study_rank": 3,
+      "surah_id": 73,
+      "surah_name_in_ordering_source": "Al-Muzzammil",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              10,
+              10
+            ],
+            [
+              11,
+              11
+            ],
+            [
+              20,
+              20
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": [
+        {
+          "verse_ranges": [
+            [
+              20,
+              20
+            ]
+          ],
+          "note": "Concluding passage must remain distinct from the early opening. S7 reports twelve months; S4 also discusses one-year/eight-month reports; S5 presents a Madinan conclusion possibly ten years later. No precise absolute date or merged consensus is asserted.",
+          "source_ids": [
+            "S4",
+            "S5",
+            "S7"
+          ]
+        },
+        {
+          "verse_ranges": [
+            [
+              10,
+              11
+            ]
+          ],
+          "note": "Disagreement retained: S1 includes these among Medinan exceptions; S5 labels the opening 1-19 Makkan. Do not silently promote either claim to definitive metadata.",
+          "source_ids": [
+            "S1",
+            "S5"
+          ]
+        }
+      ]
+    },
+    {
+      "study_rank": 4,
+      "surah_id": 74,
+      "surah_name_in_ordering_source": "Al-Muddaththir",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": [
+        {
+          "verse_ranges": null,
+          "note": "S2 discusses the opening of Al-Muddaththir in relation to resumption after an interruption of revelation. First passage, first complete surah, and first after interruption are different claims.",
+          "source_ids": [
+            "S2"
+          ]
+        }
+      ]
+    },
+    {
+      "study_rank": 5,
+      "surah_id": 1,
+      "surah_name_in_ordering_source": "Al-Faatiha",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": [
+        {
+          "verse_ranges": [
+            [
+              1,
+              7
+            ]
+          ],
+          "note": "S2 reports Al-Fatihah as a first complete-surah view while distinguishing earlier partial revelations. This is not a claim that its verses precede 96:1-5.",
+          "source_ids": [
+            "S2"
+          ]
+        }
+      ]
+    },
+    {
+      "study_rank": 6,
+      "surah_id": 111,
+      "surah_name_in_ordering_source": "Al-Masad",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 7,
+      "surah_id": 81,
+      "surah_name_in_ordering_source": "At-Takwir",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 8,
+      "surah_id": 87,
+      "surah_name_in_ordering_source": "Al-A'laa",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 9,
+      "surah_id": 92,
+      "surah_name_in_ordering_source": "Al-Lail",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 10,
+      "surah_id": 89,
+      "surah_name_in_ordering_source": "Al-Fajr",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 11,
+      "surah_id": 93,
+      "surah_name_in_ordering_source": "Ad-Dhuhaa",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 12,
+      "surah_id": 94,
+      "surah_name_in_ordering_source": "Ash-Sharh",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 13,
+      "surah_id": 103,
+      "surah_name_in_ordering_source": "Al-Asr",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 14,
+      "surah_id": 100,
+      "surah_name_in_ordering_source": "Al-Aadiyaat",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 15,
+      "surah_id": 108,
+      "surah_name_in_ordering_source": "Al-Kawthar",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 16,
+      "surah_id": 102,
+      "surah_name_in_ordering_source": "At-Takaathur",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 17,
+      "surah_id": 107,
+      "surah_name_in_ordering_source": "Al-Maa'un",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              4,
+              7
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 18,
+      "surah_id": 109,
+      "surah_name_in_ordering_source": "Al-Kaafiroon",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 19,
+      "surah_id": 105,
+      "surah_name_in_ordering_source": "Al-Fil",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 20,
+      "surah_id": 113,
+      "surah_name_in_ordering_source": "Al-Falaq",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 21,
+      "surah_id": 114,
+      "surah_name_in_ordering_source": "An-Naas",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 22,
+      "surah_id": 112,
+      "surah_name_in_ordering_source": "Al-Ikhlaas",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 23,
+      "surah_id": 53,
+      "surah_name_in_ordering_source": "An-Najm",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              32,
+              32
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 24,
+      "surah_id": 80,
+      "surah_name_in_ordering_source": "Abasa",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 25,
+      "surah_id": 97,
+      "surah_name_in_ordering_source": "Al-Qadr",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 26,
+      "surah_id": 91,
+      "surah_name_in_ordering_source": "Ash-Shams",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 27,
+      "surah_id": 85,
+      "surah_name_in_ordering_source": "Al-Burooj",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 28,
+      "surah_id": 95,
+      "surah_name_in_ordering_source": "At-Tin",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 29,
+      "surah_id": 106,
+      "surah_name_in_ordering_source": "Quraish",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 30,
+      "surah_id": 101,
+      "surah_name_in_ordering_source": "Al-Qaari'a",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 31,
+      "surah_id": 75,
+      "surah_name_in_ordering_source": "Al-Qiyaama",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 32,
+      "surah_id": 104,
+      "surah_name_in_ordering_source": "Al-Humaza",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 33,
+      "surah_id": 77,
+      "surah_name_in_ordering_source": "Al-Mursalaat",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              48,
+              48
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 34,
+      "surah_id": 50,
+      "surah_name_in_ordering_source": "Qaaf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              38,
+              38
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 35,
+      "surah_id": 90,
+      "surah_name_in_ordering_source": "Al-Balad",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 36,
+      "surah_id": 86,
+      "surah_name_in_ordering_source": "At-Taariq",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 37,
+      "surah_id": 54,
+      "surah_name_in_ordering_source": "Al-Qamar",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              44,
+              46
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 38,
+      "surah_id": 38,
+      "surah_name_in_ordering_source": "Saad",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 39,
+      "surah_id": 7,
+      "surah_name_in_ordering_source": "Al-A'raaf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              163,
+              170
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 40,
+      "surah_id": 72,
+      "surah_name_in_ordering_source": "Al-Jinn",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 41,
+      "surah_id": 36,
+      "surah_name_in_ordering_source": "Yaseen",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              45,
+              45
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 42,
+      "surah_id": 25,
+      "surah_name_in_ordering_source": "Al-Furqaan",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              68,
+              70
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 43,
+      "surah_id": 35,
+      "surah_name_in_ordering_source": "Faatir",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 44,
+      "surah_id": 19,
+      "surah_name_in_ordering_source": "Maryam",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              58,
+              58
+            ],
+            [
+              71,
+              71
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 45,
+      "surah_id": 20,
+      "surah_name_in_ordering_source": "Taa-Haa",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              130,
+              130
+            ],
+            [
+              131,
+              131
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 46,
+      "surah_id": 56,
+      "surah_name_in_ordering_source": "Al-Waaqia",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              81,
+              81
+            ],
+            [
+              82,
+              82
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 47,
+      "surah_id": 26,
+      "surah_name_in_ordering_source": "Ash-Shu'araa",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              197,
+              197
+            ],
+            [
+              224,
+              227
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 48,
+      "surah_id": 27,
+      "surah_name_in_ordering_source": "An-Naml",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 49,
+      "surah_id": 28,
+      "surah_name_in_ordering_source": "Al-Qasas",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              52,
+              55
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        },
+        {
+          "verse_ranges": [
+            [
+              85,
+              85
+            ]
+          ],
+          "reported_place_or_period": "Juhfa",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Hijra"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 50,
+      "surah_id": 17,
+      "surah_name_in_ordering_source": "Al-Israa",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              26,
+              26
+            ],
+            [
+              32,
+              32
+            ],
+            [
+              33,
+              33
+            ],
+            [
+              57,
+              57
+            ],
+            [
+              73,
+              80
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 51,
+      "surah_id": 10,
+      "surah_name_in_ordering_source": "Yunus",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              40,
+              40
+            ],
+            [
+              94,
+              94
+            ],
+            [
+              95,
+              95
+            ],
+            [
+              96,
+              96
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 52,
+      "surah_id": 11,
+      "surah_name_in_ordering_source": "Hud",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              12,
+              12
+            ],
+            [
+              17,
+              17
+            ],
+            [
+              114,
+              114
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 53,
+      "surah_id": 12,
+      "surah_name_in_ordering_source": "Yusuf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              7,
+              7
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 54,
+      "surah_id": 15,
+      "surah_name_in_ordering_source": "Al-Hijr",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              87,
+              87
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 55,
+      "surah_id": 6,
+      "surah_name_in_ordering_source": "Al-An'aam",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              20,
+              20
+            ],
+            [
+              23,
+              23
+            ],
+            [
+              91,
+              91
+            ],
+            [
+              93,
+              93
+            ],
+            [
+              114,
+              114
+            ],
+            [
+              151,
+              151
+            ],
+            [
+              152,
+              152
+            ],
+            [
+              153,
+              153
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 56,
+      "surah_id": 37,
+      "surah_name_in_ordering_source": "As-Saaffaat",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 57,
+      "surah_id": 31,
+      "surah_name_in_ordering_source": "Luqman",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              27,
+              29
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 58,
+      "surah_id": 34,
+      "surah_name_in_ordering_source": "Saba",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 59,
+      "surah_id": 39,
+      "surah_name_in_ordering_source": "Az-Zumar",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 60,
+      "surah_id": 40,
+      "surah_name_in_ordering_source": "Al-Ghaafir",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              56,
+              56
+            ],
+            [
+              57,
+              57
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 61,
+      "surah_id": 41,
+      "surah_name_in_ordering_source": "Fussilat",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 62,
+      "surah_id": 42,
+      "surah_name_in_ordering_source": "Ash-Shura",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              23,
+              23
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              25,
+              25
+            ],
+            [
+              27,
+              27
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 63,
+      "surah_id": 43,
+      "surah_name_in_ordering_source": "Az-Zukhruf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              54,
+              54
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 64,
+      "surah_id": 44,
+      "surah_name_in_ordering_source": "Ad-Dukhaan",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 65,
+      "surah_id": 45,
+      "surah_name_in_ordering_source": "Al-Jaathiya",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              14,
+              14
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 66,
+      "surah_id": 46,
+      "surah_name_in_ordering_source": "Al-Ahqaf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              10,
+              10
+            ],
+            [
+              15,
+              15
+            ],
+            [
+              35,
+              35
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 67,
+      "surah_id": 51,
+      "surah_name_in_ordering_source": "Adh-Dhaariyat",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 68,
+      "surah_id": 88,
+      "surah_name_in_ordering_source": "Al-Ghaashiya",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 69,
+      "surah_id": 18,
+      "surah_name_in_ordering_source": "Al-Kahf",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              28,
+              28
+            ],
+            [
+              83,
+              101
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 70,
+      "surah_id": 16,
+      "surah_name_in_ordering_source": "An-Nahl",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              126,
+              128
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Final three verses; resolved using 128-verse numbering"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 71,
+      "surah_id": 71,
+      "surah_name_in_ordering_source": "Nooh",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 72,
+      "surah_id": 14,
+      "surah_name_in_ordering_source": "Ibrahim",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              28,
+              28
+            ],
+            [
+              29,
+              29
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 73,
+      "surah_id": 21,
+      "surah_name_in_ordering_source": "Al-Anbiyaa",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 74,
+      "surah_id": 23,
+      "surah_name_in_ordering_source": "Al-Muminoon",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 75,
+      "surah_id": 32,
+      "surah_name_in_ordering_source": "As-Sajda",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              16,
+              20
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 76,
+      "surah_id": 52,
+      "surah_name_in_ordering_source": "At-Tur",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 77,
+      "surah_id": 67,
+      "surah_name_in_ordering_source": "Al-Mulk",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 78,
+      "surah_id": 69,
+      "surah_name_in_ordering_source": "Al-Haaqqa",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 79,
+      "surah_id": 70,
+      "surah_name_in_ordering_source": "Al-Ma'aarij",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 80,
+      "surah_id": 78,
+      "surah_name_in_ordering_source": "An-Naba",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 81,
+      "surah_id": 79,
+      "surah_name_in_ordering_source": "An-Naazi'aat",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 82,
+      "surah_id": 82,
+      "surah_name_in_ordering_source": "Al-Infitaar",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 83,
+      "surah_id": 84,
+      "surah_name_in_ordering_source": "Al-Inshiqaaq",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 84,
+      "surah_id": 30,
+      "surah_name_in_ordering_source": "Ar-Room",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              17,
+              17
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 85,
+      "surah_id": 29,
+      "surah_name_in_ordering_source": "Al-Ankaboot",
+      "source_classification": "Meccan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              1,
+              11
+            ]
+          ],
+          "reported_place_or_period": "Medinan",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 86,
+      "surah_id": 83,
+      "surah_name_in_ordering_source": "Al-Mutaffifin",
+      "source_classification": "Meccan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 87,
+      "surah_id": 2,
+      "surah_name_in_ordering_source": "Al-Baqara",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              281,
+              281
+            ]
+          ],
+          "reported_place_or_period": "Mina",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Last Hajj"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 88,
+      "surah_id": 8,
+      "surah_name_in_ordering_source": "Al-Anfaal",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              30,
+              36
+            ]
+          ],
+          "reported_place_or_period": "Mecca",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 89,
+      "surah_id": 3,
+      "surah_name_in_ordering_source": "Aal-i-Imraan",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 90,
+      "surah_id": 33,
+      "surah_name_in_ordering_source": "Al-Ahzaab",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 91,
+      "surah_id": 60,
+      "surah_name_in_ordering_source": "Al-Mumtahana",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 92,
+      "surah_id": 4,
+      "surah_name_in_ordering_source": "An-Nisaa",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 93,
+      "surah_id": 99,
+      "surah_name_in_ordering_source": "Az-Zalzala",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 94,
+      "surah_id": 57,
+      "surah_name_in_ordering_source": "Al-Hadid",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 95,
+      "surah_id": 47,
+      "surah_name_in_ordering_source": "Muhammad",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              13,
+              13
+            ]
+          ],
+          "reported_place_or_period": "Hijra",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 96,
+      "surah_id": 13,
+      "surah_name_in_ordering_source": "Ar-Ra'd",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 97,
+      "surah_id": 55,
+      "surah_name_in_ordering_source": "Ar-Rahmaan",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 98,
+      "surah_id": 76,
+      "surah_name_in_ordering_source": "Al-Insaan",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 99,
+      "surah_id": 65,
+      "surah_name_in_ordering_source": "At-Talaaq",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 100,
+      "surah_id": 98,
+      "surah_name_in_ordering_source": "Al-Bayyina",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 101,
+      "surah_id": 59,
+      "surah_name_in_ordering_source": "Al-Hashr",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 102,
+      "surah_id": 24,
+      "surah_name_in_ordering_source": "An-Noor",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 103,
+      "surah_id": 22,
+      "surah_name_in_ordering_source": "Al-Hajj",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              52,
+              55
+            ]
+          ],
+          "reported_place_or_period": "Between Mecca and Medina",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 104,
+      "surah_id": 63,
+      "surah_name_in_ordering_source": "Al-Munaafiqoon",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 105,
+      "surah_id": 58,
+      "surah_name_in_ordering_source": "Al-Mujaadila",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 106,
+      "surah_id": 49,
+      "surah_name_in_ordering_source": "Al-Hujuraat",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 107,
+      "surah_id": 66,
+      "surah_name_in_ordering_source": "At-Tahrim",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 108,
+      "surah_id": 64,
+      "surah_name_in_ordering_source": "At-Taghaabun",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 109,
+      "surah_id": 61,
+      "surah_name_in_ordering_source": "As-Saff",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 110,
+      "surah_id": 62,
+      "surah_name_in_ordering_source": "Al-Jumu'a",
+      "source_classification": "Medinan",
+      "exception_notes": [],
+      "context_notes": []
+    },
+    {
+      "study_rank": 111,
+      "surah_id": 48,
+      "surah_name_in_ordering_source": "Al-Fath",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": null,
+          "reported_place_or_period": "Returning from Hudaybiyya",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Whole-surah location note in selected source"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 112,
+      "surah_id": 5,
+      "surah_name_in_ordering_source": "Al-Maaida",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              3,
+              3
+            ]
+          ],
+          "reported_place_or_period": "Arafat",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Last Hajj"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 113,
+      "surah_id": 9,
+      "surah_name_in_ordering_source": "At-Tawba",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": [
+            [
+              128,
+              129
+            ]
+          ],
+          "reported_place_or_period": "Mecca",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Final two verses; resolved using 129-verse numbering"
+        }
+      ],
+      "context_notes": []
+    },
+    {
+      "study_rank": 114,
+      "surah_id": 110,
+      "surah_name_in_ordering_source": "An-Nasr",
+      "source_classification": "Medinan",
+      "exception_notes": [
+        {
+          "verse_ranges": null,
+          "reported_place_or_period": "Mina",
+          "source_id": "S1",
+          "status": "source_report_not_adjudicated",
+          "reported_context": "Last Hajj; selected source classifies surah as Medinan"
+        }
+      ],
+      "context_notes": []
+    }
+  ],
+  "validation": {
+    "chapter_count": 114,
+    "unique_surah_ids": 114,
+    "all_surah_ids_1_to_114": true,
+    "contiguous_study_ranks": true,
+    "surahs_with_selected_table_notes": 41,
+    "verse_range_upper_bounds": {
+      "passed": true,
+      "ranges_checked": 74,
+      "metadata_path": "cache/chapters.json",
+      "total_ayahs": 6236
+    }
+  }
+}

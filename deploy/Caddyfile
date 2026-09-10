@@ -1,0 +1,16 @@
+{$HIKMAH_DOMAIN} {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    -Server
+  }
+  reverse_proxy app:3000 {
+    flush_interval -1
+    header_up X-Real-IP {remote_host}
+    header_up -oai-authenticated-user-id
+    header_up -oai-authenticated-user-email
+    header_up -oai-authenticated-user-full-name
+  }
+}

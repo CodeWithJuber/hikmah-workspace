@@ -1,0 +1,28 @@
+{
+  "dataset": "UD_Turkish-PUD",
+  "language": "tr",
+  "revision": "63a134a087c8475ea832713b960baba8ff2f9401",
+  "source_url": "https://github.com/UniversalDependencies/UD_Turkish-PUD/tree/63a134a087c8475ea832713b960baba8ff2f9401",
+  "license": "CC-BY-SA-3.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "sources": [
+    {
+      "file": "raw/ud-pud/tr/README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/README.md",
+      "sha256": "eb8cbfbf881fe9e073f4749406cb23ba83fab7adaea2230350311c2b09c8b6c5",
+      "bytes": 6705
+    },
+    {
+      "file": "raw/ud-pud/tr/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/LICENSE.txt",
+      "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+      "bytes": 19556
+    },
+    {
+      "file": "raw/ud-pud/tr/tr_pud-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/tr_pud-ud-test.conllu",
+      "sha256": "7c1b6fe01662a7617758fbecdda6af6fc3914ace46b1809d6514af0a1c1df88c",
+      "bytes": 1382437
+    }
+  ]
+}

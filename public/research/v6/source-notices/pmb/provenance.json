@@ -1,0 +1,9 @@
+{
+  "dataset": "Parallel Meaning Bank official sample",
+  "version": "4.0.0",
+  "download_url": "https://pmb.let.rug.nl/releases/pmb-sample-4.0.0.zip",
+  "source_url": "https://pmb.let.rug.nl/data.php",
+  "sha256": "ce2327924b899a77fda0bcfa51fa5ec3a04d1385aa79100736d849bb223d7325",
+  "bytes": 1237060,
+  "retrieved_at": "2026-09-10"
+}

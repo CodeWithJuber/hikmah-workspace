@@ -1,0 +1,800 @@
+[
+  {
+    "surah": 1,
+    "path": "cache/tafsir/001.json",
+    "bytes": 6616,
+    "sha256": "fab2e4cd965199273f8431a3f5c2905ccc3f8b3a01b59010cbe535e63a48fe17",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 2,
+    "path": "cache/tafsir/002.json",
+    "bytes": 747716,
+    "sha256": "5b373963a3875a1ad02d26e6ef3f9259c85698aa1b031b41b4ee29370b56e04a",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 3,
+    "path": "cache/tafsir/003.json",
+    "bytes": 398719,
+    "sha256": "e1a46d1206e441a2338563923f59366334997e27ae14eba72f66c710ceac0980",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 4,
+    "path": "cache/tafsir/004.json",
+    "bytes": 358625,
+    "sha256": "8d8a53ae28d57ee4de76884c775a2a069d82effbfe62ebad3d2076ef96f308cb",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 5,
+    "path": "cache/tafsir/005.json",
+    "bytes": 220337,
+    "sha256": "2d28b9a5f5905bbf2542ba6af2f38c5dec4cedf98a4748dc17b74d097e654c1b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 6,
+    "path": "cache/tafsir/006.json",
+    "bytes": 278573,
+    "sha256": "ce343450c9df0888084fb2b7827fb81f7646ae49c4b17b1ba04c9776447c3395",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 7,
+    "path": "cache/tafsir/007.json",
+    "bytes": 372130,
+    "sha256": "bc14106e540982e2bb7cd1972b9451674489c4fe80de9508a882bc02d1c35ccf",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 8,
+    "path": "cache/tafsir/008.json",
+    "bytes": 95901,
+    "sha256": "b3d018601b4628594457970911ad55921b50444730639061398e33a794203bd3",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 9,
+    "path": "cache/tafsir/009.json",
+    "bytes": 206287,
+    "sha256": "0ee7d8d8d4f4deffddc15dd862063d0b37612a36029dc1466edca49b37c8cd46",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 10,
+    "path": "cache/tafsir/010.json",
+    "bytes": 144247,
+    "sha256": "e9831ecefc7eca6c585455a264443370c222e708855e4aeccb7141fbdd376e2f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 11,
+    "path": "cache/tafsir/011.json",
+    "bytes": 173934,
+    "sha256": "1f2133c75cce2e55292cf3731f361b7b888ffcd6421828d272aeb2537f78675a",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 12,
+    "path": "cache/tafsir/012.json",
+    "bytes": 150871,
+    "sha256": "b192c259ddac838a1685fe5546f70f6d3ab11502284173423f6b742829e03be9",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 13,
+    "path": "cache/tafsir/013.json",
+    "bytes": 55594,
+    "sha256": "430934d005a1ee6a5ac7a5b57058aa932b8c1d69e0c14fe2f70af0e5b016348d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 14,
+    "path": "cache/tafsir/014.json",
+    "bytes": 56064,
+    "sha256": "43877eae0602f7805f1a2b6e851b945456d6eb540c26f4764deae79b2122c60d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 15,
+    "path": "cache/tafsir/015.json",
+    "bytes": 100049,
+    "sha256": "7bdfb1f43f74b8c8b812afaefb89181e7b3677c895cb6489c893c29e2532cd64",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 16,
+    "path": "cache/tafsir/016.json",
+    "bytes": 184383,
+    "sha256": "9d29022df5270e88914dc54f28e7e2138f1d4297b8a5c8a5615dd4839c5f5df6",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 17,
+    "path": "cache/tafsir/017.json",
+    "bytes": 157616,
+    "sha256": "01a86298e13ebe9521ca7066ceed52bcd3d9e729ca08271a38f833b430c7250b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 18,
+    "path": "cache/tafsir/018.json",
+    "bytes": 151168,
+    "sha256": "5397ad65337948b16ebb46fc137c5e1c4f65e9278a207eb4fc938088d58e40f2",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 19,
+    "path": "cache/tafsir/019.json",
+    "bytes": 114607,
+    "sha256": "bf669ef5f299588308973fe615b6fc3475f5bb3dc5b7ffc52e41835273689789",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 20,
+    "path": "cache/tafsir/020.json",
+    "bytes": 174428,
+    "sha256": "540e03d238494943cfee2be47fb6aa7966e582095b978e29dd4cf15124c008f8",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 21,
+    "path": "cache/tafsir/021.json",
+    "bytes": 135127,
+    "sha256": "5561ff66816ae0641f64e63a30af0fe9919c343ddb40f39e09c8ee2a54336c7a",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 22,
+    "path": "cache/tafsir/022.json",
+    "bytes": 99384,
+    "sha256": "dc94e3b704fcd83d4888180f47d2a7b350a06c13e9b3d54279e85dc3cdcb913d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 23,
+    "path": "cache/tafsir/023.json",
+    "bytes": 145756,
+    "sha256": "997f0f1b6f8f2b723d70d2698c12e9802f25b345fe9ba3944e0fc212f1116645",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 24,
+    "path": "cache/tafsir/024.json",
+    "bytes": 96191,
+    "sha256": "91603613d1bc61440abedc27c216f472ef2aa4efa69841672ee23e770cd92874",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 25,
+    "path": "cache/tafsir/025.json",
+    "bytes": 87912,
+    "sha256": "68e0daa4e2992ab871e3379cb769c47f60930a35771902b83b558839f9257d5f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 26,
+    "path": "cache/tafsir/026.json",
+    "bytes": 359455,
+    "sha256": "f3e036975ccc38cd670ccc6f70a2c6b689fae2a69a259eaa0d5be6c293761f38",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 27,
+    "path": "cache/tafsir/027.json",
+    "bytes": 123390,
+    "sha256": "9f17ded1ee77285969d424d95ce606afa987c5aac54584b674221c4daa330122",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 28,
+    "path": "cache/tafsir/028.json",
+    "bytes": 121222,
+    "sha256": "c99dd6dbf7296401b07796fb8190f75ac0d113e622831774d9078c3bf146298e",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 29,
+    "path": "cache/tafsir/029.json",
+    "bytes": 79176,
+    "sha256": "f31944722e7a8a5ccd820d504c8100af4a3294bcfa73bccc2ae9b67d9088765a",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 30,
+    "path": "cache/tafsir/030.json",
+    "bytes": 68954,
+    "sha256": "25980b63ce530cdeeda4e9a7cbdbe93b9d0e197077982af813b0712bb3f5c2ba",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 31,
+    "path": "cache/tafsir/031.json",
+    "bytes": 37207,
+    "sha256": "e0818aab58ac5753f82c4344bfe279ea3d120bf399bda1e3c4371d2fde630b3f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 32,
+    "path": "cache/tafsir/032.json",
+    "bytes": 28373,
+    "sha256": "94ca7d4b5177b0a1aa19b27aa2b082d34065a2bf04bd78d965c7ab5dd92acab7",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 33,
+    "path": "cache/tafsir/033.json",
+    "bytes": 94321,
+    "sha256": "469545765b992bc409bf87fff12e53bcc60d48a226c7146c8874b3417859a72d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 34,
+    "path": "cache/tafsir/034.json",
+    "bytes": 60362,
+    "sha256": "1bc6722f8d8c7198dc2eb1e6451cf16187e752d031fcc077d174d34d3b1478ed",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 35,
+    "path": "cache/tafsir/035.json",
+    "bytes": 49368,
+    "sha256": "9cd746d05cac7c38c6e7e11d95443db679b0ac82d6b87c71868107193dd723a3",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 36,
+    "path": "cache/tafsir/036.json",
+    "bytes": 84913,
+    "sha256": "3ab308834a83d900eaf08c73408991d36ae1e073eea85316bd1d159470d00f0e",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 37,
+    "path": "cache/tafsir/037.json",
+    "bytes": 249250,
+    "sha256": "04b9532a3c37c059f1cb610cbc8ece3a84925374cac5d9e1d825698c865fde76",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 38,
+    "path": "cache/tafsir/038.json",
+    "bytes": 100760,
+    "sha256": "e1f1a88f165ea8479748f7b34ebf051fc4b217f5d298fe48031cf08a03d1721d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 39,
+    "path": "cache/tafsir/039.json",
+    "bytes": 84404,
+    "sha256": "49ea3005d5b378fe206b804bf63af607c4f84ad4dc5faf9dd104df6578fffa33",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 40,
+    "path": "cache/tafsir/040.json",
+    "bytes": 102944,
+    "sha256": "047a02e1fd272ace9e44a6d7b8b70a8f07999993bc02065c377b8e1d740dfea1",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 41,
+    "path": "cache/tafsir/041.json",
+    "bytes": 51019,
+    "sha256": "10ab65c4801ac2ac8602ab0237bd40190d997521a21ad0da9036ffadfd42049e",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 42,
+    "path": "cache/tafsir/042.json",
+    "bytes": 57231,
+    "sha256": "8b0d4266ce5b92858f3542eea7f516dd198091856a3b3a0fa7067fbf9ebd3089",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 43,
+    "path": "cache/tafsir/043.json",
+    "bytes": 100103,
+    "sha256": "c13ecb271e637ac2f3a3e717218eb19bd71c2e0f5901bdcd8c3d71e585a5c157",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 44,
+    "path": "cache/tafsir/044.json",
+    "bytes": 52297,
+    "sha256": "c7eb37bffed820226ea21b071fc151a318ebdc1d681629fd388e341687af9000",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 45,
+    "path": "cache/tafsir/045.json",
+    "bytes": 36748,
+    "sha256": "ce638720c60569e83c6fc40265db339c1927fb3194165d560ad950a0d53ab522",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 46,
+    "path": "cache/tafsir/046.json",
+    "bytes": 43444,
+    "sha256": "84b7ba621c50fb717564d200330842ec9cec0aa22d76c7e3e1bd432a5d12c9b3",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 47,
+    "path": "cache/tafsir/047.json",
+    "bytes": 42848,
+    "sha256": "f89d540d90818fd36c82bef7e8b9317a7437623fa5d01021795bcaa1cb96cb9b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 48,
+    "path": "cache/tafsir/048.json",
+    "bytes": 38751,
+    "sha256": "7174b944eb04484b74b42a0677dfe83a9d81f5d3d8c94992e372bf91677b722b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 49,
+    "path": "cache/tafsir/049.json",
+    "bytes": 23599,
+    "sha256": "00404afc61dac9f841e535101991f1b77ea7e01601c220ac05907c3ca8651087",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 50,
+    "path": "cache/tafsir/050.json",
+    "bytes": 40777,
+    "sha256": "288d3c64c6aed39fc53430f3384a998a37c71ec434e4dd3e57430b2c26b24a62",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 51,
+    "path": "cache/tafsir/051.json",
+    "bytes": 55235,
+    "sha256": "a975f47bbaa2e2ba35e50b79bd3b1cb4a5596622bd3bd2e0be3b435bc0812e0d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 52,
+    "path": "cache/tafsir/052.json",
+    "bytes": 39571,
+    "sha256": "7527c172cc10ffbddfe43a3eabff147a054602624687571616ac37fcca40ae3c",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 53,
+    "path": "cache/tafsir/053.json",
+    "bytes": 57917,
+    "sha256": "37b575d16454a82de78c8a9988e3730d8550a6593576982f181e74c0931b52ba",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 54,
+    "path": "cache/tafsir/054.json",
+    "bytes": 48956,
+    "sha256": "356d6ad042b4a21a5a69d825c286a2a847a17b9002dcba5e808476214a21d288",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 55,
+    "path": "cache/tafsir/055.json",
+    "bytes": 63736,
+    "sha256": "bb42bede143ecef0b0eed8ab3a5180d790173d5dacadae787e0faf3150934301",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 56,
+    "path": "cache/tafsir/056.json",
+    "bytes": 89606,
+    "sha256": "451bbb41c8d43aada9ecc6a8bc1cea5367b728c23dc07350ea2bec9b0b56c3c5",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 57,
+    "path": "cache/tafsir/057.json",
+    "bytes": 35936,
+    "sha256": "1f64c13e73c67ea649ec102ae496bcb7a8fadbd9384c5c2f11207e5b64bf62a2",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 58,
+    "path": "cache/tafsir/058.json",
+    "bytes": 23366,
+    "sha256": "651f408d12f91541b632e027eb52c6ef3fd77e3a94084e47b1effeba2b42ebf0",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 59,
+    "path": "cache/tafsir/059.json",
+    "bytes": 24414,
+    "sha256": "328705e9353c2d39a7f526ff9ea024df0337056cf08477e04c7e94801dba3d12",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 60,
+    "path": "cache/tafsir/060.json",
+    "bytes": 19969,
+    "sha256": "e4f0e53ffb2bb637363bde43a4dc184613badfaacea90c6dfb6e55c74e287fbb",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 61,
+    "path": "cache/tafsir/061.json",
+    "bytes": 13183,
+    "sha256": "8ddca43d68eee2dec060ad32b178f66ddfa670c9f453a8df87b312b6c92d0789",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 62,
+    "path": "cache/tafsir/062.json",
+    "bytes": 11304,
+    "sha256": "48a2109c170af71342b3788e926377024b696822ff7d72da270e019ad45fdeec",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 63,
+    "path": "cache/tafsir/063.json",
+    "bytes": 10316,
+    "sha256": "6aebdbfa94cc65f53b091305dfce0f6590d9ad03005b84b0f5266c8f6663b424",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 64,
+    "path": "cache/tafsir/064.json",
+    "bytes": 14367,
+    "sha256": "b15595e236fe9dc24acc351ca774186b51e35cb63ca10ce8f8a65aef1d48b3c9",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 65,
+    "path": "cache/tafsir/065.json",
+    "bytes": 15418,
+    "sha256": "11a0abe4d638a6d06607d79855143cc26baed9985849d1bfb85878ad88a0df6b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 66,
+    "path": "cache/tafsir/066.json",
+    "bytes": 16066,
+    "sha256": "c11c72fb0e7f9ed0f7655b1ad960053cb2c0a51c1bb29c9645181b66a6d70aca",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 67,
+    "path": "cache/tafsir/067.json",
+    "bytes": 29240,
+    "sha256": "fed1b7c9167b02712c75eec03dc7e4093146b3af03c4f3442270d70b20b12b41",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 68,
+    "path": "cache/tafsir/068.json",
+    "bytes": 39650,
+    "sha256": "73f08ea3b793a4862d01ea45cfcc64447a049cd40a58b34cad121cec8ddaf9cf",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 69,
+    "path": "cache/tafsir/069.json",
+    "bytes": 38007,
+    "sha256": "d1c8c5d9c4a8606c26101abd124952dfb7fb60af3afee99b93a638469efb5de2",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 70,
+    "path": "cache/tafsir/070.json",
+    "bytes": 31301,
+    "sha256": "08d178768de624c3ae3d832afba52aad54f1adc67d581bf9e6278accf26f96c5",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 71,
+    "path": "cache/tafsir/071.json",
+    "bytes": 18507,
+    "sha256": "536a13af3b6fb76721eaa8aa9bb7711ed9cdd59bee2eeeb1bd740a2fdfe4b8ab",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 72,
+    "path": "cache/tafsir/072.json",
+    "bytes": 22962,
+    "sha256": "e885283993df40eca56f928f323426ba7044218c3b3abe7d8280657769d93183",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 73,
+    "path": "cache/tafsir/073.json",
+    "bytes": 17852,
+    "sha256": "6c1efb2c9c0ffb6ccfc99c676735e802c74b46f457fd8e1fb1200cb488cc6c65",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 74,
+    "path": "cache/tafsir/074.json",
+    "bytes": 40595,
+    "sha256": "047930a8104f80203ba5f093e54b6bb3c2cd595758f72d903923c9b9a6c4038c",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 75,
+    "path": "cache/tafsir/075.json",
+    "bytes": 28552,
+    "sha256": "fc313a0e5da9fe0f82f1a08ab89d2337cc0e8b6f63c340ac15da0fc9bbbe1f8a",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 76,
+    "path": "cache/tafsir/076.json",
+    "bytes": 25566,
+    "sha256": "71c3751d1cb1d939ad6544e265ac45ca9611f378760ac639ff562c75f50772b7",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 77,
+    "path": "cache/tafsir/077.json",
+    "bytes": 34188,
+    "sha256": "f47be39206592bf31332d487676091711f1e72407a5f26b8aacd627cbe08a203",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 78,
+    "path": "cache/tafsir/078.json",
+    "bytes": 30523,
+    "sha256": "cce2d1f326b227d583d98ca04ae2e0e3128f79edbbdcab7167b1a5a8f7b14ddf",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 79,
+    "path": "cache/tafsir/079.json",
+    "bytes": 33756,
+    "sha256": "e7aab3e3a1f7a7e3dd2870e5e9434d27961d596ff3add4387cd3c059f0f7befb",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 80,
+    "path": "cache/tafsir/080.json",
+    "bytes": 28131,
+    "sha256": "6be3a42bdcb4a79df3979170499740735ac6ec70bdbd970d239b6fdbd42bbd9c",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 81,
+    "path": "cache/tafsir/081.json",
+    "bytes": 21160,
+    "sha256": "26d032ae8c4f8282fa8172d92e5ef0378591cf37bfba609dd4ffd551bb5f0daa",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 82,
+    "path": "cache/tafsir/082.json",
+    "bytes": 10737,
+    "sha256": "b7d7ebca88c8c5bbf99258cf84a88c41810e44c798386b7cb1fe34865ec6ae8f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 83,
+    "path": "cache/tafsir/083.json",
+    "bytes": 25971,
+    "sha256": "5b68416a0efef5a045931f6a85c62a8c38284adc6398e0b538fae09ad2df2b30",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 84,
+    "path": "cache/tafsir/084.json",
+    "bytes": 14983,
+    "sha256": "0160cd0a3652c5941957c08f65537e5e18b45b5bb9d93341aa92f4c4794080f0",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 85,
+    "path": "cache/tafsir/085.json",
+    "bytes": 13548,
+    "sha256": "5e46095d052ca9b8ef133aa306bd6f6b29eb2c5f527ec6986ee9a57587b0cb1f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 86,
+    "path": "cache/tafsir/086.json",
+    "bytes": 10482,
+    "sha256": "094035bebc9c5d2679cf011104400e26e7a9da25244f3771461792c9e40795c6",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 87,
+    "path": "cache/tafsir/087.json",
+    "bytes": 11103,
+    "sha256": "35f833be27c72d492ecd1ef1ab72e750955330bb9cab6f7bc68e48b9b63b0c88",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 88,
+    "path": "cache/tafsir/088.json",
+    "bytes": 14093,
+    "sha256": "05254277d2bf35d208cd7d00689e5ee2c3ec39715295aa43d2f829e5efe5279f",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 89,
+    "path": "cache/tafsir/089.json",
+    "bytes": 22320,
+    "sha256": "498a821a637768d01539fa943e20f501cefa6ad53edf5d0c3802b3b6c4af1be7",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 90,
+    "path": "cache/tafsir/090.json",
+    "bytes": 11942,
+    "sha256": "acdadc2e7db81a21feb330933f33257b526ce6173f486fc47ef5fc40b0c533ae",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 91,
+    "path": "cache/tafsir/091.json",
+    "bytes": 8697,
+    "sha256": "702f2990384a24240db35263991d3cc112ec0df160bd1e40c2036e5672668f92",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 92,
+    "path": "cache/tafsir/092.json",
+    "bytes": 12599,
+    "sha256": "8e4dd1aca502a73e6c128c68f745a195268523a31cc34f367090011e5677531e",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 93,
+    "path": "cache/tafsir/093.json",
+    "bytes": 6889,
+    "sha256": "4915380e88c7c6505a9d64448ae2eac7d0372293362305e125a5794f30fc2535",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 94,
+    "path": "cache/tafsir/094.json",
+    "bytes": 4501,
+    "sha256": "6a322b1e24045d02ca822769062e19a2995a9d87d1328b07242e1c3b960b522b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 95,
+    "path": "cache/tafsir/095.json",
+    "bytes": 5620,
+    "sha256": "9a3edc0b4e11571d469f5c4377411f92de60869d82a51387862504a11a257f87",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 96,
+    "path": "cache/tafsir/096.json",
+    "bytes": 11688,
+    "sha256": "e70cd5f1d749bfa2dc0c9e435015ad7bf0aeac79535943db935b5752d5b53261",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 97,
+    "path": "cache/tafsir/097.json",
+    "bytes": 3854,
+    "sha256": "46c03e7905e319b649df26d316050fa733bd712ef352be71e4a7e3b57756dae5",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 98,
+    "path": "cache/tafsir/098.json",
+    "bytes": 6981,
+    "sha256": "3bab622e2baa8017140797818ed33e9f9530b7d54b4cf43cd7a529d67a019108",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 99,
+    "path": "cache/tafsir/099.json",
+    "bytes": 5016,
+    "sha256": "5defa22c68c5836ee880226c79304cacb5c7fc9d9227701d3943ef30bc9a1e47",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 100,
+    "path": "cache/tafsir/100.json",
+    "bytes": 7032,
+    "sha256": "5394da3d305f374eaf09078b95117de1320ff85fca5d454b8d586a015a2baaaa",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 101,
+    "path": "cache/tafsir/101.json",
+    "bytes": 6452,
+    "sha256": "fa0a086435d33663704ccc537d43d388de9ad70d561e6464f6425e1cf83653f8",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 102,
+    "path": "cache/tafsir/102.json",
+    "bytes": 5035,
+    "sha256": "bb7d684e96f9536b72311959fa420665bb17e55601452e4761fe7308463d813b",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 103,
+    "path": "cache/tafsir/103.json",
+    "bytes": 2034,
+    "sha256": "3b2c7286825ddfbcf4241238380feedcdfaec4cf114591f3b0bfe8238eb1a89d",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 104,
+    "path": "cache/tafsir/104.json",
+    "bytes": 5593,
+    "sha256": "2552f6cd4b8a7a081a64d72a6ba6e47e47cd3d3ad8c8ebaf7b312d868b8b2169",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 105,
+    "path": "cache/tafsir/105.json",
+    "bytes": 4392,
+    "sha256": "78a302ee1952293a29876c91624945d23e2c5b9cf1e533578c671d3b5e6e3a7c",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 106,
+    "path": "cache/tafsir/106.json",
+    "bytes": 2858,
+    "sha256": "685e2fdae5f20996c920f0eb4079cd2a2a4595d7c109fb60f8a4c900accda922",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 107,
+    "path": "cache/tafsir/107.json",
+    "bytes": 3959,
+    "sha256": "ba1cd5bbf50d896ccb5bdceb598305710f48fcf110db95abd0d3d884edecec83",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 108,
+    "path": "cache/tafsir/108.json",
+    "bytes": 2286,
+    "sha256": "fe4df99f4acff46801819ea5ceb0ed3a60fd10142ba5bd301004b89b7a4be929",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 109,
+    "path": "cache/tafsir/109.json",
+    "bytes": 3646,
+    "sha256": "8fabef98a6d3929f7eeec08c05f37130d15d909b00893f169c651e9bd9d63c2c",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 110,
+    "path": "cache/tafsir/110.json",
+    "bytes": 2772,
+    "sha256": "e4797e8c5161b0f171725eea6c10a0b963d26c962d4452728c3941a13f275864",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 111,
+    "path": "cache/tafsir/111.json",
+    "bytes": 4340,
+    "sha256": "741ef23c356c9338328365ddbb7c383952848788cedbea1badb65c7b53bd7eee",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 112,
+    "path": "cache/tafsir/112.json",
+    "bytes": 2749,
+    "sha256": "e30c8efd04565eadad019b7b8272a4166c5c8c4779db9eec34eac7bc10f7eebb",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 113,
+    "path": "cache/tafsir/113.json",
+    "bytes": 3398,
+    "sha256": "3edd24ac845f30ec4211443215069aba63506163be8e47599f3d78e072610dc7",
+    "matches_recorded_sha256": true
+  },
+  {
+    "surah": 114,
+    "path": "cache/tafsir/114.json",
+    "bytes": 4546,
+    "sha256": "655d9838266569c0a8b0c66f072f72eb7d8c1144bce3d7f19ab6fca3bee12a08",
+    "matches_recorded_sha256": true
+  }
+]

@@ -1,0 +1,15 @@
+.git
+node_modules
+.next
+.data
+.env*
+dist
+.wrangler
+.sites-runtime
+.openai
+*.tsbuildinfo
+*.sqlite*
+outputs
+work
+backups
+deploy/*.json

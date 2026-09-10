@@ -1,0 +1,170 @@
+{
+  "decoder": {
+    "randomGraphs": 2250,
+    "validTreesEnumerated": 248589,
+    "disconnected": 222,
+    "passed": 2028,
+    "failures": []
+  },
+  "reproductions": [
+    {
+      "name": "nonroot receives root relation",
+      "tokens": [
+        {
+          "id": 1,
+          "form": "run",
+          "lemma": "run",
+          "upos": "VERB",
+          "head": 0,
+          "relation": "root",
+          "known": true,
+          "morphology": {}
+        },
+        {
+          "id": 2,
+          "form": "sleep",
+          "lemma": "sleep",
+          "upos": "VERB",
+          "head": 1,
+          "relation": "root",
+          "known": true,
+          "morphology": {}
+        }
+      ],
+      "invalidNonroot": [
+        {
+          "id": 2,
+          "form": "sleep",
+          "lemma": "sleep",
+          "upos": "VERB",
+          "head": 1,
+          "relation": "root",
+          "known": true,
+          "morphology": {}
+        }
+      ]
+    },
+    {
+      "name": "prototype lookup leaks function morphology",
+      "morphologyTypes": [
+        [
+          "constructor",
+          "function"
+        ],
+        [
+          "run",
+          "object"
+        ]
+      ],
+      "constructorEqualsObject": true
+    },
+    {
+      "name": "missing training manifest",
+      "accepted": true,
+      "error": null
+    },
+    {
+      "name": "arcs array instead of record",
+      "accepted": true,
+      "error": null
+    },
+    {
+      "name": "morphology array instead of record",
+      "accepted": true,
+      "error": null
+    },
+    {
+      "name": "duplicate tags",
+      "accepted": true,
+      "error": null
+    },
+    {
+      "name": "empty tag",
+      "accepted": true,
+      "error": null
+    },
+    {
+      "name": "zero-scored-token metric",
+      "metrics": {
+        "sentences": 1,
+        "excluded": 0,
+        "tokenCount": 0,
+        "posAccuracy": null,
+        "uas": null,
+        "las": null,
+        "exactTrees": 1,
+        "exactTreeRate": 1,
+        "oov": 0,
+        "oovPosAccuracy": null,
+        "evaluationInput": "gold basic-token segmentation; predicted POS; base dependency relations; excludes gold punctuation",
+        "perSentence": [
+          {
+            "id": "punct",
+            "tokens": 0,
+            "pos": 0,
+            "uas": 0,
+            "las": 0
+          }
+        ]
+      },
+      "numericStatus": {
+        "sentences": true,
+        "excluded": true,
+        "tokenCount": true,
+        "posAccuracy": false,
+        "uas": false,
+        "las": false,
+        "exactTrees": true,
+        "exactTreeRate": true,
+        "oov": true
+      }
+    }
+  ],
+  "corpusAudit": [
+    {
+      "language": "en",
+      "sentences": 1000,
+      "trainGroups": 321,
+      "developmentGroups": 42,
+      "testGroups": 34,
+      "overlap": [],
+      "invalid": []
+    },
+    {
+      "language": "ar",
+      "sentences": 1000,
+      "trainGroups": 321,
+      "developmentGroups": 42,
+      "testGroups": 34,
+      "overlap": [],
+      "invalid": []
+    },
+    {
+      "language": "hi",
+      "sentences": 1000,
+      "trainGroups": 321,
+      "developmentGroups": 42,
+      "testGroups": 34,
+      "overlap": [],
+      "invalid": []
+    },
+    {
+      "language": "es",
+      "sentences": 1000,
+      "trainGroups": 321,
+      "developmentGroups": 42,
+      "testGroups": 34,
+      "overlap": [],
+      "invalid": []
+    },
+    {
+      "language": "tr",
+      "sentences": 1000,
+      "trainGroups": 321,
+      "developmentGroups": 42,
+      "testGroups": 34,
+      "overlap": [],
+      "invalid": []
+    }
+  ]
+}

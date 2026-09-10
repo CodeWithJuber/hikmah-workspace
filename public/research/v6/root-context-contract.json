@@ -1,0 +1,213 @@
+{
+  "schema_version": "hikmah.root-context-contract.v6",
+  "status": "proposed_engineering_contract_not_full_language_model",
+  "separation": {
+    "historical_origin": "not_established",
+    "semantic_pivot": "testable_engineering_hypothesis",
+    "quranic_source": "contextual_provenance_not_algorithmic_proof",
+    "display_label": "not_a_predictive_mechanism_by_itself"
+  },
+  "representation": {
+    "surface": {
+      "required": [
+        "language",
+        "script",
+        "original_text",
+        "normalization_version",
+        "segments"
+      ],
+      "segment_fields": [
+        "id",
+        "start",
+        "end",
+        "surface",
+        "lemma_candidates",
+        "morphology_candidates"
+      ]
+    },
+    "entities": {
+      "required": [
+        "id",
+        "type",
+        "source_spans"
+      ],
+      "optional": [
+        "exact_literal",
+        "referent_candidates",
+        "resolved_by"
+      ]
+    },
+    "events": {
+      "required": [
+        "id",
+        "sense_id",
+        "roles",
+        "source_spans",
+        "epistemic_status"
+      ],
+      "optional": [
+        "time",
+        "aspect",
+        "modality",
+        "sense_candidates"
+      ]
+    },
+    "scope": {
+      "node_types": [
+        "event_ref",
+        "not",
+        "and",
+        "or",
+        "if",
+        "unless",
+        "before",
+        "after",
+        "required",
+        "permitted",
+        "possible",
+        "reported",
+        "question",
+        "quote"
+      ],
+      "rule": "Recursive operator tree with explicit children; never store only one document-wide polarity flag."
+    },
+    "anchor": {
+      "required": [
+        "concept_id",
+        "mapping_kind",
+        "status"
+      ],
+      "optional": [
+        "root_buckwalter",
+        "root_arabic",
+        "lemma",
+        "observed_form",
+        "word_location",
+        "ayah_key",
+        "context_span",
+        "source_url",
+        "source_hash",
+        "sense_version",
+        "review_id"
+      ],
+      "mapping_kind": [
+        "attested_contextual_sense",
+        "engineering_analogy",
+        "translation_alignment",
+        "none"
+      ],
+      "status": [
+        "reviewed",
+        "proposed",
+        "disputed",
+        "unmapped"
+      ],
+      "cardinality": "many_to_many"
+    },
+    "discourse": {
+      "required": [
+        "speaker",
+        "addressee",
+        "turn_id",
+        "context_version"
+      ],
+      "optional": [
+        "topic",
+        "time_anchor",
+        "referent_candidates",
+        "reported_speaker",
+        "prior_constraints"
+      ]
+    },
+    "provenance": {
+      "origin": [
+        "observed_surface",
+        "reviewed_lexicon",
+        "deterministic_composition",
+        "external_model_proposal",
+        "reviewed_correction"
+      ],
+      "required": [
+        "origin",
+        "source_ids",
+        "model_version",
+        "rule_ids"
+      ]
+    },
+    "parse_result": {
+      "status": [
+        "supported",
+        "partial",
+        "ambiguous",
+        "unsupported",
+        "resource_exhausted"
+      ],
+      "required": [
+        "status",
+        "graphs",
+        "unresolved_spans",
+        "unsupported_features",
+        "source_text_preserved"
+      ],
+      "rules": [
+        "A partial result is not a full parse.",
+        "An unresolved action-changing ambiguity requires clarification or external fallback.",
+        "External fallback must identify its provider/model and may not be counted as owned-core success."
+      ]
+    }
+  },
+  "construction_contract": {
+    "required": [
+      "id",
+      "language",
+      "input_pattern",
+      "typed_variables",
+      "graph_template",
+      "preconditions",
+      "observations",
+      "source_family_ids",
+      "version"
+    ],
+    "forbidden": [
+      "discarding_unparsed_clauses",
+      "inventing_root_for_unknown_literal",
+      "granting_own_tool_authority",
+      "treating_repeated_model_output_as_independent_evidence"
+    ]
+  },
+  "training_contract": {
+    "admissible_labels": [
+      "reviewed_correction",
+      "independently_checked_annotation",
+      "executable_test_for_its_covered_property"
+    ],
+    "proposal_only": [
+      "external_model_graph",
+      "model_self_confidence",
+      "unreviewed_corpus_alignment"
+    ],
+    "required_split_keys": [
+      "scenario_family",
+      "construction_family",
+      "source_lineage",
+      "language"
+    ],
+    "promotion": [
+      "frozen_evaluation_hash",
+      "no_new_critical_scope_errors",
+      "per_language_report",
+      "coverage_and_selective_error",
+      "model_and_data_hashes",
+      "rollback_snapshot"
+    ],
+    "automatic_training": "Allowed on admitted examples; model proposals alone do not become gold labels."
+  },
+  "preserve_patterns_file": "quran-patterns-preserved.json",
+  "limits": {
+    "max_graph_nodes_initial": 512,
+    "max_scope_depth_initial": 12,
+    "max_candidate_graphs_initial": 16,
+    "status_on_exhaustion": "resource_exhausted",
+    "reason": "Initial implementation bounds, not theoretical language limits or scientific findings."
+  }
+}

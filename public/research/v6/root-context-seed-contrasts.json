@@ -1,0 +1,722 @@
+{
+  "schema_version": "hikmah.seed-contrast.v6",
+  "status": "test_specifications_from_retained_AI_reviewed_seed_not_independent_gold",
+  "seed_source_sha256": "5d3fb4a75d220947228a807f69ea5f4ce69827d99fbe30e6dd13469e0c4f5ba1",
+  "contrasts": [
+    {
+      "id": "root-sense-nzr",
+      "root": "nZr",
+      "left_seed": "root-example-27-27-2",
+      "right_seed": "root-example-2-280-5",
+      "must_differ": [
+        "sense_id",
+        "event_roles",
+        "temporal_condition"
+      ],
+      "claim": "pending investigation and respite are distinct contexts"
+    },
+    {
+      "id": "root-sense-ktb",
+      "root": "ktb",
+      "left_seed": "root-example-2-183-4",
+      "right_seed": "root-example-2-282-10",
+      "must_differ": [
+        "sense_id",
+        "operator_scope"
+      ],
+      "claim": "prescription is not merely a physical writing action"
+    },
+    {
+      "id": "root-sense-dhkr",
+      "root": "*kr",
+      "left_seed": "root-example-18-24-5",
+      "right_seed": "root-example-3-36-13",
+      "must_differ": [
+        "sense_id",
+        "entity_or_event_type"
+      ],
+      "claim": "remembering and male in a birth narrative must not collapse"
+    },
+    {
+      "id": "root-sense-byn",
+      "root": "byn",
+      "left_seed": "root-example-49-6-8",
+      "right_seed": "root-example-4-58-11",
+      "must_differ": [
+        "sense_id",
+        "relation_type"
+      ],
+      "claim": "checking a report is not the same relation as between participants"
+    },
+    {
+      "id": "root-sense-elm",
+      "root": "Elm",
+      "left_seed": "root-example-96-5-1",
+      "right_seed": "root-example-16-16-1",
+      "must_differ": [
+        "sense_id",
+        "entity_or_event_type"
+      ],
+      "claim": "teaching event and navigational landmark are different"
+    },
+    {
+      "id": "ktb-exception",
+      "root": "ktb",
+      "left_seed": "root-example-2-282-10",
+      "right_seed": "root-example-2-282-107",
+      "must_differ": [
+        "operator_scope",
+        "conditions"
+      ],
+      "claim": "qualified exception must preserve the local conditions"
+    }
+  ],
+  "examples": [
+    {
+      "id": "root-example-96-5-1",
+      "root_buckwalter": "Elm",
+      "root_arabic": "ع ل م",
+      "ayah_key": "96:5",
+      "word_location": "96:5:1",
+      "arabic_token": "عَلَّمَ",
+      "transliteration": "allama",
+      "morphological_observation": {
+        "part_of_speech": "verb",
+        "form": "II",
+        "aspect": "perfect",
+        "person": "third",
+        "gender": "masculine",
+        "number": "singular"
+      },
+      "contextual_sense_label": "teaching",
+      "context_read": "96:4-6",
+      "source_observation": "The commentary describes teaching that follows a prior absence of knowledge and includes guidance, writing, and crafts.",
+      "proposed_computational_role": "Represent teaching as an event with teacher, learner, content, time, and evidence of subsequent learning.",
+      "excluded_inferences": [
+        "Teaching does not automatically prove the learner mastered content.",
+        "Do not transfer the divine subject or unrestricted knowledge to software."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(96:5:1)",
+      "tafsir_source_url": "https://quran.com/ar/96/5/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "3a2333ff31cbe242518087f216d3dd5dbe9f54b0e16f1ce6e745ad7bf6c00173",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-96-5-5",
+      "root_buckwalter": "Elm",
+      "root_arabic": "ع ل م",
+      "ayah_key": "96:5",
+      "word_location": "96:5:5",
+      "arabic_token": "يَعْلَمْ",
+      "transliteration": "yalam",
+      "morphological_observation": {
+        "part_of_speech": "verb",
+        "form": "I",
+        "aspect": "imperfect",
+        "mood": "jussive",
+        "person": "third",
+        "gender": "masculine",
+        "number": "singular",
+        "clause_operator": "preceding lam negates prior knowing"
+      },
+      "contextual_sense_label": "prior knowing under negation",
+      "context_read": "96:4-6",
+      "source_observation": "The last verb occurs under negation; the commentary makes the earlier absence of knowledge explicit.",
+      "proposed_computational_role": "Keep knowledge-state polarity and temporal reference distinct from the shared root.",
+      "excluded_inferences": [
+        "Root presence is not evidence that knowing occurred.",
+        "Morphological imperfect cannot be mapped mechanically to present event time."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(96:5:5)",
+      "tafsir_source_url": "https://quran.com/ar/96/5/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "3a2333ff31cbe242518087f216d3dd5dbe9f54b0e16f1ce6e745ad7bf6c00173",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-16-16-1",
+      "root_buckwalter": "Elm",
+      "root_arabic": "ع ل م",
+      "ayah_key": "16:16",
+      "word_location": "16:16:1",
+      "arabic_token": "وَعَلَامَاتٍ",
+      "transliteration": "waalamatin",
+      "morphological_observation": {
+        "segments": [
+          "conjunction",
+          "noun"
+        ],
+        "noun_gender": "feminine",
+        "noun_number": "plural",
+        "definiteness": "indefinite",
+        "qac_reported_case": "genitive",
+        "case_adjudication": "unresolved"
+      },
+      "contextual_sense_label": "navigational landmarks",
+      "context_read": "16:15-17",
+      "source_observation": "Al-Jalalayn describes daytime landmarks and guidance by stars at night.",
+      "proposed_computational_role": "Represent a landmark as a navigation cue with observed location and referent; keep it separate from knowing.",
+      "excluded_inferences": [
+        "Do not collapse all members of this root into knowledge.",
+        "Do not use the disputed case as a validated training target."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(16:16:1)",
+      "tafsir_source_url": "https://quran.com/ar/16/16/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "fda61bf45f647ec3c2057bd91dde412bc93901fbe1168bb1298b96029220f726",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": [
+        {
+          "type": "annotation_discrepancy",
+          "detail": "The QAC morphology page says genitive; its grammar page coordinates alamat with subulan in 16:15. Grammatical adjudication is required.",
+          "additional_source_url": "https://corpus.quran.com/grammar.jsp?chapter=16&verse=16"
+        }
+      ]
+    },
+    {
+      "id": "root-example-4-58-10",
+      "root_buckwalter": "Hkm",
+      "root_arabic": "ح ك م",
+      "ayah_key": "4:58",
+      "word_location": "4:58:10",
+      "arabic_token": "حَكَمْتُمْ",
+      "transliteration": "hakamtum",
+      "morphological_observation": {
+        "segments": [
+          "verb",
+          "subject_pronoun"
+        ],
+        "form": "I",
+        "aspect": "perfect",
+        "person": "second",
+        "gender": "masculine",
+        "number": "plural"
+      },
+      "contextual_sense_label": "judging between people",
+      "context_read": "4:57-59",
+      "source_observation": "The verse directs just judgment and returning entrusted rights; commentary retains a specific occasion and recognizes general wording.",
+      "proposed_computational_role": "Use an adjudication event with parties, evidence, standards, decision owner, and review record.",
+      "excluded_inferences": [
+        "Root identity does not prove a decision is correct.",
+        "No automatic external authority follows from a judging label."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(4:58:10)",
+      "tafsir_source_url": "https://quran.com/ar/4/58/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "bf8d1fc1efe26019cb5758ba9d9ba04b525ffd3f5aa37c260f180f680e497e7e",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-11-1-3",
+      "root_buckwalter": "Hkm",
+      "root_arabic": "ح ك م",
+      "ayah_key": "11:1",
+      "word_location": "11:1:3",
+      "arabic_token": "أُحْكِمَتْ",
+      "transliteration": "uhkimat",
+      "morphological_observation": {
+        "part_of_speech": "verb",
+        "form": "IV",
+        "voice": "passive",
+        "aspect": "perfect",
+        "person": "third",
+        "gender": "feminine",
+        "number": "singular"
+      },
+      "contextual_sense_label": "the Quranic ayahs being firmly composed",
+      "context_read": "11:1-2",
+      "source_observation": "Al-Jalalayn explains the Quranic description through composition and meanings followed by detailed rulings, narratives, and admonitions.",
+      "proposed_computational_role": "Retain a textual-quality sense distinct from an adjudication event; useful as a semantic discrimination example.",
+      "excluded_inferences": [
+        "This does not establish model or prompt infallibility.",
+        "The divine source description is not an engineering certification."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(11:1:3)",
+      "tafsir_source_url": "https://quran.com/ar/11/1/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "008a4a480d2f8f59dc93adbcb60ac14e47019eda092adf878a813b399ddf2466",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-2-75-17",
+      "root_buckwalter": "Eql",
+      "root_arabic": "ع ق ل",
+      "ayah_key": "2:75",
+      "word_location": "2:75:17",
+      "arabic_token": "عَقَلُوهُ",
+      "transliteration": "aqaluhu",
+      "morphological_observation": {
+        "segments": [
+          "verb",
+          "subject_pronoun",
+          "object_pronoun"
+        ],
+        "form": "I",
+        "aspect": "perfect",
+        "subject_person": "third",
+        "subject_gender": "masculine",
+        "subject_number": "plural",
+        "object_person": "third",
+        "object_gender": "masculine",
+        "object_number": "singular"
+      },
+      "contextual_sense_label": "having understood a text",
+      "context_read": "2:74-76",
+      "source_observation": "The narrative describes a party understanding the Torah and then distorting it knowingly.",
+      "proposed_computational_role": "Represent understanding and faithful transmission as distinct events whose outcomes require separate evidence.",
+      "excluded_inferences": [
+        "Do not label current religious groups as inherently untrustworthy.",
+        "Successful comprehension is not equivalent to honest conduct."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(2:75:17)",
+      "tafsir_source_url": "https://quran.com/ar/2/75/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "0b21946a496a54b1191236a8f79ee12caf544bd32765ec7e9a01c34c6d0a4615",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-22-46-8",
+      "root_buckwalter": "Eql",
+      "root_arabic": "ع ق ل",
+      "ayah_key": "22:46",
+      "word_location": "22:46:8",
+      "arabic_token": "يَعْقِلُونَ",
+      "transliteration": "yaqiluna",
+      "morphological_observation": {
+        "segments": [
+          "verb",
+          "subject_pronoun"
+        ],
+        "form": "I",
+        "aspect": "imperfect",
+        "mood": "indicative",
+        "person": "third",
+        "gender": "masculine",
+        "number": "plural"
+      },
+      "contextual_sense_label": "reasoning from remembered historical consequences",
+      "context_read": "22:45-47",
+      "source_observation": "The commentary concerns taking heed of earlier peoples and their ruined dwellings, with hearts and hearing in that moral context.",
+      "proposed_computational_role": "Represent a reasoning episode with observations, historical context, conclusion, and warrant.",
+      "excluded_inferences": [
+        "No computational consciousness or anatomical theory is established.",
+        "No software punishment mechanism is licensed."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(22:46:8)",
+      "tafsir_source_url": "https://quran.com/ar/22/46/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "b143a83f2d69c00698ec5d056524d01d573c2c4aea6df30ee5e24fa269115ca6",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-18-24-5",
+      "root_buckwalter": "*kr",
+      "root_arabic": "ذ ك ر",
+      "ayah_key": "18:24",
+      "word_location": "18:24:5",
+      "arabic_token": "وَاذْكُرْ",
+      "transliteration": "wa-udhkur",
+      "morphological_observation": {
+        "segments": [
+          "conjunction",
+          "verb"
+        ],
+        "form": "I",
+        "aspect": "imperative",
+        "person": "second",
+        "gender": "masculine",
+        "number": "singular"
+      },
+      "contextual_sense_label": "remembering after forgetting",
+      "context_read": "18:23-25",
+      "source_observation": "Al-Jalalayn ties remembrance to the preceding qualification of future speech by divine will.",
+      "proposed_computational_role": "Represent a corrective reminder with trigger, omitted qualification, and revised commitment.",
+      "excluded_inferences": [
+        "The passage is not a generic proof that every forgotten detail must be stored.",
+        "Do not strip the source religious referent from the source analysis."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(18:24:5)",
+      "tafsir_source_url": "https://quran.com/ar/18/24/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "5e24c01c35e0dadeb80af561ae39cf530fb78e56c5c957ee0e01714d32dec6f5",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-15-9-4",
+      "root_buckwalter": "*kr",
+      "root_arabic": "ذ ك ر",
+      "ayah_key": "15:9",
+      "word_location": "15:9:4",
+      "arabic_token": "الذِّكْرَ",
+      "transliteration": "al-dhikra",
+      "morphological_observation": {
+        "part_of_speech": "verbal_noun",
+        "gender": "masculine",
+        "case": "accusative"
+      },
+      "contextual_sense_label": "the Quran as the revealed reminder",
+      "context_read": "15:8-10",
+      "source_observation": "Al-Jalalayn identifies the referent as the Quran and its protection from alteration.",
+      "proposed_computational_role": "Represent the source referent as a specific document entity; use as a test against an overbroad memory sense.",
+      "excluded_inferences": [
+        "Do not infer guaranteed preservation of generated agent memories.",
+        "No replacement of the Quranic referent with a model is warranted."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(15:9:4)",
+      "tafsir_source_url": "https://quran.com/ar/15/9/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "24b745c226e7fdfbfab993ef47d61ccc35903cc0b29b14297ed7440c28d338fd",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-3-36-13",
+      "root_buckwalter": "*kr",
+      "root_arabic": "ذ ك ر",
+      "ayah_key": "3:36",
+      "word_location": "3:36:13",
+      "arabic_token": "الذَّكَرُ",
+      "transliteration": "al-dhakaru",
+      "morphological_observation": {
+        "part_of_speech": "noun",
+        "gender": "masculine",
+        "case": "nominative"
+      },
+      "contextual_sense_label": "male in the birth narrative",
+      "context_read": "3:35-37",
+      "source_observation": "The context is the birth and naming of Mary after a prenatal dedication; the commentary supplies historical service expectations.",
+      "proposed_computational_role": "Keep the lexical sense and descriptive entity attribute separate from remembrance.",
+      "excluded_inferences": [
+        "Do not derive intelligence, competence, or agent roles from human sex.",
+        "Shared root does not entail shared event semantics."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(3:36:13)",
+      "tafsir_source_url": "https://quran.com/ar/3/36/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "131f9cc852ae373b0b14d4eb3c0060fe15cd1de89cb63332651544e8cd38f2b9",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": [
+        {
+          "type": "commentary_context_boundary",
+          "detail": "The commentary includes historical gender assumptions; they are not empirical evidence for present-day ability judgments."
+        }
+      ]
+    },
+    {
+      "id": "root-example-27-27-2",
+      "root_buckwalter": "nZr",
+      "root_arabic": "ن ظ ر",
+      "ayah_key": "27:27",
+      "word_location": "27:27:2",
+      "arabic_token": "سَنَنْظُرُ",
+      "transliteration": "sananẓuru",
+      "morphological_observation": {
+        "segments": [
+          "future_particle",
+          "verb"
+        ],
+        "future_prefix": "sa",
+        "form": "I",
+        "aspect": "imperfect",
+        "mood": "indicative",
+        "person": "first",
+        "number": "plural"
+      },
+      "contextual_sense_label": "future evaluation of a report",
+      "context_read": "27:26-28",
+      "source_observation": "Solomon announces evaluation of the hoopoe report; the following verse orders a letter and observation of the response.",
+      "proposed_computational_role": "Represent a pending investigation with report, investigator, future status, and expected evidence.",
+      "excluded_inferences": [
+        "A planned check must not count as completed verification.",
+        "Commentarial narrative additions do not establish technical mechanisms."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(27:27:2)",
+      "tafsir_source_url": "https://quran.com/ar/27/27/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "db03f8c34bedaf90b1ddb5f156fa42409c588c68b31ded981c573e470187e3ec",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-2-280-5",
+      "root_buckwalter": "nZr",
+      "root_arabic": "ن ظ ر",
+      "ayah_key": "2:280",
+      "word_location": "2:280:5",
+      "arabic_token": "فَنَظِرَةٌ",
+      "transliteration": "fanaẓiratun",
+      "morphological_observation": {
+        "segments": [
+          "resumption_particle",
+          "noun"
+        ],
+        "gender": "feminine",
+        "case": "nominative",
+        "definiteness": "indefinite"
+      },
+      "contextual_sense_label": "respite for a debtor in hardship",
+      "context_read": "2:279-281",
+      "source_observation": "Al-Jalalayn explains delaying collection until the debtor has means, and discusses remitting the debt.",
+      "proposed_computational_role": "Represent delay with affected parties, reason, and an explicit ending condition.",
+      "excluded_inferences": [
+        "Do not confuse respite with visual inspection.",
+        "The ruling does not prescribe retries, backoff constants, or scheduling algorithms."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(2:280:5)",
+      "tafsir_source_url": "https://quran.com/ar/2/280/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "11b42c56093ab4c1a4f3d3b42d0af9fb3a60243370f629085cafe32d86b06d3d",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-49-6-8",
+      "root_buckwalter": "byn",
+      "root_arabic": "ب ي ن",
+      "ayah_key": "49:6",
+      "word_location": "49:6:8",
+      "arabic_token": "فَتَبَيَّنُوا",
+      "transliteration": "fatabayyanu",
+      "morphological_observation": {
+        "segments": [
+          "resumption_particle",
+          "verb",
+          "subject_pronoun"
+        ],
+        "form": "V",
+        "aspect": "imperative",
+        "person": "second",
+        "gender": "masculine",
+        "number": "plural"
+      },
+      "contextual_sense_label": "checking the truth of a report",
+      "context_read": "49:5-7",
+      "source_observation": "The commentary explains distinguishing a true report from a false one to avoid harm through ignorance; it records an alternative reading fatathabbatu.",
+      "proposed_computational_role": "Represent verification as an evidence-seeking operation attached to a report, consequences, and provenance.",
+      "excluded_inferences": [
+        "Do not infer trustworthiness from religious identity.",
+        "Do not silently merge different reading-specific roots."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(49:6:8)",
+      "tafsir_source_url": "https://quran.com/ar/49/6/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "4a016a832afab994608be94a5eaba5cea6822f265b7dbf327e09a19260a1af40",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": [
+        {
+          "type": "reading_variant",
+          "detail": "Al-Jalalayn explicitly records fatathabbatu, associated with th-b-t. This seed entry preserves the QAC reading and notes the alternative; it is not an exhaustive readings dataset."
+        }
+      ]
+    },
+    {
+      "id": "root-example-55-4-2",
+      "root_buckwalter": "byn",
+      "root_arabic": "ب ي ن",
+      "ayah_key": "55:4",
+      "word_location": "55:4:2",
+      "arabic_token": "الْبَيَانَ",
+      "transliteration": "al-bayana",
+      "morphological_observation": {
+        "part_of_speech": "noun",
+        "gender": "masculine",
+        "case": "accusative"
+      },
+      "contextual_sense_label": "speech or expression",
+      "context_read": "55:3-5",
+      "source_observation": "Al-Jalalayn gives speech as the contextual explanation.",
+      "proposed_computational_role": "Represent expressive communication separately from evidence verification.",
+      "excluded_inferences": [
+        "Fluent or eloquent output is not proof of truth.",
+        "The root does not establish a universal code for all language."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(55:4:2)",
+      "tafsir_source_url": "https://quran.com/ar/55/4/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "3272a32bbadea6d856c867ecf38bdc3b72f0d8cd6c96681c5b114208ca2d5678",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-4-58-11",
+      "root_buckwalter": "byn",
+      "root_arabic": "ب ي ن",
+      "ayah_key": "4:58",
+      "word_location": "4:58:11",
+      "arabic_token": "بَيْنَ",
+      "transliteration": "bayna",
+      "morphological_observation": {
+        "part_of_speech": "location_adverb",
+        "case": "accusative"
+      },
+      "contextual_sense_label": "between participants",
+      "context_read": "4:57-59",
+      "source_observation": "The word relates the people among whom judging occurs.",
+      "proposed_computational_role": "Represent a relation with participant arguments rather than a verification action.",
+      "excluded_inferences": [
+        "Do not execute a verification process merely because the root b-y-n occurs."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(4:58:11)",
+      "tafsir_source_url": "https://quran.com/ar/4/58/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "bf8d1fc1efe26019cb5758ba9d9ba04b525ffd3f5aa37c260f180f680e497e7e",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-2-183-4",
+      "root_buckwalter": "ktb",
+      "root_arabic": "ك ت ب",
+      "ayah_key": "2:183",
+      "word_location": "2:183:4",
+      "arabic_token": "كُتِبَ",
+      "transliteration": "kutiba",
+      "morphological_observation": {
+        "part_of_speech": "verb",
+        "form": "I",
+        "voice": "passive",
+        "aspect": "perfect",
+        "person": "third",
+        "gender": "masculine",
+        "number": "singular"
+      },
+      "contextual_sense_label": "fasting being prescribed",
+      "context_read": "2:182-184",
+      "source_observation": "Al-Jalalayn explains the verb as making fasting obligatory in the religious context.",
+      "proposed_computational_role": "Represent a normative statement with issuer, scope, subjects, and required activity.",
+      "excluded_inferences": [
+        "Do not map this occurrence to a physical writing event.",
+        "A represented obligation is not proof that the required action occurred."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(2:183:4)",
+      "tafsir_source_url": "https://quran.com/ar/2/183/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "c560db179ed851c61d1c15409124d327d465f2353ca83787767cdc15af0ec337",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-2-282-10",
+      "root_buckwalter": "ktb",
+      "root_arabic": "ك ت ب",
+      "ayah_key": "2:282",
+      "word_location": "2:282:10",
+      "arabic_token": "فَاكْتُبُوهُ",
+      "transliteration": "fa-uktubuhu",
+      "morphological_observation": {
+        "segments": [
+          "conditional_result_particle",
+          "verb",
+          "subject_pronoun",
+          "object_pronoun"
+        ],
+        "form": "I",
+        "aspect": "imperative",
+        "subject_person": "second",
+        "subject_gender": "masculine",
+        "subject_number": "plural",
+        "object_person": "third",
+        "object_gender": "masculine",
+        "object_number": "singular"
+      },
+      "contextual_sense_label": "recording an agreed term debt",
+      "context_read": "2:281-283",
+      "source_observation": "Al-Jalalayn connects the record with preventing disputes and preserving the amount and term accurately; later commentary describes the relevant directions as recommendation.",
+      "proposed_computational_role": "Represent a conditional documentation event with exact fields, parties, term, and interpretation of normative force.",
+      "excluded_inferences": [
+        "Imperative morphology alone does not resolve legal force.",
+        "No witness count, sex ratio, or free-status rule should become an agent-count or consensus rule."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(2:282:10)",
+      "tafsir_source_url": "https://quran.com/ar/2/282/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "6ec195936d19ac121c16b66a255ca89b04e3e8b0eb4d96bcfb723dcc156d40d5",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    },
+    {
+      "id": "root-example-2-282-107",
+      "root_buckwalter": "ktb",
+      "root_arabic": "ك ت ب",
+      "ayah_key": "2:282",
+      "word_location": "2:282:107",
+      "arabic_token": "تَكْتُبُوهَا",
+      "transliteration": "taktubuha",
+      "morphological_observation": {
+        "segments": [
+          "verb",
+          "subject_pronoun",
+          "object_pronoun"
+        ],
+        "form": "I",
+        "aspect": "imperfect",
+        "mood": "subjunctive",
+        "subject_person": "second",
+        "subject_gender": "masculine",
+        "subject_number": "plural",
+        "object_person": "third",
+        "object_gender": "feminine",
+        "object_number": "singular",
+        "clause_scope": "absence of blame for not writing an immediate transaction"
+      },
+      "contextual_sense_label": "writing inside a qualified exception",
+      "context_read": "2:281-283",
+      "source_observation": "The same ayah provides an immediate-transaction exception regarding not writing; the commentary retains the condition.",
+      "proposed_computational_role": "Represent scoped exceptions and distinguish permission not to act from prohibition to act.",
+      "excluded_inferences": [
+        "Do not turn the first recording instruction into an unconditional log-everything rule.",
+        "No blame for not writing does not mean writing is forbidden."
+      ],
+      "morphology_source_url": "https://corpus.quran.com/wordmorphology.jsp?location=(2:282:107)",
+      "tafsir_source_url": "https://quran.com/ar/2/282/tafsirs?tafsirId=926",
+      "tafsir_edition": "ar-jalalayn",
+      "tafsir_text_sha256": "6ec195936d19ac121c16b66a255ca89b04e3e8b0eb4d96bcfb723dcc156d40d5",
+      "source_verification": "QAC word page and complete corresponding local al-Jalalayn entry read; neighboring English ayahs read",
+      "analysis_status": "AI research seed; not independently adjudicated gold annotation",
+      "engineering_status": "proposed; untested",
+      "review_flags": []
+    }
+  ]
+}
