@@ -1,0 +1,127 @@
+{
+  "schema_version": "hikmah.context-sources.v6",
+  "checked_on": "2026-09-10",
+  "sources": [
+    {
+      "id": "QAC-MORPH",
+      "title": "Morphological Features",
+      "url": "https://corpus.quran.com/documentation/morphologicalfeatures.jsp",
+      "access": "Primary corpus documentation inspected",
+      "supports": "Roots, lemmas, segmentation, morphosyntactic features; particles may have no root.",
+      "boundary": "Not a full semantic representation or universal ancestry proof."
+    },
+    {
+      "id": "QAC-NZR",
+      "title": "Quran Dictionary: nZr",
+      "url": "https://corpus.quran.com/qurandictionary.jsp?q=nZr",
+      "access": "Primary concordance inspected",
+      "supports": "Contextual and derivational variation among looking, waiting and respite.",
+      "boundary": "Brief glosses do not replace tafsir or semantic adjudication."
+    },
+    {
+      "id": "QAC-KTB",
+      "title": "Quran Dictionary: ktb",
+      "url": "https://corpus.quran.com/qurandictionary.jsp?q=ktb",
+      "access": "Primary concordance inspected",
+      "supports": "Writing, prescription and related senses occur within a root family.",
+      "boundary": "Shared root does not make propositions equivalent."
+    },
+    {
+      "id": "QAC-RELEASE",
+      "title": "QAC version 0.4 release notes",
+      "url": "https://corpus.quran.com/releasenotes.jsp",
+      "access": "Official historical release notes inspected",
+      "supports": "This release reports syntactic coverage of 30895/77429 words (40%).",
+      "boundary": "Do not equate morphology with full semantic or dependency coverage."
+    },
+    {
+      "id": "GLOTTO-AR",
+      "title": "Glottolog Arabic",
+      "url": "https://glottolog.org/resource/languoid/id/arab1395",
+      "access": "Research catalog record inspected",
+      "supports": "Arabic classification and bibliography.",
+      "boundary": "Does not support all-language descent from Quranic Arabic."
+    },
+    {
+      "id": "GLOTTO-SEM",
+      "title": "Glottolog Semitic",
+      "url": "https://glottolog.org/resource/languoid/id/semi1276",
+      "access": "Research catalog record inspected",
+      "supports": "Semitic family record and classification references.",
+      "boundary": "Catalog is a synthesis; detailed historical reconstruction was not re-performed here."
+    },
+    {
+      "id": "GLOTTO-IE",
+      "title": "Glottolog Indo-European",
+      "url": "https://glottolog.org/resource/languoid/id/indo1319",
+      "access": "Research catalog record inspected",
+      "supports": "Separate Indo-European family-membership evidence and references.",
+      "boundary": "Semantic translation equivalence does not establish historical genealogy."
+    },
+    {
+      "id": "UD-TR",
+      "title": "UD for Turkish",
+      "url": "https://universaldependencies.org/tr/index.html",
+      "access": "Project annotation documentation inspected",
+      "supports": "Rich derivational/inflectional morphology and combined modality annotation.",
+      "boundary": "A common graph still needs language-specific analysis."
+    },
+    {
+      "id": "UD-ZH",
+      "title": "UD for Chinese",
+      "url": "https://universaldependencies.org/zh/index.html",
+      "access": "Project annotation documentation inspected",
+      "supports": "No ordinary whitespace segmentation; particles, aspect markers and isolating morphology.",
+      "boundary": "Arabic morphology cannot simply be imposed on Chinese."
+    },
+    {
+      "id": "AMR-2013",
+      "title": "Abstract Meaning Representation for Sembanking",
+      "url": "https://aclanthology.org/W13-2322.pdf",
+      "access": "Primary paper sections inspected",
+      "supports": "Predicate relations, scoped negation/modalities, coreference, nominalization.",
+      "boundary": "Sentence-level original AMR is not complete discourse semantics."
+    },
+    {
+      "id": "UCCA-2013",
+      "title": "Universal Conceptual Cognitive Annotation",
+      "url": "https://aclanthology.org/P13-1023.pdf",
+      "access": "Primary paper sections inspected",
+      "supports": "Conceptual graph units, semantic relations, abstraction over surface constructions.",
+      "boundary": "Graph semantics is established prior art, not this project's invention."
+    },
+    {
+      "id": "AMR-XLING-2024",
+      "title": "Assessing the Cross-linguistic Utility of Abstract Meaning Representation",
+      "url": "https://aclanthology.org/2024.cl-2.1/",
+      "access": "Primary abstract and findings inspected",
+      "supports": "Source language, annotation and translation affect parallel semantic graphs.",
+      "boundary": "Do not assume perfect language-invariant representation."
+    },
+    {
+      "id": "EARLEY-2023",
+      "title": "Efficient Semiring-Weighted Earley Parsing",
+      "url": "https://aclanthology.org/2023.acl-long.204/",
+      "access": "Primary abstract and complexity conditions inspected",
+      "supports": "Weighted grammar inference without transformer attention.",
+      "boundary": "Its bounds do not automatically apply to unrestricted graph unification or reasoning."
+    }
+  ],
+  "blocked_rechecks": [
+    {
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5047153/",
+      "title": "Sound-meaning association biases evidenced across thousands of languages",
+      "status": "Challenge page; prior study ledger retained without upgrading access status."
+    },
+    {
+      "url": "https://royalsocietypublishing.org/doi/10.1098/rspb.2009.0408",
+      "title": "Bayesian phylogenetic analysis of Semitic languages",
+      "status": "403; not used as freshly inspected primary evidence."
+    },
+    {
+      "url": "https://www.nature.com/articles/s41598-021-89445-4",
+      "title": "Novel vocalizations are understood across cultures",
+      "status": "Blocked redirect; no new findings claimed."
+    }
+  ]
+}

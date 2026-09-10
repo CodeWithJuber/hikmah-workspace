@@ -1,0 +1,30 @@
+{
+  "expected_surahs": 114,
+  "expected_ayahs": 6236,
+  "reviewed_ayahs": 6236,
+  "unique_ayahs": 6236,
+  "missing_ayahs": 0,
+  "duplicate_ayahs": 0,
+  "surah_count": 114,
+  "dispositions": {
+    "candidate": 1541,
+    "no_direct_analogy": 2180,
+    "context_only": 2048,
+    "needs_deeper_review": 467
+  },
+  "review_file_counts": {
+    "shard-1.tsv": 1034,
+    "shard-2.tsv": 1081,
+    "shard-3.tsv": 1037,
+    "shard-4.tsv": 1040,
+    "shard-5-supplement.tsv": 273,
+    "shard-5.tsv": 782,
+    "shard-6-supplement.tsv": 281,
+    "shard-6.tsv": 708
+  },
+  "review_status": "Complete AI-authored contextual first pass; not exhaustive or independently verified tafsir.",
+  "structural_checks": "IDs, uniqueness, per-surah counts, context bounds, pattern IDs, source URLs and source coverage passed.",
+  "model_behavioral_evaluations_run": 0,
+  "deterministic_compiler_tests_passed": 10,
+  "chronology_status": "Traditional surah-onset study order; not an exact per-ayah chronology."
+}

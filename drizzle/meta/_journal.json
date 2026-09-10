@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789009626180,
+      "tag": "0000_heavy_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789020212045,
+      "tag": "0001_optimal_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789029159655,
+      "tag": "0002_skinny_otto_octavius",
+      "breakpoints": true
+    }
+  ]
+}

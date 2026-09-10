@@ -1,0 +1,2186 @@
+{
+  "protocol": "Internal document-group partition of PUD, folds 2–9 train, 1 development, 0 test. This is one research split, not completed ten-fold cross-validation or official shared-task performance.",
+  "language": "hi",
+  "modelFile": "hi.model.json",
+  "training": {
+    "sentences": 827,
+    "tokens": 19764,
+    "groups": [
+      "pud/n01002",
+      "pud/n01003",
+      "pud/n01004",
+      "pud/n01005",
+      "pud/n01006",
+      "pud/n01008",
+      "pud/n01009",
+      "pud/n01010",
+      "pud/n01011",
+      "pud/n01012",
+      "pud/n01013",
+      "pud/n01014",
+      "pud/n01015",
+      "pud/n01016",
+      "pud/n01017",
+      "pud/n01018",
+      "pud/n01020",
+      "pud/n01021",
+      "pud/n01022",
+      "pud/n01024",
+      "pud/n01025",
+      "pud/n01027",
+      "pud/n01029",
+      "pud/n01030",
+      "pud/n01031",
+      "pud/n01032",
+      "pud/n01034",
+      "pud/n01035",
+      "pud/n01036",
+      "pud/n01039",
+      "pud/n01042",
+      "pud/n01043",
+      "pud/n01044",
+      "pud/n01045",
+      "pud/n01046",
+      "pud/n01049",
+      "pud/n01050",
+      "pud/n01051",
+      "pud/n01052",
+      "pud/n01053",
+      "pud/n01054",
+      "pud/n01057",
+      "pud/n01058",
+      "pud/n01059",
+      "pud/n01060",
+      "pud/n01061",
+      "pud/n01062",
+      "pud/n01063",
+      "pud/n01064",
+      "pud/n01065",
+      "pud/n01066",
+      "pud/n01067",
+      "pud/n01068",
+      "pud/n01069",
+      "pud/n01070",
+      "pud/n01071",
+      "pud/n01073",
+      "pud/n01074",
+      "pud/n01076",
+      "pud/n01077",
+      "pud/n01079",
+      "pud/n01080",
+      "pud/n01081",
+      "pud/n01082",
+      "pud/n01083",
+      "pud/n01085",
+      "pud/n01086",
+      "pud/n01087",
+      "pud/n01089",
+      "pud/n01090",
+      "pud/n01093",
+      "pud/n01095",
+      "pud/n01096",
+      "pud/n01097",
+      "pud/n01098",
+      "pud/n01099",
+      "pud/n01101",
+      "pud/n01102",
+      "pud/n01103",
+      "pud/n01104",
+      "pud/n01106",
+      "pud/n01107",
+      "pud/n01108",
+      "pud/n01109",
+      "pud/n01110",
+      "pud/n01112",
+      "pud/n01113",
+      "pud/n01114",
+      "pud/n01116",
+      "pud/n01117",
+      "pud/n01119",
+      "pud/n01120",
+      "pud/n01121",
+      "pud/n01122",
+      "pud/n01123",
+      "pud/n01125",
+      "pud/n01127",
+      "pud/n01129",
+      "pud/n01130",
+      "pud/n01131",
+      "pud/n01132",
+      "pud/n01133",
+      "pud/n01134",
+      "pud/n01135",
+      "pud/n01136",
+      "pud/n01137",
+      "pud/n01138",
+      "pud/n01139",
+      "pud/n01140",
+      "pud/n01141",
+      "pud/n01142",
+      "pud/n01143",
+      "pud/n01144",
+      "pud/n01145",
+      "pud/n01146",
+      "pud/n01147",
+      "pud/n01148",
+      "pud/n01149",
+      "pud/n02002",
+      "pud/n02004",
+      "pud/n02007",
+      "pud/n02011",
+      "pud/n02016",
+      "pud/n02017",
+      "pud/n02022",
+      "pud/n02024",
+      "pud/n02027",
+      "pud/n02030",
+      "pud/n02031",
+      "pud/n02032",
+      "pud/n02033",
+      "pud/n02034",
+      "pud/n02036",
+      "pud/n02041",
+      "pud/n02042",
+      "pud/n02043",
+      "pud/n02044",
+      "pud/n02046",
+      "pud/n02052",
+      "pud/n02056",
+      "pud/n02058",
+      "pud/n02066",
+      "pud/n02069",
+      "pud/n02073",
+      "pud/n02075",
+      "pud/n02076",
+      "pud/n02079",
+      "pud/n02081",
+      "pud/n02083",
+      "pud/n03001",
+      "pud/n03002",
+      "pud/n03003",
+      "pud/n03004",
+      "pud/n03005",
+      "pud/n03006",
+      "pud/n03007",
+      "pud/n03008",
+      "pud/n03009",
+      "pud/n04001",
+      "pud/n04002",
+      "pud/n04003",
+      "pud/n04005",
+      "pud/n04007",
+      "pud/n04008",
+      "pud/n04009",
+      "pud/n04010",
+      "pud/n05001",
+      "pud/n05002",
+      "pud/n05003",
+      "pud/n05005",
+      "pud/n05006",
+      "pud/n05007",
+      "pud/n05009",
+      "pud/w01001",
+      "pud/w01002",
+      "pud/w01003",
+      "pud/w01004",
+      "pud/w01005",
+      "pud/w01007",
+      "pud/w01008",
+      "pud/w01009",
+      "pud/w01010",
+      "pud/w01012",
+      "pud/w01013",
+      "pud/w01014",
+      "pud/w01017",
+      "pud/w01018",
+      "pud/w01019",
+      "pud/w01020",
+      "pud/w01022",
+      "pud/w01023",
+      "pud/w01025",
+      "pud/w01026",
+      "pud/w01027",
+      "pud/w01028",
+      "pud/w01029",
+      "pud/w01030",
+      "pud/w01031",
+      "pud/w01032",
+      "pud/w01033",
+      "pud/w01034",
+      "pud/w01035",
+      "pud/w01037",
+      "pud/w01038",
+      "pud/w01039",
+      "pud/w01040",
+      "pud/w01041",
+      "pud/w01043",
+      "pud/w01045",
+      "pud/w01046",
+      "pud/w01047",
+      "pud/w01048",
+      "pud/w01049",
+      "pud/w01051",
+      "pud/w01052",
+      "pud/w01053",
+      "pud/w01054",
+      "pud/w01056",
+      "pud/w01057",
+      "pud/w01058",
+      "pud/w01060",
+      "pud/w01064",
+      "pud/w01065",
+      "pud/w01067",
+      "pud/w01068",
+      "pud/w01069",
+      "pud/w01070",
+      "pud/w01072",
+      "pud/w01073",
+      "pud/w01074",
+      "pud/w01079",
+      "pud/w01080",
+      "pud/w01081",
+      "pud/w01082",
+      "pud/w01083",
+      "pud/w01084",
+      "pud/w01085",
+      "pud/w01087",
+      "pud/w01088",
+      "pud/w01089",
+      "pud/w01091",
+      "pud/w01092",
+      "pud/w01094",
+      "pud/w01095",
+      "pud/w01096",
+      "pud/w01097",
+      "pud/w01098",
+      "pud/w01100",
+      "pud/w01101",
+      "pud/w01102",
+      "pud/w01103",
+      "pud/w01105",
+      "pud/w01108",
+      "pud/w01109",
+      "pud/w01111",
+      "pud/w01112",
+      "pud/w01113",
+      "pud/w01114",
+      "pud/w01115",
+      "pud/w01116",
+      "pud/w01119",
+      "pud/w01121",
+      "pud/w01127",
+      "pud/w01128",
+      "pud/w01130",
+      "pud/w01131",
+      "pud/w01132",
+      "pud/w01133",
+      "pud/w01135",
+      "pud/w01136",
+      "pud/w01137",
+      "pud/w01138",
+      "pud/w01139",
+      "pud/w01140",
+      "pud/w01141",
+      "pud/w01142",
+      "pud/w01143",
+      "pud/w01144",
+      "pud/w01146",
+      "pud/w01147",
+      "pud/w01148",
+      "pud/w01150",
+      "pud/w02002",
+      "pud/w02003",
+      "pud/w02004",
+      "pud/w02005",
+      "pud/w02007",
+      "pud/w02008",
+      "pud/w02009",
+      "pud/w02011",
+      "pud/w02012",
+      "pud/w02013",
+      "pud/w02015",
+      "pud/w02016",
+      "pud/w02017",
+      "pud/w02018",
+      "pud/w02019",
+      "pud/w03001",
+      "pud/w03002",
+      "pud/w03003",
+      "pud/w03004",
+      "pud/w03005",
+      "pud/w03007",
+      "pud/w03008",
+      "pud/w03009",
+      "pud/w03010",
+      "pud/w04001",
+      "pud/w04002",
+      "pud/w04003",
+      "pud/w04004",
+      "pud/w04006",
+      "pud/w04008",
+      "pud/w04009",
+      "pud/w05002",
+      "pud/w05003",
+      "pud/w05004",
+      "pud/w05005",
+      "pud/w05006",
+      "pud/w05007",
+      "pud/w05009",
+      "pud/w05010"
+    ],
+    "skipped": 0,
+    "source": "UD PUD; internal document-group split; gold tokenization"
+  },
+  "source": {
+    "dataset": "UD_Hindi-PUD",
+    "language": "hi",
+    "revision": "a68a48e09451b675e2853106474dda4dd7515510",
+    "source_url": "https://github.com/UniversalDependencies/UD_Hindi-PUD/tree/a68a48e09451b675e2853106474dda4dd7515510",
+    "license": "CC-BY-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sources": [
+      {
+        "file": "raw/ud-pud/hi/README.md",
+        "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/README.md",
+        "sha256": "5ddd43a77e6d947d934bb442a8c9ba79549fb70d54ec8e428ceffc7d7fa864ed",
+        "bytes": 6097
+      },
+      {
+        "file": "raw/ud-pud/hi/LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/LICENSE.txt",
+        "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+        "bytes": 19556
+      },
+      {
+        "file": "raw/ud-pud/hi/hi_pud-ud-test.conllu",
+        "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/hi_pud-ud-test.conllu",
+        "sha256": "3562b7f49420912acad70a45a483f683dcb44624ea92f82e21b29f2ee41a9dff",
+        "bytes": 3043589
+      }
+    ]
+  },
+  "development": {
+    "sentences": 97,
+    "excluded": 0,
+    "tokenCount": 2043,
+    "posAccuracy": 0.8830151737640725,
+    "uas": 0.648556045031816,
+    "las": 0.5041605482134116,
+    "exactTrees": 0,
+    "exactTreeRate": 0,
+    "oov": 349,
+    "oovPosAccuracy": 0.6131805157593123,
+    "evaluationInput": "gold basic-token segmentation; predicted POS; base dependency relations; excludes gold punctuation",
+    "perSentence": [
+      {
+        "id": "n01007012",
+        "tokens": 11,
+        "pos": 9,
+        "uas": 3,
+        "las": 3
+      },
+      {
+        "id": "n01019004",
+        "tokens": 14,
+        "pos": 11,
+        "uas": 11,
+        "las": 8
+      },
+      {
+        "id": "n01019005",
+        "tokens": 18,
+        "pos": 17,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "n01033005",
+        "tokens": 24,
+        "pos": 24,
+        "uas": 19,
+        "las": 14
+      },
+      {
+        "id": "n01033012",
+        "tokens": 27,
+        "pos": 24,
+        "uas": 20,
+        "las": 14
+      },
+      {
+        "id": "n01033021",
+        "tokens": 21,
+        "pos": 20,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "n01033028",
+        "tokens": 12,
+        "pos": 8,
+        "uas": 7,
+        "las": 5
+      },
+      {
+        "id": "n01033031",
+        "tokens": 23,
+        "pos": 22,
+        "uas": 18,
+        "las": 15
+      },
+      {
+        "id": "n01037020",
+        "tokens": 42,
+        "pos": 38,
+        "uas": 26,
+        "las": 21
+      },
+      {
+        "id": "n01038021",
+        "tokens": 42,
+        "pos": 39,
+        "uas": 28,
+        "las": 21
+      },
+      {
+        "id": "n01038025",
+        "tokens": 29,
+        "pos": 27,
+        "uas": 20,
+        "las": 15
+      },
+      {
+        "id": "n01078025",
+        "tokens": 17,
+        "pos": 15,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "n01084008",
+        "tokens": 23,
+        "pos": 23,
+        "uas": 19,
+        "las": 14
+      },
+      {
+        "id": "n01084023",
+        "tokens": 34,
+        "pos": 31,
+        "uas": 23,
+        "las": 17
+      },
+      {
+        "id": "n01084036",
+        "tokens": 15,
+        "pos": 14,
+        "uas": 9,
+        "las": 7
+      },
+      {
+        "id": "n01084045",
+        "tokens": 30,
+        "pos": 28,
+        "uas": 23,
+        "las": 19
+      },
+      {
+        "id": "n01088026",
+        "tokens": 23,
+        "pos": 20,
+        "uas": 15,
+        "las": 11
+      },
+      {
+        "id": "n01091013",
+        "tokens": 23,
+        "pos": 20,
+        "uas": 10,
+        "las": 10
+      },
+      {
+        "id": "n01091017",
+        "tokens": 22,
+        "pos": 19,
+        "uas": 8,
+        "las": 5
+      },
+      {
+        "id": "n01091019",
+        "tokens": 30,
+        "pos": 26,
+        "uas": 20,
+        "las": 16
+      },
+      {
+        "id": "n01150007",
+        "tokens": 24,
+        "pos": 20,
+        "uas": 18,
+        "las": 14
+      },
+      {
+        "id": "n01150031",
+        "tokens": 14,
+        "pos": 14,
+        "uas": 11,
+        "las": 8
+      },
+      {
+        "id": "n01150042",
+        "tokens": 23,
+        "pos": 19,
+        "uas": 12,
+        "las": 9
+      },
+      {
+        "id": "n01150051",
+        "tokens": 24,
+        "pos": 23,
+        "uas": 21,
+        "las": 14
+      },
+      {
+        "id": "w01006027",
+        "tokens": 15,
+        "pos": 14,
+        "uas": 10,
+        "las": 5
+      },
+      {
+        "id": "w01006081",
+        "tokens": 16,
+        "pos": 13,
+        "uas": 6,
+        "las": 4
+      },
+      {
+        "id": "w01036044",
+        "tokens": 24,
+        "pos": 23,
+        "uas": 19,
+        "las": 18
+      },
+      {
+        "id": "w01036077",
+        "tokens": 11,
+        "pos": 10,
+        "uas": 4,
+        "las": 3
+      },
+      {
+        "id": "w01042055",
+        "tokens": 19,
+        "pos": 17,
+        "uas": 17,
+        "las": 13
+      },
+      {
+        "id": "w01050067",
+        "tokens": 20,
+        "pos": 16,
+        "uas": 13,
+        "las": 12
+      },
+      {
+        "id": "w01050068",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01050069",
+        "tokens": 14,
+        "pos": 12,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01050070",
+        "tokens": 38,
+        "pos": 27,
+        "uas": 24,
+        "las": 19
+      },
+      {
+        "id": "w01050071",
+        "tokens": 18,
+        "pos": 12,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01066003",
+        "tokens": 28,
+        "pos": 27,
+        "uas": 12,
+        "las": 7
+      },
+      {
+        "id": "w01066006",
+        "tokens": 17,
+        "pos": 16,
+        "uas": 15,
+        "las": 12
+      },
+      {
+        "id": "w01066008",
+        "tokens": 30,
+        "pos": 27,
+        "uas": 19,
+        "las": 17
+      },
+      {
+        "id": "w01066040",
+        "tokens": 28,
+        "pos": 27,
+        "uas": 17,
+        "las": 16
+      },
+      {
+        "id": "w01071036",
+        "tokens": 7,
+        "pos": 7,
+        "uas": 4,
+        "las": 4
+      },
+      {
+        "id": "w01071043",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 11,
+        "las": 10
+      },
+      {
+        "id": "w01075036",
+        "tokens": 25,
+        "pos": 23,
+        "uas": 14,
+        "las": 9
+      },
+      {
+        "id": "w01075037",
+        "tokens": 45,
+        "pos": 42,
+        "uas": 33,
+        "las": 29
+      },
+      {
+        "id": "w01075038",
+        "tokens": 25,
+        "pos": 22,
+        "uas": 17,
+        "las": 11
+      },
+      {
+        "id": "w01075039",
+        "tokens": 52,
+        "pos": 50,
+        "uas": 40,
+        "las": 33
+      },
+      {
+        "id": "w01075040",
+        "tokens": 17,
+        "pos": 13,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01076039",
+        "tokens": 20,
+        "pos": 18,
+        "uas": 14,
+        "las": 11
+      },
+      {
+        "id": "w01076054",
+        "tokens": 36,
+        "pos": 32,
+        "uas": 24,
+        "las": 17
+      },
+      {
+        "id": "w01086012",
+        "tokens": 16,
+        "pos": 14,
+        "uas": 14,
+        "las": 11
+      },
+      {
+        "id": "w01086037",
+        "tokens": 11,
+        "pos": 9,
+        "uas": 7,
+        "las": 6
+      },
+      {
+        "id": "w01093028",
+        "tokens": 20,
+        "pos": 17,
+        "uas": 14,
+        "las": 13
+      },
+      {
+        "id": "w01099012",
+        "tokens": 19,
+        "pos": 18,
+        "uas": 19,
+        "las": 15
+      },
+      {
+        "id": "w01099045",
+        "tokens": 19,
+        "pos": 15,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01106021",
+        "tokens": 9,
+        "pos": 8,
+        "uas": 7,
+        "las": 5
+      },
+      {
+        "id": "w01106052",
+        "tokens": 20,
+        "pos": 17,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "w01106073",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 11,
+        "las": 7
+      },
+      {
+        "id": "w01107013",
+        "tokens": 16,
+        "pos": 14,
+        "uas": 14,
+        "las": 10
+      },
+      {
+        "id": "w01107063",
+        "tokens": 19,
+        "pos": 18,
+        "uas": 17,
+        "las": 13
+      },
+      {
+        "id": "w01107124",
+        "tokens": 37,
+        "pos": 31,
+        "uas": 22,
+        "las": 16
+      },
+      {
+        "id": "w01117009",
+        "tokens": 16,
+        "pos": 15,
+        "uas": 9,
+        "las": 8
+      },
+      {
+        "id": "w01117029",
+        "tokens": 13,
+        "pos": 11,
+        "uas": 8,
+        "las": 6
+      },
+      {
+        "id": "w01117034",
+        "tokens": 23,
+        "pos": 21,
+        "uas": 9,
+        "las": 7
+      },
+      {
+        "id": "w01122031",
+        "tokens": 32,
+        "pos": 24,
+        "uas": 22,
+        "las": 14
+      },
+      {
+        "id": "w01122064",
+        "tokens": 32,
+        "pos": 28,
+        "uas": 19,
+        "las": 16
+      },
+      {
+        "id": "n02038007",
+        "tokens": 11,
+        "pos": 5,
+        "uas": 3,
+        "las": 1
+      },
+      {
+        "id": "n02040023",
+        "tokens": 13,
+        "pos": 10,
+        "uas": 7,
+        "las": 4
+      },
+      {
+        "id": "n02050052",
+        "tokens": 13,
+        "pos": 12,
+        "uas": 9,
+        "las": 7
+      },
+      {
+        "id": "n02068010",
+        "tokens": 8,
+        "pos": 7,
+        "uas": 8,
+        "las": 7
+      },
+      {
+        "id": "n02068015",
+        "tokens": 10,
+        "pos": 9,
+        "uas": 6,
+        "las": 4
+      },
+      {
+        "id": "n02078004",
+        "tokens": 12,
+        "pos": 12,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "n02078011",
+        "tokens": 17,
+        "pos": 15,
+        "uas": 9,
+        "las": 6
+      },
+      {
+        "id": "n02082017",
+        "tokens": 25,
+        "pos": 24,
+        "uas": 18,
+        "las": 15
+      },
+      {
+        "id": "n03010012",
+        "tokens": 24,
+        "pos": 21,
+        "uas": 18,
+        "las": 15
+      },
+      {
+        "id": "n03010019",
+        "tokens": 6,
+        "pos": 6,
+        "uas": 3,
+        "las": 3
+      },
+      {
+        "id": "n04006003",
+        "tokens": 11,
+        "pos": 11,
+        "uas": 7,
+        "las": 6
+      },
+      {
+        "id": "n04006004",
+        "tokens": 21,
+        "pos": 18,
+        "uas": 16,
+        "las": 11
+      },
+      {
+        "id": "n04006010",
+        "tokens": 11,
+        "pos": 9,
+        "uas": 7,
+        "las": 5
+      },
+      {
+        "id": "n04006014",
+        "tokens": 32,
+        "pos": 27,
+        "uas": 19,
+        "las": 16
+      },
+      {
+        "id": "n04006016",
+        "tokens": 29,
+        "pos": 23,
+        "uas": 16,
+        "las": 13
+      },
+      {
+        "id": "n05008012",
+        "tokens": 14,
+        "pos": 11,
+        "uas": 7,
+        "las": 7
+      },
+      {
+        "id": "n05008018",
+        "tokens": 31,
+        "pos": 30,
+        "uas": 20,
+        "las": 17
+      },
+      {
+        "id": "n05010004",
+        "tokens": 23,
+        "pos": 22,
+        "uas": 18,
+        "las": 15
+      },
+      {
+        "id": "w02001041",
+        "tokens": 32,
+        "pos": 28,
+        "uas": 19,
+        "las": 15
+      },
+      {
+        "id": "w02001069",
+        "tokens": 8,
+        "pos": 8,
+        "uas": 6,
+        "las": 5
+      },
+      {
+        "id": "w02006036",
+        "tokens": 12,
+        "pos": 12,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "w02006081",
+        "tokens": 21,
+        "pos": 21,
+        "uas": 13,
+        "las": 9
+      },
+      {
+        "id": "w02014013",
+        "tokens": 19,
+        "pos": 17,
+        "uas": 11,
+        "las": 8
+      },
+      {
+        "id": "w02014030",
+        "tokens": 22,
+        "pos": 19,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "w03006024",
+        "tokens": 14,
+        "pos": 11,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "w04010027",
+        "tokens": 17,
+        "pos": 11,
+        "uas": 3,
+        "las": 2
+      },
+      {
+        "id": "w04010028",
+        "tokens": 13,
+        "pos": 12,
+        "uas": 8,
+        "las": 6
+      },
+      {
+        "id": "w04010029",
+        "tokens": 28,
+        "pos": 19,
+        "uas": 14,
+        "las": 10
+      },
+      {
+        "id": "w04010030",
+        "tokens": 18,
+        "pos": 18,
+        "uas": 15,
+        "las": 12
+      },
+      {
+        "id": "w04010031",
+        "tokens": 31,
+        "pos": 28,
+        "uas": 17,
+        "las": 14
+      },
+      {
+        "id": "w05001026",
+        "tokens": 22,
+        "pos": 19,
+        "uas": 11,
+        "las": 7
+      },
+      {
+        "id": "w05001036",
+        "tokens": 15,
+        "pos": 10,
+        "uas": 4,
+        "las": 3
+      },
+      {
+        "id": "w05001045",
+        "tokens": 25,
+        "pos": 23,
+        "uas": 19,
+        "las": 14
+      },
+      {
+        "id": "w05008107",
+        "tokens": 21,
+        "pos": 18,
+        "uas": 8,
+        "las": 8
+      }
+    ]
+  },
+  "trials": [
+    {
+      "name": "local factors",
+      "config": {
+        "transition": 0,
+        "lexicalArc": 0,
+        "rootCandidates": 3
+      },
+      "posAccuracy": 0.8751835535976505,
+      "uas": 0.6172295643661282,
+      "las": 0.46940773372491434
+    },
+    {
+      "name": "sequence context",
+      "config": {
+        "transition": 0.45,
+        "lexicalArc": 0,
+        "rootCandidates": 3
+      },
+      "posAccuracy": 0.8766519823788547,
+      "uas": 0.6245717082721488,
+      "las": 0.48066568771414586
+    },
+    {
+      "name": "sequence and lexical relations",
+      "config": {
+        "transition": 0.45,
+        "lexicalArc": 0.6,
+        "rootCandidates": 3
+      },
+      "posAccuracy": 0.8766519823788547,
+      "uas": 0.6382770435633872,
+      "las": 0.4943710230053842
+    },
+    {
+      "name": "stronger sequence context",
+      "config": {
+        "transition": 1,
+        "lexicalArc": 0.6,
+        "rootCandidates": 3
+      },
+      "posAccuracy": 0.8830151737640725,
+      "uas": 0.648556045031816,
+      "las": 0.5041605482134116
+    }
+  ],
+  "test": {
+    "sentences": 76,
+    "excluded": 0,
+    "tokenCount": 1634,
+    "posAccuracy": 0.8824969400244798,
+    "uas": 0.6303549571603427,
+    "las": 0.48959608323133413,
+    "exactTrees": 1,
+    "exactTreeRate": 0.013157894736842105,
+    "oov": 297,
+    "oovPosAccuracy": 0.6161616161616161,
+    "evaluationInput": "gold basic-token segmentation; predicted POS; base dependency relations; excludes gold punctuation",
+    "perSentence": [
+      {
+        "id": "n01001011",
+        "tokens": 35,
+        "pos": 30,
+        "uas": 21,
+        "las": 14
+      },
+      {
+        "id": "n01001013",
+        "tokens": 20,
+        "pos": 18,
+        "uas": 14,
+        "las": 9
+      },
+      {
+        "id": "n01023020",
+        "tokens": 13,
+        "pos": 13,
+        "uas": 12,
+        "las": 11
+      },
+      {
+        "id": "n01023034",
+        "tokens": 25,
+        "pos": 22,
+        "uas": 16,
+        "las": 10
+      },
+      {
+        "id": "n01023043",
+        "tokens": 12,
+        "pos": 12,
+        "uas": 8,
+        "las": 7
+      },
+      {
+        "id": "n01026004",
+        "tokens": 18,
+        "pos": 17,
+        "uas": 12,
+        "las": 11
+      },
+      {
+        "id": "n01026016",
+        "tokens": 17,
+        "pos": 14,
+        "uas": 8,
+        "las": 7
+      },
+      {
+        "id": "n01028022",
+        "tokens": 22,
+        "pos": 16,
+        "uas": 13,
+        "las": 6
+      },
+      {
+        "id": "n01040028",
+        "tokens": 36,
+        "pos": 34,
+        "uas": 20,
+        "las": 17
+      },
+      {
+        "id": "n01041006",
+        "tokens": 21,
+        "pos": 17,
+        "uas": 12,
+        "las": 12
+      },
+      {
+        "id": "n01041018",
+        "tokens": 22,
+        "pos": 20,
+        "uas": 16,
+        "las": 12
+      },
+      {
+        "id": "n01047048",
+        "tokens": 12,
+        "pos": 11,
+        "uas": 10,
+        "las": 9
+      },
+      {
+        "id": "n01048008",
+        "tokens": 38,
+        "pos": 35,
+        "uas": 27,
+        "las": 19
+      },
+      {
+        "id": "n01055008",
+        "tokens": 16,
+        "pos": 14,
+        "uas": 9,
+        "las": 8
+      },
+      {
+        "id": "n01055038",
+        "tokens": 25,
+        "pos": 22,
+        "uas": 18,
+        "las": 18
+      },
+      {
+        "id": "n01055047",
+        "tokens": 11,
+        "pos": 9,
+        "uas": 3,
+        "las": 2
+      },
+      {
+        "id": "n01072010",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 13,
+        "las": 8
+      },
+      {
+        "id": "n01072012",
+        "tokens": 9,
+        "pos": 8,
+        "uas": 9,
+        "las": 5
+      },
+      {
+        "id": "n01072021",
+        "tokens": 29,
+        "pos": 25,
+        "uas": 21,
+        "las": 17
+      },
+      {
+        "id": "n01075028",
+        "tokens": 21,
+        "pos": 18,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "n01075044",
+        "tokens": 17,
+        "pos": 16,
+        "uas": 13,
+        "las": 10
+      },
+      {
+        "id": "n01092008",
+        "tokens": 9,
+        "pos": 6,
+        "uas": 5,
+        "las": 3
+      },
+      {
+        "id": "n01092014",
+        "tokens": 6,
+        "pos": 5,
+        "uas": 5,
+        "las": 3
+      },
+      {
+        "id": "n01092025",
+        "tokens": 30,
+        "pos": 29,
+        "uas": 19,
+        "las": 16
+      },
+      {
+        "id": "n01092040",
+        "tokens": 38,
+        "pos": 36,
+        "uas": 22,
+        "las": 19
+      },
+      {
+        "id": "n01094014",
+        "tokens": 4,
+        "pos": 3,
+        "uas": 1,
+        "las": 1
+      },
+      {
+        "id": "n01094022",
+        "tokens": 27,
+        "pos": 21,
+        "uas": 18,
+        "las": 14
+      },
+      {
+        "id": "n01105003",
+        "tokens": 19,
+        "pos": 15,
+        "uas": 16,
+        "las": 12
+      },
+      {
+        "id": "n01105013",
+        "tokens": 23,
+        "pos": 18,
+        "uas": 9,
+        "las": 8
+      },
+      {
+        "id": "n01105023",
+        "tokens": 12,
+        "pos": 10,
+        "uas": 6,
+        "las": 2
+      },
+      {
+        "id": "n01111018",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 11,
+        "las": 7
+      },
+      {
+        "id": "n01111021",
+        "tokens": 29,
+        "pos": 24,
+        "uas": 15,
+        "las": 12
+      },
+      {
+        "id": "n01111030",
+        "tokens": 21,
+        "pos": 20,
+        "uas": 14,
+        "las": 13
+      },
+      {
+        "id": "n01115005",
+        "tokens": 6,
+        "pos": 6,
+        "uas": 6,
+        "las": 6
+      },
+      {
+        "id": "n01115013",
+        "tokens": 20,
+        "pos": 19,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "n01118003",
+        "tokens": 3,
+        "pos": 3,
+        "uas": 2,
+        "las": 2
+      },
+      {
+        "id": "n01118010",
+        "tokens": 14,
+        "pos": 14,
+        "uas": 12,
+        "las": 11
+      },
+      {
+        "id": "n01118017",
+        "tokens": 17,
+        "pos": 15,
+        "uas": 16,
+        "las": 13
+      },
+      {
+        "id": "n01128017",
+        "tokens": 27,
+        "pos": 24,
+        "uas": 13,
+        "las": 10
+      },
+      {
+        "id": "n01128021",
+        "tokens": 29,
+        "pos": 26,
+        "uas": 16,
+        "las": 10
+      },
+      {
+        "id": "n01128025",
+        "tokens": 15,
+        "pos": 13,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "n01128033",
+        "tokens": 18,
+        "pos": 17,
+        "uas": 9,
+        "las": 7
+      },
+      {
+        "id": "w01016028",
+        "tokens": 25,
+        "pos": 25,
+        "uas": 20,
+        "las": 17
+      },
+      {
+        "id": "w01016034",
+        "tokens": 21,
+        "pos": 17,
+        "uas": 11,
+        "las": 9
+      },
+      {
+        "id": "w01016070",
+        "tokens": 17,
+        "pos": 15,
+        "uas": 10,
+        "las": 6
+      },
+      {
+        "id": "w01044010",
+        "tokens": 16,
+        "pos": 15,
+        "uas": 6,
+        "las": 5
+      },
+      {
+        "id": "w01061050",
+        "tokens": 23,
+        "pos": 21,
+        "uas": 16,
+        "las": 13
+      },
+      {
+        "id": "w01062037",
+        "tokens": 31,
+        "pos": 30,
+        "uas": 22,
+        "las": 16
+      },
+      {
+        "id": "w01062063",
+        "tokens": 47,
+        "pos": 45,
+        "uas": 34,
+        "las": 27
+      },
+      {
+        "id": "w01063048",
+        "tokens": 28,
+        "pos": 26,
+        "uas": 17,
+        "las": 15
+      },
+      {
+        "id": "w01078013",
+        "tokens": 22,
+        "pos": 20,
+        "uas": 11,
+        "las": 10
+      },
+      {
+        "id": "w01124011",
+        "tokens": 33,
+        "pos": 27,
+        "uas": 18,
+        "las": 16
+      },
+      {
+        "id": "w01124049",
+        "tokens": 21,
+        "pos": 18,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "w01125034",
+        "tokens": 30,
+        "pos": 27,
+        "uas": 19,
+        "las": 13
+      },
+      {
+        "id": "w01125035",
+        "tokens": 24,
+        "pos": 20,
+        "uas": 17,
+        "las": 14
+      },
+      {
+        "id": "w01125036",
+        "tokens": 19,
+        "pos": 18,
+        "uas": 11,
+        "las": 10
+      },
+      {
+        "id": "w01125037",
+        "tokens": 8,
+        "pos": 5,
+        "uas": 6,
+        "las": 3
+      },
+      {
+        "id": "w01125038",
+        "tokens": 34,
+        "pos": 29,
+        "uas": 18,
+        "las": 14
+      },
+      {
+        "id": "w01129019",
+        "tokens": 13,
+        "pos": 11,
+        "uas": 9,
+        "las": 4
+      },
+      {
+        "id": "w01129037",
+        "tokens": 14,
+        "pos": 13,
+        "uas": 12,
+        "las": 11
+      },
+      {
+        "id": "w01129053",
+        "tokens": 38,
+        "pos": 31,
+        "uas": 15,
+        "las": 11
+      },
+      {
+        "id": "w01134009",
+        "tokens": 14,
+        "pos": 11,
+        "uas": 9,
+        "las": 8
+      },
+      {
+        "id": "w01134062",
+        "tokens": 32,
+        "pos": 30,
+        "uas": 22,
+        "las": 17
+      },
+      {
+        "id": "w01134078",
+        "tokens": 16,
+        "pos": 14,
+        "uas": 12,
+        "las": 10
+      },
+      {
+        "id": "w01149002",
+        "tokens": 16,
+        "pos": 12,
+        "uas": 12,
+        "las": 8
+      },
+      {
+        "id": "w01149077",
+        "tokens": 26,
+        "pos": 22,
+        "uas": 10,
+        "las": 7
+      },
+      {
+        "id": "w01149088",
+        "tokens": 30,
+        "pos": 24,
+        "uas": 14,
+        "las": 8
+      },
+      {
+        "id": "n02006006",
+        "tokens": 21,
+        "pos": 20,
+        "uas": 9,
+        "las": 5
+      },
+      {
+        "id": "n02048002",
+        "tokens": 10,
+        "pos": 10,
+        "uas": 9,
+        "las": 6
+      },
+      {
+        "id": "n02074009",
+        "tokens": 32,
+        "pos": 28,
+        "uas": 20,
+        "las": 14
+      },
+      {
+        "id": "n05004020",
+        "tokens": 17,
+        "pos": 13,
+        "uas": 9,
+        "las": 9
+      },
+      {
+        "id": "n05004025",
+        "tokens": 13,
+        "pos": 10,
+        "uas": 7,
+        "las": 5
+      },
+      {
+        "id": "w04007006",
+        "tokens": 22,
+        "pos": 18,
+        "uas": 17,
+        "las": 14
+      },
+      {
+        "id": "w04007021",
+        "tokens": 34,
+        "pos": 31,
+        "uas": 26,
+        "las": 19
+      },
+      {
+        "id": "w04007037",
+        "tokens": 26,
+        "pos": 25,
+        "uas": 20,
+        "las": 17
+      },
+      {
+        "id": "w04007049",
+        "tokens": 47,
+        "pos": 40,
+        "uas": 27,
+        "las": 22
+      }
+    ]
+  },
+  "elapsedMs": 11303,
+  "fieldBytes": 1297754,
+  "testSentences": [
+    {
+      "id": "n01001011",
+      "tokens": 35,
+      "pos": 30,
+      "uas": 21,
+      "las": 14
+    },
+    {
+      "id": "n01001013",
+      "tokens": 20,
+      "pos": 18,
+      "uas": 14,
+      "las": 9
+    },
+    {
+      "id": "n01023020",
+      "tokens": 13,
+      "pos": 13,
+      "uas": 12,
+      "las": 11
+    },
+    {
+      "id": "n01023034",
+      "tokens": 25,
+      "pos": 22,
+      "uas": 16,
+      "las": 10
+    },
+    {
+      "id": "n01023043",
+      "tokens": 12,
+      "pos": 12,
+      "uas": 8,
+      "las": 7
+    },
+    {
+      "id": "n01026004",
+      "tokens": 18,
+      "pos": 17,
+      "uas": 12,
+      "las": 11
+    },
+    {
+      "id": "n01026016",
+      "tokens": 17,
+      "pos": 14,
+      "uas": 8,
+      "las": 7
+    },
+    {
+      "id": "n01028022",
+      "tokens": 22,
+      "pos": 16,
+      "uas": 13,
+      "las": 6
+    },
+    {
+      "id": "n01040028",
+      "tokens": 36,
+      "pos": 34,
+      "uas": 20,
+      "las": 17
+    },
+    {
+      "id": "n01041006",
+      "tokens": 21,
+      "pos": 17,
+      "uas": 12,
+      "las": 12
+    },
+    {
+      "id": "n01041018",
+      "tokens": 22,
+      "pos": 20,
+      "uas": 16,
+      "las": 12
+    },
+    {
+      "id": "n01047048",
+      "tokens": 12,
+      "pos": 11,
+      "uas": 10,
+      "las": 9
+    },
+    {
+      "id": "n01048008",
+      "tokens": 38,
+      "pos": 35,
+      "uas": 27,
+      "las": 19
+    },
+    {
+      "id": "n01055008",
+      "tokens": 16,
+      "pos": 14,
+      "uas": 9,
+      "las": 8
+    },
+    {
+      "id": "n01055038",
+      "tokens": 25,
+      "pos": 22,
+      "uas": 18,
+      "las": 18
+    },
+    {
+      "id": "n01055047",
+      "tokens": 11,
+      "pos": 9,
+      "uas": 3,
+      "las": 2
+    },
+    {
+      "id": "n01072010",
+      "tokens": 14,
+      "pos": 13,
+      "uas": 13,
+      "las": 8
+    },
+    {
+      "id": "n01072012",
+      "tokens": 9,
+      "pos": 8,
+      "uas": 9,
+      "las": 5
+    },
+    {
+      "id": "n01072021",
+      "tokens": 29,
+      "pos": 25,
+      "uas": 21,
+      "las": 17
+    },
+    {
+      "id": "n01075028",
+      "tokens": 21,
+      "pos": 18,
+      "uas": 11,
+      "las": 9
+    },
+    {
+      "id": "n01075044",
+      "tokens": 17,
+      "pos": 16,
+      "uas": 13,
+      "las": 10
+    },
+    {
+      "id": "n01092008",
+      "tokens": 9,
+      "pos": 6,
+      "uas": 5,
+      "las": 3
+    },
+    {
+      "id": "n01092014",
+      "tokens": 6,
+      "pos": 5,
+      "uas": 5,
+      "las": 3
+    },
+    {
+      "id": "n01092025",
+      "tokens": 30,
+      "pos": 29,
+      "uas": 19,
+      "las": 16
+    },
+    {
+      "id": "n01092040",
+      "tokens": 38,
+      "pos": 36,
+      "uas": 22,
+      "las": 19
+    },
+    {
+      "id": "n01094014",
+      "tokens": 4,
+      "pos": 3,
+      "uas": 1,
+      "las": 1
+    },
+    {
+      "id": "n01094022",
+      "tokens": 27,
+      "pos": 21,
+      "uas": 18,
+      "las": 14
+    },
+    {
+      "id": "n01105003",
+      "tokens": 19,
+      "pos": 15,
+      "uas": 16,
+      "las": 12
+    },
+    {
+      "id": "n01105013",
+      "tokens": 23,
+      "pos": 18,
+      "uas": 9,
+      "las": 8
+    },
+    {
+      "id": "n01105023",
+      "tokens": 12,
+      "pos": 10,
+      "uas": 6,
+      "las": 2
+    },
+    {
+      "id": "n01111018",
+      "tokens": 14,
+      "pos": 13,
+      "uas": 11,
+      "las": 7
+    },
+    {
+      "id": "n01111021",
+      "tokens": 29,
+      "pos": 24,
+      "uas": 15,
+      "las": 12
+    },
+    {
+      "id": "n01111030",
+      "tokens": 21,
+      "pos": 20,
+      "uas": 14,
+      "las": 13
+    },
+    {
+      "id": "n01115005",
+      "tokens": 6,
+      "pos": 6,
+      "uas": 6,
+      "las": 6
+    },
+    {
+      "id": "n01115013",
+      "tokens": 20,
+      "pos": 19,
+      "uas": 12,
+      "las": 10
+    },
+    {
+      "id": "n01118003",
+      "tokens": 3,
+      "pos": 3,
+      "uas": 2,
+      "las": 2
+    },
+    {
+      "id": "n01118010",
+      "tokens": 14,
+      "pos": 14,
+      "uas": 12,
+      "las": 11
+    },
+    {
+      "id": "n01118017",
+      "tokens": 17,
+      "pos": 15,
+      "uas": 16,
+      "las": 13
+    },
+    {
+      "id": "n01128017",
+      "tokens": 27,
+      "pos": 24,
+      "uas": 13,
+      "las": 10
+    },
+    {
+      "id": "n01128021",
+      "tokens": 29,
+      "pos": 26,
+      "uas": 16,
+      "las": 10
+    },
+    {
+      "id": "n01128025",
+      "tokens": 15,
+      "pos": 13,
+      "uas": 10,
+      "las": 7
+    },
+    {
+      "id": "n01128033",
+      "tokens": 18,
+      "pos": 17,
+      "uas": 9,
+      "las": 7
+    },
+    {
+      "id": "w01016028",
+      "tokens": 25,
+      "pos": 25,
+      "uas": 20,
+      "las": 17
+    },
+    {
+      "id": "w01016034",
+      "tokens": 21,
+      "pos": 17,
+      "uas": 11,
+      "las": 9
+    },
+    {
+      "id": "w01016070",
+      "tokens": 17,
+      "pos": 15,
+      "uas": 10,
+      "las": 6
+    },
+    {
+      "id": "w01044010",
+      "tokens": 16,
+      "pos": 15,
+      "uas": 6,
+      "las": 5
+    },
+    {
+      "id": "w01061050",
+      "tokens": 23,
+      "pos": 21,
+      "uas": 16,
+      "las": 13
+    },
+    {
+      "id": "w01062037",
+      "tokens": 31,
+      "pos": 30,
+      "uas": 22,
+      "las": 16
+    },
+    {
+      "id": "w01062063",
+      "tokens": 47,
+      "pos": 45,
+      "uas": 34,
+      "las": 27
+    },
+    {
+      "id": "w01063048",
+      "tokens": 28,
+      "pos": 26,
+      "uas": 17,
+      "las": 15
+    },
+    {
+      "id": "w01078013",
+      "tokens": 22,
+      "pos": 20,
+      "uas": 11,
+      "las": 10
+    },
+    {
+      "id": "w01124011",
+      "tokens": 33,
+      "pos": 27,
+      "uas": 18,
+      "las": 16
+    },
+    {
+      "id": "w01124049",
+      "tokens": 21,
+      "pos": 18,
+      "uas": 12,
+      "las": 10
+    },
+    {
+      "id": "w01125034",
+      "tokens": 30,
+      "pos": 27,
+      "uas": 19,
+      "las": 13
+    },
+    {
+      "id": "w01125035",
+      "tokens": 24,
+      "pos": 20,
+      "uas": 17,
+      "las": 14
+    },
+    {
+      "id": "w01125036",
+      "tokens": 19,
+      "pos": 18,
+      "uas": 11,
+      "las": 10
+    },
+    {
+      "id": "w01125037",
+      "tokens": 8,
+      "pos": 5,
+      "uas": 6,
+      "las": 3
+    },
+    {
+      "id": "w01125038",
+      "tokens": 34,
+      "pos": 29,
+      "uas": 18,
+      "las": 14
+    },
+    {
+      "id": "w01129019",
+      "tokens": 13,
+      "pos": 11,
+      "uas": 9,
+      "las": 4
+    },
+    {
+      "id": "w01129037",
+      "tokens": 14,
+      "pos": 13,
+      "uas": 12,
+      "las": 11
+    },
+    {
+      "id": "w01129053",
+      "tokens": 38,
+      "pos": 31,
+      "uas": 15,
+      "las": 11
+    },
+    {
+      "id": "w01134009",
+      "tokens": 14,
+      "pos": 11,
+      "uas": 9,
+      "las": 8
+    },
+    {
+      "id": "w01134062",
+      "tokens": 32,
+      "pos": 30,
+      "uas": 22,
+      "las": 17
+    },
+    {
+      "id": "w01134078",
+      "tokens": 16,
+      "pos": 14,
+      "uas": 12,
+      "las": 10
+    },
+    {
+      "id": "w01149002",
+      "tokens": 16,
+      "pos": 12,
+      "uas": 12,
+      "las": 8
+    },
+    {
+      "id": "w01149077",
+      "tokens": 26,
+      "pos": 22,
+      "uas": 10,
+      "las": 7
+    },
+    {
+      "id": "w01149088",
+      "tokens": 30,
+      "pos": 24,
+      "uas": 14,
+      "las": 8
+    },
+    {
+      "id": "n02006006",
+      "tokens": 21,
+      "pos": 20,
+      "uas": 9,
+      "las": 5
+    },
+    {
+      "id": "n02048002",
+      "tokens": 10,
+      "pos": 10,
+      "uas": 9,
+      "las": 6
+    },
+    {
+      "id": "n02074009",
+      "tokens": 32,
+      "pos": 28,
+      "uas": 20,
+      "las": 14
+    },
+    {
+      "id": "n05004020",
+      "tokens": 17,
+      "pos": 13,
+      "uas": 9,
+      "las": 9
+    },
+    {
+      "id": "n05004025",
+      "tokens": 13,
+      "pos": 10,
+      "uas": 7,
+      "las": 5
+    },
+    {
+      "id": "w04007006",
+      "tokens": 22,
+      "pos": 18,
+      "uas": 17,
+      "las": 14
+    },
+    {
+      "id": "w04007021",
+      "tokens": 34,
+      "pos": 31,
+      "uas": 26,
+      "las": 19
+    },
+    {
+      "id": "w04007037",
+      "tokens": 26,
+      "pos": 25,
+      "uas": 20,
+      "las": 17
+    },
+    {
+      "id": "w04007049",
+      "tokens": 47,
+      "pos": 40,
+      "uas": 27,
+      "las": 22
+    }
+  ],
+  "correction": "2026-09-10: prohibited non-root root relation fallback, corrected inherited morphology access. Existing dev-selected parameters retained. Scores recomputed after correctness fix; this is not a fresh unseen test."
+}

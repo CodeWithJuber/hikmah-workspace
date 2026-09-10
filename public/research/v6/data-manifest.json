@@ -1,0 +1,337 @@
+{
+  "version": "hikmah-multilingual-data.v6.2",
+  "retrieved_at": "2026-09-10",
+  "baseline": {
+    "train_rows": 144,
+    "status": "AI-authored controlled synthetic single-event frames"
+  },
+  "ud_pud": {
+    "en": {
+      "sentences": 1000,
+      "tokens": 21180,
+      "splits": {
+        "test": 76,
+        "train": 827,
+        "development": 97
+      },
+      "folds": {
+        "0": 76,
+        "1": 97,
+        "2": 108,
+        "3": 92,
+        "4": 86,
+        "5": 96,
+        "6": 130,
+        "7": 87,
+        "8": 136,
+        "9": 92
+      },
+      "multiword_sentences": 121,
+      "empty_node_sentences": 7
+    },
+    "ar": {
+      "sentences": 1000,
+      "tokens": 20747,
+      "splits": {
+        "test": 76,
+        "train": 827,
+        "development": 97
+      },
+      "folds": {
+        "0": 76,
+        "1": 97,
+        "2": 108,
+        "3": 92,
+        "4": 86,
+        "5": 96,
+        "6": 130,
+        "7": 87,
+        "8": 136,
+        "9": 92
+      },
+      "multiword_sentences": 0,
+      "empty_node_sentences": 0
+    },
+    "hi": {
+      "sentences": 1000,
+      "tokens": 23829,
+      "splits": {
+        "test": 76,
+        "train": 827,
+        "development": 97
+      },
+      "folds": {
+        "0": 76,
+        "1": 97,
+        "2": 108,
+        "3": 92,
+        "4": 86,
+        "5": 96,
+        "6": 130,
+        "7": 87,
+        "8": 136,
+        "9": 92
+      },
+      "multiword_sentences": 0,
+      "empty_node_sentences": 0
+    },
+    "es": {
+      "sentences": 1000,
+      "tokens": 23283,
+      "splits": {
+        "test": 76,
+        "train": 827,
+        "development": 97
+      },
+      "folds": {
+        "0": 76,
+        "1": 97,
+        "2": 108,
+        "3": 92,
+        "4": 86,
+        "5": 96,
+        "6": 130,
+        "7": 87,
+        "8": 136,
+        "9": 92
+      },
+      "multiword_sentences": 352,
+      "empty_node_sentences": 0
+    },
+    "tr": {
+      "sentences": 1000,
+      "tokens": 16881,
+      "splits": {
+        "test": 76,
+        "train": 827,
+        "development": 97
+      },
+      "folds": {
+        "0": 76,
+        "1": 97,
+        "2": 108,
+        "3": 92,
+        "4": 86,
+        "5": 96,
+        "6": 130,
+        "7": 87,
+        "8": 136,
+        "9": 92
+      },
+      "multiword_sentences": 290,
+      "empty_node_sentences": 0
+    }
+  },
+  "tatoeba": {
+    "ar": {
+      "downloaded_pairs": 32505,
+      "eligible_unique_pairs": 32494,
+      "selected_pairs": 5000,
+      "excluded_empty_long_or_pud": 2,
+      "splits": {
+        "development": 520,
+        "train": 3958,
+        "test": 522
+      }
+    },
+    "hi": {
+      "downloaded_pairs": 11201,
+      "eligible_unique_pairs": 11198,
+      "selected_pairs": 5000,
+      "excluded_empty_long_or_pud": 0,
+      "splits": {
+        "train": 4000,
+        "test": 488,
+        "development": 512
+      }
+    },
+    "ur": {
+      "downloaded_pairs": 1742,
+      "eligible_unique_pairs": 1742,
+      "selected_pairs": 1742,
+      "excluded_empty_long_or_pud": 0,
+      "splits": {
+        "train": 1392,
+        "test": 171,
+        "development": 179
+      }
+    },
+    "es": {
+      "downloaded_pairs": 229476,
+      "eligible_unique_pairs": 229367,
+      "selected_pairs": 5000,
+      "excluded_empty_long_or_pud": 24,
+      "splits": {
+        "train": 4010,
+        "test": 500,
+        "development": 490
+      }
+    },
+    "tr": {
+      "downloaded_pairs": 686483,
+      "eligible_unique_pairs": 686369,
+      "selected_pairs": 5000,
+      "excluded_empty_long_or_pud": 7,
+      "splits": {
+        "train": 3996,
+        "development": 518,
+        "test": 486
+      }
+    }
+  },
+  "audit": {
+    "exact_cross_split_text_overlap": 0,
+    "cross_split_translation_component_overlap": 0,
+    "pud_text_overlap": 0,
+    "flores_exclusion": "FLORES not acquired; no FLORES files ingested. Cannot assert no phrase overlap with a corpus not acquired.",
+    "not_guaranteed": [
+      "paraphrase or template-family separation",
+      "unseen-source document separation because Tatoeba Moses has no document IDs",
+      "historical LLM pretraining contamination"
+    ]
+  },
+  "outputs": [
+    {
+      "file": "processed/ud-pud-en.json",
+      "bytes": 2608304,
+      "sha256": "d8ea6542678736410b4931fbb8f99c581ded20d10c95f854b907dba1ef50fc10"
+    },
+    {
+      "file": "processed/ud-pud-ar.json",
+      "bytes": 3229619,
+      "sha256": "6b4f8aa830880e31f2a822421f938c44aae85bab4b59bf3ecb8fe740f7df0a10"
+    },
+    {
+      "file": "processed/ud-pud-hi.json",
+      "bytes": 3624706,
+      "sha256": "d83d3ee7586b98bf7e947c21f0a72ac04fcc6c6f189b60a61476605c02affe8d"
+    },
+    {
+      "file": "processed/ud-pud-es.json",
+      "bytes": 3197053,
+      "sha256": "2c9ada9b6cae6ea6f76915d7db1d419f1f8bacd0a93f19fcd24eb47e6daa0395"
+    },
+    {
+      "file": "processed/ud-pud-tr.json",
+      "bytes": 2416054,
+      "sha256": "9589972902947df9601d04275e56d94db06f8720a1df12f0bfd8ef0292e9d229"
+    },
+    {
+      "file": "processed/tatoeba-development.json",
+      "bytes": 1351561,
+      "sha256": "975093d81ada7adddeae8e372edebbd2fbcb34f9f038795be7226e3c264bb48e"
+    },
+    {
+      "file": "processed/tatoeba-train.json",
+      "bytes": 10469957,
+      "sha256": "fa1fab2542af6e2a3bb9daea9cb0410969e77439fc3db9dfea25bc7861ebc045"
+    },
+    {
+      "file": "processed/tatoeba-test.json",
+      "bytes": 1309343,
+      "sha256": "bb9cc4535ceba33f2e4295d6319b7db2330e393c33b2db83f3e616fff0490f06"
+    },
+    {
+      "file": "processed/pmb-sample-research.json",
+      "bytes": 845975,
+      "sha256": "a77d31041c920196561a79faa1e591039be3a4da1d46a1b307c437631878ba00"
+    },
+    {
+      "file": "processed/pmb-shareable-graph-fixtures.json",
+      "bytes": 48502,
+      "sha256": "947fe7aba4f43708bdb608af3a733e58a5189cb720fb8953f11d9fed8c6b20b4"
+    },
+    {
+      "file": "learned/lexical-associations.json",
+      "bytes": 1928551,
+      "sha256": "13177495b997d90d1c2f026dc34096bad733822ba1f2e308dc0fbc7223f9ceb6"
+    },
+    {
+      "file": "learned/lexical-association-report.json",
+      "bytes": 28405,
+      "sha256": "d90fbc9338dded9329ed7309b4249660be2bfe359ed996c03d3ab081f1c8b6f0"
+    }
+  ],
+  "limitations": [
+    "No new semantic gold labels created",
+    "PUD syntax/morphology annotations include automatically assigned fields; see per-language README",
+    "Tatoeba sentences are community translations and may have errors or offensive content",
+    "No proof that every language descends from Quranic Arabic",
+    "Downloaded data does not by itself improve the existing six-field engine; a compatible trained parser/alignment model and held-out evaluation are required"
+  ],
+  "raw_directory_bytes": 32448946,
+  "downloaded_source_bytes": 33590319,
+  "pmb": {
+    "source": {
+      "dataset": "Parallel Meaning Bank official sample",
+      "version": "4.0.0",
+      "download_url": "https://pmb.let.rug.nl/releases/pmb-sample-4.0.0.zip",
+      "source_url": "https://pmb.let.rug.nl/data.php",
+      "sha256": "ce2327924b899a77fda0bcfa51fa5ec3a04d1385aa79100736d849bb223d7325",
+      "bytes": 1237060,
+      "retrieved_at": "2026-09-10"
+    },
+    "totalDocuments": 120,
+    "qualityCounts": {
+      "bronze": 40,
+      "gold": 40,
+      "silver": 40
+    },
+    "languageQualityCounts": {
+      "en": {
+        "bronze": 10,
+        "gold": 10,
+        "silver": 10
+      },
+      "de": {
+        "bronze": 10,
+        "gold": 10,
+        "silver": 10
+      },
+      "it": {
+        "bronze": 10,
+        "gold": 10,
+        "silver": 10
+      },
+      "nl": {
+        "bronze": 10,
+        "gold": 10,
+        "silver": 10
+      }
+    },
+    "shareableFixtureCount": 14,
+    "shareableFixtureLanguageCounts": {
+      "de": 4,
+      "it": 5,
+      "nl": 5
+    },
+    "clausesTotal": 4830,
+    "clausesGold": 685,
+    "scopePredicates": {
+      "PRESUPPOSITION": 331,
+      "NEGATION": 18,
+      "POSSIBILITY": 3,
+      "NECESSITY": 1
+    },
+    "limitations": [
+      "Sample selected by annotation quality, not representative random language data",
+      "Gold tagging layers checked by humans; DRS compiled by symbolic Boxer pipeline; errors remain possible",
+      "Do not train and evaluate on these same inspected fixtures",
+      "ODC-BY covers annotations; raw texts retain distinct subcorpus licenses",
+      "SICK raw text noncommercial; excluded from publication fixtures",
+      "Original English RTE license unspecified in provided metadata; excluded from publication fixtures",
+      "Tatoeba individual-author attribution not checked; excluded from publication fixtures"
+    ]
+  },
+  "learned_lexical_model": {
+    "file": "learned/lexical-associations.json",
+    "bytes": 1928551,
+    "sha256": "13177495b997d90d1c2f026dc34096bad733822ba1f2e308dc0fbc7223f9ceb6",
+    "algorithm": "IBM Model 1, independent bidirectional sparse EM",
+    "train_pairs_supplied": 17356,
+    "total_associations": 16619,
+    "report": "learned/lexical-association-report.json",
+    "source_notices": "source-license-attribution/",
+    "evaluation": "served top3/pruned artifact and full-model diagnostics reported separately; no gold semantic accuracy"
+  }
+}

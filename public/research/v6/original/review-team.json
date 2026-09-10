@@ -1,0 +1,17 @@
+{
+  "review_type": "AI-authored contextual first pass",
+  "ai_reviewers": 6,
+  "independent_scholarly_review": false,
+  "inter_reviewer_agreement_measured": false,
+  "assignments": [
+    {"reviewer": "ayah_review_1", "file": "analysis/shard-1.tsv", "assigned_ayahs": 1034},
+    {"reviewer": "ayah_review_2", "file": "analysis/shard-2.tsv", "assigned_ayahs": 1081},
+    {"reviewer": "ayah_review_3", "file": "analysis/shard-3.tsv", "assigned_ayahs": 1037},
+    {"reviewer": "ayah_review_4", "file": "analysis/shard-4.tsv", "assigned_ayahs": 1040},
+    {"reviewer": "engineering_evidence", "file": "analysis/shard-5.tsv", "assigned_ayahs": 782},
+    {"reviewer": "chronology_context", "file": "analysis/shard-6.tsv", "assigned_ayahs": 708},
+    {"reviewer": "ayah_review_1", "file": "analysis/shard-5-supplement.tsv", "assigned_ayahs": 273},
+    {"reviewer": "ayah_review_2", "file": "analysis/shard-6-supplement.tsv", "assigned_ayahs": 281}
+  ],
+  "assignment_note": "Two final sections were reassigned to reviewers as their original assignments finished. Each ayah has one primary review row. Independent tasks do not imply statistically independent model errors."
+}

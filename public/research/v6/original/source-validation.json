@@ -1,0 +1,25 @@
+{
+  "scope": "source acquisition and structural validation, not semantic or scholarly validation",
+  "surahs": 114,
+  "expected_ayahs": 6236,
+  "translation_entries": 6236,
+  "tafsir_covered_ayahs": 6236,
+  "tafsir_pages": 282,
+  "translation_keyed_mcp_checks": 342,
+  "translation_raw_exact_matches": 200,
+  "translation_normalized_exact_matches": 335,
+  "normalization": "Remove HTML sup elements in full, strip remaining HTML tags, decode entities, collapse whitespace; do not change wording or punctuation.",
+  "translation_mismatch_count": 7,
+  "translation_mapping_method": "API array assigned by chapter metadata in canonical order; first/middle/last in each surah checked independently against keyed Quran.ai translation entries. This is a same-provider cross-interface check, not an independent text-critical witness.",
+  "original_claude_zip_verified": false,
+  "mcp_tool": "fetch_tafsir",
+  "tafsir_edition": "ar-jalalayn",
+  "tafsir_author": "Jalal al-Din al-Mahalli and Jalal al-Din al-Suyuti",
+  "sha256_translation_api": "cec5a485dfe4f90f28bf9ad71d17ca3891887f5bb05a2aea10c5aa15f13973ed",
+  "translation_punctuation_only_variants": 6,
+  "translation_wording_variants": 1,
+  "translation_wording_variant_ayahs": [
+    "86:1"
+  ],
+  "translation_variant_policy": "Keep requested API resource20 as baseline; preserve other interface variants."
+}

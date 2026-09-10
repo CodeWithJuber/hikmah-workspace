@@ -1,0 +1,2936 @@
+{
+  "source": "Original frozen Python learner; this file is an oracle, not training data.",
+  "dataset_sha256": "2d2e2b71f1f076a87a60517cdf4dfa7307ccdb618be6b3b884d11ba02b3775c3",
+  "base": {
+    "examples": 53,
+    "frame_scored_examples": 51,
+    "correct_frames": 36,
+    "exact_match_including_abstentions": 0.7058823529411765,
+    "emitted_frames": 36,
+    "abstentions": 17,
+    "coverage": 0.6792452830188679,
+    "selective_accuracy": 1.0,
+    "schema_boundary_examples": 2,
+    "schema_boundary_abstentions": 2,
+    "predictions": [
+      {
+        "id": "final_test-base-0-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina thanked Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-0-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا شَكَرَتْ نورا.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-0-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने नोरा को धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina did not thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا لَمْ تَشْكُرْ نورا.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने नोरा को नहीं धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Mira did not help Lina.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "ميرا لَمْ تُعِنْ لينا.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "मीरा ने लीना की मदद नहीं की।",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 6,
+            "observations": 9
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Mira thanked Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "ميرا شَكَرَتْ نورا.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "मीरा ने नोरा को धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora helped Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا أَعَانَتْ سارة.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने सारा की मदद की।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:sara",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 7,
+            "observations": 7
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara remembered Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة تَذَكَّرَتْ ميرا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने मीरा को याद किया।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:mira",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not help Lina.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تُعِنْ لينا.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने लीना की मदद नहीं की।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 6,
+            "observations": 9
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina did not thank Sara.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا لَمْ تَشْكُرْ سارة.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने सारा को नहीं धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara helped Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة أَعَانَتْ لينا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने लीना की मदद की।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 7,
+            "observations": 7
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara did not remember Nora.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة لَمْ تَتَذَكَّرْ نورا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने नोरा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not remember Mira.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تَتَذَكَّرْ ميرا.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने मीरा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:mira",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not remember Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تَتَذَكَّرْ سارة.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने सारा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-emphatic-0",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Lina did thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-future-0",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Lina will thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-1",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Mira did thank Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-future-1",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Mira will thank Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-2",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Nora did help Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-future-2",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Nora will help Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-3",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Sara did remember Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-future-3",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Sara will remember Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-4",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Sara did help Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-future-4",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Sara will help Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-0",
+        "category": "unknown_entity",
+        "language": "en",
+        "text": "Zoya thanked Sara.",
+        "expected": {
+          "agent": "person:zoya",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-1",
+        "category": "unknown_paraphrase",
+        "language": "en",
+        "text": "Sara expressed gratitude to Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-2",
+        "category": "untrained_question",
+        "language": "en",
+        "text": "Did Sara thank Mira?",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "question"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-3",
+        "category": "unknown_word_order",
+        "language": "ar",
+        "text": "شَكَرَتْ سارة ميرا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-4",
+        "category": "unknown_script_spelling",
+        "language": "hi",
+        "text": "सारा ने मीरा को शुक्रिया कहा।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-5",
+        "category": "negation_scope_outside_schema",
+        "language": "en",
+        "text": "Sara did not thank Mira and Lina.",
+        "expected": null,
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-6",
+        "category": "conditional_outside_schema",
+        "language": "en",
+        "text": "If Sara helped Mira, Lina thanked Nora.",
+        "expected": null,
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      }
+    ]
+  },
+  "selected": {
+    "examples": 53,
+    "frame_scored_examples": 51,
+    "correct_frames": 41,
+    "exact_match_including_abstentions": 0.803921568627451,
+    "emitted_frames": 41,
+    "abstentions": 12,
+    "coverage": 0.7735849056603774,
+    "selective_accuracy": 1.0,
+    "schema_boundary_examples": 2,
+    "schema_boundary_abstentions": 2,
+    "predictions": [
+      {
+        "id": "final_test-base-0-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina thanked Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-0-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا شَكَرَتْ نورا.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-0-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने नोरा को धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 6,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina did not thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا لَمْ تَشْكُرْ نورا.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-1-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने नोरा को नहीं धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Mira did not help Lina.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "ميرا لَمْ تُعِنْ لينا.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-2-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "मीरा ने लीना की मदद नहीं की।",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 7,
+            "observations": 9
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Mira thanked Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "ميرا شَكَرَتْ نورا.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-3-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "मीरा ने नोरा को धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "patient": "person:nora",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 6,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora helped Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا أَعَانَتْ سارة.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-4-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने सारा की मदद की।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:sara",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 8,
+            "observations": 7
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara remembered Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة تَذَكَّرَتْ ميرا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-5-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने मीरा को याद किया।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:mira",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 6,
+            "observations": 17
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not help Lina.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تُعِنْ لينا.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-6-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने लीना की मदद नहीं की।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 7,
+            "observations": 9
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Lina did not thank Sara.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "لينا لَمْ تَشْكُرْ سارة.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-7-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "लीना ने सारा को नहीं धन्यवाद दिया।",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "patient": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara helped Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 4,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة أَعَانَتْ لينا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 1,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-8-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने लीना की मदद की।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:lina",
+          "action": "action:qroot:ع-و-ن#help"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 8,
+            "observations": 7
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Sara did not remember Nora.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "سارة لَمْ تَتَذَكَّرْ نورا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-9-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "सारा ने नोरा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:nora",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "patient": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not remember Mira.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تَتَذَكَّرْ ميرا.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-10-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने मीरा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:mira",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-en",
+        "category": "held_out_composition",
+        "language": "en",
+        "text": "Nora did not remember Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 2,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-ar",
+        "category": "held_out_composition",
+        "language": "ar",
+        "text": "نورا لَمْ تَتَذَكَّرْ سارة.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 0,
+            "observations": 24
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-base-11-hi",
+        "category": "held_out_composition",
+        "language": "hi",
+        "text": "नोरा ने सारा को नहीं याद किया।",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:sara",
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": false,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "patient": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 5,
+            "observations": 15
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-emphatic-0",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Lina did thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 6
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-future-0",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Lina will thank Nora.",
+        "expected": {
+          "agent": "person:lina",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-1",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Mira did thank Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 6
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-future-1",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Mira will thank Nora.",
+        "expected": {
+          "agent": "person:mira",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:nora",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-2",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Nora did help Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 6
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-future-2",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Nora will help Sara.",
+        "expected": {
+          "agent": "person:nora",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-3",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Sara did remember Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 6
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-future-3",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Sara will remember Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ذ-ك-ر#remember",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final_test-emphatic-4",
+        "category": "new_emphatic_construction",
+        "language": "en",
+        "text": "Sara did help Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "predicted",
+        "frame": {
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion",
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina"
+        },
+        "rule_evidence": [
+          {
+            "rule_index": 3,
+            "observations": 6
+          }
+        ],
+        "correct": true
+      },
+      {
+        "id": "final_test-future-4",
+        "category": "untrained_future_tense",
+        "language": "en",
+        "text": "Sara will help Lina.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ع-و-ن#help",
+          "patient": "person:lina",
+          "polarity": true,
+          "tense": "future",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-0",
+        "category": "unknown_entity",
+        "language": "en",
+        "text": "Zoya thanked Sara.",
+        "expected": {
+          "agent": "person:zoya",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:sara",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-1",
+        "category": "unknown_paraphrase",
+        "language": "en",
+        "text": "Sara expressed gratitude to Mira.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-2",
+        "category": "untrained_question",
+        "language": "en",
+        "text": "Did Sara thank Mira?",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "question"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-3",
+        "category": "unknown_word_order",
+        "language": "ar",
+        "text": "شَكَرَتْ سارة ميرا.",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-4",
+        "category": "unknown_script_spelling",
+        "language": "hi",
+        "text": "सारा ने मीरा को शुक्रिया कहा।",
+        "expected": {
+          "agent": "person:sara",
+          "action": "action:qroot:ش-ك-ر#thank",
+          "patient": "person:mira",
+          "polarity": true,
+          "tense": "past",
+          "modality": "assertion"
+        },
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-5",
+        "category": "negation_scope_outside_schema",
+        "language": "en",
+        "text": "Sara did not thank Mira and Lina.",
+        "expected": null,
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      },
+      {
+        "id": "final-challenge-6",
+        "category": "conditional_outside_schema",
+        "language": "en",
+        "text": "If Sara helped Mira, Lina thanked Nora.",
+        "expected": null,
+        "status": "abstained",
+        "reason": "no_supported_parse",
+        "frame": null,
+        "candidate_count": 0,
+        "correct": false
+      }
+    ]
+  },
+  "base_summary": {
+    "training_rows": 144,
+    "training_hash": "ad4a728dcb541e7739be69418fde435af5238fe94429c737b65b8f64e264fa49",
+    "learned_lexical_entries": 30,
+    "learned_surface_rules": 8,
+    "unaligned_training_rows": 0
+  },
+  "selected_summary": {
+    "training_rows": 150,
+    "training_hash": "da70e8b6fdb0fd46b84c60a43eb8ed9bc5e5d70beeaef4855d4fff12238a09eb",
+    "learned_lexical_entries": 30,
+    "learned_surface_rules": 9,
+    "unaligned_training_rows": 0
+  },
+  "good_receipt": {
+    "approved": true,
+    "new_correct_frames": 7,
+    "regressions": [],
+    "wrong_emitted_frames": [],
+    "active_hash_before": "ad4a728dcb541e7739be69418fde435af5238fe94429c737b65b8f64e264fa49",
+    "active_hash_after": "da70e8b6fdb0fd46b84c60a43eb8ed9bc5e5d70beeaef4855d4fff12238a09eb",
+    "candidate_hash": "da70e8b6fdb0fd46b84c60a43eb8ed9bc5e5d70beeaef4855d4fff12238a09eb",
+    "counterexample": null
+  },
+  "bad_receipt": {
+    "approved": false,
+    "new_correct_frames": 0,
+    "regressions": [],
+    "wrong_emitted_frames": [
+      "development-future-0",
+      "development-future-1",
+      "development-future-2",
+      "development-future-3",
+      "development-future-4",
+      "development-future-5",
+      "development-future-6"
+    ],
+    "active_hash_before": "da70e8b6fdb0fd46b84c60a43eb8ed9bc5e5d70beeaef4855d4fff12238a09eb",
+    "active_hash_after": "da70e8b6fdb0fd46b84c60a43eb8ed9bc5e5d70beeaef4855d4fff12238a09eb",
+    "candidate_hash": "d9678dbac2580d15b82876c17b066cb6e1380706c00f14fae1c8bc0142fb451f",
+    "counterexample": {
+      "id": "development-future-0",
+      "category": "untrained_future_tense",
+      "language": "en",
+      "text": "Nora will help Lina.",
+      "expected": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      },
+      "status": "predicted",
+      "frame": {
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion",
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina"
+      },
+      "rule_evidence": [
+        {
+          "rule_index": 4,
+          "observations": 6
+        }
+      ],
+      "correct": false
+    }
+  }
+}

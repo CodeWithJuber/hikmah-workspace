@@ -1,0 +1,28 @@
+{
+  "dataset": "UD_Hindi-PUD",
+  "language": "hi",
+  "revision": "a68a48e09451b675e2853106474dda4dd7515510",
+  "source_url": "https://github.com/UniversalDependencies/UD_Hindi-PUD/tree/a68a48e09451b675e2853106474dda4dd7515510",
+  "license": "CC-BY-SA-3.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "sources": [
+    {
+      "file": "raw/ud-pud/hi/README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/README.md",
+      "sha256": "5ddd43a77e6d947d934bb442a8c9ba79549fb70d54ec8e428ceffc7d7fa864ed",
+      "bytes": 6097
+    },
+    {
+      "file": "raw/ud-pud/hi/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/LICENSE.txt",
+      "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+      "bytes": 19556
+    },
+    {
+      "file": "raw/ud-pud/hi/hi_pud-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/hi_pud-ud-test.conllu",
+      "sha256": "3562b7f49420912acad70a45a483f683dcb44624ea92f82e21b29f2ee41a9dff",
+      "bytes": 3043589
+    }
+  ]
+}

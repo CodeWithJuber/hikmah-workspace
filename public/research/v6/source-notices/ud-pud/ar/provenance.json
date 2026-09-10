@@ -1,0 +1,28 @@
+{
+  "dataset": "UD_Arabic-PUD",
+  "language": "ar",
+  "revision": "b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f",
+  "source_url": "https://github.com/UniversalDependencies/UD_Arabic-PUD/tree/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f",
+  "license": "CC-BY-SA-3.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "sources": [
+    {
+      "file": "raw/ud-pud/ar/README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/README.md",
+      "sha256": "f7cf6304cd0f2e829558ec04dbcdfd3ce8c60a2b5df2b3d2dc42143e6f42fa9c",
+      "bytes": 6022
+    },
+    {
+      "file": "raw/ud-pud/ar/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/LICENSE.txt",
+      "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+      "bytes": 19556
+    },
+    {
+      "file": "raw/ud-pud/ar/ar_pud-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/ar_pud-ud-test.conllu",
+      "sha256": "befc6dd18b5b8803644ae8208e2e5f52c0957a36437627c05110914ec42281a3",
+      "bytes": 2401101
+    }
+  ]
+}

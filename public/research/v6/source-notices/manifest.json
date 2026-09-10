@@ -1,0 +1,395 @@
+{
+  "schema": "hikmah.source-attribution.v6",
+  "sourceArtifacts": [
+    {
+      "dataset": "UD_English-PUD",
+      "language": "en",
+      "revision": "f16eba4ae7f3d161870ed320676c5088b8fa476c",
+      "source_url": "https://github.com/UniversalDependencies/UD_English-PUD/tree/f16eba4ae7f3d161870ed320676c5088b8fa476c",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "sources": [
+        {
+          "file": "raw/ud-pud/en/README.md",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/README.md",
+          "sha256": "9558eb70a6565a40e2ecf06d0f38c9f6117de0f0f8bc5021805bdce51ee0d67f",
+          "bytes": 6986
+        },
+        {
+          "file": "raw/ud-pud/en/LICENSE.txt",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/LICENSE.txt",
+          "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+          "bytes": 19556
+        },
+        {
+          "file": "raw/ud-pud/en/en_pud-ud-test.conllu",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/en_pud-ud-test.conllu",
+          "sha256": "c80584f2bc2b31d5bada78a1136f9feec7ac49e5e18898db02dea434b5b8f0aa",
+          "bytes": 1386858
+        }
+      ]
+    },
+    {
+      "dataset": "UD_Arabic-PUD",
+      "language": "ar",
+      "revision": "b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f",
+      "source_url": "https://github.com/UniversalDependencies/UD_Arabic-PUD/tree/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "sources": [
+        {
+          "file": "raw/ud-pud/ar/README.md",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/README.md",
+          "sha256": "f7cf6304cd0f2e829558ec04dbcdfd3ce8c60a2b5df2b3d2dc42143e6f42fa9c",
+          "bytes": 6022
+        },
+        {
+          "file": "raw/ud-pud/ar/LICENSE.txt",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/LICENSE.txt",
+          "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+          "bytes": 19556
+        },
+        {
+          "file": "raw/ud-pud/ar/ar_pud-ud-test.conllu",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Arabic-PUD/b5dbaa1fe386ae38d9b3c5f1de1b047d3cb31e0f/ar_pud-ud-test.conllu",
+          "sha256": "befc6dd18b5b8803644ae8208e2e5f52c0957a36437627c05110914ec42281a3",
+          "bytes": 2401101
+        }
+      ]
+    },
+    {
+      "dataset": "UD_Hindi-PUD",
+      "language": "hi",
+      "revision": "a68a48e09451b675e2853106474dda4dd7515510",
+      "source_url": "https://github.com/UniversalDependencies/UD_Hindi-PUD/tree/a68a48e09451b675e2853106474dda4dd7515510",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "sources": [
+        {
+          "file": "raw/ud-pud/hi/README.md",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/README.md",
+          "sha256": "5ddd43a77e6d947d934bb442a8c9ba79549fb70d54ec8e428ceffc7d7fa864ed",
+          "bytes": 6097
+        },
+        {
+          "file": "raw/ud-pud/hi/LICENSE.txt",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/LICENSE.txt",
+          "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+          "bytes": 19556
+        },
+        {
+          "file": "raw/ud-pud/hi/hi_pud-ud-test.conllu",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Hindi-PUD/a68a48e09451b675e2853106474dda4dd7515510/hi_pud-ud-test.conllu",
+          "sha256": "3562b7f49420912acad70a45a483f683dcb44624ea92f82e21b29f2ee41a9dff",
+          "bytes": 3043589
+        }
+      ]
+    },
+    {
+      "dataset": "UD_Spanish-PUD",
+      "language": "es",
+      "revision": "818a82b8628c9cbec78750c7e83ccba34b9ce22b",
+      "source_url": "https://github.com/UniversalDependencies/UD_Spanish-PUD/tree/818a82b8628c9cbec78750c7e83ccba34b9ce22b",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "sources": [
+        {
+          "file": "raw/ud-pud/es/README.md",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Spanish-PUD/818a82b8628c9cbec78750c7e83ccba34b9ce22b/README.md",
+          "sha256": "e0f187331cb5c0a4b8afc4b209dd6b273eb9f98fe2944adaea45967987b7c668",
+          "bytes": 6805
+        },
+        {
+          "file": "raw/ud-pud/es/LICENSE.txt",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Spanish-PUD/818a82b8628c9cbec78750c7e83ccba34b9ce22b/LICENSE.txt",
+          "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+          "bytes": 19556
+        },
+        {
+          "file": "raw/ud-pud/es/es_pud-ud-test.conllu",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Spanish-PUD/818a82b8628c9cbec78750c7e83ccba34b9ce22b/es_pud-ud-test.conllu",
+          "sha256": "48a7b5c7f409100b24eba90c7397e01f6fecaaf3207315a9a1bda029f77e98d3",
+          "bytes": 1730033
+        }
+      ]
+    },
+    {
+      "dataset": "UD_Turkish-PUD",
+      "language": "tr",
+      "revision": "63a134a087c8475ea832713b960baba8ff2f9401",
+      "source_url": "https://github.com/UniversalDependencies/UD_Turkish-PUD/tree/63a134a087c8475ea832713b960baba8ff2f9401",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "sources": [
+        {
+          "file": "raw/ud-pud/tr/README.md",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/README.md",
+          "sha256": "eb8cbfbf881fe9e073f4749406cb23ba83fab7adaea2230350311c2b09c8b6c5",
+          "bytes": 6705
+        },
+        {
+          "file": "raw/ud-pud/tr/LICENSE.txt",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/LICENSE.txt",
+          "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+          "bytes": 19556
+        },
+        {
+          "file": "raw/ud-pud/tr/tr_pud-ud-test.conllu",
+          "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-PUD/63a134a087c8475ea832713b960baba8ff2f9401/tr_pud-ud-test.conllu",
+          "sha256": "7c1b6fe01662a7617758fbecdda6af6fc3914ace46b1809d6514af0a1c1df88c",
+          "bytes": 1382437
+        }
+      ]
+    },
+    {
+      "dataset": "OPUS Tatoeba",
+      "language_pair": [
+        "en",
+        "ar"
+      ],
+      "version": "v2026-07-08",
+      "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/ar-en.txt.zip",
+      "sha256": "f0fbb5f4c7991ddec7e92209550e4d987b7ea1471e97d446720a2d3b3dc1ad07",
+      "bytes": 809912,
+      "api_metadata": {
+        "alignment_pairs": 32505,
+        "corpus": "Tatoeba",
+        "documents": "",
+        "id": 707578,
+        "latest": "True",
+        "preprocessing": "moses",
+        "size": 790,
+        "source": "ar",
+        "source_tokens": 162029,
+        "target": "en",
+        "target_tokens": 199017,
+        "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/ar-en.txt.zip",
+        "version": "v2026-07-08"
+      },
+      "archive_entries": [
+        {
+          "filename": "Tatoeba.ar-en.ar",
+          "bytes": 1575373
+        },
+        {
+          "filename": "Tatoeba.ar-en.en",
+          "bytes": 1071789
+        },
+        {
+          "filename": "README",
+          "bytes": 980
+        },
+        {
+          "filename": "LICENSE",
+          "bytes": 15904
+        }
+      ]
+    },
+    {
+      "dataset": "OPUS Tatoeba",
+      "language_pair": [
+        "en",
+        "hi"
+      ],
+      "version": "v2026-07-08",
+      "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-hi.txt.zip",
+      "sha256": "75b5a659015f6253023e721b36d0d1d3380178418e6656f21a6dbe71b4c55a90",
+      "bytes": 279653,
+      "api_metadata": {
+        "alignment_pairs": 11201,
+        "corpus": "Tatoeba",
+        "documents": "",
+        "id": 709260,
+        "latest": "True",
+        "preprocessing": "moses",
+        "size": 273,
+        "source": "en",
+        "source_tokens": 63604,
+        "target": "hi",
+        "target_tokens": 70596,
+        "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-hi.txt.zip",
+        "version": "v2026-07-08"
+      },
+      "archive_entries": [
+        {
+          "filename": "Tatoeba.en-hi.en",
+          "bytes": 330701
+        },
+        {
+          "filename": "Tatoeba.en-hi.hi",
+          "bytes": 866772
+        },
+        {
+          "filename": "README",
+          "bytes": 980
+        },
+        {
+          "filename": "LICENSE",
+          "bytes": 15904
+        }
+      ]
+    },
+    {
+      "dataset": "OPUS Tatoeba",
+      "language_pair": [
+        "en",
+        "ur"
+      ],
+      "version": "v2026-07-08",
+      "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-ur.txt.zip",
+      "sha256": "2fe6fd294e4f4c824464c6bd1523b1f707f3278615df196eb3777b4a3d9dd614",
+      "bytes": 51703,
+      "api_metadata": {
+        "alignment_pairs": 1742,
+        "corpus": "Tatoeba",
+        "documents": "",
+        "id": 709505,
+        "latest": "True",
+        "preprocessing": "moses",
+        "size": 50,
+        "source": "en",
+        "source_tokens": 10787,
+        "target": "ur",
+        "target_tokens": 12784,
+        "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-ur.txt.zip",
+        "version": "v2026-07-08"
+      },
+      "archive_entries": [
+        {
+          "filename": "Tatoeba.en-ur.en",
+          "bytes": 55830
+        },
+        {
+          "filename": "Tatoeba.en-ur.ur",
+          "bytes": 100368
+        },
+        {
+          "filename": "README",
+          "bytes": 980
+        },
+        {
+          "filename": "LICENSE",
+          "bytes": 15904
+        }
+      ]
+    },
+    {
+      "dataset": "OPUS Tatoeba",
+      "language_pair": [
+        "en",
+        "es"
+      ],
+      "version": "v2026-07-08",
+      "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-es.txt.zip",
+      "sha256": "7d77120231c77cb37e3a38d96e5a7e6ebde268f0c75c848504364adb97989b9c",
+      "bytes": 5877816,
+      "api_metadata": {
+        "alignment_pairs": 229476,
+        "corpus": "Tatoeba",
+        "documents": "",
+        "id": 709221,
+        "latest": "True",
+        "preprocessing": "moses",
+        "size": 5740,
+        "source": "en",
+        "source_tokens": 1585760,
+        "target": "es",
+        "target_tokens": 1538570,
+        "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-es.txt.zip",
+        "version": "v2026-07-08"
+      },
+      "archive_entries": [
+        {
+          "filename": "Tatoeba.en-es.en",
+          "bytes": 8333901
+        },
+        {
+          "filename": "Tatoeba.en-es.es",
+          "bytes": 8942317
+        },
+        {
+          "filename": "README",
+          "bytes": 980
+        },
+        {
+          "filename": "LICENSE",
+          "bytes": 15904
+        }
+      ]
+    },
+    {
+      "dataset": "OPUS Tatoeba",
+      "language_pair": [
+        "en",
+        "tr"
+      ],
+      "version": "v2026-07-08",
+      "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-tr.txt.zip",
+      "sha256": "1ae52723329af00bf5a4ef7b1aea68d831202309cbd765162901f7fc9418d89c",
+      "bytes": 15259762,
+      "api_metadata": {
+        "alignment_pairs": 686483,
+        "corpus": "Tatoeba",
+        "documents": "",
+        "id": 709492,
+        "latest": "True",
+        "preprocessing": "moses",
+        "size": 14902,
+        "source": "en",
+        "source_tokens": 4555896,
+        "target": "tr",
+        "target_tokens": 3361555,
+        "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/en-tr.txt.zip",
+        "version": "v2026-07-08"
+      },
+      "archive_entries": [
+        {
+          "filename": "Tatoeba.en-tr.en",
+          "bytes": 23720765
+        },
+        {
+          "filename": "Tatoeba.en-tr.tr",
+          "bytes": 25991271
+        },
+        {
+          "filename": "README",
+          "bytes": 980
+        },
+        {
+          "filename": "LICENSE",
+          "bytes": 15904
+        }
+      ]
+    },
+    {
+      "dataset": "Parallel Meaning Bank official sample",
+      "version": "4.0.0",
+      "download_url": "https://pmb.let.rug.nl/releases/pmb-sample-4.0.0.zip",
+      "source_url": "https://pmb.let.rug.nl/data.php",
+      "sha256": "ce2327924b899a77fda0bcfa51fa5ec3a04d1385aa79100736d849bb223d7325",
+      "bytes": 1237060,
+      "retrieved_at": "2026-09-10"
+    }
+  ],
+  "transformations": {
+    "ud": "Original CoNLL-U records converted into JSON; basic integer tokens separated from MWT/empty nodes; document-grouped internal research folds; learned sparse model exported separately.",
+    "tatoeba": "Training-only bidirectional IBM1 EM token associations, document frequency/support >=3, top3 candidates; no sentence text in parameter artifact; train/dev/test source texts retained outside product.",
+    "pmb": "Original formal DRS clauses converted into JSON with document/source/quality preserved; 14 fixtures with explicit CC-BY text licenses selected; ODC-BY annotations retained."
+  },
+  "attribution": {
+    "ud": "Universal Dependencies PUD contributors; per-language authors and notices in original READMEs.",
+    "tatoeba": "Tatoeba contributors; OPUS Jörg Tiedemann, 2012, Parallel Data, Tools and Interfaces in OPUS. LREC 2012. https://aclanthology.org/L12-1246/",
+    "pmb": "Parallel Meaning Bank: Lasha Abzianidze, Johannes Bjerva, Kilian Evang, Hessel Haagsma, Rik van Noord, Pierre Ludmann, Duc-Duy Nguyen, Johan Bos (2017). https://aclanthology.org/E17-2039/"
+  },
+  "nonEndorsement": "No endorsement by the source projects or contributors is implied.",
+  "licenses": {
+    "ud": "CC-BY-SA-3.0",
+    "tatoeba": "CC-BY-2.0-FR",
+    "pmbAnnotations": "ODC-BY-1.0",
+    "selectedPmbTexts": [
+      "CC-BY-3.0",
+      "CC-BY-4.0"
+    ]
+  },
+  "limitations": "Tatoeba Moses archive did not supply individual authors/original sentence IDs; corpus notices and exact source provenance retained. Source sentence excerpts are excluded from the learned parameter artifact."
+}

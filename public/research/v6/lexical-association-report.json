@@ -1,0 +1,646 @@
+{
+  "schema": "hikmah.lexical-association.report.v1",
+  "modelSha256": "13177495b997d90d1c2f026dc34096bad733822ba1f2e308dc0fbc7223f9ceb6",
+  "modelBytes": 1928551,
+  "trainingFileSha256": "fa1fab2542af6e2a3bb9daea9cb0410969e77439fc3db9dfea25bc7861ebc045",
+  "trainingIdsSha256": "39a956d9445c19c8d7d336e4392cfbc86de99d2b62c84b9854cdae55e7e0eaae",
+  "algorithm": "IBM Model 1, independent bidirectional sparse EM",
+  "hyperparameters": {
+    "iterations": 5,
+    "minDocumentGroupFrequency": 3,
+    "minPairGroupSupport": 3,
+    "maxCandidatesPerToken": 3
+  },
+  "fitData": "train only; development/test read for post-fit reporting only; no selection against these metrics",
+  "metrics": {
+    "ar": {
+      "enToTarget": {
+        "training": {
+          "sourceLanguage": "en",
+          "targetLanguage": "ar",
+          "trainingPairsSupplied": 3958,
+          "trainingPairsUsable": 3784,
+          "sourceVocabulary": 1101,
+          "targetVocabulary": 1100,
+          "sparseParameters": 43274,
+          "exportedSourceTokens": 677,
+          "exportedAssociations": 1465,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.28072816,
+            -3.46239472,
+            -3.03963971,
+            -2.88464349,
+            -2.82982641
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 520,
+          "truePairHigherThanDeterministicShuffledTarget": 438,
+          "ties": 53,
+          "pairDiscriminationRate": 0.89327,
+          "sourceTokenCoverage": 0.76845,
+          "targetTokenCoverage": 0.52731,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 522,
+          "truePairHigherThanDeterministicShuffledTarget": 444,
+          "ties": 44,
+          "pairDiscriminationRate": 0.89272,
+          "sourceTokenCoverage": 0.75944,
+          "targetTokenCoverage": 0.51667,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 520,
+            "truePairHigherThanDeterministicShuffledTarget": 367,
+            "ties": 2,
+            "pairDiscriminationRate": 0.70769,
+            "sourceTokenCoverage": 0.83634,
+            "targetTokenCoverage": 0.60321,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 522,
+            "truePairHigherThanDeterministicShuffledTarget": 380,
+            "ties": 0,
+            "pairDiscriminationRate": 0.72797,
+            "sourceTokenCoverage": 0.82325,
+            "targetTokenCoverage": 0.60388,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      },
+      "targetToEn": {
+        "training": {
+          "sourceLanguage": "ar",
+          "targetLanguage": "en",
+          "trainingPairsSupplied": 3958,
+          "trainingPairsUsable": 3784,
+          "sourceVocabulary": 1100,
+          "targetVocabulary": 1101,
+          "sparseParameters": 43275,
+          "exportedSourceTokens": 866,
+          "exportedAssociations": 1864,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.35986244,
+            -3.54832685,
+            -3.23779773,
+            -3.13168065,
+            -3.09372001
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 520,
+          "truePairHigherThanDeterministicShuffledTarget": 442,
+          "ties": 56,
+          "pairDiscriminationRate": 0.90385,
+          "sourceTokenCoverage": 0.57309,
+          "targetTokenCoverage": 0.7327,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 522,
+          "truePairHigherThanDeterministicShuffledTarget": 458,
+          "ties": 46,
+          "pairDiscriminationRate": 0.92146,
+          "sourceTokenCoverage": 0.56541,
+          "targetTokenCoverage": 0.71899,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 520,
+            "truePairHigherThanDeterministicShuffledTarget": 400,
+            "ties": 2,
+            "pairDiscriminationRate": 0.77115,
+            "sourceTokenCoverage": 0.60321,
+            "targetTokenCoverage": 0.83634,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 522,
+            "truePairHigherThanDeterministicShuffledTarget": 407,
+            "ties": 0,
+            "pairDiscriminationRate": 0.77969,
+            "sourceTokenCoverage": 0.60388,
+            "targetTokenCoverage": 0.82325,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      }
+    },
+    "hi": {
+      "enToTarget": {
+        "training": {
+          "sourceLanguage": "en",
+          "targetLanguage": "hi",
+          "trainingPairsSupplied": 4000,
+          "trainingPairsUsable": 3937,
+          "sourceVocabulary": 972,
+          "targetVocabulary": 1078,
+          "sparseParameters": 52653,
+          "exportedSourceTokens": 793,
+          "exportedAssociations": 1831,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.65754754,
+            -3.75865653,
+            -3.32745348,
+            -3.17155123,
+            -3.11605
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 512,
+          "truePairHigherThanDeterministicShuffledTarget": 469,
+          "ties": 24,
+          "pairDiscriminationRate": 0.93945,
+          "sourceTokenCoverage": 0.83152,
+          "targetTokenCoverage": 0.74066,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 488,
+          "truePairHigherThanDeterministicShuffledTarget": 443,
+          "ties": 19,
+          "pairDiscriminationRate": 0.92725,
+          "sourceTokenCoverage": 0.82401,
+          "targetTokenCoverage": 0.7504,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 512,
+            "truePairHigherThanDeterministicShuffledTarget": 417,
+            "ties": 0,
+            "pairDiscriminationRate": 0.81445,
+            "sourceTokenCoverage": 0.8596,
+            "targetTokenCoverage": 0.82539,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 488,
+            "truePairHigherThanDeterministicShuffledTarget": 394,
+            "ties": 0,
+            "pairDiscriminationRate": 0.80738,
+            "sourceTokenCoverage": 0.84982,
+            "targetTokenCoverage": 0.82393,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      },
+      "targetToEn": {
+        "training": {
+          "sourceLanguage": "hi",
+          "targetLanguage": "en",
+          "trainingPairsSupplied": 4000,
+          "trainingPairsUsable": 3937,
+          "sourceVocabulary": 1078,
+          "targetVocabulary": 972,
+          "sparseParameters": 52547,
+          "exportedSourceTokens": 876,
+          "exportedAssociations": 1930,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.5449899,
+            -3.63631792,
+            -3.18810522,
+            -3.02431338,
+            -2.96624795
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 512,
+          "truePairHigherThanDeterministicShuffledTarget": 478,
+          "ties": 17,
+          "pairDiscriminationRate": 0.9502,
+          "sourceTokenCoverage": 0.79768,
+          "targetTokenCoverage": 0.79326,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 488,
+          "truePairHigherThanDeterministicShuffledTarget": 452,
+          "ties": 16,
+          "pairDiscriminationRate": 0.94262,
+          "sourceTokenCoverage": 0.79394,
+          "targetTokenCoverage": 0.7828,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 512,
+            "truePairHigherThanDeterministicShuffledTarget": 412,
+            "ties": 0,
+            "pairDiscriminationRate": 0.80469,
+            "sourceTokenCoverage": 0.82539,
+            "targetTokenCoverage": 0.8596,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 488,
+            "truePairHigherThanDeterministicShuffledTarget": 399,
+            "ties": 2,
+            "pairDiscriminationRate": 0.81967,
+            "sourceTokenCoverage": 0.82393,
+            "targetTokenCoverage": 0.84982,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      }
+    },
+    "ur": {
+      "enToTarget": {
+        "training": {
+          "sourceLanguage": "en",
+          "targetLanguage": "ur",
+          "trainingPairsSupplied": 1392,
+          "trainingPairsUsable": 1377,
+          "sourceVocabulary": 438,
+          "targetVocabulary": 495,
+          "sparseParameters": 19487,
+          "exportedSourceTokens": 350,
+          "exportedAssociations": 830,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.29412437,
+            -3.57598012,
+            -3.27528754,
+            -3.14476796,
+            -3.08939339
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 179,
+          "truePairHigherThanDeterministicShuffledTarget": 151,
+          "ties": 8,
+          "pairDiscriminationRate": 0.86592,
+          "sourceTokenCoverage": 0.73895,
+          "targetTokenCoverage": 0.65011,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 171,
+          "truePairHigherThanDeterministicShuffledTarget": 149,
+          "ties": 3,
+          "pairDiscriminationRate": 0.88012,
+          "sourceTokenCoverage": 0.71584,
+          "targetTokenCoverage": 0.66768,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 179,
+            "truePairHigherThanDeterministicShuffledTarget": 123,
+            "ties": 0,
+            "pairDiscriminationRate": 0.68715,
+            "sourceTokenCoverage": 0.77296,
+            "targetTokenCoverage": 0.74648,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 171,
+            "truePairHigherThanDeterministicShuffledTarget": 114,
+            "ties": 0,
+            "pairDiscriminationRate": 0.66667,
+            "sourceTokenCoverage": 0.75113,
+            "targetTokenCoverage": 0.76829,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      },
+      "targetToEn": {
+        "training": {
+          "sourceLanguage": "ur",
+          "targetLanguage": "en",
+          "trainingPairsSupplied": 1392,
+          "trainingPairsUsable": 1377,
+          "sourceVocabulary": 495,
+          "targetVocabulary": 438,
+          "sparseParameters": 19430,
+          "exportedSourceTokens": 353,
+          "exportedAssociations": 774,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.20376472,
+            -3.53899906,
+            -3.21871555,
+            -3.07328736,
+            -3.0112043
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 179,
+          "truePairHigherThanDeterministicShuffledTarget": 156,
+          "ties": 12,
+          "pairDiscriminationRate": 0.90503,
+          "sourceTokenCoverage": 0.69755,
+          "targetTokenCoverage": 0.68878,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 171,
+          "truePairHigherThanDeterministicShuffledTarget": 147,
+          "ties": 6,
+          "pairDiscriminationRate": 0.87719,
+          "sourceTokenCoverage": 0.72027,
+          "targetTokenCoverage": 0.67421,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 179,
+            "truePairHigherThanDeterministicShuffledTarget": 121,
+            "ties": 0,
+            "pairDiscriminationRate": 0.67598,
+            "sourceTokenCoverage": 0.74648,
+            "targetTokenCoverage": 0.77296,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 171,
+            "truePairHigherThanDeterministicShuffledTarget": 116,
+            "ties": 0,
+            "pairDiscriminationRate": 0.67836,
+            "sourceTokenCoverage": 0.76829,
+            "targetTokenCoverage": 0.75113,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      }
+    },
+    "es": {
+      "enToTarget": {
+        "training": {
+          "sourceLanguage": "en",
+          "targetLanguage": "es",
+          "trainingPairsSupplied": 4010,
+          "trainingPairsUsable": 3968,
+          "sourceVocabulary": 1188,
+          "targetVocabulary": 1231,
+          "sparseParameters": 65907,
+          "exportedSourceTokens": 949,
+          "exportedAssociations": 2176,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.68643983,
+            -3.72255582,
+            -3.19581643,
+            -3.01296094,
+            -2.95246202
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 490,
+          "truePairHigherThanDeterministicShuffledTarget": 465,
+          "ties": 18,
+          "pairDiscriminationRate": 0.96735,
+          "sourceTokenCoverage": 0.797,
+          "targetTokenCoverage": 0.71882,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 500,
+          "truePairHigherThanDeterministicShuffledTarget": 472,
+          "ties": 9,
+          "pairDiscriminationRate": 0.953,
+          "sourceTokenCoverage": 0.80774,
+          "targetTokenCoverage": 0.71468,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 490,
+            "truePairHigherThanDeterministicShuffledTarget": 395,
+            "ties": 0,
+            "pairDiscriminationRate": 0.80612,
+            "sourceTokenCoverage": 0.82024,
+            "targetTokenCoverage": 0.76339,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 500,
+            "truePairHigherThanDeterministicShuffledTarget": 419,
+            "ties": 0,
+            "pairDiscriminationRate": 0.838,
+            "sourceTokenCoverage": 0.84027,
+            "targetTokenCoverage": 0.76514,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      },
+      "targetToEn": {
+        "training": {
+          "sourceLanguage": "es",
+          "targetLanguage": "en",
+          "trainingPairsSupplied": 4010,
+          "trainingPairsUsable": 3968,
+          "sourceVocabulary": 1231,
+          "targetVocabulary": 1188,
+          "sparseParameters": 65864,
+          "exportedSourceTokens": 1053,
+          "exportedAssociations": 2326,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.68897656,
+            -3.71823758,
+            -3.2200032,
+            -3.05173145,
+            -2.99688175
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 490,
+          "truePairHigherThanDeterministicShuffledTarget": 460,
+          "ties": 16,
+          "pairDiscriminationRate": 0.9551,
+          "sourceTokenCoverage": 0.75112,
+          "targetTokenCoverage": 0.76699,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 500,
+          "truePairHigherThanDeterministicShuffledTarget": 474,
+          "ties": 12,
+          "pairDiscriminationRate": 0.96,
+          "sourceTokenCoverage": 0.75199,
+          "targetTokenCoverage": 0.77491,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 490,
+            "truePairHigherThanDeterministicShuffledTarget": 382,
+            "ties": 0,
+            "pairDiscriminationRate": 0.77959,
+            "sourceTokenCoverage": 0.76339,
+            "targetTokenCoverage": 0.82024,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 500,
+            "truePairHigherThanDeterministicShuffledTarget": 406,
+            "ties": 0,
+            "pairDiscriminationRate": 0.812,
+            "sourceTokenCoverage": 0.76514,
+            "targetTokenCoverage": 0.84027,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      }
+    },
+    "tr": {
+      "enToTarget": {
+        "training": {
+          "sourceLanguage": "en",
+          "targetLanguage": "tr",
+          "trainingPairsSupplied": 3996,
+          "trainingPairsUsable": 3839,
+          "sourceVocabulary": 1053,
+          "targetVocabulary": 1035,
+          "sparseParameters": 44019,
+          "exportedSourceTokens": 674,
+          "exportedAssociations": 1442,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.43335812,
+            -3.57684321,
+            -3.09231915,
+            -2.92186072,
+            -2.86498895
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 518,
+          "truePairHigherThanDeterministicShuffledTarget": 441,
+          "ties": 43,
+          "pairDiscriminationRate": 0.89286,
+          "sourceTokenCoverage": 0.7874,
+          "targetTokenCoverage": 0.53849,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 486,
+          "truePairHigherThanDeterministicShuffledTarget": 409,
+          "ties": 37,
+          "pairDiscriminationRate": 0.87963,
+          "sourceTokenCoverage": 0.81227,
+          "targetTokenCoverage": 0.56149,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 518,
+            "truePairHigherThanDeterministicShuffledTarget": 364,
+            "ties": 4,
+            "pairDiscriminationRate": 0.70656,
+            "sourceTokenCoverage": 0.84639,
+            "targetTokenCoverage": 0.61008,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 486,
+            "truePairHigherThanDeterministicShuffledTarget": 340,
+            "ties": 0,
+            "pairDiscriminationRate": 0.69959,
+            "sourceTokenCoverage": 0.85822,
+            "targetTokenCoverage": 0.62419,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      },
+      "targetToEn": {
+        "training": {
+          "sourceLanguage": "tr",
+          "targetLanguage": "en",
+          "trainingPairsSupplied": 3996,
+          "trainingPairsUsable": 3839,
+          "sourceVocabulary": 1035,
+          "targetVocabulary": 1053,
+          "sparseParameters": 44037,
+          "exportedSourceTokens": 864,
+          "exportedAssociations": 1981,
+          "meanTrainingLogLikelihoodByIteration": [
+            -4.48718683,
+            -3.63346988,
+            -3.3044157,
+            -3.1947353,
+            -3.15487806
+          ],
+          "fullDistributionNormalized": true,
+          "probabilityMeaning": "p(target token | source token), normalized over full learned target vocabulary; retainedMass shows top3 fraction; top3Share renormalizes displayed candidates only"
+        },
+        "evaluationArtifact": "exported top3/pruned parameters; no NULL distribution exported",
+        "development": {
+          "pairs": 518,
+          "truePairHigherThanDeterministicShuffledTarget": 455,
+          "ties": 43,
+          "pairDiscriminationRate": 0.91988,
+          "sourceTokenCoverage": 0.58314,
+          "targetTokenCoverage": 0.75121,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "test": {
+          "pairs": 486,
+          "truePairHigherThanDeterministicShuffledTarget": 413,
+          "ties": 51,
+          "pairDiscriminationRate": 0.90226,
+          "sourceTokenCoverage": 0.60073,
+          "targetTokenCoverage": 0.77267,
+          "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+        },
+        "fullModelDiagnostic": {
+          "development": {
+            "pairs": 518,
+            "truePairHigherThanDeterministicShuffledTarget": 402,
+            "ties": 0,
+            "pairDiscriminationRate": 0.77606,
+            "sourceTokenCoverage": 0.61008,
+            "targetTokenCoverage": 0.84639,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          },
+          "test": {
+            "pairs": 486,
+            "truePairHigherThanDeterministicShuffledTarget": 361,
+            "ties": 0,
+            "pairDiscriminationRate": 0.7428,
+            "sourceTokenCoverage": 0.62419,
+            "targetTokenCoverage": 0.85822,
+            "interpretation": "aligned-vs-shuffled sentence compatibility sanity check; NOT word alignment accuracy, translation quality, or semantic truth"
+          }
+        }
+      }
+    }
+  },
+  "elapsedSeconds": 9.436,
+  "limitations": [
+    "IBM Model 1 is established prior art, not a novel architecture",
+    "Independent token alignment cannot establish contextual word senses, discourse, or historical ancestry",
+    "No gold word-alignment references; held-out metric is only a shuffled-pair compatibility control",
+    "No word reordering model and no sentence generation",
+    "Rare words with fewer than three source groups excluded; Urdu coverage limited",
+    "A probability is a learned conditional association, not factual confidence"
+  ]
+}

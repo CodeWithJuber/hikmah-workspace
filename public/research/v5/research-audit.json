@@ -1,0 +1,908 @@
+{
+  "audit_date": "2026-09-10",
+  "source_base": "/workspace/scratch/605a19983f99/recovered-hikmah/expanded/hikmah-ecosystem",
+  "scope": "Read-only recovered research audit; five requested files plus manifest, map-builder and validation receipt. No Sites interaction or source edits.",
+  "correction": "Prior full-corpus contextual first-pass work is documented and partially preserved in the recovered package. It must not be described as nonexistent or limited to the root seed.",
+  "reported_full_corpus_coverage": {
+    "expected_surahs": 114,
+    "expected_ayahs": 6236,
+    "reviewed_ayahs": 6236,
+    "unique_ayahs": 6236,
+    "missing_ayahs": 0,
+    "duplicate_ayahs": 0,
+    "surah_count": 114,
+    "dispositions": {
+      "candidate": 1541,
+      "no_direct_analogy": 2180,
+      "context_only": 2048,
+      "needs_deeper_review": 467
+    },
+    "review_file_counts": {
+      "shard-1.tsv": 1034,
+      "shard-2.tsv": 1081,
+      "shard-3.tsv": 1037,
+      "shard-4.tsv": 1040,
+      "shard-5-supplement.tsv": 273,
+      "shard-5.tsv": 782,
+      "shard-6-supplement.tsv": 281,
+      "shard-6.tsv": 708
+    },
+    "review_status": "Complete AI-authored contextual first pass; not exhaustive or independently verified tafsir.",
+    "structural_checks": "IDs, uniqueness, per-surah counts, context bounds, pattern IDs, source URLs and source coverage passed.",
+    "model_behavioral_evaluations_run": 0,
+    "deterministic_compiler_tests_passed": 10,
+    "chronology_status": "Traditional surah-onset study order; not an exact per-ayah chronology."
+  },
+  "independently_recalculated": {
+    "patterns": 22,
+    "pattern_memberships": 2866,
+    "unique_candidate_ayahs": 1541,
+    "candidate_surahs": 104,
+    "illustrative_source_records": 60,
+    "unique_illustrative_ayahs": 56,
+    "dependency_edges": 29,
+    "root_families": 7,
+    "root_examples": 18,
+    "root_distinct_ayahs": 15,
+    "root_review_flags": 3
+  },
+  "checks": {
+    "coverage_copy_matches": true,
+    "dispositions_sum_matches": true,
+    "review_file_counts_sum_matches": true,
+    "manifest_hashes_and_sizes_match": true,
+    "pattern_ids_match": true,
+    "pattern_counts_match_lists": true,
+    "no_duplicate_candidates_within_patterns": true,
+    "illustrative_records_are_candidates": true,
+    "dependencies_match_catalog": true,
+    "illustrative_contexts_include_target": true,
+    "root_coverage_counts_match": true,
+    "root_word_locations_match_ayahs": true
+  },
+  "file_sha256": {
+    "data/source-coverage.json": "65750ffad0179eaa5edee1658f2578ee2ef28dcac6110ff14b73c7a678fa0691",
+    "data/source-pattern-catalog.json": "6d301f86e78b9dd3204a5b344066be5dd9492fbc2215bb7b22e0106b3dafa402",
+    "data/research-to-architecture.json": "077adb0aa5f8806dc66da5245491d828a7abe45962502476ff1745d7ff3a798c",
+    "research/root-study.json": "5d3fb4a75d220947228a807f69ea5f4ce69827d99fbe30e6dd13469e0c4f5ba1",
+    "design/research-traceability.md": "8d5d6faedffb568f5be1f06181e243d92f383a7fcb27c63f06916cc782a725c0"
+  },
+  "unrecovered_primary_artifacts": {
+    "ledger": "quran-agent-research/ayah-ledger.jsonl",
+    "ledger_sha256": "8b83349d9961534c082e02e33950c6f4bd562f116ed3daf50499370c1a4913e5",
+    "archive": "quran-agent-research.zip",
+    "archive_sha256": "53999d344d249a448c7796e414dfdca98fe8a2c4660cf6c3e081fd61fe0d46fc",
+    "status": "Referenced by the recovered map builder and hashes. Not found in searched recovered-hikmah filenames or ZIP member lists; global absence not established."
+  },
+  "bounded_verification_existing_mapping": [
+    {
+      "ayah": "49:6",
+      "existing_candidate_patterns": [
+        "P01",
+        "P09",
+        "P21"
+      ]
+    },
+    {
+      "ayah": "17:36",
+      "existing_candidate_patterns": [
+        "P01",
+        "P02"
+      ]
+    },
+    {
+      "ayah": "42:38",
+      "existing_candidate_patterns": [
+        "P08"
+      ]
+    },
+    {
+      "ayah": "20:114",
+      "existing_candidate_patterns": [
+        "P09",
+        "P16"
+      ]
+    },
+    {
+      "ayah": "3:135",
+      "existing_candidate_patterns": [
+        "P04",
+        "P11",
+        "P19"
+      ]
+    },
+    {
+      "ayah": "4:58",
+      "existing_candidate_patterns": [
+        "P03",
+        "P06"
+      ]
+    },
+    {
+      "ayah": "5:8",
+      "existing_candidate_patterns": [
+        "P04",
+        "P06"
+      ]
+    },
+    {
+      "ayah": "42:40",
+      "existing_candidate_patterns": []
+    },
+    {
+      "ayah": "38:29",
+      "existing_candidate_patterns": [
+        "P13",
+        "P16"
+      ]
+    },
+    {
+      "ayah": "39:18",
+      "existing_candidate_patterns": [
+        "P08",
+        "P09",
+        "P15"
+      ]
+    }
+  ],
+  "root_flags": [
+    {
+      "example_id": "root-example-16-16-1",
+      "flags": [
+        {
+          "type": "annotation_discrepancy",
+          "detail": "The QAC morphology page says genitive; its grammar page coordinates alamat with subulan in 16:15. Grammatical adjudication is required.",
+          "additional_source_url": "https://corpus.quran.com/grammar.jsp?chapter=16&verse=16"
+        }
+      ]
+    },
+    {
+      "example_id": "root-example-3-36-13",
+      "flags": [
+        {
+          "type": "commentary_context_boundary",
+          "detail": "The commentary includes historical gender assumptions; they are not empirical evidence for present-day ability judgments."
+        }
+      ]
+    },
+    {
+      "example_id": "root-example-49-6-8",
+      "flags": [
+        {
+          "type": "reading_variant",
+          "detail": "Al-Jalalayn explicitly records fatathabbatu, associated with th-b-t. This seed entry preserves the QAC reading and notes the alternative; it is not an exhaustive readings dataset."
+        }
+      ]
+    }
+  ],
+  "source_registry": [
+    {
+      "pattern_id": "P01",
+      "name": "Source verification and evidence provenance",
+      "architecture_component": "Evidence service",
+      "proposed_invariant": "Every consequential claim retains a recoverable source and entailment check.",
+      "evaluation_question": "A plausible invented citation cannot pass the source gate.",
+      "candidate_ayah_count": 173,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "68:37",
+          "context_span": "68:36-41",
+          "observation": "The challenge asks whether a cited authoritative text actually exists.",
+          "application_note": "Proposed application: require an inspectable source for purported authoritative permissions.",
+          "tafsir_url": "https://quran.com/ar/68/37/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "17:36",
+          "context_span": "17:31-39",
+          "observation": "Following unsupported claims conflicts with accountability for one's faculties.",
+          "application_note": "Propose distinguishing observed evidence from conjecture and withholding assertions beyond available knowledge.",
+          "tafsir_url": "https://quran.com/ar/17/36/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "49:6",
+          "context_span": "49:6-8",
+          "observation": "An unreliable report requires investigation before ignorant action harms a community.",
+          "application_note": "Propose corroborating consequential reports before acting, assessing source reliability through evidence rather than religious identity.",
+          "tafsir_url": "https://quran.com/ar/49/6/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P02",
+      "name": "Calibrated uncertainty and epistemic humility",
+      "architecture_component": "Meaning compiler and belief state",
+      "proposed_invariant": "Unknown, inferred, reported and observed remain distinguishable.",
+      "evaluation_question": "Missing evidence remains unknown; verbal confidence adds no observation.",
+      "candidate_ayah_count": 160,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "46:9",
+          "context_span": "46:7-10",
+          "observation": "The messenger limits claims about worldly outcomes and identifies his received mandate.",
+          "application_note": "Proposed practice: disclose unknown outcomes and act only within the supported mandate.",
+          "tafsir_url": "https://quran.com/ar/46/9/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "7:187",
+          "context_span": "7:187-188",
+          "observation": "Repeated questions about the Hour receive the same explicit boundary on the Prophet's knowledge.",
+          "application_note": "Proposed application: maintain an honest knowledge boundary under repeated questioning rather than inventing a date or detail.",
+          "tafsir_url": "https://quran.com/ar/7/187/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "17:85",
+          "context_span": "17:84-87",
+          "observation": "The soul question receives an explicit limit on human knowledge.",
+          "application_note": "Propose stating knowledge boundaries directly instead of inventing certainty about consciousness or hidden mechanisms.",
+          "tafsir_url": "https://quran.com/ar/17/85/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P03",
+      "name": "Bounded authority and mandate fidelity",
+      "architecture_component": "Contract service and tool broker",
+      "proposed_invariant": "Execution uses actual scope and authority outside model text.",
+      "evaluation_question": "A retrieved instruction cannot create a permission grant.",
+      "candidate_ayah_count": 148,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "7:142",
+          "context_span": "7:142-145",
+          "observation": "Moses appoints Aaron during his absence and specifies reform and limits on following harmful conduct.",
+          "application_note": "Proposed application: give a temporary delegate a named responsibility, scope, and conduct constraints before departure.",
+          "tafsir_url": "https://quran.com/ar/7/142/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "29:18",
+          "context_span": "29:16-20",
+          "observation": "The messenger's duty is bounded to clear communication despite rejection.",
+          "application_note": "Proposed application: define the communication deliverable separately from forcing a recipient's acceptance.",
+          "tafsir_url": "https://quran.com/ar/29/18/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P18"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P04",
+      "name": "Accountable actions and truthful completion",
+      "architecture_component": "Outcome verifier",
+      "proposed_invariant": "Completed means the observable result satisfies the task contract.",
+      "evaluation_question": "A successful-looking tool reply with an unchanged artifact is rejected.",
+      "candidate_ayah_count": 231,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "61:2",
+          "context_span": "61:1-4",
+          "observation": "The commentary situates unfulfilled professions in requested fighting followed by retreat.",
+          "application_note": "Propose distinguishing intention, attempted action, and verified completion without importing combat obligations.",
+          "tafsir_url": "https://quran.com/ar/61/2/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "61:3",
+          "context_span": "61:1-4",
+          "observation": "Repeated condemnation emphasizes the mismatch between stated and performed action.",
+          "application_note": "Propose requiring evidence for completion claims rather than relying on emphatic assurances.",
+          "tafsir_url": "https://quran.com/ar/61/3/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "26:226",
+          "context_span": "26:224-227",
+          "observation": "Claimed deeds diverge from what speakers actually perform.",
+          "application_note": "Propose reporting completion only with action evidence.",
+          "tafsir_url": "https://quran.com/ar/26/226/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P09",
+        "P17"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P05",
+      "name": "Durable memory and faithful handoffs",
+      "architecture_component": "Scoped memory and checkpoints",
+      "proposed_invariant": "Retain necessary authorized state, exact identifiers, uncertainty and expiry.",
+      "evaluation_question": "A resumed task keeps its limits and does not replay a committed action.",
+      "candidate_ayah_count": 62,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "2:282",
+          "context_span": "2:282-283",
+          "observation": "Deferred obligations receive accurate written terms, accessible representation, witnesses, and exceptions for immediate exchanges.",
+          "application_note": "Proposed application: Record terms, deadlines, authorizations, and corrections; exclude gendered witness rules and compulsory labor.",
+          "tafsir_url": "https://quran.com/ar/2/282/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "18:61",
+          "context_span": "18:60-65",
+          "observation": "A critical fish event is missed through forgotten carrying and reminding duties.",
+          "application_note": "Proposed practice: record critical observations and assign explicit responsibility for reporting them.",
+          "tafsir_url": "https://quran.com/ar/18/61/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01",
+        "P02",
+        "P16",
+        "P18"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P06",
+      "name": "Fairness and consistent criteria",
+      "architecture_component": "Evaluation policy",
+      "proposed_invariant": "Apply equivalent evidential criteria despite irrelevant identity cues.",
+      "evaluation_question": "Swap irrelevant names or affiliations without changing the correct decision.",
+      "candidate_ayah_count": 209,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "4:135",
+          "context_span": "4:135",
+          "observation": "Truthful testimony must resist self-interest, family loyalty, wealth, and misplaced sympathy.",
+          "application_note": "Propose applying consistent evidence standards to self, allies, wealthy, and disadvantaged parties.",
+          "tafsir_url": "https://quran.com/ar/4/135/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "5:8",
+          "context_span": "5:7-11",
+          "observation": "Hostility toward a people must not displace justice in testimony or conduct.",
+          "application_note": "Propose applying the same evidential and fairness standards to allies and disliked parties.",
+          "tafsir_url": "https://quran.com/ar/5/8/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "49:13",
+          "context_span": "49:11-13",
+          "observation": "Peoples and tribes enable mutual recognition rather than inherited boasting.",
+          "application_note": "Propose valuing relevant contributions across backgrounds without ranking people by ancestry or claiming to measure piety.",
+          "tafsir_url": "https://quran.com/ar/49/13/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P07",
+      "name": "Proportionate resource use and budgets",
+      "architecture_component": "Budget scheduler",
+      "proposed_invariant": "Reserve and settle total task resources while preserving necessary checks.",
+      "evaluation_question": "A small budget cannot silently drop dependencies or hide worker costs.",
+      "candidate_ayah_count": 59,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "25:67",
+          "context_span": "25:67-67",
+          "observation": "Household spending avoids both excess and deprivation.",
+          "application_note": "Propose budgets protecting quality while avoiding waste.",
+          "tafsir_url": "https://quran.com/ar/25/67/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "73:20",
+          "context_span": "73:1-20",
+          "observation": "Prayer burden is eased with explicit recognition of illness and competing duties.",
+          "application_note": "Proposed application: revise workload budgets for demonstrated capacity constraints; retain the modifying condition with earlier rules.",
+          "tafsir_url": "https://quran.com/ar/73/20/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "17:29",
+          "context_span": "17:26-30",
+          "observation": "Both total withholding and exhausting all resources receive criticism.",
+          "application_note": "Propose setting a sufficient working budget while reserving capacity for remaining obligations.",
+          "tafsir_url": "https://quran.com/ar/17/29/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P04",
+        "P15"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P08",
+      "name": "Consultation and independent perspectives",
+      "architecture_component": "Research and challenge lanes",
+      "proposed_invariant": "Distinct questions and evidence precede reconciliation.",
+      "evaluation_question": "Correlated agreement cannot certify a claim without supporting evidence.",
+      "candidate_ayah_count": 42,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "42:38",
+          "context_span": "42:36-43",
+          "observation": "Communal affairs involve consultation rather than haste according to the commentary.",
+          "application_note": "Proposed practice: obtain independent perspectives before consequential shared decisions, with a bounded review budget.",
+          "tafsir_url": "https://quran.com/ar/42/38/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "3:159",
+          "context_span": "3:152-160",
+          "observation": "Leniency after mistakes is joined to pardon, consultation, and decision before reliance on God.",
+          "application_note": "Proposed application: respond constructively after mistakes, consult relevant participants, then make and communicate the decision.",
+          "tafsir_url": "https://quran.com/ar/3/159/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01",
+        "P02"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P09",
+      "name": "Verification before acceptance and action",
+      "architecture_component": "Source and action verification",
+      "proposed_invariant": "A schema-valid proposal still needs the relevant semantic or outcome check.",
+      "evaluation_question": "A grammatically valid frame that reverses a role fails acceptance.",
+      "candidate_ayah_count": 291,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "27:27",
+          "context_span": "27:27-28",
+          "observation": "Solomon explicitly reserves judgment while checking the hoopoe's report.",
+          "application_note": "Propose verifying consequential reports before accepting even confidently stated findings.",
+          "tafsir_url": "https://quran.com/ar/27/27/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "49:6",
+          "context_span": "49:6-8",
+          "observation": "An unreliable report requires investigation before ignorant action harms a community.",
+          "application_note": "Propose corroborating consequential reports before acting, assessing source reliability through evidence rather than religious identity.",
+          "tafsir_url": "https://quran.com/ar/49/6/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "2:260",
+          "context_span": "2:260",
+          "observation": "Abraham's existing belief is distinguished from his request for direct observational reassurance.",
+          "application_note": "Proposed application: Support reasonable verification requests with safe demonstrations; exclude animal harm and any promised miraculous restoration.",
+          "tafsir_url": "https://quran.com/ar/2/260/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01",
+        "P02",
+        "P16"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P10",
+      "name": "Bounded persistence and recovery",
+      "architecture_component": "Recovery state machine",
+      "proposed_invariant": "Retries need a changed method or new evidence and a remaining budget.",
+      "evaluation_question": "An unresolved mutation is reconciled before another attempt.",
+      "candidate_ayah_count": 36,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "18:64",
+          "context_span": "18:60-65",
+          "observation": "Recognizing the missed sign prompts retracing their exact route.",
+          "application_note": "Proposed practice: use recorded steps to return to the last relevant checkpoint.",
+          "tafsir_url": "https://quran.com/ar/18/64/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "71:6",
+          "context_span": "71:5-9",
+          "observation": "Repeated invitation accompanies increased avoidance rather than improved reception.",
+          "application_note": "Proposed practice: Measure whether repetition helps and stop counterproductive retries within the task mandate.",
+          "tafsir_url": "https://quran.com/ar/71/6/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P02",
+        "P14"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P11",
+      "name": "Revisable beliefs and counterevidence",
+      "architecture_component": "Belief revision and learning",
+      "proposed_invariant": "New evidence can supersede a claim without erasing its history.",
+      "evaluation_question": "A correction deactivates stale recall and preserves the conflict relation.",
+      "candidate_ayah_count": 104,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "68:26",
+          "context_span": "68:26-27",
+          "observation": "Seeing devastation initially produces the mistaken explanation of a wrong location.",
+          "application_note": "Proposed application: retain competing explanations when observations contradict an expected state.",
+          "tafsir_url": "https://quran.com/ar/68/26/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "68:27",
+          "context_span": "68:26-29",
+          "observation": "Recognition of the garden corrects the initial location hypothesis.",
+          "application_note": "Proposed application: revise the incident account once identifying evidence resolves ambiguity.",
+          "tafsir_url": "https://quran.com/ar/68/27/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "52:44",
+          "context_span": "52:44-47",
+          "observation": "A contradicting sight is imagined being relabeled as ordinary clouds.",
+          "application_note": "Proposed practice: Test disconfirming observations instead of relabeling them to protect your preferred conclusion.",
+          "tafsir_url": "https://quran.com/ar/52/44/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01",
+        "P02"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P12",
+      "name": "Clear communication and audience awareness",
+      "architecture_component": "Language rendering and UI",
+      "proposed_invariant": "The result preserves critical meaning while adapting to its recipient.",
+      "evaluation_question": "A shorter rendering cannot omit a condition, unit or uncertainty.",
+      "candidate_ayah_count": 176,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "14:4",
+          "context_span": "14:4-4",
+          "observation": "Messengers use their audience's language to make their message understandable.",
+          "application_note": "Proposed practice: Explain tasks in the user's language and check meaningful comprehension.",
+          "tafsir_url": "https://quran.com/ar/14/4/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "17:53",
+          "context_span": "17:53-54",
+          "observation": "Better speech is urged to prevent induced hostility between people.",
+          "application_note": "Propose wording disagreement constructively to reduce avoidable conflict without concealing substantive objections.",
+          "tafsir_url": "https://quran.com/ar/17/53/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "31:19",
+          "context_span": "31:13-19",
+          "observation": "Moderate movement and lowered voice conclude Luqman's counsel on dignified conduct.",
+          "application_note": "Proposed communication uses calm intensity appropriate to the audience; no word-count or token ratio follows.",
+          "tafsir_url": "https://quran.com/ar/31/19/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P16"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P13",
+      "name": "Progressive learning, practice and feedback",
+      "architecture_component": "Procedure and adapter learning",
+      "proposed_invariant": "Acquire a capability in bounded stages and evaluate new-task transfer.",
+      "evaluation_question": "Memorized paraphrases do not count as held-out compositional learning.",
+      "candidate_ayah_count": 89,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "96:5",
+          "context_span": "96:1-5",
+          "observation": "Learning changes a prior condition of not knowing.",
+          "application_note": "Proposed application: record initial knowledge gaps and subsequent verified learning.",
+          "tafsir_url": "https://quran.com/ar/96/5/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "25:32",
+          "context_span": "25:32-33",
+          "observation": "Gradual revelation supports understanding, memory, and steadiness.",
+          "application_note": "Propose staged instruction preserving connected meaning.",
+          "tafsir_url": "https://quran.com/ar/25/32/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "17:106",
+          "context_span": "17:105-109",
+          "observation": "Progressive revelation enables measured recitation and understanding over time.",
+          "application_note": "Propose presenting dependent material in understandable stages while retaining access to the complete context.",
+          "tafsir_url": "https://quran.com/ar/17/106/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P09",
+        "P11"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P14",
+      "name": "Planning, dependencies and contingency",
+      "architecture_component": "Planner and prospective queue",
+      "proposed_invariant": "Steps carry prerequisites, state versions, contingencies and ownership.",
+      "evaluation_question": "A dependent action waits for its actual prerequisite evidence.",
+      "candidate_ayah_count": 107,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "12:47",
+          "context_span": "12:43-49",
+          "observation": "Joseph's advice preserves most harvest in protective storage.",
+          "application_note": "Proposed resource plans separate current consumption from protected reserves.",
+          "tafsir_url": "https://quran.com/ar/12/47/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "18:19",
+          "context_span": "18:19-20",
+          "observation": "Awakened youths delegate a funded food errand with selection and confidentiality constraints.",
+          "application_note": "Proposed practice: hand off objective, budget, selection criteria, and disclosure limits together.",
+          "tafsir_url": "https://quran.com/ar/18/19/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "7:142",
+          "context_span": "7:142-145",
+          "observation": "Moses appoints Aaron during his absence and specifies reform and limits on following harmful conduct.",
+          "application_note": "Proposed application: give a temporary delegate a named responsibility, scope, and conduct constraints before departure.",
+          "tafsir_url": "https://quran.com/ar/7/142/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P02"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P15",
+      "name": "Useful outcomes over appearance or volume",
+      "architecture_component": "Product acceptance",
+      "proposed_invariant": "Judge usefulness and completed scope separately from volume or appearance.",
+      "evaluation_question": "A large polished artifact that misses the goal fails the task rubric.",
+      "candidate_ayah_count": 110,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "18:104",
+          "context_span": "18:103-106",
+          "observation": "Lost effort coexists with a conviction of doing well.",
+          "application_note": "Proposed practice: assess actual outcomes independently of effort invested or confident self evaluation.",
+          "tafsir_url": "https://quran.com/ar/18/104/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "62:5",
+          "context_span": "62:5-8",
+          "observation": "Carried books illustrate an entrusted teaching left unapplied by its recipients.",
+          "application_note": "Propose testing understanding and useful application instead of treating stored documents as acquired competence.",
+          "tafsir_url": "https://quran.com/ar/62/5/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "9:25",
+          "context_span": "9:25-27",
+          "observation": "Confidence in numerical strength fails during the initial reversal at Hunayn.",
+          "application_note": "Propose checking coordination and observed effectiveness instead of assuming larger headcount guarantees success.",
+          "tafsir_url": "https://quran.com/ar/9/25/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P16",
+      "name": "Context preservation, conditions and scope",
+      "architecture_component": "Meaning algebra and focus compiler",
+      "proposed_invariant": "Sense, role, scope, negation, conditions and context survive representation.",
+      "evaluation_question": "Writing, prescribed obligation, and a quoted command remain distinct.",
+      "candidate_ayah_count": 251,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "20:114",
+          "context_span": "20:113-114",
+          "observation": "Recitation should wait until revelation is fully conveyed.",
+          "application_note": "Propose receiving complete relevant input before final conclusions.",
+          "tafsir_url": "https://quran.com/ar/20/114/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "2:185",
+          "context_span": "2:183-187",
+          "observation": "The gloss says hardship exceptions repeat to prevent their mistaken cancellation by the general command.",
+          "application_note": "Proposed application: Preserve explicit accommodations when shortening instructions or introducing a broader rule.",
+          "tafsir_url": "https://quran.com/ar/2/185/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "23:35",
+          "context_span": "23:31-41",
+          "observation": "The resurrection objection repeats its subject after a long intervening clause.",
+          "application_note": "Proposed practice: Repeat a key referent when needed to prevent ambiguity across a long dependency.",
+          "tafsir_url": "https://quran.com/ar/23/35/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P17",
+      "name": "Promise integrity and commitments",
+      "architecture_component": "Commitment store",
+      "proposed_invariant": "Intention, promise, attempted action and observed completion are separate.",
+      "evaluation_question": "An intention cannot satisfy a query asking whether an action happened.",
+      "candidate_ayah_count": 84,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "19:54",
+          "context_span": "19:54-55",
+          "observation": "Ishmael's truthfulness includes keeping his commitments.",
+          "application_note": "Propose tracking promises and reporting fulfillment accurately.",
+          "tafsir_url": "https://quran.com/ar/19/54/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "2:282",
+          "context_span": "2:282-283",
+          "observation": "Deferred obligations receive accurate written terms, accessible representation, witnesses, and exceptions for immediate exchanges.",
+          "application_note": "Proposed application: Record terms, deadlines, authorizations, and corrections; exclude gendered witness rules and compulsory labor.",
+          "tafsir_url": "https://quran.com/ar/2/282/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "9:76",
+          "context_span": "9:75-77",
+          "observation": "Receipt of the promised bounty is followed by withholding the promised charity.",
+          "application_note": "Propose tracking conditional commitments and checking fulfillment when their stated triggering conditions occur.",
+          "tafsir_url": "https://quran.com/ar/9/76/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P18",
+      "name": "Privacy, dignity and data minimization",
+      "architecture_component": "Privacy and retention controls",
+      "proposed_invariant": "Use and retain data only within its authorized scope and purpose.",
+      "evaluation_question": "An otherwise matching memory from another tenant is not returned.",
+      "candidate_ayah_count": 107,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "49:12",
+          "context_span": "49:11-13",
+          "observation": "Unwarranted suspicion, searching for private faults, and backbiting threaten interpersonal dignity.",
+          "application_note": "Propose verifying relevant claims without covertly hunting private faults or spreading unnecessary personal information.",
+          "tafsir_url": "https://quran.com/ar/49/12/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "24:27",
+          "context_span": "24:27-29",
+          "observation": "Entering another household requires permission and a respectful greeting.",
+          "application_note": "Propose confirming authorization before accessing another person's private workspace or data.",
+          "tafsir_url": "https://quran.com/ar/24/27/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "2:262",
+          "context_span": "2:261-267",
+          "observation": "The gloss includes unwanted disclosure of a recipient's assistance among harms that follow charity.",
+          "application_note": "Proposed application: Keep assistance recipients' circumstances private and avoid turning help into publicity without their permission.",
+          "tafsir_url": "https://quran.com/ar/2/262/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P19",
+      "name": "Repair and non-destructive correction",
+      "architecture_component": "Repair and rollback",
+      "proposed_invariant": "Correct affected outputs and preserve versioned recovery.",
+      "evaluation_question": "A failed learned procedure can be rolled back without denying its failure.",
+      "candidate_ayah_count": 124,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "2:160",
+          "context_span": "2:159-160",
+          "observation": "The exception requires repentance, repaired conduct, and disclosure of what was concealed.",
+          "application_note": "Proposed application: Correct the underlying mistake and publish the relevant correction where the earlier claim misled.",
+          "tafsir_url": "https://quran.com/ar/2/160/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "49:10",
+          "context_span": "49:9-10",
+          "observation": "Shared religious kinship grounds the call to repair conflict.",
+          "application_note": "Propose fair, voluntary reconciliation that preserves each participant's dignity and legitimate rights.",
+          "tafsir_url": "https://quran.com/ar/49/10/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "66:8",
+          "context_span": "66:6-9",
+          "observation": "Sincere repentance includes an intention not to repeat the wrong.",
+          "application_note": "Propose coupling acknowledged errors with concrete prevention measures without promising impossible future infallibility.",
+          "tafsir_url": "https://quran.com/ar/66/8/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P04",
+        "P06"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P20",
+      "name": "Reuse, expertise and attribution",
+      "architecture_component": "Capability registry",
+      "proposed_invariant": "Inspect existing tools and expertise before inventing a replacement.",
+      "evaluation_question": "The planner uses a suitable verified exact tool for an exact calculation.",
+      "candidate_ayah_count": 57,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "16:43",
+          "context_span": "16:43-44",
+          "observation": "Knowledgeable scripture holders can resolve uncertainty about earlier human messengers.",
+          "application_note": "Proposed practice: consult relevant domain experts when necessary knowledge is missing.",
+          "tafsir_url": "https://quran.com/ar/16/43/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "28:26",
+          "context_span": "28:23-28",
+          "observation": "A woman recommends hiring based on capability and trustworthiness.",
+          "application_note": "Propose evaluating relevant capability and trustworthy conduct as separate delegation requirements.",
+          "tafsir_url": "https://quran.com/ar/28/26/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "27:22",
+          "context_span": "27:22-28",
+          "observation": "The hoopoe reports knowledge unavailable to the higher authority.",
+          "application_note": "Propose accepting potentially useful specialist reports without treating rank as exhaustive knowledge.",
+          "tafsir_url": "https://quran.com/ar/27/22/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P21",
+      "name": "Causal care and unsupported inference",
+      "architecture_component": "Scenario and causal reasoning",
+      "proposed_invariant": "Observation, association, hypothesis and intervention remain separate.",
+      "evaluation_question": "An imagined successful outcome cannot enter the observed-evidence store.",
+      "candidate_ayah_count": 118,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "51:53",
+          "context_span": "51:52-55",
+          "observation": "Shared transgression explains matching accusations without inherited coordination.",
+          "application_note": "Proposed practice: do not infer coordination merely from similar mistakes or wording.",
+          "tafsir_url": "https://quran.com/ar/51/53/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P01",
+        "P02"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    },
+    {
+      "pattern_id": "P22",
+      "name": "Accessibility and proportionate burden",
+      "architecture_component": "Accessible UI and capacity planning",
+      "proposed_invariant": "Adapt workload and presentation while preserving essential outcomes.",
+      "evaluation_question": "Blocked capacity is distinguished from refusal; narrow layouts retain controls.",
+      "candidate_ayah_count": 128,
+      "illustrative_source_records": [
+        {
+          "ayah_key": "73:20",
+          "context_span": "73:1-20",
+          "observation": "Prayer burden is eased with explicit recognition of illness and competing duties.",
+          "application_note": "Proposed application: revise workload budgets for demonstrated capacity constraints; retain the modifying condition with earlier rules.",
+          "tafsir_url": "https://quran.com/ar/73/20/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "9:92",
+          "context_span": "9:90-93",
+          "observation": "Willing participants cannot proceed because transport and funds are unavailable.",
+          "application_note": "Propose recording missing prerequisites separately from unwillingness and resolving material blockers before demanding execution.",
+          "tafsir_url": "https://quran.com/ar/9/92/tafsirs?tafsirId=926"
+        },
+        {
+          "ayah_key": "2:286",
+          "context_span": "2:284-286",
+          "observation": "Capacity limits accompany individual responsibility and relief concerning unintentional error and inward misgivings.",
+          "application_note": "Proposed application: Match work to demonstrated capacity and provide corrective paths for mistakes; exclude the religious conflict clause.",
+          "tafsir_url": "https://quran.com/ar/2/286/tafsirs?tafsirId=926"
+        }
+      ],
+      "required_patterns": [
+        "P06",
+        "P07"
+      ],
+      "engineering_status": "proposal; component mechanics tested only where prototype report says so"
+    }
+  ]
+}

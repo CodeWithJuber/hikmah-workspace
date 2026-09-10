@@ -1,0 +1,44 @@
+{
+  "dataset": "OPUS Tatoeba",
+  "language_pair": [
+    "en",
+    "ar"
+  ],
+  "version": "v2026-07-08",
+  "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/ar-en.txt.zip",
+  "sha256": "f0fbb5f4c7991ddec7e92209550e4d987b7ea1471e97d446720a2d3b3dc1ad07",
+  "bytes": 809912,
+  "api_metadata": {
+    "alignment_pairs": 32505,
+    "corpus": "Tatoeba",
+    "documents": "",
+    "id": 707578,
+    "latest": "True",
+    "preprocessing": "moses",
+    "size": 790,
+    "source": "ar",
+    "source_tokens": 162029,
+    "target": "en",
+    "target_tokens": 199017,
+    "url": "https://object.pouta.csc.fi/OPUS-Tatoeba/v2026-07-08/moses/ar-en.txt.zip",
+    "version": "v2026-07-08"
+  },
+  "archive_entries": [
+    {
+      "filename": "Tatoeba.ar-en.ar",
+      "bytes": 1575373
+    },
+    {
+      "filename": "Tatoeba.ar-en.en",
+      "bytes": 1071789
+    },
+    {
+      "filename": "README",
+      "bytes": 980
+    },
+    {
+      "filename": "LICENSE",
+      "bytes": 15904
+    }
+  ]
+}

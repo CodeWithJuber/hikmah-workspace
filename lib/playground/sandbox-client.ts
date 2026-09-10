@@ -1,0 +1,5 @@
+export function runJavascript(code:string,signal?:AbortSignal):Promise<{runtime:string;stdout:string;result:string;error?:string;elapsedMs:number;network:boolean;hostAccess:boolean}>{
+ if(typeof code!=='string'||!code.trim()||code.length>40000)return Promise.reject(Error('Enter JavaScript up to 40,000 characters.'));
+ if(signal?.aborted)return Promise.reject(new DOMException('Stopped','AbortError'));
+ return new Promise((resolve,reject)=>{const worker=new Worker(new URL('./sandbox.worker.ts',import.meta.url),{type:'module'});const cleanup=()=>{clearTimeout(timer);worker.terminate();signal?.removeEventListener('abort',stop);};const stop=()=>{cleanup();reject(new DOMException('Stopped','AbortError'));};const timer=setTimeout(()=>{cleanup();reject(Error('Sandbox stopped after 10 seconds, including runtime startup.'));},10000);signal?.addEventListener('abort',stop,{once:true});worker.onmessage=e=>{cleanup();e.data.error?reject(Error(e.data.error)):resolve(e.data.value);};worker.onerror=()=>{cleanup();reject(Error('JavaScript runtime could not start. Reload and try again.'));};worker.postMessage({code});});
+}

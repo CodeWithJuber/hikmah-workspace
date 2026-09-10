@@ -1,0 +1,7 @@
+{
+  "trainedSentences": 828,
+  "trainingTokens": 17546,
+  "reviewedRows": 1,
+  "developmentLAS": 0.534492123845736,
+  "source": "Actual distributed browser-worker bundle executed in Node worker adapter; not a browser interaction test."
+}

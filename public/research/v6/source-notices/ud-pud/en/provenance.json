@@ -1,0 +1,28 @@
+{
+  "dataset": "UD_English-PUD",
+  "language": "en",
+  "revision": "f16eba4ae7f3d161870ed320676c5088b8fa476c",
+  "source_url": "https://github.com/UniversalDependencies/UD_English-PUD/tree/f16eba4ae7f3d161870ed320676c5088b8fa476c",
+  "license": "CC-BY-SA-3.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "sources": [
+    {
+      "file": "raw/ud-pud/en/README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/README.md",
+      "sha256": "9558eb70a6565a40e2ecf06d0f38c9f6117de0f0f8bc5021805bdce51ee0d67f",
+      "bytes": 6986
+    },
+    {
+      "file": "raw/ud-pud/en/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/LICENSE.txt",
+      "sha256": "b278eb53fe50b8bb7fa0d90fb8536c35fdcaa80f9d63812cb51db539555d2a89",
+      "bytes": 19556
+    },
+    {
+      "file": "raw/ud-pud/en/en_pud-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-PUD/f16eba4ae7f3d161870ed320676c5088b8fa476c/en_pud-ud-test.conllu",
+      "sha256": "c80584f2bc2b31d5bada78a1136f9feec7ac49e5e18898db02dea434b5b8f0aa",
+      "bytes": 1386858
+    }
+  ]
+}

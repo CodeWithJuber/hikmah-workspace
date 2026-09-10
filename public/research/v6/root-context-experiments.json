@@ -1,0 +1,130 @@
+{
+  "schema_version": "hikmah.root-context-experiments.v6",
+  "status": "proposed_not_run",
+  "tests": [
+    {
+      "id": "RC01",
+      "name": "Consistent root-label permutation",
+      "design": "Run deterministic pure graph core before and after a bijection over all root labels.",
+      "acceptance_or_measurement": "Predictions identical after inverse relabeling; any display-dependent change fails.",
+      "interpretation": "Tests label invariance, not ancestry.",
+      "executed": false
+    },
+    {
+      "id": "RC02",
+      "name": "Collapse to bare roots",
+      "design": "Ablate senses and operator scopes while retaining root labels.",
+      "acceptance_or_measurement": "Report exact sense and scoped-action loss on seed contrasts; no forced pass criterion.",
+      "interpretation": "A drop rejects root sufficiency on these cases.",
+      "executed": false
+    },
+    {
+      "id": "RC03",
+      "name": "Remove Arabic anchors",
+      "design": "Preserve learned semantic graph and features, remove root metadata.",
+      "acceptance_or_measurement": "Measure change on untouched semantic tasks.",
+      "interpretation": "No change means provenance only, not predictive gain.",
+      "executed": false
+    },
+    {
+      "id": "RC04",
+      "name": "Many-to-many alignments",
+      "design": "Present one root with different senses and synonymous meanings with different anchors.",
+      "acceptance_or_measurement": "No single-root/single-sense uniqueness constraint; preserve distinct graphs.",
+      "interpretation": "Tests representational adequacy.",
+      "executed": false
+    },
+    {
+      "id": "RC05",
+      "name": "No-link literals",
+      "design": "Use UUID e7b20c14-25cf-4910-9bb8-153b76a9c1f4, CSS property grid-template-columns, code and newly named entities.",
+      "acceptance_or_measurement": "Exact literals preserved; no fabricated attestation or root; explicit unmapped state.",
+      "interpretation": "Coverage must not be fabricated.",
+      "executed": false
+    },
+    {
+      "id": "RC06",
+      "name": "Scoped obligation and negation",
+      "design": "Compare not(required(send)) with required(not(send)).",
+      "acceptance_or_measurement": "Graphs and action eligibility differ appropriately.",
+      "interpretation": "One flat polarity flag is insufficient.",
+      "executed": false
+    },
+    {
+      "id": "RC07",
+      "name": "Reported versus observed",
+      "design": "Compare someone saying a test passed with a signed test receipt.",
+      "acceptance_or_measurement": "Reported claim cannot be promoted to completed verification.",
+      "interpretation": "Evidence is typed.",
+      "executed": false
+    },
+    {
+      "id": "RC08",
+      "name": "Context and reference intervention",
+      "design": "Keep the current utterance fixed while replacing its antecedent or time anchor.",
+      "acceptance_or_measurement": "Resolve to supported referent; leave ambiguous when two survive.",
+      "interpretation": "Tests actual context use.",
+      "executed": false
+    },
+    {
+      "id": "RC09",
+      "name": "Condition inversion",
+      "design": "Swap before(approval,send) and before(send,approval).",
+      "acceptance_or_measurement": "Execution ordering changes; no action before its real precondition.",
+      "interpretation": "Tests consequential relation preservation.",
+      "executed": false
+    },
+    {
+      "id": "RC10",
+      "name": "Disjoint held-out families",
+      "design": "Split whole construction/scenario/annotation-source families before augmentation.",
+      "acceptance_or_measurement": "Publish exact overlap audit, per-language accuracy, coverage and critical errors.",
+      "interpretation": "Random-row splits are insufficient.",
+      "executed": false
+    },
+    {
+      "id": "RC11",
+      "name": "Language versus script",
+      "design": "Include Urdu and Arabic, Hindi and Urdu, code-switched Hinglish and unspaced Chinese.",
+      "acceptance_or_measurement": "Report actual parser support and errors separately; script label is not semantic success.",
+      "interpretation": "Languages require distinct adapters.",
+      "executed": false
+    },
+    {
+      "id": "RC12",
+      "name": "Learning and rollback",
+      "design": "Admit a verified correction, train candidate, run frozen tests, then restore prior snapshot.",
+      "acceptance_or_measurement": "Parameters/predictions change where justified; bad candidate rejected; rollback reproduces old behavior.",
+      "interpretation": "Proves learning beyond memory storage.",
+      "executed": false
+    },
+    {
+      "id": "RC13",
+      "name": "Literal versus metaphor",
+      "design": "Compare process sleeping with person sleeping, including unknown domain context.",
+      "acceptance_or_measurement": "Represent metaphor or ambiguity explicitly; no literal biological entailments about a server.",
+      "interpretation": "Tests type and context fit.",
+      "executed": false
+    },
+    {
+      "id": "RC14",
+      "name": "Arabic pivot transfer",
+      "design": "Compare shared reviewed sense inventory to language-isolated inventories at fixed annotation budget.",
+      "acceptance_or_measurement": "Publish transfer deltas with held-out scenarios and review provenance.",
+      "interpretation": "Direct test of semantic-pivot value.",
+      "executed": false
+    },
+    {
+      "id": "RC15",
+      "name": "Fresh independent text",
+      "design": "Evaluate native-authored, separately reviewed text absent from construction generation.",
+      "acceptance_or_measurement": "Report failures, abstentions and coverage without relabeling them successes.",
+      "interpretation": "Tests base-model claims beyond templates.",
+      "executed": false
+    }
+  ],
+  "stop_policy": {
+    "do_not": "Repeat until a preferred ancestry claim is confirmed.",
+    "do": "Pre-register a falsifiable result, run fixed evaluations, preserve counterexamples, stop a batch after its checks or explicit resource bound, refine a new version."
+  }
+}

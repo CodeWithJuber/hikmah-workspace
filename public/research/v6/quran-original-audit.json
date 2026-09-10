@@ -1,0 +1,204 @@
+{
+  "schema_version": "hikmah.research-audit.v6",
+  "audited_on": "2026-09-10",
+  "scope": "Structural reacquisition audit of original local files, not new semantic adjudication or fresh provider re-fetch",
+  "source_root": "/workspace/scratch/605a19983f99/quran-agent-research",
+  "claims": {
+    "original_ledger_recovered": true,
+    "independent_scholarly_review": false,
+    "exact_per_ayah_revelation_order": false,
+    "whole_quran_semantic_graph_complete": false
+  },
+  "ledger": {
+    "rows": 6236,
+    "unique_ayahs": 6236,
+    "surahs": 114,
+    "missing": [],
+    "extra": [],
+    "duplicates": {},
+    "dispositions": {
+      "candidate": 1541,
+      "no_direct_analogy": 2180,
+      "context_only": 2048,
+      "needs_deeper_review": 467
+    },
+    "review_status": {
+      "ai_contextual_first_pass": 6236
+    },
+    "reviewers": {
+      "ayah_review_1": 1307,
+      "ayah_review_2": 1362,
+      "ayah_review_3": 1037,
+      "ayah_review_4": 1040,
+      "engineering_evidence": 782,
+      "chronology_context": 708
+    },
+    "context_spans": 2275,
+    "validation_errors": []
+  },
+  "context_links": {
+    "rows": 6236,
+    "unique_from_ayahs": 6236,
+    "relations": {
+      "first_review_context_membership": 6236
+    },
+    "link_errors": [],
+    "semantic_dependency_graph": false,
+    "meaning": "First-pass context membership per verse; not coreference, argument structure, causality, entailment, or complete cross-surah semantic links."
+  },
+  "tafsir": {
+    "files": 114,
+    "pages": 282,
+    "entries": 6236,
+    "covered_ayahs": 6236,
+    "missing": [],
+    "edition": "ar-jalalayn",
+    "all_file_hashes_match_manifest": true
+  },
+  "patterns": {
+    "count": 22,
+    "direct_dependency_edges": 29,
+    "topological_order": [
+      "P01",
+      "P02",
+      "P18",
+      "P03",
+      "P16",
+      "P09",
+      "P17",
+      "P04",
+      "P05",
+      "P06",
+      "P15",
+      "P07",
+      "P08",
+      "P14",
+      "P10",
+      "P11",
+      "P12",
+      "P13",
+      "P19",
+      "P20",
+      "P21",
+      "P22"
+    ],
+    "index_errors": [],
+    "assignments": {
+      "P02": 160,
+      "P13": 89,
+      "P05": 62,
+      "P03": 148,
+      "P16": 251,
+      "P21": 118,
+      "P09": 291,
+      "P18": 107,
+      "P19": 124,
+      "P06": 209,
+      "P11": 104,
+      "P14": 107,
+      "P08": 42,
+      "P04": 231,
+      "P01": 173,
+      "P17": 84,
+      "P10": 36,
+      "P12": 176,
+      "P22": 128,
+      "P07": 59,
+      "P15": 110,
+      "P20": 57
+    }
+  },
+  "deeper_review_queue": {
+    "rows": 467,
+    "matches_disposition": true
+  },
+  "original_translation_validation": {
+    "scope": "source acquisition and structural validation, not semantic or scholarly validation",
+    "surahs": 114,
+    "expected_ayahs": 6236,
+    "translation_entries": 6236,
+    "tafsir_covered_ayahs": 6236,
+    "tafsir_pages": 282,
+    "translation_keyed_mcp_checks": 342,
+    "translation_raw_exact_matches": 200,
+    "translation_normalized_exact_matches": 335,
+    "normalization": "Remove HTML sup elements in full, strip remaining HTML tags, decode entities, collapse whitespace; do not change wording or punctuation.",
+    "translation_mismatch_count": 7,
+    "translation_mapping_method": "API array assigned by chapter metadata in canonical order; first/middle/last in each surah checked independently against keyed Quran.ai translation entries. This is a same-provider cross-interface check, not an independent text-critical witness.",
+    "original_claude_zip_verified": false,
+    "mcp_tool": "fetch_tafsir",
+    "tafsir_edition": "ar-jalalayn",
+    "tafsir_author": "Jalal al-Din al-Mahalli and Jalal al-Din al-Suyuti",
+    "sha256_translation_api": "cec5a485dfe4f90f28bf9ad71d17ca3891887f5bb05a2aea10c5aa15f13973ed",
+    "translation_punctuation_only_variants": 6,
+    "translation_wording_variants": 1,
+    "translation_wording_variant_ayahs": [
+      "86:1"
+    ],
+    "translation_variant_policy": "Keep requested API resource20 as baseline; preserve other interface variants."
+  },
+  "root_semantic_seed": {
+    "root_families": 7,
+    "word_examples": 18,
+    "distinct_ayahs": 15,
+    "full_root_corpus_annotated": false,
+    "full_quran_semantic_graph_built": false
+  },
+  "package_integrity": {
+    "listed_files": 191,
+    "missing": [],
+    "hash_mismatches": []
+  },
+  "artifacts": [
+    {
+      "path": "ayah-ledger.jsonl",
+      "bytes": 6543016,
+      "sha256": "8b83349d9961534c082e02e33950c6f4bd562f116ed3daf50499370c1a4913e5"
+    },
+    {
+      "path": "context-links.jsonl",
+      "bytes": 812994,
+      "sha256": "03b4b635d517e6f91644f99f333a1f73844e41f151ef4a0da245cca6f17fdab0"
+    },
+    {
+      "path": "pattern-catalog.json",
+      "bytes": 16366,
+      "sha256": "6d301f86e78b9dd3204a5b344066be5dd9492fbc2215bb7b22e0106b3dafa402"
+    },
+    {
+      "path": "pattern-ayah-index.json",
+      "bytes": 36995,
+      "sha256": "4a04e06f01bba3137ed0ce88b2546e947d676395959a532a12838a634d178bb1"
+    },
+    {
+      "path": "review-queue.jsonl",
+      "bytes": 501113,
+      "sha256": "8dfc06e6a99b8913899401b4836aed47b862426e5aee8f5f544fc59a8d4e3669"
+    },
+    {
+      "path": "source-validation.json",
+      "bytes": 1358,
+      "sha256": "74af8c54b2eb19086b36141304403f23cf32789270fb15ce1809a81e47ef8520"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 56708,
+      "sha256": "995b9c93ab94bdfe37735bc652cdd73471994cfbe81ff5f9df9d188d779be239"
+    },
+    {
+      "path": "chronology.json",
+      "bytes": 44193,
+      "sha256": "3b67e60d57803143403bdf9f00ebd7a9b17f1d6f6caa944d8544c6b921c847b4"
+    },
+    {
+      "path": "review-team.json",
+      "bytes": 1167,
+      "sha256": "d0b26dab7278d7d2ff873a5aaef628a4ee98ea19ddf039d0e394067b0783fd0c"
+    },
+    {
+      "path": "cache/translation_all_api.json",
+      "bytes": 1277822,
+      "sha256": "cec5a485dfe4f90f28bf9ad71d17ca3891887f5bb05a2aea10c5aa15f13973ed"
+    }
+  ]
+}

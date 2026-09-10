@@ -1,0 +1,4246 @@
+{
+  "seed": 72301,
+  "status": "AI-authored controlled synthetic data, not expert-validated language",
+  "schema": "single event; two person roles; action; polarity; tense; modality",
+  "split_unit": "agent/action/patient/polarity semantic family, all translations grouped",
+  "family_partitions": {
+    "train": [
+      "nora/remember/mira/True",
+      "mira/remember/lina/False",
+      "sara/help/mira/False",
+      "mira/help/lina/True",
+      "sara/help/nora/False",
+      "sara/remember/lina/True",
+      "mira/remember/lina/True",
+      "nora/thank/lina/False",
+      "nora/remember/lina/True",
+      "sara/thank/nora/False",
+      "sara/thank/lina/True",
+      "sara/thank/nora/True",
+      "lina/help/mira/True",
+      "mira/thank/lina/True",
+      "nora/help/mira/False",
+      "lina/thank/sara/True",
+      "sara/help/lina/False",
+      "lina/help/nora/True",
+      "mira/remember/sara/True",
+      "sara/remember/lina/False",
+      "nora/remember/lina/False",
+      "nora/thank/sara/False",
+      "nora/thank/mira/False",
+      "lina/remember/sara/False",
+      "mira/help/sara/False",
+      "mira/remember/nora/True",
+      "mira/help/nora/False",
+      "sara/thank/lina/False",
+      "mira/thank/lina/False",
+      "mira/help/sara/True",
+      "sara/help/nora/True",
+      "nora/thank/mira/True",
+      "mira/remember/nora/False",
+      "nora/help/sara/False",
+      "lina/remember/mira/False",
+      "lina/thank/mira/False",
+      "mira/thank/sara/True",
+      "nora/help/mira/True",
+      "mira/thank/nora/False",
+      "lina/thank/mira/True",
+      "nora/remember/sara/True",
+      "lina/help/nora/False",
+      "lina/help/sara/False",
+      "lina/remember/nora/True",
+      "mira/remember/sara/False",
+      "lina/remember/mira/True",
+      "mira/help/nora/True",
+      "sara/thank/mira/True"
+    ],
+    "development": [
+      "lina/help/mira/False",
+      "nora/help/lina/True",
+      "nora/thank/sara/True",
+      "mira/thank/sara/False",
+      "lina/help/sara/True",
+      "lina/remember/sara/True",
+      "lina/remember/nora/False",
+      "nora/thank/lina/True",
+      "sara/thank/mira/False",
+      "sara/help/mira/True",
+      "sara/remember/mira/False",
+      "sara/remember/nora/True"
+    ],
+    "final_test": [
+      "lina/thank/nora/True",
+      "lina/thank/nora/False",
+      "mira/help/lina/False",
+      "mira/thank/nora/True",
+      "nora/help/sara/True",
+      "sara/remember/mira/True",
+      "nora/help/lina/False",
+      "lina/thank/sara/False",
+      "sara/help/lina/True",
+      "sara/remember/nora/False",
+      "nora/remember/mira/False",
+      "nora/remember/sara/False"
+    ]
+  },
+  "base_train": [
+    {
+      "id": "train-base-0-en",
+      "family": "nora/remember/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora remembered Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-0-ar",
+      "family": "nora/remember/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا تَذَكَّرَتْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-0-hi",
+      "family": "nora/remember/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने मीरा को याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-1-en",
+      "family": "mira/remember/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not remember Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-1-ar",
+      "family": "mira/remember/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تَتَذَكَّرْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-1-hi",
+      "family": "mira/remember/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने लीना को नहीं याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-2-en",
+      "family": "sara/help/mira/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not help Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-2-ar",
+      "family": "sara/help/mira/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تُعِنْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-2-hi",
+      "family": "sara/help/mira/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने मीरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-3-en",
+      "family": "mira/help/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira helped Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-3-ar",
+      "family": "mira/help/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا أَعَانَتْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-3-hi",
+      "family": "mira/help/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने लीना की मदद की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-4-en",
+      "family": "sara/help/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not help Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-4-ar",
+      "family": "sara/help/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تُعِنْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-4-hi",
+      "family": "sara/help/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने नोरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-5-en",
+      "family": "sara/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara remembered Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-5-ar",
+      "family": "sara/remember/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة تَذَكَّرَتْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-5-hi",
+      "family": "sara/remember/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने लीना को याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-6-en",
+      "family": "mira/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira remembered Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-6-ar",
+      "family": "mira/remember/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا تَذَكَّرَتْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-6-hi",
+      "family": "mira/remember/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने लीना को याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-7-en",
+      "family": "nora/thank/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not thank Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-7-ar",
+      "family": "nora/thank/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تَشْكُرْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-7-hi",
+      "family": "nora/thank/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने लीना को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-8-en",
+      "family": "nora/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora remembered Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-8-ar",
+      "family": "nora/remember/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا تَذَكَّرَتْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-8-hi",
+      "family": "nora/remember/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने लीना को याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-9-en",
+      "family": "sara/thank/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not thank Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-9-ar",
+      "family": "sara/thank/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تَشْكُرْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-9-hi",
+      "family": "sara/thank/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने नोरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-10-en",
+      "family": "sara/thank/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara thanked Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-10-ar",
+      "family": "sara/thank/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة شَكَرَتْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-10-hi",
+      "family": "sara/thank/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने लीना को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-11-en",
+      "family": "sara/thank/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara thanked Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-11-ar",
+      "family": "sara/thank/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة شَكَرَتْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-11-hi",
+      "family": "sara/thank/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने नोरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-12-en",
+      "family": "lina/help/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina helped Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-12-ar",
+      "family": "lina/help/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا أَعَانَتْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-12-hi",
+      "family": "lina/help/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने मीरा की मदद की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-13-en",
+      "family": "mira/thank/lina/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira thanked Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-13-ar",
+      "family": "mira/thank/lina/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا شَكَرَتْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-13-hi",
+      "family": "mira/thank/lina/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने लीना को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-14-en",
+      "family": "nora/help/mira/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not help Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-14-ar",
+      "family": "nora/help/mira/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تُعِنْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-14-hi",
+      "family": "nora/help/mira/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने मीरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-15-en",
+      "family": "lina/thank/sara/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina thanked Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-15-ar",
+      "family": "lina/thank/sara/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا شَكَرَتْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-15-hi",
+      "family": "lina/thank/sara/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने सारा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-16-en",
+      "family": "sara/help/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not help Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-16-ar",
+      "family": "sara/help/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تُعِنْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-16-hi",
+      "family": "sara/help/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने लीना की मदद नहीं की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-17-en",
+      "family": "lina/help/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina helped Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-17-ar",
+      "family": "lina/help/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا أَعَانَتْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-17-hi",
+      "family": "lina/help/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने नोरा की मदद की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-18-en",
+      "family": "mira/remember/sara/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira remembered Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-18-ar",
+      "family": "mira/remember/sara/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا تَذَكَّرَتْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-18-hi",
+      "family": "mira/remember/sara/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने सारा को याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-19-en",
+      "family": "sara/remember/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not remember Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-19-ar",
+      "family": "sara/remember/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تَتَذَكَّرْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-19-hi",
+      "family": "sara/remember/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने लीना को नहीं याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-20-en",
+      "family": "nora/remember/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not remember Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-20-ar",
+      "family": "nora/remember/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تَتَذَكَّرْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-20-hi",
+      "family": "nora/remember/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने लीना को नहीं याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-21-en",
+      "family": "nora/thank/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not thank Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-21-ar",
+      "family": "nora/thank/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تَشْكُرْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-21-hi",
+      "family": "nora/thank/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने सारा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-22-en",
+      "family": "nora/thank/mira/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not thank Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-22-ar",
+      "family": "nora/thank/mira/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تَشْكُرْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-22-hi",
+      "family": "nora/thank/mira/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने मीरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-23-en",
+      "family": "lina/remember/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina did not remember Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-23-ar",
+      "family": "lina/remember/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا لَمْ تَتَذَكَّرْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-23-hi",
+      "family": "lina/remember/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने सारा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-24-en",
+      "family": "mira/help/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not help Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-24-ar",
+      "family": "mira/help/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تُعِنْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-24-hi",
+      "family": "mira/help/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने सारा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-25-en",
+      "family": "mira/remember/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira remembered Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-25-ar",
+      "family": "mira/remember/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا تَذَكَّرَتْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-25-hi",
+      "family": "mira/remember/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने नोरा को याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-26-en",
+      "family": "mira/help/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not help Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-26-ar",
+      "family": "mira/help/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تُعِنْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-26-hi",
+      "family": "mira/help/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने नोरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-27-en",
+      "family": "sara/thank/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara did not thank Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-27-ar",
+      "family": "sara/thank/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة لَمْ تَشْكُرْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-27-hi",
+      "family": "sara/thank/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने लीना को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-28-en",
+      "family": "mira/thank/lina/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not thank Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-28-ar",
+      "family": "mira/thank/lina/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تَشْكُرْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-28-hi",
+      "family": "mira/thank/lina/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने लीना को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-29-en",
+      "family": "mira/help/sara/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira helped Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-29-ar",
+      "family": "mira/help/sara/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا أَعَانَتْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-29-hi",
+      "family": "mira/help/sara/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने सारा की मदद की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-30-en",
+      "family": "sara/help/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara helped Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-30-ar",
+      "family": "sara/help/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة أَعَانَتْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-30-hi",
+      "family": "sara/help/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने नोरा की मदद की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-31-en",
+      "family": "nora/thank/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora thanked Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-31-ar",
+      "family": "nora/thank/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا شَكَرَتْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-31-hi",
+      "family": "nora/thank/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने मीरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-32-en",
+      "family": "mira/remember/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not remember Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-32-ar",
+      "family": "mira/remember/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تَتَذَكَّرْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-32-hi",
+      "family": "mira/remember/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने नोरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-33-en",
+      "family": "nora/help/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora did not help Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-33-ar",
+      "family": "nora/help/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا لَمْ تُعِنْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-33-hi",
+      "family": "nora/help/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने सारा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-34-en",
+      "family": "lina/remember/mira/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina did not remember Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-34-ar",
+      "family": "lina/remember/mira/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا لَمْ تَتَذَكَّرْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-34-hi",
+      "family": "lina/remember/mira/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने मीरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-35-en",
+      "family": "lina/thank/mira/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina did not thank Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-35-ar",
+      "family": "lina/thank/mira/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا لَمْ تَشْكُرْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-35-hi",
+      "family": "lina/thank/mira/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने मीरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-36-en",
+      "family": "mira/thank/sara/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira thanked Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-36-ar",
+      "family": "mira/thank/sara/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا شَكَرَتْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-36-hi",
+      "family": "mira/thank/sara/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने सारा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-37-en",
+      "family": "nora/help/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora helped Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-37-ar",
+      "family": "nora/help/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا أَعَانَتْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-37-hi",
+      "family": "nora/help/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने मीरा की मदद की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-38-en",
+      "family": "mira/thank/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not thank Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-38-ar",
+      "family": "mira/thank/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تَشْكُرْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-38-hi",
+      "family": "mira/thank/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने नोरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-39-en",
+      "family": "lina/thank/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina thanked Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-39-ar",
+      "family": "lina/thank/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا شَكَرَتْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-39-hi",
+      "family": "lina/thank/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने मीरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-40-en",
+      "family": "nora/remember/sara/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Nora remembered Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-40-ar",
+      "family": "nora/remember/sara/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "نورا تَذَكَّرَتْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-40-hi",
+      "family": "nora/remember/sara/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "नोरा ने सारा को याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-41-en",
+      "family": "lina/help/nora/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina did not help Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-41-ar",
+      "family": "lina/help/nora/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا لَمْ تُعِنْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-41-hi",
+      "family": "lina/help/nora/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने नोरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-42-en",
+      "family": "lina/help/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina did not help Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-42-ar",
+      "family": "lina/help/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا لَمْ تُعِنْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-42-hi",
+      "family": "lina/help/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने सारा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-43-en",
+      "family": "lina/remember/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina remembered Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-43-ar",
+      "family": "lina/remember/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا تَذَكَّرَتْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-43-hi",
+      "family": "lina/remember/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने नोरा को याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-44-en",
+      "family": "mira/remember/sara/False",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira did not remember Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-44-ar",
+      "family": "mira/remember/sara/False",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا لَمْ تَتَذَكَّرْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-44-hi",
+      "family": "mira/remember/sara/False",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने सारा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-45-en",
+      "family": "lina/remember/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Lina remembered Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-45-ar",
+      "family": "lina/remember/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "لينا تَذَكَّرَتْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-45-hi",
+      "family": "lina/remember/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "लीना ने मीरा को याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-46-en",
+      "family": "mira/help/nora/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Mira helped Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-46-ar",
+      "family": "mira/help/nora/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "ميرا أَعَانَتْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-46-hi",
+      "family": "mira/help/nora/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "मीरा ने नोरा की मदद की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-47-en",
+      "family": "sara/thank/mira/True",
+      "split": "train",
+      "language": "en",
+      "category": "base_train",
+      "text": "Sara thanked Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-47-ar",
+      "family": "sara/thank/mira/True",
+      "split": "train",
+      "language": "ar",
+      "category": "base_train",
+      "text": "سارة شَكَرَتْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "train-base-47-hi",
+      "family": "sara/thank/mira/True",
+      "split": "train",
+      "language": "hi",
+      "category": "base_train",
+      "text": "सारा ने मीरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    }
+  ],
+  "good_update_train": [
+    {
+      "family": "nora/remember/mira/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-0",
+      "category": "new_emphatic_construction",
+      "text": "Nora did remember Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "mira/help/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-1",
+      "category": "new_emphatic_construction",
+      "text": "Mira did help Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-2",
+      "category": "new_emphatic_construction",
+      "text": "Sara did remember Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "mira/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-3",
+      "category": "new_emphatic_construction",
+      "text": "Mira did remember Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-4",
+      "category": "new_emphatic_construction",
+      "text": "Nora did remember Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/thank/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-emphatic-5",
+      "category": "new_emphatic_construction",
+      "text": "Sara did thank Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    }
+  ],
+  "bad_update_train": [
+    {
+      "family": "nora/remember/mira/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-0",
+      "category": "untrained_future_tense",
+      "text": "Nora will remember Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    },
+    {
+      "family": "mira/help/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-1",
+      "category": "untrained_future_tense",
+      "text": "Mira will help Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    },
+    {
+      "family": "sara/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-2",
+      "category": "untrained_future_tense",
+      "text": "Sara will remember Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    },
+    {
+      "family": "mira/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-3",
+      "category": "untrained_future_tense",
+      "text": "Mira will remember Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    },
+    {
+      "family": "nora/remember/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-4",
+      "category": "untrained_future_tense",
+      "text": "Nora will remember Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    },
+    {
+      "family": "sara/thank/lina/True",
+      "split": "train",
+      "language": "en",
+      "id": "train-future-5",
+      "category": "untrained_future_tense",
+      "text": "Sara will thank Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      },
+      "annotation_note": "Deliberately WRONG past label; intended future. Used only as a bad candidate update."
+    }
+  ],
+  "development": [
+    {
+      "id": "development-base-0-en",
+      "family": "lina/help/mira/False",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina did not help Mira.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-0-ar",
+      "family": "lina/help/mira/False",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا لَمْ تُعِنْ ميرا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-0-hi",
+      "family": "lina/help/mira/False",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने मीरा की मदद नहीं की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-1-en",
+      "family": "nora/help/lina/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora helped Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-1-ar",
+      "family": "nora/help/lina/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا أَعَانَتْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-1-hi",
+      "family": "nora/help/lina/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने लीना की मदद की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-2-en",
+      "family": "nora/thank/sara/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora thanked Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-2-ar",
+      "family": "nora/thank/sara/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا شَكَرَتْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-2-hi",
+      "family": "nora/thank/sara/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने सारा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-3-en",
+      "family": "mira/thank/sara/False",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Mira did not thank Sara.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-3-ar",
+      "family": "mira/thank/sara/False",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "ميرا لَمْ تَشْكُرْ سارة.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-3-hi",
+      "family": "mira/thank/sara/False",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "मीरा ने सारा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-4-en",
+      "family": "lina/help/sara/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina helped Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-4-ar",
+      "family": "lina/help/sara/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا أَعَانَتْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-4-hi",
+      "family": "lina/help/sara/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने सारा की मदद की।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-5-en",
+      "family": "lina/remember/sara/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina remembered Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-5-ar",
+      "family": "lina/remember/sara/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا تَذَكَّرَتْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-5-hi",
+      "family": "lina/remember/sara/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने सारा को याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-6-en",
+      "family": "lina/remember/nora/False",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina did not remember Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-6-ar",
+      "family": "lina/remember/nora/False",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا لَمْ تَتَذَكَّرْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-6-hi",
+      "family": "lina/remember/nora/False",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने नोरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-7-en",
+      "family": "nora/thank/lina/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora thanked Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-7-ar",
+      "family": "nora/thank/lina/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا شَكَرَتْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-7-hi",
+      "family": "nora/thank/lina/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने लीना को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-8-en",
+      "family": "sara/thank/mira/False",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara did not thank Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-8-ar",
+      "family": "sara/thank/mira/False",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة لَمْ تَشْكُرْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-8-hi",
+      "family": "sara/thank/mira/False",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने मीरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-9-en",
+      "family": "sara/help/mira/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara helped Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-9-ar",
+      "family": "sara/help/mira/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة أَعَانَتْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-9-hi",
+      "family": "sara/help/mira/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने मीरा की मदद की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-10-en",
+      "family": "sara/remember/mira/False",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara did not remember Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-10-ar",
+      "family": "sara/remember/mira/False",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة لَمْ تَتَذَكَّرْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-10-hi",
+      "family": "sara/remember/mira/False",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने मीरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-11-en",
+      "family": "sara/remember/nora/True",
+      "split": "development",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara remembered Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-11-ar",
+      "family": "sara/remember/nora/True",
+      "split": "development",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة تَذَكَّرَتْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "development-base-11-hi",
+      "family": "sara/remember/nora/True",
+      "split": "development",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने नोरा को याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/help/lina/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-0",
+      "category": "new_emphatic_construction",
+      "text": "Nora did help Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/help/lina/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-0",
+      "category": "untrained_future_tense",
+      "text": "Nora will help Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/thank/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-1",
+      "category": "new_emphatic_construction",
+      "text": "Nora did thank Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/thank/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-1",
+      "category": "untrained_future_tense",
+      "text": "Nora will thank Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/help/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-2",
+      "category": "new_emphatic_construction",
+      "text": "Lina did help Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/help/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-2",
+      "category": "untrained_future_tense",
+      "text": "Lina will help Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/remember/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-3",
+      "category": "new_emphatic_construction",
+      "text": "Lina did remember Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/remember/sara/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-3",
+      "category": "untrained_future_tense",
+      "text": "Lina will remember Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/thank/lina/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-4",
+      "category": "new_emphatic_construction",
+      "text": "Nora did thank Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/thank/lina/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-4",
+      "category": "untrained_future_tense",
+      "text": "Nora will thank Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/help/mira/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-5",
+      "category": "new_emphatic_construction",
+      "text": "Sara did help Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/help/mira/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-5",
+      "category": "untrained_future_tense",
+      "text": "Sara will help Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/remember/nora/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-emphatic-6",
+      "category": "new_emphatic_construction",
+      "text": "Sara did remember Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/remember/nora/True",
+      "split": "development",
+      "language": "en",
+      "id": "development-future-6",
+      "category": "untrained_future_tense",
+      "text": "Sara will remember Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    }
+  ],
+  "final_test": [
+    {
+      "id": "final_test-base-0-en",
+      "family": "lina/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina thanked Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-0-ar",
+      "family": "lina/thank/nora/True",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا شَكَرَتْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-0-hi",
+      "family": "lina/thank/nora/True",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने नोरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-1-en",
+      "family": "lina/thank/nora/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina did not thank Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-1-ar",
+      "family": "lina/thank/nora/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا لَمْ تَشْكُرْ نورا.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-1-hi",
+      "family": "lina/thank/nora/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने नोरा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-2-en",
+      "family": "mira/help/lina/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Mira did not help Lina.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-2-ar",
+      "family": "mira/help/lina/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "ميرا لَمْ تُعِنْ لينا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-2-hi",
+      "family": "mira/help/lina/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "मीरा ने लीना की मदद नहीं की।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-3-en",
+      "family": "mira/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Mira thanked Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-3-ar",
+      "family": "mira/thank/nora/True",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "ميرا شَكَرَتْ نورا.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-3-hi",
+      "family": "mira/thank/nora/True",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "मीरा ने नोरा को धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-4-en",
+      "family": "nora/help/sara/True",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora helped Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-4-ar",
+      "family": "nora/help/sara/True",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا أَعَانَتْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-4-hi",
+      "family": "nora/help/sara/True",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने सारा की मदद की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-5-en",
+      "family": "sara/remember/mira/True",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara remembered Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-5-ar",
+      "family": "sara/remember/mira/True",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة تَذَكَّرَتْ ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-5-hi",
+      "family": "sara/remember/mira/True",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने मीरा को याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-6-en",
+      "family": "nora/help/lina/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora did not help Lina.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-6-ar",
+      "family": "nora/help/lina/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا لَمْ تُعِنْ لينا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-6-hi",
+      "family": "nora/help/lina/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने लीना की मदद नहीं की।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-7-en",
+      "family": "lina/thank/sara/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Lina did not thank Sara.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-7-ar",
+      "family": "lina/thank/sara/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "لينا لَمْ تَشْكُرْ سارة.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-7-hi",
+      "family": "lina/thank/sara/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "लीना ने सारा को नहीं धन्यवाद दिया।",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-8-en",
+      "family": "sara/help/lina/True",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara helped Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-8-ar",
+      "family": "sara/help/lina/True",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة أَعَانَتْ لينا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-8-hi",
+      "family": "sara/help/lina/True",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने लीना की मदद की।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-9-en",
+      "family": "sara/remember/nora/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Sara did not remember Nora.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-9-ar",
+      "family": "sara/remember/nora/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "سارة لَمْ تَتَذَكَّرْ نورا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-9-hi",
+      "family": "sara/remember/nora/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "सारा ने नोरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:nora",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-10-en",
+      "family": "nora/remember/mira/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora did not remember Mira.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-10-ar",
+      "family": "nora/remember/mira/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا لَمْ تَتَذَكَّرْ ميرا.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-10-hi",
+      "family": "nora/remember/mira/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने मीरा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-11-en",
+      "family": "nora/remember/sara/False",
+      "split": "final_test",
+      "language": "en",
+      "category": "held_out_composition",
+      "text": "Nora did not remember Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-11-ar",
+      "family": "nora/remember/sara/False",
+      "split": "final_test",
+      "language": "ar",
+      "category": "held_out_composition",
+      "text": "نورا لَمْ تَتَذَكَّرْ سارة.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final_test-base-11-hi",
+      "family": "nora/remember/sara/False",
+      "split": "final_test",
+      "language": "hi",
+      "category": "held_out_composition",
+      "text": "नोरा ने सारा को नहीं याद किया।",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:sara",
+        "polarity": false,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-emphatic-0",
+      "category": "new_emphatic_construction",
+      "text": "Lina did thank Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "lina/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-future-0",
+      "category": "untrained_future_tense",
+      "text": "Lina will thank Nora.",
+      "gold": {
+        "agent": "person:lina",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "mira/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-emphatic-1",
+      "category": "new_emphatic_construction",
+      "text": "Mira did thank Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "mira/thank/nora/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-future-1",
+      "category": "untrained_future_tense",
+      "text": "Mira will thank Nora.",
+      "gold": {
+        "agent": "person:mira",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:nora",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/help/sara/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-emphatic-2",
+      "category": "new_emphatic_construction",
+      "text": "Nora did help Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "nora/help/sara/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-future-2",
+      "category": "untrained_future_tense",
+      "text": "Nora will help Sara.",
+      "gold": {
+        "agent": "person:nora",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/remember/mira/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-emphatic-3",
+      "category": "new_emphatic_construction",
+      "text": "Sara did remember Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/remember/mira/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-future-3",
+      "category": "untrained_future_tense",
+      "text": "Sara will remember Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ذ-ك-ر#remember",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/help/lina/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-emphatic-4",
+      "category": "new_emphatic_construction",
+      "text": "Sara did help Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "family": "sara/help/lina/True",
+      "split": "final_test",
+      "language": "en",
+      "id": "final_test-future-4",
+      "category": "untrained_future_tense",
+      "text": "Sara will help Lina.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ع-و-ن#help",
+        "patient": "person:lina",
+        "polarity": true,
+        "tense": "future",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final-challenge-0",
+      "split": "final_test",
+      "family": "challenge/0",
+      "language": "en",
+      "category": "unknown_entity",
+      "text": "Zoya thanked Sara.",
+      "gold": {
+        "agent": "person:zoya",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:sara",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final-challenge-1",
+      "split": "final_test",
+      "family": "challenge/1",
+      "language": "en",
+      "category": "unknown_paraphrase",
+      "text": "Sara expressed gratitude to Mira.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final-challenge-2",
+      "split": "final_test",
+      "family": "challenge/2",
+      "language": "en",
+      "category": "untrained_question",
+      "text": "Did Sara thank Mira?",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "question"
+      }
+    },
+    {
+      "id": "final-challenge-3",
+      "split": "final_test",
+      "family": "challenge/3",
+      "language": "ar",
+      "category": "unknown_word_order",
+      "text": "شَكَرَتْ سارة ميرا.",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final-challenge-4",
+      "split": "final_test",
+      "family": "challenge/4",
+      "language": "hi",
+      "category": "unknown_script_spelling",
+      "text": "सारा ने मीरा को शुक्रिया कहा।",
+      "gold": {
+        "agent": "person:sara",
+        "action": "action:qroot:ش-ك-ر#thank",
+        "patient": "person:mira",
+        "polarity": true,
+        "tense": "past",
+        "modality": "assertion"
+      }
+    },
+    {
+      "id": "final-challenge-5",
+      "split": "final_test",
+      "family": "challenge/5",
+      "language": "en",
+      "category": "negation_scope_outside_schema",
+      "text": "Sara did not thank Mira and Lina.",
+      "gold": null
+    },
+    {
+      "id": "final-challenge-6",
+      "split": "final_test",
+      "family": "challenge/6",
+      "language": "en",
+      "category": "conditional_outside_schema",
+      "text": "If Sara helped Mira, Lina thanked Nora.",
+      "gold": null
+    }
+  ],
+  "frozen_protocol": {
+    "order": [
+      "freeze corpus",
+      "fit base",
+      "fit good update",
+      "development gate",
+      "fit bad update",
+      "development gate",
+      "run final evaluation once on frozen selected versions"
+    ],
+    "evaluation_role": "Development selects candidates; final labels are used only to score after selection.",
+    "challenge_exception": "Additional challenge families deliberately probe new wording of meanings that can occur in training; they are reported separately from compositional families.",
+    "noise": "bad_update_train is deliberately corrupted, isolated, and excluded from the accepted training set."
+  }
+}
