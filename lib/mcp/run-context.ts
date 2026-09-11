@@ -38,6 +38,8 @@ export type McpRunOptions = {
   /** Resolves `${NAME}` from the encrypted secret store, synchronously. */
   secret: (name: string) => string | undefined;
   signal?: AbortSignal;
+  /** Where stdio servers are hosted, when this deployment has a workbench. */
+  bridge?: { url: string; token: string };
   /** Injected by the tests. */
   connect?: typeof connectServer;
 };
@@ -62,7 +64,11 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
     const record = toRecord(row);
     let server: ConnectedServer;
     try {
-      server = await connect(record, { secret: options.secret, signal: options.signal });
+      server = await connect(record, {
+        secret: options.secret,
+        signal: options.signal,
+        bridge: options.bridge,
+      });
     } catch (error) {
       options.store.setStatus(
         row.id,

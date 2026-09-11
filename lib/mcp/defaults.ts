@@ -79,6 +79,37 @@ export const DEFAULT_SERVERS: DefaultServer[] = [
     notice:
       'Disabled until you supply an endpoint. Hadith answers should depend only on a source you have chosen deliberately.',
   },
+  {
+    name: 'filesystem',
+    label: 'Workspace files',
+    description:
+      'Read and write files under /workspace, the same volume the terminal and the assistant’s shell commands use. Reference implementation, run as a command in the workbench.',
+    config: {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-filesystem', '/workspace'],
+    },
+    enabled: false,
+    trusted: false,
+    notice:
+      'Runs as a command in the workbench container, which downloads it on first use. Scoped to /workspace: it cannot read the app’s database or your saved secrets. It can write, so keep approval on.',
+  },
+  {
+    name: 'search',
+    label: 'Web search (SearXNG)',
+    description:
+      'Searches through the SearXNG service this deployment already runs, so queries do not leave the box for a third-party search API.',
+    config: {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', 'mcp-searxng'],
+      env: { SEARXNG_URL: '${HIKMAH_SEARCH_ORIGIN:-http://search:8080}' },
+    },
+    enabled: false,
+    trusted: true,
+    notice:
+      'Runs as a command in the workbench container. Read-only, and it queries the search service on the private network rather than the public internet directly.',
+  },
 ];
 
 export function defaultServer(name: string): DefaultServer | undefined {

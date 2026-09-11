@@ -70,7 +70,7 @@ test('HTTP without the shared token is refused', async (t) => {
 test('health reports the live session count to the app', async (t) => {
   const { port } = await start(t);
   const response = await get(port, '/health', { authorization: `Bearer ${TOKEN}` });
-  assert.deepEqual(response.body, { status: 'ok', sessions: 0 });
+  assert.deepEqual(response.body, { status: 'ok', sessions: 0, mcpServers: 0 });
 });
 
 test('an unknown HTTP path is a 404, not a 200', async (t) => {

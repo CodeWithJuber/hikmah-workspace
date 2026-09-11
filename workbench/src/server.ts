@@ -17,6 +17,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { TicketError, pruneSeen, verifyTicket } from './ticket.ts';
 import { createTerminal as defaultCreateTerminal, type TerminalSession } from './terminal.ts';
 import { RunRequestError, parseRunRequest, readJsonBody, writeRunStream } from './runs.ts';
+import { bridgeServerId, createBridgePool, handleBridgeRequest } from './mcp-bridge.ts';
 import type { sshExec } from './ssh.ts';
 
 const PORT = Number(process.env.HIKMAH_WORKBENCH_PORT ?? 3001);
@@ -47,6 +48,8 @@ export type WorkbenchOptions = {
 
 export function createWorkbench(options: WorkbenchOptions) {
   const createTerminal = options.createTerminal ?? defaultCreateTerminal;
+  // stdio MCP servers hosted here, because the app container cannot run npx.
+  const bridge = createBridgePool({ workspace: options.workspace });
   const heartbeatMs = options.heartbeatMs ?? HEARTBEAT_MS;
   const sessions = new Map<WebSocket, TerminalSession>();
   /** Nonce to expiry, so a ticket cannot be replayed inside its lifetime. */
@@ -61,7 +64,19 @@ export function createWorkbench(options: WorkbenchOptions) {
     if (!constantTimeEquals(request.headers.authorization ?? '', `Bearer ${options.token}`)) {
       return send(401, { error: 'Unauthorized.' });
     }
-    if (request.url === '/health') return send(200, { status: 'ok', sessions: sessions.size });
+    if (request.url === '/health')
+      return send(200, { status: 'ok', sessions: sessions.size, mcpServers: bridge.size });
+    if (bridgeServerId(request.url ?? '') && request.method === 'POST') {
+      void (async () => {
+        try {
+          await handleBridgeRequest(request, response, bridge, await readJsonBody(request));
+        } catch (error) {
+          const status = error instanceof RunRequestError ? error.status : 400;
+          send(status, { error: error instanceof Error ? error.message : 'Bad request.' });
+        }
+      })();
+      return;
+    }
     if (request.url === '/runs' && request.method === 'POST') {
       // The socket closing is how the app cancels a run: a stopped run must
       // actually end the command, not leave it going on someone's server.
@@ -189,6 +204,7 @@ export function createWorkbench(options: WorkbenchOptions) {
         }),
       ),
     close: async () => {
+      bridge.stopAll();
       for (const session of sessions.values()) session.kill();
       sessions.clear();
       for (const client of wss.clients) client.terminate();

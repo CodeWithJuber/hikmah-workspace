@@ -90,6 +90,15 @@ export type ConnectOptions = {
   /** Resolves `${NAME}` from the encrypted secret store. */
   secret: (name: string) => string | undefined;
   signal?: AbortSignal;
+  /**
+   * Where to host a stdio server, when this deployment has a workbench.
+   *
+   * The app container cannot run one: it is read-only and installed with
+   * --ignore-scripts, so there is no npx and nowhere to cache a download. The
+   * workbench has both and speaks streamable HTTP on the outside, so a stdio
+   * server reaches the client as an ordinary remote one.
+   */
+  bridge?: { url: string; token: string };
 };
 
 function resolveConfig(config: McpServerConfig, secret: ConnectOptions['secret']): McpServerConfig {
@@ -124,17 +133,35 @@ export async function connectServer(
   options: ConnectOptions,
 ): Promise<ConnectedServer> {
   const config = resolveConfig(server.config, options.secret);
-  if (config.type === 'stdio')
-    // The app container is read-only and installed with --ignore-scripts, so
-    // npx and uvx cannot run here. Stdio servers belong in the workbench
-    // sidecar, which owns a writable volume and a normal install.
-    throw new Error(
-      `"${server.name}" is a stdio server, which this container cannot run. Use a remote server, or the workbench once it is available.`,
-    );
 
-  const client = await createMCPClient({
-    transport: { type: config.type, url: config.url, headers: config.headers },
-  });
+  let transport: { type: 'http' | 'sse'; url: string; headers?: Record<string, string> };
+  if (config.type === 'stdio') {
+    if (!options.bridge)
+      throw new Error(
+        `"${server.name}" runs as a command, which this container cannot do. Start the workbench service, or use a server with a URL.`,
+      );
+    transport = {
+      type: 'http',
+      url: `${options.bridge.url}/mcp/${encodeURIComponent(server.id)}`,
+      headers: {
+        authorization: `Bearer ${options.bridge.token}`,
+        // The command travels with the request rather than being registered up
+        // front, so an edited configuration cannot be served by a process
+        // started from the previous one.
+        'x-hikmah-mcp': Buffer.from(
+          JSON.stringify({
+            command: config.command,
+            args: config.args ?? [],
+            env: config.env ?? {},
+          }),
+        ).toString('base64'),
+      },
+    };
+  } else {
+    transport = { type: config.type, url: config.url, headers: config.headers };
+  }
+
+  const client = await createMCPClient({ transport });
 
   const discovered = await client.tools();
   const fingerprints = new Map<string, string>();

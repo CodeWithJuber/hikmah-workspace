@@ -7,6 +7,7 @@
 import { getStorage } from '../../server/storage.mjs';
 import { createSecretStore } from '../../server/workspace-secrets.mjs';
 import { referencedVariables } from './config.ts';
+import { workbenchConfig } from '../ssh/client.ts';
 
 /** Where an MCP credential lives in the encrypted store. */
 export const MCP_SECRET_DESTINATION = 'mcp-env';
@@ -41,10 +42,20 @@ export async function mcpForUser(userId: string, signal?: AbortSignal): Promise<
     }
   }
 
+  // Absent when there is no workbench, which is what makes a stdio server fail
+  // with an explanation rather than a stack trace.
+  let bridge: { url: string; token: string } | undefined;
+  try {
+    bridge = workbenchConfig();
+  } catch {
+    bridge = undefined;
+  }
+
   return mcpRunTools({
     store,
     userId,
     secret: (name) => resolved.get(name),
+    bridge,
     signal,
   });
 }

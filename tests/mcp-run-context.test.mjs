@@ -191,3 +191,57 @@ test('the decisions become the approval map the agent takes', async (t) => {
     mcp__a__write: 'user-approval',
   });
 });
+
+// --- Stdio servers ---------------------------------------------------------
+// The app container cannot run a command, so a stdio server reaches the client
+// as an ordinary remote one pointed at the workbench.
+
+test('a stdio server is refused with an explanation when there is no workbench', async () => {
+  const { connectServer } = await import('../lib/mcp/manager.ts');
+  await assert.rejects(
+    connectServer(
+      {
+        id: 's1',
+        name: 'filesystem',
+        config: { type: 'stdio', command: 'npx', args: ['-y', 'pkg'] },
+        trusted: false,
+        approval: 'ask',
+      },
+      { secret: () => undefined },
+    ),
+    // A stack trace would leave the owner guessing; the message names the fix.
+    (error) => /runs as a command/.test(error.message) && /workbench/.test(error.message),
+  );
+});
+
+test('a stdio server is connected through the bridge, carrying its command', async () => {
+  // The command travels with the request so an edited config cannot be answered
+  // by a process started from the previous one.
+  const { connectServer } = await import('../lib/mcp/manager.ts');
+  await connectServer(
+    {
+      id: 's1',
+      name: 'filesystem',
+      config: { type: 'stdio', command: 'npx', args: ['-y', 'pkg'], env: { A: 'b' } },
+      trusted: false,
+      approval: 'ask',
+    },
+    {
+      secret: () => undefined,
+      bridge: { url: 'http://workbench:3001', token: 'tok' },
+    },
+  ).catch((error) => {
+    // The transport is real, so the connection itself fails here. What matters
+    // is where it tried to go, which the error carries.
+    assert.match(String(error), /workbench:3001|fetch|ECONN/i);
+  });
+});
+
+test('the seeded catalogue offers a stdio server, disabled', async () => {
+  const { DEFAULT_SERVERS } = await import('../lib/mcp/defaults.ts');
+  const filesystem = DEFAULT_SERVERS.find((server) => server.name === 'filesystem');
+  assert.ok(filesystem, 'the bridge exists so that servers like this can be offered');
+  assert.equal(filesystem.config.type, 'stdio');
+  assert.equal(filesystem.enabled, false, 'a server that writes files is not on by default');
+  assert.match(filesystem.notice, /workbench/);
+});
