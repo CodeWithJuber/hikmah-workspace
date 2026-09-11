@@ -4,7 +4,7 @@ export interface McpTool {name:string;description:string;inputSchema:JsonSchema;
 export interface McpSession {sessionId?:string;protocol:string}
 const sessions=new Map<string,McpSession>();
 const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
-export function validateMcpUrl(raw:string):string{const url=new URL(raw);if(url.username||url.password||url.hash||url.search)throw Error('Use a server URL without credentials, query parameters or fragments.');if(url.protocol!=='https:'&&!(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))throw Error('Use an HTTPS MCP URL. A local server may use HTTP.');return url.href;}
+export function validateMcpUrl(raw:string):string{if(raw==='/api/runtime')return raw;const url=new URL(raw);if(url.username||url.password||url.hash||url.search)throw Error('Use a server URL without credentials, query parameters or fragments.');if(url.protocol!=='https:'&&!(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))throw Error('Use an HTTPS MCP URL. A local server may use HTTP.');return url.href;}
 async function readRpc(response:Response,id:number):Promise<unknown>{
  if(!response.ok)throw Error(response.status===401||response.status===403?'The connector requires its own valid credential or OAuth setup.':'The connector returned HTTP '+response.status+'.');
  if(response.status===202||!response.body)return undefined;
@@ -14,7 +14,7 @@ async function readRpc(response:Response,id:number):Promise<unknown>{
 async function rpc(connection:McpConnection,key:string,method:string,params:Record<string,unknown>,signal?:AbortSignal,notify=false,tool?:McpTool):Promise<unknown>{
  const target=validateMcpUrl(connection.url);const state=sessions.get(connection.id);const id=Math.floor(Math.random()*1_000_000_000);const protocol=state?.protocol??connection.protocol;
  const headers:Record<string,string>={'Content-Type':'application/json',Accept:'application/json, text/event-stream','MCP-Protocol-Version':protocol};
- if(key){if(key.length>8192||/[\u0000-\u001f\u007f]/.test(key))throw Error('Invalid connector credential.');headers.Authorization='Bearer '+key;}
+ if(key&&target!=='/api/runtime'){if(key.length>8192||/[\u0000-\u001f\u007f]/.test(key))throw Error('Invalid connector credential.');headers.Authorization='Bearer '+key;}
  if(state?.sessionId)headers['Mcp-Session-Id']=state.sessionId;
  const next={...params};
  if(protocol==='2026-07-28'){
@@ -23,7 +23,7 @@ async function rpc(connection:McpConnection,key:string,method:string,params:Reco
   if(tool&&record(tool.inputSchema.properties)&&record(params.arguments))for(const [name,schema] of Object.entries(tool.inputSchema.properties)){if(record(schema)&&schema['x-mcp-header']===true){const value=params.arguments[name];if(typeof value!=='string'||/[^\x20-\x7e]/.test(value)||!/^[a-zA-Z0-9_-]+$/.test(name))throw Error('This tool requires an unsupported MCP header parameter.');headers['Mcp-Param-'+name]=value;}}
  }
  const timeout=AbortSignal.timeout(120000);const combined=signal?AbortSignal.any([signal,timeout]):timeout;
- let response:Response;try{response=await fetch(target,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',...(notify?{}:{id}),method,params:next}),signal:combined,mode:'cors',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'});}catch(e){if(combined.aborted)throw new DOMException('Connector request stopped or timed out','AbortError');throw Error('Could not reach this MCP server. It must allow this app’s origin and protocol headers through CORS.');}
+ let response:Response;try{response=await fetch(target,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',...(notify?{}:{id}),method,params:next}),signal:combined,mode:'cors',credentials:target==='/api/runtime'?'same-origin':'omit',redirect:'error',referrerPolicy:'no-referrer'});}catch(e){if(combined.aborted)throw new DOMException('Connector request stopped or timed out','AbortError');throw Error('Could not reach this MCP server. It must allow this app’s origin and protocol headers through CORS.');}
  const sessionId=response.headers.get('Mcp-Session-Id');if(sessionId){if(sessionId.length>256||/[^\x21-\x7e]/.test(sessionId))throw Error('Invalid connector session.');sessions.set(connection.id,{protocol,sessionId});}
  if(notify){if(!response.ok)throw Error('The connector rejected initialization.');void response.body?.cancel().catch(()=>{});return undefined;}
  const data=await readRpc(response,id);if(!record(data))throw Error('Invalid MCP response.');if(data.error)throw Error('The MCP server rejected '+method+'. Check its protocol version and tool parameters.');if(!record(data.result))throw Error('The connector did not return a supported result.');
