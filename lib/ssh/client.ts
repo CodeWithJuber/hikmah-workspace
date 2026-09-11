@@ -49,8 +49,30 @@ export type SshExecRequest = {
  * The response is consumed as a stream rather than awaited whole so the caller
  * can surface output during a long command.
  */
+/**
+ * Run one command in the workbench container and yield its frames.
+ *
+ * The same endpoint and the same framing as sshExecStream: the workbench
+ * distinguishes them by the `tool` field, so there is one transport to get
+ * right rather than two.
+ */
+export async function* workbenchStream(
+  request: Record<string, unknown>,
+  options: { signal?: AbortSignal; config?: WorkbenchConfig; fetch?: typeof globalThis.fetch } = {},
+): AsyncGenerator<RunFrame> {
+  yield* postRun(request, options);
+}
+
 export async function* sshExecStream(
   request: SshExecRequest,
+  options: { signal?: AbortSignal; config?: WorkbenchConfig; fetch?: typeof globalThis.fetch } = {},
+): AsyncGenerator<RunFrame> {
+  yield* postRun({ tool: 'ssh_exec', ...request }, options);
+}
+
+/** POST one run to the workbench and yield the frames it streams back. */
+async function* postRun(
+  body: Record<string, unknown>,
   options: { signal?: AbortSignal; config?: WorkbenchConfig; fetch?: typeof globalThis.fetch } = {},
 ): AsyncGenerator<RunFrame> {
   const config = options.config ?? workbenchConfig();
@@ -61,7 +83,7 @@ export async function* sshExecStream(
     response = await call(`${config.url}/runs`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${config.token}` },
-      body: JSON.stringify({ tool: 'ssh_exec', ...request }),
+      body: JSON.stringify(body),
       signal: options.signal,
     });
   } catch (error) {

@@ -75,7 +75,11 @@ export function createWorkbench(options: WorkbenchOptions) {
           if (error instanceof RunRequestError) return send(error.status, { error: error.message });
           return send(400, { error: 'Could not read the request.' });
         }
-        await writeRunStream(response, parsed, { signal: controller.signal, exec: options.exec });
+        await writeRunStream(response, parsed, {
+          signal: controller.signal,
+          exec: options.exec,
+          workspace: options.workspace,
+        });
       })();
       return;
     }

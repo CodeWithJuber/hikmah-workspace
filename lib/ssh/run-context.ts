@@ -15,12 +15,18 @@ import type { SshToolContext } from '../ai/tools/ssh.ts';
  * workbench. Returning nothing is what keeps ssh_exec out of the tool set
  * entirely, rather than offering a tool that fails on every call.
  */
-export function sshRunContext(userId: string): Omit<SshToolContext, 'signal'> | undefined {
+/** Does this deployment have a workbench to run anything in? */
+export function workbenchReady(): boolean {
   try {
     workbenchConfig();
+    return true;
   } catch {
-    return undefined;
+    return false;
   }
+}
+
+export function sshRunContext(userId: string): Omit<SshToolContext, 'signal'> | undefined {
+  if (!workbenchReady()) return undefined;
 
   const store = createHostStore(getStorage().raw);
   const secrets = createSecretStore();

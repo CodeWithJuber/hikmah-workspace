@@ -4,6 +4,9 @@
 // Run: node --test test/runs.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   DEFAULT_TIMEOUT_MS,
   MAX_TIMEOUT_MS,
@@ -12,6 +15,7 @@ import {
   runFrames,
 } from '../src/runs.ts';
 import { HostKeyMismatch } from '../src/ssh.ts';
+import { resetSessions } from '../src/runs.ts';
 import { createWorkbench } from '../src/server.ts';
 
 const TOKEN = 'r'.repeat(48);
@@ -169,13 +173,17 @@ test('the command and host reach the connector unchanged', async () => {
   assert.equal(calls[0].options.timeoutMs, 4_000);
 });
 
+/** A workspace per test file run, so local commands cannot touch the real one. */
+const workspaceRoot = mkdtempSync(join(tmpdir(), 'hikmah-runs-'));
+
 /** Start a workbench whose SSH is faked, and return how to reach it. */
 async function start(t, execOptions) {
+  resetSessions();
   const { exec, calls } = fakeExec(execOptions);
   const workbench = createWorkbench({
     token: TOKEN,
     appOrigin: 'https://app.test',
-    workspace: '/tmp',
+    workspace: workspaceRoot,
     exec,
     createTerminal: () => ({ pid: 1, write() {}, resize() {}, kill() {} }),
   });
@@ -265,4 +273,130 @@ test('dropping the connection stops the command', async (t) => {
   assert.equal(signal.aborted, true);
   released();
   await pending;
+});
+
+// --- Local execution -------------------------------------------------------
+// bash and sandbox_run run in this container rather than on a saved host, so
+// the request shape is checked as strictly as the SSH one and the session id is
+// required: without it, two conversations would share a working directory.
+
+test('a bash request needs a command and a session', () => {
+  for (const bad of [
+    { tool: 'bash' },
+    { tool: 'bash', sessionId: 'conv-1' },
+    { tool: 'bash', sessionId: 'conv-1', command: '   ' },
+    { tool: 'bash', command: 'ls' },
+    { tool: 'bash', sessionId: 'has spaces', command: 'ls' },
+    { tool: 'bash', sessionId: 'conv-1', command: 'x'.repeat(8_001) },
+  ]) {
+    assert.throws(() => parseRunRequest(bad), RunRequestError, JSON.stringify(bad));
+  }
+  const parsed = parseRunRequest({ tool: 'bash', sessionId: 'conv-1', command: 'ls' });
+  assert.equal(parsed.tool, 'bash');
+  assert.equal(parsed.timeoutMs, DEFAULT_TIMEOUT_MS);
+});
+
+test('a bash request may ask for a fresh working directory', () => {
+  const parsed = parseRunRequest({
+    tool: 'bash',
+    sessionId: 'conv-1',
+    command: 'pwd',
+    reset: true,
+  });
+  assert.equal(parsed.reset, true);
+});
+
+test('sandbox_run only accepts a language the image actually has', () => {
+  for (const language of [undefined, 'ruby', 'perl', 'bash', '']) {
+    assert.throws(
+      () => parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language, code: 'x' }),
+      RunRequestError,
+      String(language),
+    );
+  }
+  for (const language of ['python', 'node']) {
+    assert.equal(
+      parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language, code: 'x' }).language,
+      language,
+    );
+  }
+});
+
+test('sandbox_run needs code, and not an unbounded amount of it', () => {
+  for (const code of [undefined, '', '  ', 'x'.repeat(100_001)]) {
+    assert.throws(
+      () => parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language: 'python', code }),
+      RunRequestError,
+    );
+  }
+});
+
+test('a local command streams its output and reports where it left the shell', async (t) => {
+  const { port } = await start(t);
+  const response = await post(port, {
+    tool: 'bash',
+    sessionId: 'conv-local-1',
+    command: 'echo streamed',
+  });
+  assert.equal(response.status, 200);
+  const received = await frames(response);
+  assert.match(received[0].data, /streamed/);
+  const exit = received.at(-1);
+  assert.equal(exit.type, 'exit');
+  assert.equal(exit.exitCode, 0);
+  assert.ok(exit.cwd, 'the app needs this to show where the next command runs');
+});
+
+test('a directory change survives between two requests', async (t) => {
+  // The session is what makes `cd` then `ls` behave like a shell rather than
+  // like two unrelated commands.
+  const { port } = await start(t);
+  await post(port, { tool: 'bash', sessionId: 'conv-local-2', command: 'mkdir -p sub && cd sub' });
+  const second = await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-2',
+      command: 'pwd',
+    }),
+  );
+  assert.match(second[0].data.trim(), /\/sub$/);
+});
+
+test('a reset sends the session back to the top of the workspace', async (t) => {
+  const { port } = await start(t);
+  await post(port, {
+    tool: 'bash',
+    sessionId: 'conv-local-3',
+    command: 'mkdir -p deep && cd deep',
+  });
+  const after = await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-3',
+      command: 'pwd',
+      reset: true,
+    }),
+  );
+  assert.equal(after[0].data.trim().endsWith('/deep'), false);
+});
+
+test('a snippet runs and its output comes back', async (t) => {
+  const { port } = await start(t);
+  const received = await frames(
+    await post(port, {
+      tool: 'sandbox_run',
+      sessionId: 'conv-local-4',
+      language: 'node',
+      code: 'console.log(6 * 7);',
+    }),
+  );
+  assert.match(received.map((frame) => frame.data ?? '').join(''), /42/);
+  assert.equal(received.at(-1).exitCode, 0);
+});
+
+test('a local command without the shared token is refused', async (t) => {
+  // The same gate as SSH: nothing runs here on an unauthenticated request.
+  const { port } = await start(t);
+  const response = await post(port, { tool: 'bash', sessionId: 'c', command: 'echo no' }, {});
+  assert.equal(response.status, 401);
 });

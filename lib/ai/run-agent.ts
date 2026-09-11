@@ -11,6 +11,7 @@ import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
 import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
 import { mcpToolApproval, type McpRunTools } from '../mcp/run-context.ts';
+import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/shell.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 
 /** Ceiling on tool-calling rounds, so a loop cannot run forever unattended. */
@@ -38,6 +39,13 @@ export type RunAgentOptions = {
    */
   ssh?: Omit<SshToolContext, 'signal'>;
   /**
+   * Enables bash and sandbox_run in the workbench container.
+   *
+   * Like ssh, omitted means not offered: a deployment with no workbench should
+   * not advertise a shell that fails on every call.
+   */
+  shell?: Omit<ShellToolContext, 'signal'>;
+  /**
    * MCP tools for this run, already connected and gated.
    *
    * Connecting is the caller's job because it is async and has to happen once
@@ -53,6 +61,7 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...researchTools({ savedSearchKey: options.savedSearchKey, signal: options.signal }),
     ...deterministicTools({ model: options.meaningModel, onPlan: options.onPlan }),
     ...(options.ssh ? sshTools({ ...options.ssh, signal: options.signal }) : {}),
+    ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
     // Last, so a built-in tool can never be shadowed by a server that named one
     // of its tools after it. The mcp__server__tool prefix makes a collision
     // unlikely, but "unlikely" is not the property worth relying on here.
@@ -70,6 +79,14 @@ export function buildRunAgent(options: RunAgentOptions) {
       : undefined;
   const mcpApproval = options.mcp?.approval.size
     ? mcpToolApproval(options.mcp.approval)
+    : undefined;
+  // sandbox_run is never auto-approved: a program is not something anyone can
+  // skim the way they can skim `ls -la`.
+  const shellApproval = options.shell?.available
+    ? {
+        ...(disabled.has('bash') ? {} : { bash: shellApprovalPolicy() }),
+        ...(disabled.has('sandbox_run') ? {} : { sandbox_run: 'user-approval' as const }),
+      }
     : undefined;
 
   return new ToolLoopAgent({

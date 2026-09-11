@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { createAgentUIStream, readUIMessageStream } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
 import { buildRunAgent } from '../ai/run-agent.ts';
-import { sshRunContext } from '../ssh/run-context.ts';
+import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { createWorker, type Worker } from './worker.ts';
@@ -42,7 +42,7 @@ async function driveWithAgent({
   signal,
   emit,
 }: {
-  run: { id: string; user_id?: string; config: string };
+  run: { id: string; user_id?: string; conversation_id?: string; config: string };
   messages: unknown[];
   signal: AbortSignal;
   emit: (chunk: unknown) => number;
@@ -66,6 +66,7 @@ async function driveWithAgent({
     // Only when the deployment actually has a workbench: without one, ssh_exec
     // would be offered and then fail on every call.
     ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
+    shell: { conversationId: run.conversation_id ?? run.id, available: workbenchReady() },
     mcp,
     signal,
   });

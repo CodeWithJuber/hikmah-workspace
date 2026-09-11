@@ -11,6 +11,14 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HostKeyMismatch, sshExec, type SshHost } from './ssh.ts';
+import {
+  LANGUAGES,
+  createSessions,
+  runCommand,
+  runSnippet,
+  type Language,
+  type ShellResult,
+} from './shell.ts';
 
 /** A request body larger than this is not a command, it is a mistake. */
 const MAX_BODY_BYTES = 64_000;
@@ -27,12 +35,33 @@ export class RunRequestError extends Error {
   }
 }
 
-export type RunRequest = {
+export type SshRunRequest = {
   tool: 'ssh_exec';
   host: SshHost;
   command: string;
   timeoutMs: number;
 };
+
+/** A command in this container, on the workspace volume. */
+export type ShellRunRequest = {
+  tool: 'bash';
+  sessionId: string;
+  command: string;
+  timeoutMs: number;
+  /** Forget this session's directory before running. */
+  reset?: boolean;
+};
+
+/** A short program in one of the interpreters the image carries. */
+export type SnippetRunRequest = {
+  tool: 'sandbox_run';
+  sessionId: string;
+  language: Language;
+  code: string;
+  timeoutMs: number;
+};
+
+export type RunRequest = SshRunRequest | ShellRunRequest | SnippetRunRequest;
 
 /**
  * Validate a run request.
@@ -43,6 +72,7 @@ export type RunRequest = {
  */
 export function parseRunRequest(raw: unknown): RunRequest {
   const value = (raw ?? {}) as Record<string, unknown>;
+  if (value.tool === 'bash' || value.tool === 'sandbox_run') return parseLocalRequest(value);
   if (value.tool !== 'ssh_exec') throw new RunRequestError('Unknown tool.');
 
   const command = value.command;
@@ -95,6 +125,51 @@ export function parseRunRequest(raw: unknown): RunRequest {
   };
 }
 
+/** A session id is a key in a map, not a path; it still has to be a plain word
+ * so it cannot end up in a log line looking like something else. */
+function sessionId(value: unknown): string {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_:-]{1,128}$/.test(value))
+    throw new RunRequestError('Send a session id for this conversation.');
+  return value;
+}
+
+function timeout(value: unknown): number {
+  const parsed = value === undefined ? DEFAULT_TIMEOUT_MS : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > MAX_TIMEOUT_MS)
+    throw new RunRequestError(`Set a timeout between 1 and ${MAX_TIMEOUT_MS} milliseconds.`);
+  return parsed;
+}
+
+/** Validate a request that runs here rather than on a saved host. */
+function parseLocalRequest(value: Record<string, unknown>): RunRequest {
+  if (value.tool === 'bash') {
+    const command = value.command;
+    if (typeof command !== 'string' || !command.trim() || command.length > 8_000)
+      throw new RunRequestError('Send a command to run.');
+    return {
+      tool: 'bash',
+      sessionId: sessionId(value.sessionId),
+      command,
+      timeoutMs: timeout(value.timeoutMs),
+      ...(value.reset === true ? { reset: true } : {}),
+    };
+  }
+
+  const language = value.language;
+  if (typeof language !== 'string' || !(language in LANGUAGES))
+    throw new RunRequestError(`Choose a language: ${Object.keys(LANGUAGES).join(' or ')}.`);
+  const code = value.code;
+  if (typeof code !== 'string' || !code.trim() || code.length > 100_000)
+    throw new RunRequestError('Send the code to run.');
+  return {
+    tool: 'sandbox_run',
+    sessionId: sessionId(value.sessionId),
+    language: language as Language,
+    code,
+    timeoutMs: timeout(value.timeoutMs),
+  };
+}
+
 /** Read a bounded JSON body. An unbounded read here is a memory exhaustion. */
 export async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   let size = 0;
@@ -117,7 +192,14 @@ export type RunFrame =
       type: 'exit';
       exitCode: number | null;
       truncated: boolean;
-      fingerprint: string;
+      /** SSH only: what the host presented, so a new host can be pinned. */
+      fingerprint?: string;
+      /** Local only: where the session will start next time. */
+      cwd?: string;
+      /** Local only: set when the command ran out of time. */
+      timedOut?: boolean;
+      /** Local only: where the full output went when it outgrew the cap. */
+      logPath?: string;
     }
   | {
       type: 'error';
@@ -127,6 +209,46 @@ export type RunFrame =
       actual?: string;
     };
 
+/** Working directories, one per conversation, for the life of the process.
+ *
+ * Deliberately in memory: a session is only a remembered path, and rebuilding
+ * it after a restart by guessing where a conversation had got to would be worse
+ * than starting at the top of the workspace again. */
+let sessions: ReturnType<typeof createSessions> | undefined;
+
+function sessionsFor(workspace: string) {
+  sessions ??= createSessions(workspace);
+  return sessions;
+}
+
+/** Reset the remembered directories. Used by the tests. */
+export function resetSessions(): void {
+  sessions = undefined;
+}
+
+async function runLocal(
+  request: ShellRunRequest | SnippetRunRequest,
+  options: {
+    signal?: AbortSignal;
+    workspace?: string;
+    onOutput: (stream: 'stdout' | 'stderr', data: string) => void;
+  },
+): Promise<ShellResult> {
+  const workspace = options.workspace ?? process.env.HIKMAH_WORKSPACE_DIR ?? '/workspace';
+  const registry = sessionsFor(workspace);
+  if (request.tool === 'bash' && request.reset) registry.reset(request.sessionId);
+  const session = registry.for(request.sessionId);
+  const shellOptions = {
+    workspace,
+    timeoutMs: request.timeoutMs,
+    signal: options.signal,
+    onOutput: options.onOutput,
+  };
+  return request.tool === 'bash'
+    ? runCommand(session, request.command, shellOptions)
+    : runSnippet(session, request.language, request.code, shellOptions);
+}
+
 /**
  * Execute a run and stream its frames.
  *
@@ -135,7 +257,7 @@ export type RunFrame =
  */
 export async function* runFrames(
   request: RunRequest,
-  options: { signal?: AbortSignal; exec?: typeof sshExec } = {},
+  options: { signal?: AbortSignal; exec?: typeof sshExec; workspace?: string } = {},
 ): AsyncGenerator<RunFrame> {
   const exec = options.exec ?? sshExec;
   // Output arrives on a callback while the command runs, but this is a
@@ -148,20 +270,33 @@ export async function* runFrames(
     wake?.();
     wake = null;
   };
+  const onOutput = (stream: 'stdout' | 'stderr', data: string) =>
+    push({ type: 'output', stream, data });
 
   let finished: RunFrame | null = null;
-  const done = exec(request.host, request.command, {
-    timeoutMs: request.timeoutMs,
-    signal: options.signal,
-    onOutput: (stream, data) => push({ type: 'output', stream, data }),
-  }).then(
-    (result) => {
-      finished = {
-        type: 'exit',
-        exitCode: result.exitCode,
-        truncated: result.truncated,
-        fingerprint: result.fingerprint,
-      };
+  const run =
+    request.tool === 'ssh_exec'
+      ? exec(request.host, request.command, {
+          timeoutMs: request.timeoutMs,
+          signal: options.signal,
+          onOutput,
+        }).then((result) => ({
+          exitCode: result.exitCode,
+          truncated: result.truncated,
+          fingerprint: result.fingerprint,
+        }))
+      : runLocal(request, { ...options, onOutput });
+
+  const done = run.then(
+    (result: {
+      exitCode: number | null;
+      truncated: boolean;
+      fingerprint?: string;
+      cwd?: string;
+      timedOut?: boolean;
+      logPath?: string;
+    }) => {
+      finished = { type: 'exit', ...result };
     },
     (error: unknown) => {
       finished =
@@ -211,7 +346,7 @@ const SSE_HEADERS = {
 export async function writeRunStream(
   response: ServerResponse,
   request: RunRequest,
-  options: { signal?: AbortSignal; exec?: typeof sshExec } = {},
+  options: { signal?: AbortSignal; exec?: typeof sshExec; workspace?: string } = {},
 ): Promise<void> {
   response.writeHead(200, SSE_HEADERS);
   try {

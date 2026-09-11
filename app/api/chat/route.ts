@@ -6,6 +6,7 @@ import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/c
 import { buildRunAgent } from '@/lib/ai/run-agent';
 import { sshRunContext } from '@/lib/ssh/run-context';
 import { mcpForUser } from '@/lib/mcp/app-context';
+import { workbenchReady } from '@/lib/ssh/run-context';
 import { initialModel } from '@/lib/playground/session';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 
@@ -13,6 +14,17 @@ export const dynamic = 'force-dynamic';
 
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 const fail = (error: string, status: number) => Response.json({ error }, { status, headers });
+
+/**
+ * A stable key for this conversation's shell session.
+ *
+ * This route is request-scoped and carries no conversation row, so the owner is
+ * the grouping it does have: their commands share one working directory, which
+ * is what someone using a single chat window expects. The durable path uses the
+ * real conversation id instead.
+ */
+const chatSessionId = (request: Request, userId: string) =>
+  'chat:' + userId + ':' + (request.headers.get('x-hikmah-conversation') ?? 'default');
 
 /**
  * Run one turn of the agent loop on the server and stream it back.
@@ -89,6 +101,9 @@ export async function POST(request: Request) {
       // Undefined when this deployment has no workbench, which keeps ssh_exec
       // out of the tool set rather than offering one that fails on every call.
       ssh: sshRunContext(user.userId),
+      // The conversation id groups commands into one shell session, so `cd`
+      // carries between calls the way it does in a terminal.
+      shell: { conversationId: chatSessionId(request, user.userId), available: workbenchReady() },
       mcp,
       signal: request.signal,
     });
