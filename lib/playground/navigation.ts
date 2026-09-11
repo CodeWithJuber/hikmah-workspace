@@ -1,6 +1,7 @@
 const pages = new Set([
   'agents',
   'tools',
+  'terminal',
   'workspace',
   'knowledge',
   'learning',

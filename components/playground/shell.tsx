@@ -18,6 +18,7 @@ import {
   Workflow,
   ArrowLeft,
   ArrowUpRight,
+  TerminalSquare,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -62,6 +63,7 @@ import { HikmahIcon } from '@/components/kernel/icons';
 import { LearningHome, OwnerAccess } from './learning-home';
 import { AgentsHome } from './agents-home';
 import { RuntimeHome } from './runtime-home';
+import { TerminalPage } from '@/components/workbench/terminal-page';
 import { Knowledge } from './knowledge';
 import { Settings } from './settings';
 import { WorkspaceAdmin } from './admin';
@@ -225,6 +227,16 @@ function ShellContent() {
           >
             <HikmahIcon name="tools" />
             Tools & runtimes
+          </button>
+          <button
+            className={'knowledge-nav' + (page === 'terminal' ? ' selected' : '')}
+            onClick={() => {
+              setPage('terminal');
+              setOpenMobile(false);
+            }}
+          >
+            <TerminalSquare size={20} />
+            Terminal
           </button>
           <button
             className={'knowledge-nav' + (page === 'knowledge' ? ' selected' : '')}
@@ -419,6 +431,8 @@ function ShellContent() {
           <AgentsHome />
         ) : page === 'tools' ? (
           <RuntimeHome />
+        ) : page === 'terminal' ? (
+          <TerminalPage />
         ) : page === 'knowledge' ? (
           <Knowledge />
         ) : page === 'learning' ? (
