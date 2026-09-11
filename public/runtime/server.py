@@ -3,7 +3,7 @@
 Only Docker executes supplied source. SSH exposes owner-defined command aliases.
 This adapter supports initialize, tools/list and tools/call, not the full MCP spec.
 """
-import hmac, json, os, selectors, shutil, subprocess, threading, time, uuid
+import hmac, json, os, re, selectors, shutil, subprocess, threading, time, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,18 +11,19 @@ from urllib.parse import urlparse
 IMAGES = {'python': 'python:3.13-alpine', 'node': 'node:22-alpine'}
 SLOTS = threading.BoundedSemaphore(2)
 
-def docker_args(language, name):
+def docker_args(language, name, environment=None):
     if language not in IMAGES:
         raise ValueError('Choose python or node.')
     command = ['python', '-I', '-'] if language == 'python' else ['node', '--input-type=module', '-']
     return ['docker','run','--rm','-i','--name',name,'--pull=never','--network=none',
             '--read-only','--tmpfs','/tmp:rw,noexec,nosuid,size=32m','--cap-drop=ALL',
             '--security-opt=no-new-privileges','--user=65534:65534','--pids-limit=64',
-            '--memory=256m','--memory-swap=256m','--cpus=0.5',IMAGES[language],*command]
+            '--memory=256m','--memory-swap=256m','--cpus=0.5',
+            *[item for key in (environment or {}) for item in ('-e', key)],IMAGES[language],*command]
 
-def capture(argv, source=b'', seconds=15):
+def capture(argv, source=b'', seconds=15, environment=None):
     """No shell, bounded input/output and a deadline while reading the child."""
-    proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
     selector = selectors.DefaultSelector()
     for pipe in (proc.stdin,proc.stdout,proc.stderr): os.set_blocking(pipe.fileno(),False)
     selector.register(proc.stdin,selectors.EVENT_WRITE,'input')
@@ -55,9 +56,17 @@ def run_code(args):
     code=args.get('code');language=args.get('language')
     if not isinstance(code,str) or not code.strip() or len(code.encode())>40000: raise ValueError('Code must be nonempty and under 40 KB.')
     name='hikmah-'+uuid.uuid4().hex
-    argv=docker_args(language,name)
+    environment=args.get('_env',{})
+    if not isinstance(environment,dict) or len(environment)>100 or len(json.dumps(environment).encode())>32000:
+        raise ValueError('Runtime environment exceeds its limit.')
+    for key,value in environment.items():
+        if not isinstance(key,str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}',key) or not isinstance(value,str) or '\0' in value or len(value.encode())>8192:
+            raise ValueError('Invalid runtime environment variable.')
+        if re.fullmatch(r'(PATH|HOME|USER|SHELL|ENV|BASH_ENV|NODE_OPTIONS|PYTHONPATH|PYTHONHOME|LD_.*|DYLD_.*|DOCKER_.*)',key):
+            raise ValueError('Reserved runtime environment variable.')
+    argv=docker_args(language,name,environment)
     if not shutil.which('docker'): raise ValueError('Docker is not installed on the runtime host.')
-    try: return capture(argv,code.encode())|{'runtime':language,'network':False,'persistent':False}
+    try: return capture(argv,code.encode(),environment={**os.environ,**environment})|{'runtime':language,'network':False,'persistent':False}
     finally:
         try: subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=5,check=False)
         except (OSError,subprocess.TimeoutExpired): pass

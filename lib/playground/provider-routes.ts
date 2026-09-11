@@ -14,11 +14,11 @@ export function relayProviderFor(baseUrl: string) {
 }
 
 export const RELAY_ERRORS = {
-  session: { status: 401, message: 'Your workspace sign-in has expired. Reload the app and sign in again, then re-enter your provider key.' },
+  session: { status: 401, message: 'Your workspace sign-in has expired. Reload the app and sign in again, then select your saved secret or re-enter a session key.' },
   origin: { status: 403, message: 'The connection request must come from this workspace. Reload the app and try again.' },
   destination: { status: 400, message: 'This provider is not configured for the server connection. Choose a provider preset.' },
   request: { status: 400, message: 'The connection request is invalid. Check the model, token limit and conversation size.' },
-  key: { status: 400, message: 'Enter a valid API key for this provider in Model connection.' },
+  key: { status: 400, message: 'Select a saved secret assigned to this provider, or enter a valid session key in Settings → Connection.' },
   limit: { status: 413, message: 'The connection exceeded its size limit. Shorten the conversation or requested output.' },
   network: { status: 502, message: 'The app server could not reach the selected provider. Check the provider service status and try again.' },
   timeout: { status: 504, message: 'The provider connection timed out. Try a shorter prompt or another model.' },

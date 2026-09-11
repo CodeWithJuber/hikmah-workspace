@@ -1,0 +1,31 @@
+# Workspace secret variables
+
+Open **Settings → Secrets**, or **Workspace settings → Secrets**. Enter an uppercase name, choose the service that may receive it, paste the value, and save. The list shows only names, service assignments and update dates. Existing values cannot be read back into the browser; use Replace or Delete.
+
+Select the variable by name in the matching connection settings. One name can be reused by multiple configurations assigned to the same service. Replacement takes effect on the next request, including from another device. In-flight requests may finish using their previous credential. Deletion revokes future lookups and produces a visible connection error.
+
+| Use | Configuration |
+| --- | --- |
+| Chat, agents, comparisons and co-model workflows | Select a saved secret for the OpenRouter or Experiential provider in Settings → Connection. All chat modes reuse the provider connection. |
+| Images, audio, transcription and video | Select an OpenRouter secret in Workspace settings → Media. When unset, media inherits the saved OpenRouter chat key unless a separate session media key is entered. |
+| External MCP tools | Save a secret for the exact public HTTPS MCP endpoint, then select it in the connector editor. Requests use the app server, so browser CORS is unnecessary for this path. |
+| Automatic Brave web search | Save `BRAVE_SEARCH_API_KEY` for Brave web search. Used when the server has no SearXNG endpoint. An environment key remains a fallback when no saved variable exists. |
+| Owner's Python/Node/SSH connection | Save `HIKMAH_RUNTIME_TOKEN` for Server runtime connection. `HIKMAH_RUNTIME_URL` remains an operator-controlled server setting. The token must match the installed adapter's token. |
+| Generated Python/Node code | Assign variables to Code runtime environment. The owner-only runtime injects these into a fresh container and advertises their names to the model. Use `os.environ['NAME']` or `process.env.NAME`. |
+
+Arbitrary custom chat-provider URLs retain browser session keys. Saved provider keys currently support the two configured provider presets; they are not forwarded to a user-selected arbitrary host. MCP saved-secret connections require a public IPv4 HTTPS endpoint, port 443, and no URL credentials, query parameters or fragment. They do not follow redirects or resolve to private addresses. Browser-only localhost connectors can still use session keys.
+
+The QuickJS browser sandbox, artifact previews, downloaded files, and fixed SSH aliases receive no code environment variables. Only variables explicitly assigned to Code runtime environment are granted to generated code. Literal returned values are redacted, but malicious code could encode them: this grant requires trust in the code and runtime host. Containers retain their network restriction and execution/resource limits. Update the runtime adapter from this release before using code environment variables.
+
+## Storage and operation
+
+- Saved values use AES-256-GCM with a fresh 96-bit nonce and 128-bit authentication tag for every write. The authenticated data binds the value to the account, variable name and permitted destination. A modified ciphertext or service assignment fails decryption.
+- The encryption key is derived with HKDF-SHA256 and a dedicated vault context from `HIKMAH_VAULT_KEY`, falling back to `BETTER_AUTH_SECRET` for standalone installations. These primitives follow the [Node.js crypto API](https://nodejs.org/docs/latest-v24.x/api/crypto.html).
+- The new `0003_workspace_secrets.sql` migration is additive. Encrypted rows live in the existing private SQLite data directory. Values are excluded from workspace/session JSON, configuration bundles, model prompts and metadata responses. Saved references contain names only.
+- Every request is scoped to the authenticated account. Mutations require the app's origin. Runtime execution remains owner-only. Secret management is not exposed as a model tool.
+- The standard deployment preserves a stable `HIKMAH_VAULT_KEY` across releases and session-key changes. On upgrade it adopts the previous session secret when no dedicated vault key existed, preserving the existing fallback-derived key.
+- Back up the data directory and vault key separately. Losing or changing the effective vault key makes existing values unreadable; restore it or replace the values. There is no automatic re-encryption/rotation command. Standalone operators must keep the effective key stable when changing authentication settings.
+- Deletion removes the active row. Older backups may still contain encrypted copies; revoke the upstream credential when permanently retiring it.
+- Limits: 100 variables per account, 64-character names and 8 KB values. Connection tokens cannot contain control characters. Code environments permit multiline values, reject system controls such as `NODE_OPTIONS` and `LD_*`, and are bounded by the runtime request envelope.
+
+Test coverage includes encrypted SQLite persistence across reopening, user and service isolation, ciphertext tampering, changed master keys, replacement/deletion, auth/origin boundaries, reference-only browser requests and exports, MCP destination restrictions/redaction, media reuse, runtime injection, deployment key preservation, and a real standalone HTTP server restart.

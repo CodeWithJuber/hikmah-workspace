@@ -9,8 +9,8 @@ This optional adapter adds **Python and Node execution** to Hikmah through HTTP 
 3. Keep `server.py` on this host. Set `HIKMAH_APP_ORIGIN` to your app's exact HTTPS origin (no trailing slash) and `HIKMAH_RUNTIME_TOKEN` to a secret with at least 32 characters. Use your process manager's protected environment/secret store. Do not put secrets in source or chats.
 4. Run `python3 server.py` under an unprivileged service account. It listens only on `127.0.0.1:8765`.
 5. Put an HTTPS reverse proxy in front of `/mcp`. Preserve Authorization and Origin. Set request limits and connection/rate limits. Do not expose Docker's socket or API. For production enforce egress controls and authentication at your gateway as well.
-6. In Hikmah → Tools & runtimes → Manage connections, add `https://YOUR-RUNTIME-HOST/mcp`, revision **2025-11-25**, permission **Ask before each external call**. Enter the runtime token in its session-only credential field and choose **Connect & discover**.
-7. Edit your agent and enable this connection. Ask it to run a Python or Node check. Review the proposed tool call. The returned stdout, stderr and exit code are its execution evidence.
+6. Set `HIKMAH_RUNTIME_URL` on the app server to this adapter’s `/mcp` endpoint. In Hikmah **Settings → Secrets**, save `HIKMAH_RUNTIME_TOKEN` for **Server runtime connection**, using the same token as the adapter. The owner’s chat discovers Server runtime automatically. A server environment token remains supported.
+7. Ask chat to run a Python or Node check and review the proposed tool call. The returned stdout, stderr and exit code are its execution evidence. An explicitly selected custom agent must permit this connector. Alternatively, add a public HTTPS MCP connector and select a saved secret bound to its exact endpoint.
 
 Each execution uses a fresh container: network disabled, read-only root, no host mounts, non-root user, capabilities dropped, no privilege escalation, 64 processes, 256 MiB, 0.5 CPU and 15-second deadline. Input is bounded to 40 KB and output to 64 KB. No state is retained between calls. These are resource boundaries, not an unlimited server.
 
@@ -35,8 +35,16 @@ Only aliases in this file become selectable. The model cannot supply a different
 
 ## Browser, search, voice and operations
 
-Connect those services through their own MCP endpoints. General web search and browser clicks are different tools from Hikmah's built-in Wikipedia search and public-page reader. Browser dictation/read-aloud is user operated; a voice template does not establish a phone line. Telephony, video rendering, CRM writes and job scheduling need real service adapters and accounts. Free-only chat remains enforced; this starter has no AI provider key or billing integration.
+Connect those services through their own MCP endpoints. Web search uses the configured SearXNG or Brave service. Browser clicks require a connected browser tool. Wikipedia reference search and public-page reading remain separate tools. Browser dictation/read-aloud is user operated; a voice template does not establish a phone line. Telephony, video rendering, CRM writes and job scheduling need real service adapters and accounts. Free-only chat remains enforced; this starter has no AI provider key or billing integration.
 
 ## Verification
 
 `python3 -m unittest test_runtime.py` checks permission boundaries, request authentication, Docker arguments and bounded subprocess handling. A Docker smoke test must be performed on the machine that will actually run containers before enabling real user workloads. No Docker host was provisioned by downloading this starter.
+
+## Saved code environment variables
+
+With the app’s owner-only `/api/runtime` relay, variables assigned to **Code runtime environment** in Settings → Secrets are decrypted on the app server for each `run_code` call and injected into that fresh container. Use `os.environ['VARIABLE_NAME']` in Python or `process.env.VARIABLE_NAME` in Node. The tool catalog exposes the available names, never the values. Replacing/deleting a variable affects the next call without a restart.
+
+This is an explicit grant to generated code. The browser sandbox/preview and fixed SSH aliases do not receive these variables. Containers retain their network restriction. Values are absent from Docker command arguments; literal values are redacted from returned text, but deliberately encoded output cannot be guaranteed safe. Review code that has access to credentials. The runtime host is trusted to handle the values in memory; use HTTPS or a private trusted transport between the app and adapter.
+
+Update the adapter from this release to support the internal `_env` envelope. It is supplied by the app relay, not advertised as a model-selectable parameter. The relay discards any model-supplied `_env` value. System environment controls such as `NODE_OPTIONS`, `PATH`, `HOME` and `LD_*` are rejected.

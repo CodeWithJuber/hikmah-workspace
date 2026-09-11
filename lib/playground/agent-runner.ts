@@ -116,6 +116,10 @@ export async function runAgent(options: RunOptions): Promise<RunOutcome> {
     state.output = before + response.content;
     options.onText(state.output);
     if (response.toolCalls.length) {
+      // A preamble accompanying tool calls is activity, not the deliverable.
+      // Retain it in the model history without appending it to the final answer.
+      state.output = before;
+      options.onText(state.output);
       const signature = JSON.stringify(response.toolCalls.map(c => [c.name, c.arguments]));
       state.recentSignatures = [...state.recentSignatures, signature].slice(-3);
       state.messages.push({ role: 'assistant', content: response.content || null, reasoning:response.reasoning,reasoning_details:response.reasoningDetails, tool_calls: response.toolCalls.map(c => ({ id: c.id, type: 'function', function: { name: c.name, arguments: c.arguments } })) });
@@ -139,7 +143,11 @@ export async function runAgent(options: RunOptions): Promise<RunOutcome> {
       if (!response.content.trim()) return pause('The model used its output allowance without a visible answer. Increase output tokens or reduce reasoning effort, then continue.');
       continue;
     }
-    state.phase = 'complete'; checkpoint(); progress('Complete');
+    if (!response.content.trim()) {
+      state.messages.push({ role: 'user', content: 'No visible answer was returned. Give the final answer using the available evidence, or clearly explain what is blocked.' });
+      return pause('The provider returned no answer text. Continue to retry, or choose another model.');
+    }
+    state.phase = 'complete'; checkpoint(); progress('Answer ready');
     return { checkpoint: clone(state), status: 'complete' };
   }
 }
