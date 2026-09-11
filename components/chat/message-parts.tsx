@@ -8,6 +8,15 @@
  * unhandled one must degrade to something visible rather than vanish.
  */
 import { isToolUIPart, type UIMessage } from 'ai';
+import {
+  Confirmation,
+  ConfirmationAccepted,
+  ConfirmationAction,
+  ConfirmationActions,
+  ConfirmationRejected,
+  ConfirmationRequest,
+  ConfirmationTitle,
+} from '@/components/ai-elements/confirmation';
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
@@ -21,6 +30,25 @@ import {
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
+/** Answers one paused tool call. Resolved by the chat view, which owns useChat. */
+export type RespondToApproval = (response: { id: string; approved: boolean }) => void;
+
+/** What the owner is being asked to allow, in their words rather than JSON.
+ *
+ * Tools that ask for approval carry a `description` written for a person; it is
+ * the whole point of that field. Falling back to the raw input keeps the card
+ * honest when a tool does not supply one — an empty card would be a prompt to
+ * approve something unstated. */
+function approvalSummary(part: { input?: unknown }): string {
+  const input = (part.input ?? {}) as Record<string, unknown>;
+  const described = typeof input.description === 'string' ? input.description.trim() : '';
+  const command = typeof input.command === 'string' ? input.command.trim() : '';
+  if (described && command) return `${described}\n\n${command}`;
+  if (described) return described;
+  if (command) return command;
+  return JSON.stringify(part.input ?? {}, null, 2);
+}
+
 /** Sources are collected across the message so citations render as one list. */
 function sourceParts(message: UIMessage) {
   return message.parts.filter(
@@ -28,7 +56,15 @@ function sourceParts(message: UIMessage) {
   );
 }
 
-export function MessageParts({ message, status }: { message: UIMessage; status: ChatStatus }) {
+export function MessageParts({
+  message,
+  status,
+  onApproval,
+}: {
+  message: UIMessage;
+  status: ChatStatus;
+  onApproval?: RespondToApproval;
+}) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
 
@@ -65,6 +101,37 @@ export function MessageParts({ message, status }: { message: UIMessage; status: 
                 )}
                 <ToolContent>
                   <ToolInput input={part.input} />
+                  {/* The run is paused here waiting for an answer. Without this
+                      card the tool sits on "Awaiting Approval" forever, because
+                      nothing else can send the response. */}
+                  <Confirmation approval={part.approval} state={part.state}>
+                    <ConfirmationRequest>
+                      <ConfirmationTitle>{approvalSummary(part)}</ConfirmationTitle>
+                    </ConfirmationRequest>
+                    <ConfirmationAccepted>
+                      <ConfirmationTitle>You allowed this.</ConfirmationTitle>
+                    </ConfirmationAccepted>
+                    <ConfirmationRejected>
+                      <ConfirmationTitle>You declined this.</ConfirmationTitle>
+                    </ConfirmationRejected>
+                    <ConfirmationActions>
+                      <ConfirmationAction
+                        variant="outline"
+                        onClick={() =>
+                          part.approval && onApproval?.({ id: part.approval.id, approved: false })
+                        }
+                      >
+                        Don&rsquo;t allow
+                      </ConfirmationAction>
+                      <ConfirmationAction
+                        onClick={() =>
+                          part.approval && onApproval?.({ id: part.approval.id, approved: true })
+                        }
+                      >
+                        Allow
+                      </ConfirmationAction>
+                    </ConfirmationActions>
+                  </Confirmation>
                   {/* errorText and output are mutually exclusive; the component
                       shows whichever is present, so a failed tool stays visible
                       in the transcript rather than silently missing. */}

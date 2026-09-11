@@ -6,7 +6,7 @@
  * status machine and abort, all of which this app previously hand-rolled.
  */
 import { useCallback, useMemo } from 'react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import {
   Conversation,
@@ -53,10 +53,16 @@ export function ChatView({ id, run, empty }: ChatViewProps) {
     [run],
   );
 
-  const { messages, sendMessage, status, stop, error, regenerate } = useChat({
-    id,
-    transport,
-  });
+  const { messages, sendMessage, status, stop, error, regenerate, addToolApprovalResponse } =
+    useChat({
+      id,
+      transport,
+      // A tool that needs the owner's say-so pauses the run mid-step. Once every
+      // pending request on the last message has an answer, the turn is sent back
+      // automatically; without this the owner would answer the card and then
+      // have to nudge the conversation by hand for anything to happen.
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    });
 
   const busy = status === 'submitted' || status === 'streaming';
 
@@ -75,7 +81,12 @@ export function ChatView({ id, run, empty }: ChatViewProps) {
         <ConversationContent>
           {messages.length === 0 && empty}
           {messages.map((message) => (
-            <MessageParts key={message.id} message={message} status={status} />
+            <MessageParts
+              key={message.id}
+              message={message}
+              status={status}
+              onApproval={addToolApprovalResponse}
+            />
           ))}
           {/* The answer region is announced while a run is in progress, so a
               screen reader learns that work is happening and when it lands. */}
