@@ -9,7 +9,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { createPreset, executePlan, plan, transitionEstimate } from '../../engines/agent-math.ts';
 import { predict, type Model } from '../../engines/meaning-engine.ts';
-import { arithmetic } from '../../playground/workspace-tools.ts';
+import { arithmetic } from '../../engines/arithmetic.ts';
 
 export type PlanStep = { step: string; status: 'pending' | 'in_progress' | 'completed' };
 

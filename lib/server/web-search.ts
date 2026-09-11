@@ -1,5 +1,5 @@
 import { redactJson } from './redact-secrets.ts';
-import { publicPageUrl } from './web-tools';
+import { publicPageUrl } from './web-tools.ts';
 
 type SearchRow = { title?: unknown; url?: unknown; content?: unknown; description?: unknown };
 export async function searchWeb(

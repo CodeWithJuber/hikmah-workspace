@@ -1,6 +1,6 @@
 import { publicOrigin } from './origin.ts';
-import { searchWeb } from './web-search';
-import { researchQuran } from './quran-research';
+import { searchWeb } from './web-search.ts';
+import { researchQuran } from './quran-research.ts';
 import { UpstreamSourceError, readPublicPage, searchReference } from './public-sources.ts';
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 export function publicPageUrl(raw: unknown) {

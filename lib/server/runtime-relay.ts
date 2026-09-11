@@ -1,5 +1,5 @@
 import { redactJson } from './redact-secrets.ts';
-import { publicOrigin } from './origin';
+import { publicOrigin } from './origin.ts';
 
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 export async function runtimeRelay(
