@@ -37,6 +37,9 @@ export class SshHostError extends Error {
 /** The secret store destination that pins a credential to one host. */
 export const credentialDestination = (hostId: string) => `ssh:${hostId}`;
 
+/** The secret variable holding it. Names are uppercase, ids are hex. */
+export const credentialName = (hostId: string) => `SSH_${hostId.toUpperCase()}`;
+
 /** A hostname or literal IP address: no scheme, port, path or credentials. */
 const HOSTNAME =
   /^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/;

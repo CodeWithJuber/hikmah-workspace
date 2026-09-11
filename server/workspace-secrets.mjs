@@ -89,7 +89,13 @@ export function createSecretStore(db = getStorage().DB) {
         value.includes('\0')
       )
         throw new SecretError('Enter a secret value up to 8 KB without null characters.');
-      if (destination !== 'runtime:env' && /[\u0000-\u001f\u007f]/.test(value))
+      // A private key is a multi-line PEM, so line breaks are part of the value
+      // rather than a sign of a pasted header. Everything else still rejects
+      // them, because a line break in a bearer token is a smuggled header.
+      const controlCharacters = destination.startsWith('ssh:')
+        ? /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f]/
+        : /[\u0000-\u001f\u007f]/;
+      if (destination !== 'runtime:env' && controlCharacters.test(value))
         throw new SecretError(
           'Connection credentials cannot contain line breaks or control characters.',
         );
