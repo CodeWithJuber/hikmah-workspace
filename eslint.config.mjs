@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // The workbench is a separate service with its own dependencies, its own
+    // tsconfig and its own test run. It is linted from inside workbench/.
+    'workbench/**',
   ]),
   {
     // React Compiler advisories that predate this branch, in the five legacy

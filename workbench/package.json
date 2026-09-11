@@ -1,0 +1,25 @@
+{
+  "name": "hikmah-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Execution sidecar for Hikmah Workspace: terminal, SSH and sandboxed commands.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "0.14.1",
+    "ssh2": "1.17.0",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@types/ssh2": "^1.15.6",
+    "@types/ws": "^8.18.1"
+  }
+}

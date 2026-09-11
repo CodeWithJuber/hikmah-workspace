@@ -26,3 +26,6 @@ docs/v6/worker-training-check.json
 .next/
 node_modules/
 package-lock.json
+
+# Workbench dependencies (its own npm install).
+workbench/node_modules/

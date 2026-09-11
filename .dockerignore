@@ -13,3 +13,6 @@ outputs
 work
 backups
 deploy/*.json
+
+# The workbench is built from its own Dockerfile as a separate image.
+workbench
