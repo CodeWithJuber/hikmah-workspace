@@ -16,6 +16,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { TicketError, pruneSeen, verifyTicket } from './ticket.ts';
 import { createTerminal as defaultCreateTerminal, type TerminalSession } from './terminal.ts';
+import { RunRequestError, parseRunRequest, readJsonBody, writeRunStream } from './runs.ts';
+import type { sshExec } from './ssh.ts';
 
 const PORT = Number(process.env.HIKMAH_WORKBENCH_PORT ?? 3001);
 const TOKEN = process.env.HIKMAH_WORKBENCH_TOKEN ?? '';
@@ -39,6 +41,8 @@ export type WorkbenchOptions = {
   heartbeatMs?: number;
   /** Injected by the tests so they do not spawn real shells. */
   createTerminal?: typeof defaultCreateTerminal;
+  /** Injected by the tests so they do not need a real SSH server. */
+  exec?: typeof sshExec;
 };
 
 export function createWorkbench(options: WorkbenchOptions) {
@@ -58,6 +62,23 @@ export function createWorkbench(options: WorkbenchOptions) {
       return send(401, { error: 'Unauthorized.' });
     }
     if (request.url === '/health') return send(200, { status: 'ok', sessions: sessions.size });
+    if (request.url === '/runs' && request.method === 'POST') {
+      // The socket closing is how the app cancels a run: a stopped run must
+      // actually end the command, not leave it going on someone's server.
+      const controller = new AbortController();
+      response.on('close', () => controller.abort());
+      void (async () => {
+        let parsed;
+        try {
+          parsed = parseRunRequest(await readJsonBody(request));
+        } catch (error) {
+          if (error instanceof RunRequestError) return send(error.status, { error: error.message });
+          return send(400, { error: 'Could not read the request.' });
+        }
+        await writeRunStream(response, parsed, { signal: controller.signal, exec: options.exec });
+      })();
+      return;
+    }
     return send(404, { error: 'Not found.' });
   });
 

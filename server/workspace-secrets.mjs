@@ -19,6 +19,11 @@ export function validateDestination(destination) {
     ].includes(destination)
   )
     return destination;
+  // A saved SSH credential belongs to one host row and nothing else. Binding it
+  // to the host id means a key cannot be reused against a different machine by
+  // editing the host after the fact.
+  if (typeof destination === 'string' && /^ssh:[A-Za-z0-9_-]{1,64}$/.test(destination))
+    return destination;
   try {
     if (
       typeof destination !== 'string' ||
@@ -39,7 +44,7 @@ export function validateDestination(destination) {
     return 'mcp:' + url.href;
   } catch {
     throw new SecretError(
-      'Choose a service or a public HTTPS MCP endpoint without credentials, query or fragment.',
+      'Choose a service, a saved SSH host or a public HTTPS MCP endpoint without credentials, query or fragment.',
     );
   }
 }
