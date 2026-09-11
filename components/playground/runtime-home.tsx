@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Play, Square, ArrowUpRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePlayground } from './context';
 import { HikmahIcon } from '@/components/kernel/icons';
-import { runJavascript } from '@/lib/playground/sandbox-client';
+import { runJavascript, warmSandbox } from '@/lib/playground/sandbox-client';
 const defaults = [
   {
     id: 'search_web',
@@ -50,6 +50,10 @@ export function RuntimeHome() {
   const [result, setResult] = useState(''),
     [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  // Compile the runtime while the page is being read rather than when Run is
+  // pressed. It takes seconds the first time, and paying for it here is the
+  // difference between a slow first run and one that looks broken.
+  useEffect(warmSandbox, []);
   const run = async () => {
     setBusy(true);
     setResult('');
@@ -135,7 +139,7 @@ export function RuntimeHome() {
             <div>
               <span className="eyebrow">TRY IT HERE</span>
               <h3>JavaScript console</h3>
-              <p>Fresh QuickJS runtime per run · 32 MiB · 3 seconds of execution</p>
+              <p>Isolated QuickJS runtime per run · 32 MiB · 3 seconds of execution</p>
             </div>
             {busy ? (
               <Button onClick={() => abort.current?.abort()} variant="outline">

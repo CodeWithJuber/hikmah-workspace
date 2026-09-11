@@ -1,9 +1,29 @@
 import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten-core';
 import variant from '@jitl/quickjs-singlefile-browser-release-sync';
+
+/** The compiled WASM module, booted once.
+ *
+ * Instantiating it costs seconds on a modest machine, and it was being redone
+ * on every single run — inside the same budget the program itself had to finish
+ * in, which is why a first run so often reported a timeout rather than a result.
+ * The module is stateless; each run still gets its own runtime and context, so
+ * nothing carries between programs.
+ */
+let module_: Promise<Awaited<ReturnType<typeof newQuickJSWASMModuleFromVariant>>> | undefined;
+
+export function quickJsModule() {
+  // A failed boot is not cached: a reload should be able to try again.
+  module_ ??= newQuickJSWASMModuleFromVariant(variant).catch((error: unknown) => {
+    module_ = undefined;
+    throw error;
+  });
+  return module_;
+}
+
 export async function evaluateJavascript(code: string) {
   if (typeof code !== 'string' || !code.trim() || code.length > 40000)
     throw Error('Enter JavaScript up to 40,000 characters.');
-  const QuickJS = await newQuickJSWASMModuleFromVariant(variant);
+  const QuickJS = await quickJsModule();
   const runtime = QuickJS.newRuntime();
   runtime.setMemoryLimit(32 * 1024 * 1024);
   runtime.setMaxStackSize(256 * 1024);

@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // The workbench is a separate service with its own dependencies, its own
     // tsconfig and its own test run. It is linted from inside workbench/.
     'workbench/**',
+    // Built by scripts/build-sandbox-worker.mjs from sources that are linted.
+    'public/sandbox-worker.js',
   ]),
   {
     // React Compiler advisories that predate this branch, in the five legacy

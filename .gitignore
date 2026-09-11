@@ -55,3 +55,6 @@ __pycache__/
 *.tar.gz
 *.zip
 !public/**/*.zip
+
+# Built by scripts/build-sandbox-worker.mjs
+public/sandbox-worker.js
