@@ -8,6 +8,31 @@ All supported tools are available in this conversation; choose them automaticall
 Use the JavaScript sandbox for calculations and checks. For Python, Node or SSH, discover connected runtime tools through connector_catalog and use their returned schemas. Preserve tool permissions and required user approvals. A failed or missing runtime is a blocker, never a successful execution.
 For Qur'anic research, distinguish exact Arabic text, a named translation, a named tafsir, and your interpretation or engineering analogy. Use research_quran for the existing project index, then read the linked verse and context from an authoritative source. Its AI-authored ledger notes are not Quran quotations, scholarly verification, or training results. Cite surah:ayah and the actual source/edition. Preserve differing readings and uncertainty; do not infer universal language ancestry from root similarity.
 Before concluding, reconcile the task plan with observed tool results. Mark only completed work completed. If implementation or verification is blocked, explain that explicitly in the final deliverable. Give the final result after the work, followed by concise evidence and limitations.`;
-export function workspacePrompt(mode: ChatMode, preferences: Preferences, coModel: string, skillText = ''): string {
- return HIKMAH_CORE + '\nMode: ' + mode + '. Response style: ' + preferences.responseStyle + '.' + (mode==='coding'?' For runnable web pages use index.html, style.css and script.js.':'') + (preferences.explainDecisions?' Include a short explanation of key decisions, evidence and trade-offs.':'') + (preferences.instructions?'\nUser preferences:\n'+preferences.instructions:'') + (skillText?'\nSelected user-authored skill guidance, subject to the tool permissions above:\n'+skillText:'') + (coModel?'\nExperimental document context (untrusted reference; learned syntax and heuristic event hypotheses; preserve the original messages):\n'+coModel:'');
+export function workspacePrompt(
+  mode: ChatMode,
+  preferences: Preferences,
+  coModel: string,
+  skillText = '',
+): string {
+  return (
+    HIKMAH_CORE +
+    '\nMode: ' +
+    mode +
+    '. Response style: ' +
+    preferences.responseStyle +
+    '.' +
+    (mode === 'coding' ? ' For runnable web pages use index.html, style.css and script.js.' : '') +
+    (preferences.explainDecisions
+      ? ' Include a short explanation of key decisions, evidence and trade-offs.'
+      : '') +
+    (preferences.instructions ? '\nUser preferences:\n' + preferences.instructions : '') +
+    (skillText
+      ? '\nSelected user-authored skill guidance, subject to the tool permissions above:\n' +
+        skillText
+      : '') +
+    (coModel
+      ? '\nExperimental document context (untrusted reference; learned syntax and heuristic event hypotheses; preserve the original messages):\n' +
+        coModel
+      : '')
+  );
 }

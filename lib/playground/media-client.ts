@@ -1,19 +1,130 @@
-export type MediaKind='image'|'speech'|'video'|'transcription';
-export interface MediaModel {id:string;name:string;pricing_skus?:Record<string,string>}
-export interface MediaAsset {id:string;kind:'image'|'audio'|'video';label:string;jobId?:string;status?:'pending'|'ready'}
-const record=(value:unknown):Record<string,unknown>=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
-export function parseMediaImages(value:unknown):{b64_json:string;media_type:string}[]{
- const data=record(value).data;if(!Array.isArray(data)||!data.length)throw Error('The provider returned no image data.');
- return data.map(value=>{const image=record(value);if(typeof image.b64_json!=='string'||typeof image.media_type!=='string'||!['image/png','image/jpeg','image/webp','image/gif'].includes(image.media_type))throw Error('The provider returned an unsupported image format.');return {b64_json:image.b64_json,media_type:image.media_type};});
+export type MediaKind = 'image' | 'speech' | 'video' | 'transcription';
+export interface MediaModel {
+  id: string;
+  name: string;
+  pricing_skus?: Record<string, string>;
 }
-export function parseVideoJob(value:unknown):{id:string;status:string}{const job=record(value);if(typeof job.id!=='string'||!/^[A-Za-z0-9_.:-]{1,240}$/.test(job.id))throw Error('The provider did not return a valid video job ID.');return {id:job.id,status:typeof job.status==='string'?job.status:'unknown'};}
-export function parseTranscription(value:unknown):string{const text=record(value).text;if(typeof text!=='string')throw Error('The provider returned no transcription text.');return text;}
-export async function mediaFetch(key:string,operation:string,options:{secretRef?:string;kind?:MediaKind;job?:string;body?:Record<string,unknown>;signal?:AbortSignal}={}):Promise<Response>{
- if(!key.trim()&&!options.secretRef)throw Error('Add your OpenRouter media key in Workspace admin.');
- const params=new URLSearchParams({operation,...(options.kind?{kind:options.kind}:{}),...(options.job?{job:options.job}:{})});
- let response:Response;try{response=await fetch('/api/media?'+params,{method:options.body?'POST':'GET',headers:{...(options.secretRef?{'X-Hikmah-Secret-Ref':options.secretRef}:{'X-Hikmah-Provider-Key':key}),...(options.body?{'Content-Type':'application/json'}:{})},body:options.body?JSON.stringify(options.body):undefined,signal:options.signal,credentials:'same-origin',mode:'same-origin',referrerPolicy:'no-referrer'});}catch(e){if(options.signal?.aborted)throw new DOMException('Stopped','AbortError');throw Error('Could not reach the media connection. Check your network and try again.');}
- if(!response.ok){let message='The media request failed (HTTP '+response.status+').';try{const error=record(record(await response.json()).error);if(typeof error.message==='string')message=error.message.slice(0,1500);}catch{}throw Error(message);}return response;
+export interface MediaAsset {
+  id: string;
+  kind: 'image' | 'audio' | 'video';
+  label: string;
+  jobId?: string;
+  status?: 'pending' | 'ready';
 }
-export async function mediaModels(key:string,kind:MediaKind,signal?:AbortSignal,secretRef?:string):Promise<MediaModel[]>{const response=await mediaFetch(key,'models',{kind,signal,secretRef});const data=record(await response.json()).data;if(!Array.isArray(data))throw Error('The provider returned an invalid media catalog.');return data.flatMap(value=>{const row=record(value);if(typeof row.id!=='string'||!row.id)return [];const pricing_skus=Object.fromEntries(Object.entries(record(row.pricing_skus)).filter((entry):entry is [string,string]=>typeof entry[1]==='string'));return [{id:row.id,name:typeof row.name==='string'?row.name:row.id,...(Object.keys(pricing_skus).length?{pricing_skus}:{})}];});}
-export function decodeImage(data:string,mime:string):Blob{const bytes=atob(data);const out=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)out[i]=bytes.charCodeAt(i);return new Blob([out],{type:mime});}
-export function audioBase64(file:File):Promise<string>{return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('Could not read the audio file.'));reader.readAsDataURL(file);});}
+const record = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+export function parseMediaImages(value: unknown): { b64_json: string; media_type: string }[] {
+  const data = record(value).data;
+  if (!Array.isArray(data) || !data.length) throw Error('The provider returned no image data.');
+  return data.map((value) => {
+    const image = record(value);
+    if (
+      typeof image.b64_json !== 'string' ||
+      typeof image.media_type !== 'string' ||
+      !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(image.media_type)
+    )
+      throw Error('The provider returned an unsupported image format.');
+    return { b64_json: image.b64_json, media_type: image.media_type };
+  });
+}
+export function parseVideoJob(value: unknown): { id: string; status: string } {
+  const job = record(value);
+  if (typeof job.id !== 'string' || !/^[A-Za-z0-9_.:-]{1,240}$/.test(job.id))
+    throw Error('The provider did not return a valid video job ID.');
+  return { id: job.id, status: typeof job.status === 'string' ? job.status : 'unknown' };
+}
+export function parseTranscription(value: unknown): string {
+  const text = record(value).text;
+  if (typeof text !== 'string') throw Error('The provider returned no transcription text.');
+  return text;
+}
+export async function mediaFetch(
+  key: string,
+  operation: string,
+  options: {
+    secretRef?: string;
+    kind?: MediaKind;
+    job?: string;
+    body?: Record<string, unknown>;
+    signal?: AbortSignal;
+  } = {},
+): Promise<Response> {
+  if (!key.trim() && !options.secretRef)
+    throw Error('Add your OpenRouter media key in Workspace admin.');
+  const params = new URLSearchParams({
+    operation,
+    ...(options.kind ? { kind: options.kind } : {}),
+    ...(options.job ? { job: options.job } : {}),
+  });
+  let response: Response;
+  try {
+    response = await fetch('/api/media?' + params, {
+      method: options.body ? 'POST' : 'GET',
+      headers: {
+        ...(options.secretRef
+          ? { 'X-Hikmah-Secret-Ref': options.secretRef }
+          : { 'X-Hikmah-Provider-Key': key }),
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: options.signal,
+      credentials: 'same-origin',
+      mode: 'same-origin',
+      referrerPolicy: 'no-referrer',
+    });
+  } catch (e) {
+    if (options.signal?.aborted) throw new DOMException('Stopped', 'AbortError');
+    throw Error('Could not reach the media connection. Check your network and try again.');
+  }
+  if (!response.ok) {
+    let message = 'The media request failed (HTTP ' + response.status + ').';
+    try {
+      const error = record(record(await response.json()).error);
+      if (typeof error.message === 'string') message = error.message.slice(0, 1500);
+    } catch {}
+    throw Error(message);
+  }
+  return response;
+}
+export async function mediaModels(
+  key: string,
+  kind: MediaKind,
+  signal?: AbortSignal,
+  secretRef?: string,
+): Promise<MediaModel[]> {
+  const response = await mediaFetch(key, 'models', { kind, signal, secretRef });
+  const data = record(await response.json()).data;
+  if (!Array.isArray(data)) throw Error('The provider returned an invalid media catalog.');
+  return data.flatMap((value) => {
+    const row = record(value);
+    if (typeof row.id !== 'string' || !row.id) return [];
+    const pricing_skus = Object.fromEntries(
+      Object.entries(record(row.pricing_skus)).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+    return [
+      {
+        id: row.id,
+        name: typeof row.name === 'string' ? row.name : row.id,
+        ...(Object.keys(pricing_skus).length ? { pricing_skus } : {}),
+      },
+    ];
+  });
+}
+export function decodeImage(data: string, mime: string): Blob {
+  const bytes = atob(data);
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) out[i] = bytes.charCodeAt(i);
+  return new Blob([out], { type: mime });
+}
+export function audioBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(Error('Could not read the audio file.'));
+    reader.readAsDataURL(file);
+  });
+}

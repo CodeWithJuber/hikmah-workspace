@@ -1,10 +1,117 @@
-import type {Usage} from './transport';
-export type RunStage={id:string;name:string;requestedModel:string;model?:string;status:'running'|'complete'|'error'|'stopped';explanation?:string;text?:string;usage?:Usage;elapsedMs?:number;firstTextMs?:number};
-export type ExecutionView={provider:string;contextSummary?:string;contribution?:{agentName:string;context:'used'|'off'|'unavailable';memory:boolean;skills:string[]};stages:RunStage[]};
-export type ComparisonView={text:string;tokens?:number;latencyMs:number;model:string;requestedModel?:string;provider?:string;status?:'running'|'complete'|'error'|'stopped';error?:string;explanation?:string;usage?:Usage;firstTextMs?:number};
-const text=(s:unknown,n:number)=>typeof s==='string'?s.slice(0,n):undefined;
-const time=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)&&v>=0?Math.min(v,86400000):undefined;
-export function safeUsage(value:unknown):Usage|undefined{if(!value||typeof value!=='object')return undefined;return Object.fromEntries(Object.entries(value).filter(([k,v])=>['prompt_tokens','completion_tokens','total_tokens','reasoning_tokens','cost'].includes(k)&&typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<1000000000));}
-const status=(v:unknown):RunStage['status']=>v==='running'?'stopped':v==='complete'||v==='error'||v==='stopped'?v:'complete';
-export function parseExecution(value:unknown):ExecutionView|undefined{const x=value as ExecutionView;if(!x||typeof x.provider!=='string'||!Array.isArray(x.stages))return undefined;return {contribution:x.contribution&&typeof x.contribution==='object'?{agentName:text(x.contribution.agentName,80)??'General assistant',context:['used','unavailable'].includes(x.contribution.context)?x.contribution.context:'off',memory:x.contribution.memory!==false,skills:Array.isArray(x.contribution.skills)?x.contribution.skills.filter(s=>typeof s==='string').slice(0,30).map(s=>s.slice(0,80)):[]}:undefined,provider:x.provider.slice(0,256),contextSummary:text(x.contextSummary,12000),stages:x.stages.slice(-30).filter(s=>s&&typeof s.id==='string'&&typeof s.name==='string').map(s=>({id:s.id.slice(0,80),name:s.name.slice(0,100),requestedModel:text(s.requestedModel,256)??'',model:text(s.model,256),status:status(s.status),explanation:text(s.explanation,30000),text:text(s.text,60000),usage:safeUsage(s.usage),elapsedMs:time(s.elapsedMs),firstTextMs:time(s.firstTextMs)}))};}
-export function parseComparison(value:unknown):ComparisonView|undefined{const x=value as ComparisonView;if(!x||typeof x.text!=='string')return undefined;return {text:x.text.slice(0,2000000),model:text(x.model,256)??'',requestedModel:text(x.requestedModel,256),provider:text(x.provider,256),tokens:time(x.tokens),latencyMs:time(x.latencyMs)??0,status:status(x.status),error:text(x.error,1000),explanation:text(x.explanation,30000),usage:safeUsage(x.usage),firstTextMs:time(x.firstTextMs)};}
+import type { Usage } from './transport';
+export type RunStage = {
+  id: string;
+  name: string;
+  requestedModel: string;
+  model?: string;
+  status: 'running' | 'complete' | 'error' | 'stopped';
+  explanation?: string;
+  text?: string;
+  usage?: Usage;
+  elapsedMs?: number;
+  firstTextMs?: number;
+};
+export type ExecutionView = {
+  provider: string;
+  contextSummary?: string;
+  contribution?: {
+    agentName: string;
+    context: 'used' | 'off' | 'unavailable';
+    memory: boolean;
+    skills: string[];
+  };
+  stages: RunStage[];
+};
+export type ComparisonView = {
+  text: string;
+  tokens?: number;
+  latencyMs: number;
+  model: string;
+  requestedModel?: string;
+  provider?: string;
+  status?: 'running' | 'complete' | 'error' | 'stopped';
+  error?: string;
+  explanation?: string;
+  usage?: Usage;
+  firstTextMs?: number;
+};
+const text = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : undefined);
+const time = (v: unknown) =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.min(v, 86400000) : undefined;
+export function safeUsage(value: unknown): Usage | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([k, v]) =>
+        ['prompt_tokens', 'completion_tokens', 'total_tokens', 'reasoning_tokens', 'cost'].includes(
+          k,
+        ) &&
+        typeof v === 'number' &&
+        Number.isFinite(v) &&
+        v >= 0 &&
+        v < 1000000000,
+    ),
+  );
+}
+const status = (v: unknown): RunStage['status'] =>
+  v === 'running'
+    ? 'stopped'
+    : v === 'complete' || v === 'error' || v === 'stopped'
+      ? v
+      : 'complete';
+export function parseExecution(value: unknown): ExecutionView | undefined {
+  const x = value as ExecutionView;
+  if (!x || typeof x.provider !== 'string' || !Array.isArray(x.stages)) return undefined;
+  return {
+    contribution:
+      x.contribution && typeof x.contribution === 'object'
+        ? {
+            agentName: text(x.contribution.agentName, 80) ?? 'General assistant',
+            context: ['used', 'unavailable'].includes(x.contribution.context)
+              ? x.contribution.context
+              : 'off',
+            memory: x.contribution.memory !== false,
+            skills: Array.isArray(x.contribution.skills)
+              ? x.contribution.skills
+                  .filter((s) => typeof s === 'string')
+                  .slice(0, 30)
+                  .map((s) => s.slice(0, 80))
+              : [],
+          }
+        : undefined,
+    provider: x.provider.slice(0, 256),
+    contextSummary: text(x.contextSummary, 12000),
+    stages: x.stages
+      .slice(-30)
+      .filter((s) => s && typeof s.id === 'string' && typeof s.name === 'string')
+      .map((s) => ({
+        id: s.id.slice(0, 80),
+        name: s.name.slice(0, 100),
+        requestedModel: text(s.requestedModel, 256) ?? '',
+        model: text(s.model, 256),
+        status: status(s.status),
+        explanation: text(s.explanation, 30000),
+        text: text(s.text, 60000),
+        usage: safeUsage(s.usage),
+        elapsedMs: time(s.elapsedMs),
+        firstTextMs: time(s.firstTextMs),
+      })),
+  };
+}
+export function parseComparison(value: unknown): ComparisonView | undefined {
+  const x = value as ComparisonView;
+  if (!x || typeof x.text !== 'string') return undefined;
+  return {
+    text: x.text.slice(0, 2000000),
+    model: text(x.model, 256) ?? '',
+    requestedModel: text(x.requestedModel, 256),
+    provider: text(x.provider, 256),
+    tokens: time(x.tokens),
+    latencyMs: time(x.latencyMs) ?? 0,
+    status: status(x.status),
+    error: text(x.error, 1000),
+    explanation: text(x.explanation, 30000),
+    usage: safeUsage(x.usage),
+    firstTextMs: time(x.firstTextMs),
+  };
+}

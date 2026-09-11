@@ -1,13 +1,161 @@
-import {env} from '@/server/platform.mjs';
-import {identity,database,sameOrigin,failure,KernelHttpError} from '@/lib/kernel/server';
-import {parseSession} from '@/lib/playground/session';
-export const dynamic='force-dynamic';
-const headers={'Cache-Control':'no-store'};
-const MAX_BYTES=24_000_000;
-async function readRequest(request:Request){if(Number(request.headers.get('content-length'))>MAX_BYTES)throw new KernelHttpError(413,'This workspace exceeds 24 MB. Export completed chats before removing older work.');const reader=request.body?.getReader();if(!reader)throw Error('Missing workspace update.');let size=0,text='';const decoder=new TextDecoder();try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BYTES)throw new KernelHttpError(413,'This workspace exceeds 24 MB. Export completed chats before removing older work.');text+=decoder.decode(value,{stream:true});}return text+decoder.decode();}finally{void reader.cancel().catch(()=>{});}}
-export async function GET(){try{const u=await identity();const row=await database().prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?').bind(u.userId).first<{body:string;revision:number}>();let revision=row?.revision??-1;let session=row?.body??null;if(session){const stored=JSON.parse(session);if(stored.format==='hikmah.workspace.object.v1'){if(!env.BUCKET)throw new KernelHttpError(503,'Workspace storage is unavailable. Please retry.');let object=await env.BUCKET.get(stored.key);if(!object){const latest=await database().prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?').bind(u.userId).first<{body:string;revision:number}>();if(latest&&latest.revision!==revision){revision=latest.revision;const p=JSON.parse(latest.body);if(p.format==='hikmah.workspace.object.v1')object=await env.BUCKET.get(p.key);else session=latest.body;}}if(object)session=await object.text();else if(session===row?.body)throw new KernelHttpError(503,'Your saved workspace changed while loading. Retry; no data was overwritten.');}}return Response.json({session,revision},{headers});}catch(e){return failure(e);}}
-export async function PUT(request:Request){let orphan:string|undefined;let attempted=false;let writingUser='';let writtenBody='';let nextRevision=0;try{sameOrigin(request);const u=await identity();const x=JSON.parse(await readRequest(request));if(!Number.isInteger(x.revision)||x.revision< -1||typeof x.session!=='string')throw Error('Invalid workspace update.');const session=parseSession(x.session);const body=JSON.stringify(session);const db=database();const previous=await db.prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?').bind(u.userId).first<{body:string;revision:number}>();if((previous?.revision??-1)!==x.revision)throw new KernelHttpError(409,'A newer workspace exists in another tab. Export this tab before reloading.');const now=new Date().toISOString();let stored=body;
- // D1 atomically owns the R2 pointer. Superseded blobs are deleted after commit;
- // racing readers retry the latest pointer instead of losing their saved state.
- if(new TextEncoder().encode(body).length>700000){if(!env.BUCKET)throw new KernelHttpError(503,'Large workspace storage is unavailable. Your input is preserved.');orphan='workspaces/'+encodeURIComponent(u.userId)+'/'+crypto.randomUUID()+'.json';await env.BUCKET.put(orphan,body,{httpMetadata:{contentType:'application/json'}});stored=JSON.stringify({format:'hikmah.workspace.object.v1',key:orphan});}
- writingUser=u.userId;writtenBody=stored;nextRevision=x.revision+1;attempted=true;const result=x.revision===-1?await db.prepare('INSERT INTO workspace_states (user_id,body,revision,updated_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO NOTHING').bind(u.userId,stored,now).run():await db.prepare('UPDATE workspace_states SET body = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND revision = ?').bind(stored,now,u.userId,x.revision).run();if(result.meta.changes!==1)throw new KernelHttpError(409,'A newer workspace exists in another tab. Export this tab before reloading.');orphan=undefined;if(previous){const old=JSON.parse(previous.body);if(old.format==='hikmah.workspace.object.v1')await env.BUCKET?.delete(old.key).catch(()=>{});}return Response.json({revision:x.revision+1},{headers});}catch(e){let safeToDelete=!attempted;if(attempted){try{const actual=await database().prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?').bind(writingUser).first<{body:string;revision:number}>();if(actual?.body===writtenBody&&actual.revision===nextRevision)return Response.json({revision:nextRevision},{headers});safeToDelete=!!actual||actual===null;}catch{/* Ambiguous commit: retain its blob instead of risking data loss. */}}if(orphan&&safeToDelete)await env.BUCKET?.delete(orphan).catch(()=>{});return failure(e);}}
+import { env } from '@/server/platform.mjs';
+import { identity, database, sameOrigin, failure, KernelHttpError } from '@/lib/kernel/server';
+import { parseSession } from '@/lib/playground/session';
+export const dynamic = 'force-dynamic';
+const headers = { 'Cache-Control': 'no-store' };
+const MAX_BYTES = 24_000_000;
+async function readRequest(request: Request) {
+  if (Number(request.headers.get('content-length')) > MAX_BYTES)
+    throw new KernelHttpError(
+      413,
+      'This workspace exceeds 24 MB. Export completed chats before removing older work.',
+    );
+  const reader = request.body?.getReader();
+  if (!reader) throw Error('Missing workspace update.');
+  let size = 0,
+    text = '';
+  const decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BYTES)
+        throw new KernelHttpError(
+          413,
+          'This workspace exceeds 24 MB. Export completed chats before removing older work.',
+        );
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally {
+    void reader.cancel().catch(() => {});
+  }
+}
+export async function GET() {
+  try {
+    const u = await identity();
+    const row = await database()
+      .prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?')
+      .bind(u.userId)
+      .first<{ body: string; revision: number }>();
+    let revision = row?.revision ?? -1;
+    let session = row?.body ?? null;
+    if (session) {
+      const stored = JSON.parse(session);
+      if (stored.format === 'hikmah.workspace.object.v1') {
+        if (!env.BUCKET)
+          throw new KernelHttpError(503, 'Workspace storage is unavailable. Please retry.');
+        let object = await env.BUCKET.get(stored.key);
+        if (!object) {
+          const latest = await database()
+            .prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?')
+            .bind(u.userId)
+            .first<{ body: string; revision: number }>();
+          if (latest && latest.revision !== revision) {
+            revision = latest.revision;
+            const p = JSON.parse(latest.body);
+            if (p.format === 'hikmah.workspace.object.v1') object = await env.BUCKET.get(p.key);
+            else session = latest.body;
+          }
+        }
+        if (object) session = await object.text();
+        else if (session === row?.body)
+          throw new KernelHttpError(
+            503,
+            'Your saved workspace changed while loading. Retry; no data was overwritten.',
+          );
+      }
+    }
+    return Response.json({ session, revision }, { headers });
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function PUT(request: Request) {
+  let orphan: string | undefined;
+  let attempted = false;
+  let writingUser = '';
+  let writtenBody = '';
+  let nextRevision = 0;
+  try {
+    sameOrigin(request);
+    const u = await identity();
+    const x = JSON.parse(await readRequest(request));
+    if (!Number.isInteger(x.revision) || x.revision < -1 || typeof x.session !== 'string')
+      throw Error('Invalid workspace update.');
+    const session = parseSession(x.session);
+    const body = JSON.stringify(session);
+    const db = database();
+    const previous = await db
+      .prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?')
+      .bind(u.userId)
+      .first<{ body: string; revision: number }>();
+    if ((previous?.revision ?? -1) !== x.revision)
+      throw new KernelHttpError(
+        409,
+        'A newer workspace exists in another tab. Export this tab before reloading.',
+      );
+    const now = new Date().toISOString();
+    let stored = body;
+    // D1 atomically owns the R2 pointer. Superseded blobs are deleted after commit;
+    // racing readers retry the latest pointer instead of losing their saved state.
+    if (new TextEncoder().encode(body).length > 700000) {
+      if (!env.BUCKET)
+        throw new KernelHttpError(
+          503,
+          'Large workspace storage is unavailable. Your input is preserved.',
+        );
+      orphan = 'workspaces/' + encodeURIComponent(u.userId) + '/' + crypto.randomUUID() + '.json';
+      await env.BUCKET.put(orphan, body, { httpMetadata: { contentType: 'application/json' } });
+      stored = JSON.stringify({ format: 'hikmah.workspace.object.v1', key: orphan });
+    }
+    writingUser = u.userId;
+    writtenBody = stored;
+    nextRevision = x.revision + 1;
+    attempted = true;
+    const result =
+      x.revision === -1
+        ? await db
+            .prepare(
+              'INSERT INTO workspace_states (user_id,body,revision,updated_at) VALUES (?,?,0,?) ON CONFLICT(user_id) DO NOTHING',
+            )
+            .bind(u.userId, stored, now)
+            .run()
+        : await db
+            .prepare(
+              'UPDATE workspace_states SET body = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND revision = ?',
+            )
+            .bind(stored, now, u.userId, x.revision)
+            .run();
+    if (result.meta.changes !== 1)
+      throw new KernelHttpError(
+        409,
+        'A newer workspace exists in another tab. Export this tab before reloading.',
+      );
+    orphan = undefined;
+    if (previous) {
+      const old = JSON.parse(previous.body);
+      if (old.format === 'hikmah.workspace.object.v1')
+        await env.BUCKET?.delete(old.key).catch(() => {});
+    }
+    return Response.json({ revision: x.revision + 1 }, { headers });
+  } catch (e) {
+    let safeToDelete = !attempted;
+    if (attempted) {
+      try {
+        const actual = await database()
+          .prepare('SELECT body,revision FROM workspace_states WHERE user_id = ?')
+          .bind(writingUser)
+          .first<{ body: string; revision: number }>();
+        if (actual?.body === writtenBody && actual.revision === nextRevision)
+          return Response.json({ revision: nextRevision }, { headers });
+        safeToDelete = !!actual || actual === null;
+      } catch {
+        /* Ambiguous commit: retain its blob instead of risking data loss. */
+      }
+    }
+    if (orphan && safeToDelete) await env.BUCKET?.delete(orphan).catch(() => {});
+    return failure(e);
+  }
+}

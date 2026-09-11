@@ -1,2 +1,29 @@
-const pages=new Set(['agents','tools','workspace','knowledge','learning','kernel','labs','admin','admin/overview','admin/providers','admin/media','admin/connectors','admin/skills','admin/plan','superadmin','superadmin/context','superadmin/overview','superadmin/versions','superadmin/architecture','superadmin/training','superadmin/learning','superadmin/runs','superadmin/controls']);
-export function workspaceDestination(hash:string):string {const page=hash.replace(/^#\/?/,'');return pages.has(page)?page:'workspace';}
+const pages = new Set([
+  'agents',
+  'tools',
+  'workspace',
+  'knowledge',
+  'learning',
+  'kernel',
+  'labs',
+  'admin',
+  'admin/overview',
+  'admin/providers',
+  'admin/media',
+  'admin/connectors',
+  'admin/skills',
+  'admin/plan',
+  'superadmin',
+  'superadmin/context',
+  'superadmin/overview',
+  'superadmin/versions',
+  'superadmin/architecture',
+  'superadmin/training',
+  'superadmin/learning',
+  'superadmin/runs',
+  'superadmin/controls',
+]);
+export function workspaceDestination(hash: string): string {
+  const page = hash.replace(/^#\/?/, '');
+  return pages.has(page) ? page : 'workspace';
+}

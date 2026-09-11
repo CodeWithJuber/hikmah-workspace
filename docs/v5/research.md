@@ -84,13 +84,13 @@ The controller owns state transitions, budgets, memory inclusion, program valida
 
 Finite workflow arms:
 
-| Arm | Executed behavior | Limit |
-|---|---|---|
-| Local skill | Co-model predicts a supported frame or executes a separately promoted bounded procedure | Zero remote calls |
-| Direct | One selected-model answer | One call |
-| Verify/repair | Draft, independent check records, one targeted repair if needed | Three remote calls |
-| Decompose | Typed dependency plan, execute leaves, merge, check, optional repair | Four leaves; depth two; eight remote calls |
-| Explore/consensus | Three independently prompted candidates, compare evidence/checks, synthesize, optional repair | Six remote calls |
+| Arm               | Executed behavior                                                                             | Limit                                      |
+| ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Local skill       | Co-model predicts a supported frame or executes a separately promoted bounded procedure       | Zero remote calls                          |
+| Direct            | One selected-model answer                                                                     | One call                                   |
+| Verify/repair     | Draft, independent check records, one targeted repair if needed                               | Three remote calls                         |
+| Decompose         | Typed dependency plan, execute leaves, merge, check, optional repair                          | Four leaves; depth two; eight remote calls |
+| Explore/consensus | Three independently prompted candidates, compare evidence/checks, synthesize, optional repair | Six remote calls                           |
 
 These are starting caps. Every call, retry and hidden provider reasoning token that is exposed in usage counts toward the declared budget. One invalid-JSON retry also consumes budget. Cancel, timeout, credential failure, and exhausted budget are explicit terminal states. Independent leaves can execute concurrently; dependent leaves wait for validated outputs. Reject cyclic or over-budget plans before execution.
 
@@ -156,23 +156,113 @@ type RunMode = 'local' | 'remote' | 'evaluation';
 type VerificationKind = 'executable' | 'human' | 'source_span' | 'model_judgment';
 
 interface CognitiveRun {
-  id: string; mode: RunMode; status: string; inputHash: string;
+  id: string;
+  mode: RunMode;
+  status: string;
+  inputHash: string;
   modelLock?: { model: string; endpoint: string; sampling: object; reasoning: object };
-  versions: { controller: string; policy: string; coModel: string; feature: string; memory: string };
+  versions: {
+    controller: string;
+    policy: string;
+    coModel: string;
+    feature: string;
+    memory: string;
+  };
   budget: { maxCalls: number; maxTokens: number; maxCost: number; deadlineMs: number };
-  decision: { features: number[]; eligibleArms: string[]; chosenArm: string; scores: object; propensity: number | null };
-  graph: { nodes: Array<{ id: string; dependsOn: string[]; status: string; acceptanceCriteria: string[] }> };
-  candidates: Candidate[]; checks: Check[]; claims: Claim[];
-  usage: { calls: number; inputTokens: number; outputTokens: number; reasoningTokens?: number; cost?: number; latencyMs: number };
+  decision: {
+    features: number[];
+    eligibleArms: string[];
+    chosenArm: string;
+    scores: object;
+    propensity: number | null;
+  };
+  graph: {
+    nodes: Array<{ id: string; dependsOn: string[]; status: string; acceptanceCriteria: string[] }>;
+  };
+  candidates: Candidate[];
+  checks: Check[];
+  claims: Claim[];
+  usage: {
+    calls: number;
+    inputTokens: number;
+    outputTokens: number;
+    reasoningTokens?: number;
+    cost?: number;
+    latencyMs: number;
+  };
   final?: { candidateId: string; answer: string; unresolved: string[] };
   learningEligibility: 'pending_feedback' | 'verified_outcome' | 'excluded_eval' | 'none';
 }
-interface Candidate { id: string; origin: 'local' | 'remote'; answer: string; program?: object; claimIds: string[]; checkIds: string[] }
-interface Check { id: string; candidateId: string; kind: VerificationKind; status: 'pass' | 'fail' | 'unknown'; verifierVersion: string; evidenceIds: string[] }
-interface Claim { id: string; text: string; status: string; sourceIds: string[]; supersedes?: string; proposedBy: string; reviewedBy?: string }
-interface Feedback { id: string; runId: string; kind: 'quality' | 'correctness' | 'correction'; value?: number; correctedLabel?: object; source: 'user' | 'executable'; verificationId?: string; supersedes?: string; timestamp: string }
-interface TrainingExample { id: string; runId?: string; taskFamily: string; input: string; target: object; origin: string; validatorId: string; provenanceIds: string[]; split: 'train' | 'dev' | 'audit'; eligible: boolean }
-interface Checkpoint { id: string; parentId?: string; createdAt: string; status: 'candidate' | 'incumbent' | 'rejected' | 'retired'; architectureVersion: string; schemaVersion: string; lexicon: object[]; rules: object[]; parameters: { ruleReliability: object; grammarWeights: object; outcomeCounts: object; policy: object }; procedures: object[]; dataHash: string; trainingRunCount: number; metricsBySkill: object; gate: object; rollbackTo?: string }
+interface Candidate {
+  id: string;
+  origin: 'local' | 'remote';
+  answer: string;
+  program?: object;
+  claimIds: string[];
+  checkIds: string[];
+}
+interface Check {
+  id: string;
+  candidateId: string;
+  kind: VerificationKind;
+  status: 'pass' | 'fail' | 'unknown';
+  verifierVersion: string;
+  evidenceIds: string[];
+}
+interface Claim {
+  id: string;
+  text: string;
+  status: string;
+  sourceIds: string[];
+  supersedes?: string;
+  proposedBy: string;
+  reviewedBy?: string;
+}
+interface Feedback {
+  id: string;
+  runId: string;
+  kind: 'quality' | 'correctness' | 'correction';
+  value?: number;
+  correctedLabel?: object;
+  source: 'user' | 'executable';
+  verificationId?: string;
+  supersedes?: string;
+  timestamp: string;
+}
+interface TrainingExample {
+  id: string;
+  runId?: string;
+  taskFamily: string;
+  input: string;
+  target: object;
+  origin: string;
+  validatorId: string;
+  provenanceIds: string[];
+  split: 'train' | 'dev' | 'audit';
+  eligible: boolean;
+}
+interface Checkpoint {
+  id: string;
+  parentId?: string;
+  createdAt: string;
+  status: 'candidate' | 'incumbent' | 'rejected' | 'retired';
+  architectureVersion: string;
+  schemaVersion: string;
+  lexicon: object[];
+  rules: object[];
+  parameters: {
+    ruleReliability: object;
+    grammarWeights: object;
+    outcomeCounts: object;
+    policy: object;
+  };
+  procedures: object[];
+  dataHash: string;
+  trainingRunCount: number;
+  metricsBySkill: object;
+  gate: object;
+  rollbackTo?: string;
+}
 ```
 
 Suggested operations: `POST /cognition/runs`, `GET /cognition/runs/:id/events`, `POST /cognition/runs/:id/cancel`, `POST /cognition/feedback`, `GET /co-model/status`, `POST /co-model/train` (bounded batch), `GET /co-model/checkpoints`, `POST /co-model/checkpoints/:id/evaluate`, `POST /co-model/checkpoints/:id/promote`, `POST /co-model/rollback`, `POST /evaluations`, `GET /evaluations/:id`. Internal automatic promotion uses the same validated transition as manual promotion. Keep provider credentials out of this durable state.

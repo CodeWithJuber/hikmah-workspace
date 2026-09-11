@@ -9,7 +9,7 @@ services:
       HIKMAH_DATA_DIR: /data
       HIKMAH_SEARCH_URL: ${HIKMAH_SEARCH_URL:-http://search:8080/search}
     depends_on:
-      search: {condition: service_started}
+      search: { condition: service_started }
     volumes:
       - ./data:/data
     read_only: true
@@ -22,7 +22,7 @@ services:
     pids_limit: 256
     logging:
       driver: json-file
-      options: {max-size: "10m", max-file: "3"}
+      options: { max-size: '10m', max-file: '3' }
   search:
     image: ${HIKMAH_SEARCH_IMAGE:-docker.io/searxng/searxng:latest}
     restart: unless-stopped
@@ -38,17 +38,17 @@ services:
     security_opt: [no-new-privileges:true]
     logging:
       driver: json-file
-      options: {max-size: "10m", max-file: "2"}
+      options: { max-size: '10m', max-file: '2' }
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
       HIKMAH_DOMAIN: ${HIKMAH_DOMAIN:?Set the HTTPS domain}
     depends_on:
-      app: {condition: service_healthy}
+      app: { condition: service_healthy }
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -59,7 +59,7 @@ services:
     mem_limit: 256m
     logging:
       driver: json-file
-      options: {max-size: "10m", max-file: "3"}
+      options: { max-size: '10m', max-file: '3' }
 volumes:
   caddy_data:
   caddy_config:

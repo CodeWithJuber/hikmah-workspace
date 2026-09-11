@@ -1,17 +1,184 @@
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {fitField,parseForms,validateField,evaluateField,arborescence} from '../lib/context-model/field-model.ts';
-import {compileContext,detectLanguage} from '../lib/context-model/discourse.ts';
-import {validateTeaching,trainReviewed} from '../lib/context-model/training.ts';
-import {checkContextGate} from '../lib/context-model/gate.ts';
-const row=(id,words,tags,heads,rels,split='train')=>({id,groupId:'owner/'+id,split,fold:2,text:words.join(' '),tokens:words.map((w,i)=>({id:i+1,form:w,lemma:w,upos:tags[i],head:heads[i],deprel:rels[i],feats:{}}))});
-const base=[row('a',['cats','run'],['NOUN','VERB'],[2,0],['nsubj','root']),row('b',['dogs','sleep'],['NOUN','VERB'],[2,0],['nsubj','root'])];
-const model=fitField(base,'en');
-test('decoder contracts a cycle and returns the maximum valid rooted tree',()=>{const n=-Infinity,w=[[n,5,4,1],[n,n,8,3],[n,9,n,7],[n,2,6,n]];const p=arborescence(w);let best=-Infinity;for(let a=0;a<4;a++)for(let b=0;b<4;b++)for(let c=0;c<4;c++){const q=[-1,a,b,c];let valid=true;for(let i=1;i<4;i++){const seen=new Set;let x=i;while(x){if(seen.has(x)||x<0){valid=false;break;}seen.add(x);x=q[x];}}if(valid)best=Math.max(best,w[a][1]+w[b][2]+w[c][3]);}assert.equal(w[p[1]][1]+w[p[2]][2]+w[p[3]][3],best);});
-test('root label agrees with head and unseen prototype names have ordinary morphology',()=>{const m=validateField(JSON.parse(JSON.stringify(model)));const p=parseForms(m,['run','sleep']);assert.equal(p.tokens.filter(t=>t.relation==='root').length,1);for(const t of p.tokens)assert.equal(t.head===0,t.relation==='root');assert.deepEqual(parseForms(m,['constructor','run']).tokens[0].morphology,{});});
-test('invalid models cannot reach inference or server metrics',()=>{for(const change of [{training:undefined},{arcs:[]},{morphology:[]},{tags:['VERB','VERB']},{tags:['','NOUN']},{arcs:{bad:Infinity}}])assert.throws(()=>validateField({...model,...change}));});
-test('training skips nontrain rows and rejects cycles, evaluation documents and duplicate corrections',()=>{const held=row('held',['robots','compute'],['NOUN','VERB'],[2,0],['nsubj','root'],'test');const fitted=fitField([...base,held],'en');assert.equal(fitted.training.tokens,4);assert.ok(!Object.hasOwn(fitted.emissions,'w:robots'));assert.throws(()=>validateTeaching([base[0]],new Set(['owner/a'])));assert.throws(()=>validateTeaching([base[0],base[0]],new Set()));const bad=structuredClone(base[0]);bad.tokens[0].head=2;bad.tokens[1].head=1;bad.tokens[1].deprel='dep';assert.throws(()=>validateTeaching([bad],new Set()));});
-test('punctuation-only examples are excluded, not counted as perfect trees',()=>{const punctuation=row('p',['.'],['PUNCT'],[0],['root'],'test');const metrics=evaluateField(model,[punctuation]);assert.equal(metrics.sentences,0);assert.equal(metrics.exactTrees,0);assert.equal(metrics.exactTreeRate,0);assert.equal(metrics.excluded,1);assert.ok(Number.isFinite(metrics.las));});
-test('document graph preserves multi-event source, unresolved pronouns, scoped negation and literals',()=>{const supervised=[row('mira',['Mira','sends','reports','.'],['PROPN','VERB','NOUN','PUNCT'],[2,0,2,2],['nsubj','root','obj','punct']),row('omar',['Omar','sends','letters','.'],['PROPN','VERB','NOUN','PUNCT'],[2,0,2,2],['nsubj','root','obj','punct']),row('negative',['He','never','sends','reports','.'],['PRON','ADV','VERB','NOUN','PUNCT'],[3,3,0,3,3],['nsubj','advmod','root','obj','punct'])];const m=fitField(supervised,'en');const g=compileContext('Mira sends reports. Omar sends letters. He never sends reports. 250 https://example.org',{en:m},'en');assert.ok(g.events.length>=3);const ref=g.references.find(r=>r.mention==='He');assert.ok(ref);assert.equal(ref.status,'unresolved');assert.ok(ref.candidates.length>=2);assert.ok(g.events.some(e=>e.scopes.some(s=>s.kind==='negation')));assert.ok(g.literals.includes('250'));assert.ok(g.literals.includes('https://example.org'));assert.ok(g.events.every(e=>e.status==='hypothesis'));assert.equal(g.sentences[0].text,'Mira sends reports.');});
-test('untrained Urdu is preserved without pretend English inference',()=>{const text='وہ پڑھتا ہے۔';assert.equal(detectLanguage(text),'ur');const g=compileContext(text,{en:model});assert.equal(g.events.length,0);assert.equal(g.sentences[0].text,text);assert.match(g.sentences[0].error,/No trained syntax/);});
-test('server gate cannot promote an unchanged model or a declared evaluation group',()=>{const dev=base.map(s=>({...s,split:'development'}));const baseline=evaluateField(model,dev);assert.equal(checkContextGate(model,{sentences:dev,baseline,excludedGroups:[]}).approved,false);assert.throws(()=>checkContextGate(model,{sentences:dev,baseline,excludedGroups:['owner/a']}));});
-test('five released checkpoints are valid and reported training counts agree',()=>{let n=0;for(const lang of ['en','ar','hi','es','tr']){const m=validateField(JSON.parse(fs.readFileSync('public/research/v6/models/'+lang+'.model.json')));assert.equal(m.language,lang);assert.equal(m.training.sentences,827);n+=m.training.tokens;}assert.equal(n,87703);});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {
+  fitField,
+  parseForms,
+  validateField,
+  evaluateField,
+  arborescence,
+} from '../lib/context-model/field-model.ts';
+import { compileContext, detectLanguage } from '../lib/context-model/discourse.ts';
+import { validateTeaching, trainReviewed } from '../lib/context-model/training.ts';
+import { checkContextGate } from '../lib/context-model/gate.ts';
+const row = (id, words, tags, heads, rels, split = 'train') => ({
+  id,
+  groupId: 'owner/' + id,
+  split,
+  fold: 2,
+  text: words.join(' '),
+  tokens: words.map((w, i) => ({
+    id: i + 1,
+    form: w,
+    lemma: w,
+    upos: tags[i],
+    head: heads[i],
+    deprel: rels[i],
+    feats: {},
+  })),
+});
+const base = [
+  row('a', ['cats', 'run'], ['NOUN', 'VERB'], [2, 0], ['nsubj', 'root']),
+  row('b', ['dogs', 'sleep'], ['NOUN', 'VERB'], [2, 0], ['nsubj', 'root']),
+];
+const model = fitField(base, 'en');
+test('decoder contracts a cycle and returns the maximum valid rooted tree', () => {
+  const n = -Infinity,
+    w = [
+      [n, 5, 4, 1],
+      [n, n, 8, 3],
+      [n, 9, n, 7],
+      [n, 2, 6, n],
+    ];
+  const p = arborescence(w);
+  let best = -Infinity;
+  for (let a = 0; a < 4; a++)
+    for (let b = 0; b < 4; b++)
+      for (let c = 0; c < 4; c++) {
+        const q = [-1, a, b, c];
+        let valid = true;
+        for (let i = 1; i < 4; i++) {
+          const seen = new Set();
+          let x = i;
+          while (x) {
+            if (seen.has(x) || x < 0) {
+              valid = false;
+              break;
+            }
+            seen.add(x);
+            x = q[x];
+          }
+        }
+        if (valid) best = Math.max(best, w[a][1] + w[b][2] + w[c][3]);
+      }
+  assert.equal(w[p[1]][1] + w[p[2]][2] + w[p[3]][3], best);
+});
+test('root label agrees with head and unseen prototype names have ordinary morphology', () => {
+  const m = validateField(JSON.parse(JSON.stringify(model)));
+  const p = parseForms(m, ['run', 'sleep']);
+  assert.equal(p.tokens.filter((t) => t.relation === 'root').length, 1);
+  for (const t of p.tokens) assert.equal(t.head === 0, t.relation === 'root');
+  assert.deepEqual(parseForms(m, ['constructor', 'run']).tokens[0].morphology, {});
+});
+test('invalid models cannot reach inference or server metrics', () => {
+  for (const change of [
+    { training: undefined },
+    { arcs: [] },
+    { morphology: [] },
+    { tags: ['VERB', 'VERB'] },
+    { tags: ['', 'NOUN'] },
+    { arcs: { bad: Infinity } },
+  ])
+    assert.throws(() => validateField({ ...model, ...change }));
+});
+test('training skips nontrain rows and rejects cycles, evaluation documents and duplicate corrections', () => {
+  const held = row(
+    'held',
+    ['robots', 'compute'],
+    ['NOUN', 'VERB'],
+    [2, 0],
+    ['nsubj', 'root'],
+    'test',
+  );
+  const fitted = fitField([...base, held], 'en');
+  assert.equal(fitted.training.tokens, 4);
+  assert.ok(!Object.hasOwn(fitted.emissions, 'w:robots'));
+  assert.throws(() => validateTeaching([base[0]], new Set(['owner/a'])));
+  assert.throws(() => validateTeaching([base[0], base[0]], new Set()));
+  const bad = structuredClone(base[0]);
+  bad.tokens[0].head = 2;
+  bad.tokens[1].head = 1;
+  bad.tokens[1].deprel = 'dep';
+  assert.throws(() => validateTeaching([bad], new Set()));
+});
+test('punctuation-only examples are excluded, not counted as perfect trees', () => {
+  const punctuation = row('p', ['.'], ['PUNCT'], [0], ['root'], 'test');
+  const metrics = evaluateField(model, [punctuation]);
+  assert.equal(metrics.sentences, 0);
+  assert.equal(metrics.exactTrees, 0);
+  assert.equal(metrics.exactTreeRate, 0);
+  assert.equal(metrics.excluded, 1);
+  assert.ok(Number.isFinite(metrics.las));
+});
+test('document graph preserves multi-event source, unresolved pronouns, scoped negation and literals', () => {
+  const supervised = [
+    row(
+      'mira',
+      ['Mira', 'sends', 'reports', '.'],
+      ['PROPN', 'VERB', 'NOUN', 'PUNCT'],
+      [2, 0, 2, 2],
+      ['nsubj', 'root', 'obj', 'punct'],
+    ),
+    row(
+      'omar',
+      ['Omar', 'sends', 'letters', '.'],
+      ['PROPN', 'VERB', 'NOUN', 'PUNCT'],
+      [2, 0, 2, 2],
+      ['nsubj', 'root', 'obj', 'punct'],
+    ),
+    row(
+      'negative',
+      ['He', 'never', 'sends', 'reports', '.'],
+      ['PRON', 'ADV', 'VERB', 'NOUN', 'PUNCT'],
+      [3, 3, 0, 3, 3],
+      ['nsubj', 'advmod', 'root', 'obj', 'punct'],
+    ),
+  ];
+  const m = fitField(supervised, 'en');
+  const g = compileContext(
+    'Mira sends reports. Omar sends letters. He never sends reports. 250 https://example.org',
+    { en: m },
+    'en',
+  );
+  assert.ok(g.events.length >= 3);
+  const ref = g.references.find((r) => r.mention === 'He');
+  assert.ok(ref);
+  assert.equal(ref.status, 'unresolved');
+  assert.ok(ref.candidates.length >= 2);
+  assert.ok(g.events.some((e) => e.scopes.some((s) => s.kind === 'negation')));
+  assert.ok(g.literals.includes('250'));
+  assert.ok(g.literals.includes('https://example.org'));
+  assert.ok(g.events.every((e) => e.status === 'hypothesis'));
+  assert.equal(g.sentences[0].text, 'Mira sends reports.');
+});
+test('untrained Urdu is preserved without pretend English inference', () => {
+  const text = 'وہ پڑھتا ہے۔';
+  assert.equal(detectLanguage(text), 'ur');
+  const g = compileContext(text, { en: model });
+  assert.equal(g.events.length, 0);
+  assert.equal(g.sentences[0].text, text);
+  assert.match(g.sentences[0].error, /No trained syntax/);
+});
+test('server gate cannot promote an unchanged model or a declared evaluation group', () => {
+  const dev = base.map((s) => ({ ...s, split: 'development' }));
+  const baseline = evaluateField(model, dev);
+  assert.equal(
+    checkContextGate(model, { sentences: dev, baseline, excludedGroups: [] }).approved,
+    false,
+  );
+  assert.throws(() =>
+    checkContextGate(model, { sentences: dev, baseline, excludedGroups: ['owner/a'] }),
+  );
+});
+test('five released checkpoints are valid and reported training counts agree', () => {
+  let n = 0;
+  for (const lang of ['en', 'ar', 'hi', 'es', 'tr']) {
+    const m = validateField(
+      JSON.parse(fs.readFileSync('public/research/v6/models/' + lang + '.model.json')),
+    );
+    assert.equal(m.language, lang);
+    assert.equal(m.training.sentences, 827);
+    n += m.training.tokens;
+  }
+  assert.equal(n, 87703);
+});

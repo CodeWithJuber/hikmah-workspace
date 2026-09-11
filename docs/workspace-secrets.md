@@ -4,14 +4,14 @@ Open **Settings → Secrets**, or **Workspace settings → Secrets**. Enter an u
 
 Select the variable by name in the matching connection settings. One name can be reused by multiple configurations assigned to the same service. Replacement takes effect on the next request, including from another device. In-flight requests may finish using their previous credential. Deletion revokes future lookups and produces a visible connection error.
 
-| Use | Configuration |
-| --- | --- |
-| Chat, agents, comparisons and co-model workflows | Select a saved secret for the OpenRouter or Experiential provider in Settings → Connection. All chat modes reuse the provider connection. |
-| Images, audio, transcription and video | Select an OpenRouter secret in Workspace settings → Media. When unset, media inherits the saved OpenRouter chat key unless a separate session media key is entered. |
-| External MCP tools | Save a secret for the exact public HTTPS MCP endpoint, then select it in the connector editor. Requests use the app server, so browser CORS is unnecessary for this path. |
-| Automatic Brave web search | Save `BRAVE_SEARCH_API_KEY` for Brave web search. Used when the server has no SearXNG endpoint. An environment key remains a fallback when no saved variable exists. |
-| Owner's Python/Node/SSH connection | Save `HIKMAH_RUNTIME_TOKEN` for Server runtime connection. `HIKMAH_RUNTIME_URL` remains an operator-controlled server setting. The token must match the installed adapter's token. |
-| Generated Python/Node code | Assign variables to Code runtime environment. The owner-only runtime injects these into a fresh container and advertises their names to the model. Use `os.environ['NAME']` or `process.env.NAME`. |
+| Use                                              | Configuration                                                                                                                                                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat, agents, comparisons and co-model workflows | Select a saved secret for the OpenRouter or Experiential provider in Settings → Connection. All chat modes reuse the provider connection.                                                          |
+| Images, audio, transcription and video           | Select an OpenRouter secret in Workspace settings → Media. When unset, media inherits the saved OpenRouter chat key unless a separate session media key is entered.                                |
+| External MCP tools                               | Save a secret for the exact public HTTPS MCP endpoint, then select it in the connector editor. Requests use the app server, so browser CORS is unnecessary for this path.                          |
+| Automatic Brave web search                       | Save `BRAVE_SEARCH_API_KEY` for Brave web search. Used when the server has no SearXNG endpoint. An environment key remains a fallback when no saved variable exists.                               |
+| Owner's Python/Node/SSH connection               | Save `HIKMAH_RUNTIME_TOKEN` for Server runtime connection. `HIKMAH_RUNTIME_URL` remains an operator-controlled server setting. The token must match the installed adapter's token.                 |
+| Generated Python/Node code                       | Assign variables to Code runtime environment. The owner-only runtime injects these into a fresh container and advertises their names to the model. Use `os.environ['NAME']` or `process.env.NAME`. |
 
 Arbitrary custom chat-provider URLs retain browser session keys. Saved provider keys currently support the two configured provider presets; they are not forwarded to a user-selected arbitrary host. MCP saved-secret connections require a public IPv4 HTTPS endpoint, port 443, and no URL credentials, query parameters or fragment. They do not follow redirects or resolve to private addresses. Browser-only localhost connectors can still use session keys.
 

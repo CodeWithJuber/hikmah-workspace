@@ -1,5 +1,8 @@
-import type {SecretMetadata} from '../lib/playground/secret-reference';
-export class SecretError extends Error {status: number; constructor(message: string, status?: number)}
+import type { SecretMetadata } from '../lib/playground/secret-reference';
+export class SecretError extends Error {
+  status: number;
+  constructor(message: string, status?: number);
+}
 export interface SecretStore {
   list(userId: string): Promise<SecretMetadata[]>;
   save(userId: string, input: unknown): Promise<void>;

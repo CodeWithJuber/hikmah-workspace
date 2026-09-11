@@ -32,19 +32,19 @@ Keep an existing application on ports 80/443 until its migration has been planne
 
 Add these repository settings, or use a GitHub environment named `test-server`. Put credentials in **Secrets**, never in workflow files or issue bodies.
 
-| Name | Type | Value |
-| --- | --- | --- |
-| `DEPLOY_ENABLED` | Repository variable | `true` when the server settings are ready; otherwise only verification runs |
-| `HIKMAH_DOMAIN` | Variable | Your DNS hostname, without `https://` or a path |
-| `DEPLOY_USER` | Variable | `root` for this bootstrap flow |
-| `DEPLOY_PORT` | Variable | `22`, or your configured SSH port |
-| `DEPLOY_HOST` | Secret | Your deployment server IP or hostname |
-| `DEPLOY_KNOWN_HOSTS` | Secret | Verified SSH host-key entry for this host and port |
-| `DEPLOY_SSH_KEY` | Secret | A deployment private key whose public key is authorized on the server; preferred |
-| `DEPLOY_SSH_PASSWORD` | Secret | Password alternative if key authentication is not yet configured; leave unset when using a key |
-| `HIKMAH_OWNER_EMAIL` | Secret | Email used to create the owner account |
-| `HIKMAH_OWNER_PASSWORD` | Secret | New app password, 12–128 characters, for the first deployment |
-| `HIKMAH_SESSION_SECRET` | Secret | Output of `openssl rand -hex 32`; keep stable across normal deployments |
+| Name                    | Type                | Value                                                                                          |
+| ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| `DEPLOY_ENABLED`        | Repository variable | `true` when the server settings are ready; otherwise only verification runs                    |
+| `HIKMAH_DOMAIN`         | Variable            | Your DNS hostname, without `https://` or a path                                                |
+| `DEPLOY_USER`           | Variable            | `root` for this bootstrap flow                                                                 |
+| `DEPLOY_PORT`           | Variable            | `22`, or your configured SSH port                                                              |
+| `DEPLOY_HOST`           | Secret              | Your deployment server IP or hostname                                                          |
+| `DEPLOY_KNOWN_HOSTS`    | Secret              | Verified SSH host-key entry for this host and port                                             |
+| `DEPLOY_SSH_KEY`        | Secret              | A deployment private key whose public key is authorized on the server; preferred               |
+| `DEPLOY_SSH_PASSWORD`   | Secret              | Password alternative if key authentication is not yet configured; leave unset when using a key |
+| `HIKMAH_OWNER_EMAIL`    | Secret              | Email used to create the owner account                                                         |
+| `HIKMAH_OWNER_PASSWORD` | Secret              | New app password, 12–128 characters, for the first deployment                                  |
+| `HIKMAH_SESSION_SECRET` | Secret              | Output of `openssl rand -hex 32`; keep stable across normal deployments                        |
 
 Verify the host fingerprint through your server console or a previously trusted SSH connection before accepting its known-host entry. A fresh `ssh-keyscan` result by itself does not authenticate the server. The workflow enforces strict host-key verification.
 

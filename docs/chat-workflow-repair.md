@@ -4,19 +4,19 @@ Base: deployed v9.1, `43ac2c0c45354e13c36e2c5a04dff2ba3950d14b` (11 September 20
 
 ## Confirmed causes and changes
 
-| Observed in the deployed source | Change |
-| --- | --- |
-| Every `write_file` opened the workspace pane | Writes stay in chat. A completed task offers View workspace files; the preview runs only after Run preview. |
-| Any non-running message could offer an artifact, including interrupted output | Artifact extraction and Save code require a completed response. |
-| Streaming tool preambles were appended to the answer | Preambles remain in model history; final answer text contains the deliverable. Only completed assistant answers appear as deliverables. Interrupted tasks keep their resumable checkpoint and progress. |
-| Empty provider replies could finish successfully | Empty replies pause with a resumable checkpoint and an explicit explanation. |
-| Model explanations expanded above the result | Completed answers come first. Activity and provider-supplied explanations are collapsed and inspectable. Opaque provider continuation data remains undisplayed. |
-| MCP catalogs disappeared after reload and needed manual Connect | Enabled, permitted connections discover their tools at task start. Connection failures do not disable working tools. |
-| Context checkpoint loading had no deadline; non-owner access prevented released-model use | Bound optional preparation; use public released parameters for a non-owner without accessing private owner checkpoints. |
-| Default search was Wikipedia only | Add `search_web` backed by SearXNG, with a private Compose service; standalone deployments can use SearXNG or Brave. Retain Wikipedia as a separately labelled reference tool. |
-| Runtime access required browser-to-runtime CORS and client credentials | Add an owner-only, same-origin relay to the fixed server-configured runtime. Runtime credentials remain on the server. Existing per-call approval remains enabled. |
-| Provider and connector credentials had to be re-entered after every reload | Add encrypted account-scoped workspace secrets and named references across chat, media, search and connected tools. |
-| Qur'anic research was disconnected from chat | Add an indexed research tool returning actual ledger rows, context spans, source links, and their explicit verification status. |
+| Observed in the deployed source                                                           | Change                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every `write_file` opened the workspace pane                                              | Writes stay in chat. A completed task offers View workspace files; the preview runs only after Run preview.                                                                                             |
+| Any non-running message could offer an artifact, including interrupted output             | Artifact extraction and Save code require a completed response.                                                                                                                                         |
+| Streaming tool preambles were appended to the answer                                      | Preambles remain in model history; final answer text contains the deliverable. Only completed assistant answers appear as deliverables. Interrupted tasks keep their resumable checkpoint and progress. |
+| Empty provider replies could finish successfully                                          | Empty replies pause with a resumable checkpoint and an explicit explanation.                                                                                                                            |
+| Model explanations expanded above the result                                              | Completed answers come first. Activity and provider-supplied explanations are collapsed and inspectable. Opaque provider continuation data remains undisplayed.                                         |
+| MCP catalogs disappeared after reload and needed manual Connect                           | Enabled, permitted connections discover their tools at task start. Connection failures do not disable working tools.                                                                                    |
+| Context checkpoint loading had no deadline; non-owner access prevented released-model use | Bound optional preparation; use public released parameters for a non-owner without accessing private owner checkpoints.                                                                                 |
+| Default search was Wikipedia only                                                         | Add `search_web` backed by SearXNG, with a private Compose service; standalone deployments can use SearXNG or Brave. Retain Wikipedia as a separately labelled reference tool.                          |
+| Runtime access required browser-to-runtime CORS and client credentials                    | Add an owner-only, same-origin relay to the fixed server-configured runtime. Runtime credentials remain on the server. Existing per-call approval remains enabled.                                      |
+| Provider and connector credentials had to be re-entered after every reload                | Add encrypted account-scoped workspace secrets and named references across chat, media, search and connected tools.                                                                                     |
+| Qur'anic research was disconnected from chat                                              | Add an indexed research tool returning actual ledger rows, context spans, source links, and their explicit verification status.                                                                         |
 
 Automatic chat combines research, coding, local execution, and connected tools. Agent profiles are reusable instructions, not independently executing agents or evidence of independent review. Explicitly selected agent restrictions and disabled tool switches still apply.
 
