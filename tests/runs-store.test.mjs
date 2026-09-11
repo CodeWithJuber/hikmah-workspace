@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createRunStore } from '../lib/runs/store.ts';
 
-async function freshStore(t) {
+async function freshStore(t, { clock } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-runs-'));
   const db = new DatabaseSync(join(dir, 'test.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;');
@@ -19,9 +19,16 @@ async function freshStore(t) {
     db.close();
     await rm(dir, { recursive: true, force: true });
   });
-  const store = createRunStore(db);
+  const store = createRunStore(db, clock);
   store.createConversation({ id: 'c1', userId: 'u1' });
   return { store, db, dir };
+}
+
+/** A clock that advances a second per read, so ordering by time is testable
+ * without two writes landing in the same millisecond. */
+function ticking(start = Date.UTC(2026, 0, 1)) {
+  let at = start;
+  return () => new Date((at += 1000)).toISOString();
 }
 
 test('messages round-trip with their parts intact', async (t) => {
@@ -222,8 +229,9 @@ test('each run counts its own events', async (t) => {
 test('conversations are listed newest-active first, per owner', async (t) => {
   // The sidebar orders by when a conversation last did something, not when it
   // was made: a thread answered five minutes ago belongs above one opened
-  // yesterday and abandoned.
-  const { store } = await freshStore(t);
+  // yesterday and abandoned. Driven by a clock that actually advances, because
+  // two writes in the same millisecond tie and would prove nothing.
+  const { store } = await freshStore(t, { clock: ticking() });
   store.createConversation({ id: 'c2', userId: 'u1' });
   store.createConversation({ id: 'c3', userId: 'u2' });
 
@@ -238,6 +246,22 @@ test('conversations are listed newest-active first, per owner', async (t) => {
     ['c3'],
     "another owner's conversations are not listed",
   );
+});
+
+test('conversations touched in the same instant keep a stable order', async (t) => {
+  // A tie is not an excuse to return them either way round: the sidebar would
+  // reshuffle between refreshes and the owner would see rows moving for no
+  // reason. This is what CI caught, and it was the code, not the test.
+  const frozen = () => '2026-01-01T00:00:00.000Z';
+  const { store } = await freshStore(t, { clock: frozen });
+  for (const id of ['c2', 'c3', 'c4']) store.createConversation({ id, userId: 'u1' });
+
+  const first = store.listConversations('u1').map((row) => row.id);
+  assert.deepEqual(
+    store.listConversations('u1').map((row) => row.id),
+    first,
+  );
+  assert.equal(new Set(first).size, 4, 'and every conversation is still listed once');
 });
 
 test('the list says whether a conversation is working or waiting on the owner', async (t) => {

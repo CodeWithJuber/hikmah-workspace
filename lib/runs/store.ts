@@ -86,7 +86,14 @@ export function createRunStore(
               c.created_at, c.updated_at, r.status AS run_status
        FROM conversations c
        LEFT JOIN runs r ON r.id = c.active_run_id
-       WHERE c.user_id = ? ORDER BY c.updated_at DESC LIMIT ?`,
+       WHERE c.user_id = ?
+       -- updated_at is a millisecond timestamp, so two conversations touched in
+       -- the same millisecond tie. Ordering on it alone leaves SQLite free to
+       -- return them either way round, and the sidebar would reshuffle between
+       -- refreshes for no reason the owner can see. The id breaks the tie
+       -- arbitrarily but consistently, which is the property that matters.
+       ORDER BY c.updated_at DESC, c.created_at DESC, c.id DESC
+       LIMIT ?`,
     ),
     // Only when it is still unset: the title is written from the opening
     // message, and a later message must not rename a conversation the owner has
