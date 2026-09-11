@@ -8772,6 +8772,111 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
+  .files-panel {
+    width: auto;
+    max-height: 40dvh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+.files-panel {
+  width: 260px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 12px 10px env(safe-area-inset-bottom);
+  overflow-y: auto;
+}
+.files-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.files-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.files-panel li {
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+}
+.files-panel li.is-open {
+  background: var(--muted);
+}
+.files-panel li > button:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.files-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.files-size,
+.files-note {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.files-note {
+  font-size: 12px;
+  padding: 8px;
+}
+.files-delete {
+  padding: 2px 8px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0;
+}
+.files-panel li:hover .files-delete,
+.files-delete:focus-visible {
+  opacity: 1;
+}
+.files-editor {
+  margin-top: 12px;
+}
+.files-editor label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  display: block;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+.files-editor textarea {
+  width: 100%;
+  min-height: 240px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
+}
+.files-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.files-actions button {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.files-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .chat-preview {

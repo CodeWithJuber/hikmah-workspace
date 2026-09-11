@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { createAgentUIStream, readUIMessageStream, type UIMessage } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
 import { createMediaAssets } from '../server/media-assets.ts';
+import { createFileStore } from '../files/store.ts';
 import { buildRunAgent } from '../ai/run-agent.ts';
 import { runComparison } from '../ai/compare.ts';
 import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
@@ -80,6 +81,9 @@ async function driveWithAgent({
     ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
     shell: { conversationId: run.conversation_id ?? run.id, available: workbenchReady() },
     mcp,
+    files: run.user_id
+      ? { userId: run.user_id, files: createFileStore(getStorage().raw) }
+      : undefined,
     media: run.user_id
       ? {
           userId: run.user_id,

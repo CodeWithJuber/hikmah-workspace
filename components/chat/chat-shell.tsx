@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
+import { FilesPanel } from './files-panel';
 
 export function ChatShell({ conversationId }: { conversationId: string }) {
   // Bumped when a run settles. A conversation is created by its first message
@@ -18,6 +19,10 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           than showing the previous transcript under the new id: useChat holds
           its messages per instance. */}
       <ChatPreview key={conversationId} conversationId={conversationId} onSettled={settled} />
+      {/* Reloaded on the same signal as the list: a run that just finished may
+          have written a file, and a panel showing the state from before it is
+          worse than no panel. */}
+      <FilesPanel revision={revision} />
     </div>
   );
 }

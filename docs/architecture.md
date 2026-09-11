@@ -224,6 +224,29 @@ grounding still works if the endpoint is withdrawn or a commercial launch makes
 the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
 itself, not only here.
 
+## Workspace files
+
+`list_files`, `read_file`, `write_file` and `delete_file` operate on rows rather
+than on the workspace blob, which changes what they are for: a file written in
+one conversation is there in the next, and it survives the tab that wrote it.
+That is the difference between a scratchpad and a workspace.
+
+It also lifts the limits. The blob allowed twelve files of eighty thousand
+characters, which was never a statement about what a workspace should hold — it
+was what could be rewritten as one JSON document on every keystroke-level save.
+Rows are written one at a time, so the ceilings are now 200 files, 256k
+characters each, 8 MB in total.
+
+Paths may contain folders, and every segment is checked rather than the whole
+string normalised: `..`, an absolute path and a prototype key are each refused,
+never rewritten into something that happens to be inside. A caller that believes
+it wrote to `../secrets` and did not is worse off than one that was told no.
+
+These tools are **not** gated behind approval. They write inside the owner's own
+workspace, which nothing else reads and no program runs; a file written here has
+no effect until someone asks for one. `bash` and `ssh_exec` are gated because
+they act on a machine.
+
 ## Compare
 
 Compare mode answers the same question twice: once through the full agent, and
