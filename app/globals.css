@@ -2,6 +2,16 @@
 @import 'tw-animate-css';
 @import '../vendor/shadcn-tailwind-4.13.0.css';
 
+/* Streamdown renders assistant markdown. Tailwind 4 only scans the project, so
+   the classes inside these packages have to be declared as sources or the
+   rendered answer loses its styling. One line per plugin, as the docs require. */
+@source '../node_modules/streamdown/dist/*.js';
+@source '../node_modules/@streamdown/code/dist/*.js';
+@source '../node_modules/@streamdown/math/dist/*.js';
+@source '../node_modules/@streamdown/mermaid/dist/*.js';
+@source '../node_modules/@streamdown/cjk/dist/*.js';
+@source '../components/ai-elements/*.tsx';
+
 @utility scrollbar-thin {
   scrollbar-width: thin;
 }

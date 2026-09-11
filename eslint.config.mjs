@@ -43,6 +43,22 @@ const eslintConfig = defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    files: ['components/ai-elements/**/*.{ts,tsx}'],
+    rules: {
+      // Installed with `npx ai-elements add` and kept close to upstream so the
+      // installer can be re-run cleanly. These findings are upstream's, not
+      // this repository's debt, and forking the files to satisfy them would
+      // make every future update a manual merge.
+      '@typescript-eslint/no-unused-vars': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/component-hook-factories': 'off',
+      'react-hooks/static-components': 'off',
+    },
+  },
 ]);
 
 export default eslintConfig;
