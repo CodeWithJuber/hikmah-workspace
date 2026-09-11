@@ -19,10 +19,24 @@ Do not run the creation command inside an unrelated repository. The workflow mus
 
 ## 2. Server requirements
 
-- Dedicated x86_64 Ubuntu 22.04/24.04 or Debian 12/13 host, root SSH access, at least 2 GiB RAM and sufficient disk for app images and backups; 10 GiB free is a practical initial target.
+- Dedicated x86_64 Ubuntu 22.04/24.04 or Debian 12/13 host, root SSH access, at least 3 GiB RAM and sufficient disk for images and backups; 10 GiB free is a practical initial target.
 - A DNS hostname with its A record pointing to the server. If an AAAA record exists, IPv6 must also reach this server.
 - Inbound SSH for the runner, and public TCP ports 80 and 443 for HTTPS. No database or app port is published directly.
 - Outbound access to GitHub, package registries, certificate services and the chosen AI/web providers.
+
+The 3 GiB minimum comes from the four services and their configured limits. The
+limits are ceilings, not reservations, but a box sized to their sum is one that
+does not start swapping the moment a build and a search run together:
+
+| Service     | Limit   | What it does                               |
+| ----------- | ------- | ------------------------------------------ |
+| `app`       | 1 GiB   | Next.js, the run worker, the database      |
+| `search`    | 512 MiB | SearXNG, behind the app only               |
+| `workbench` | 512 MiB | Terminal, SSH and the assistant's commands |
+| `caddy`     | 256 MiB | HTTPS and certificates                     |
+
+A 2 GiB box will still boot, but it leaves nothing for the kernel's page cache
+or for a release, which loads two images at once.
 
 The bootstrap script checks the OS and architecture, refuses to take over occupied web ports, and installs Docker from its official apt repository only if Docker is absent. It does not remove conflicting runtimes, change SSH authentication or disable the firewall. If Docker already exists but its Compose plugin is missing, resolve that before deployment.
 
@@ -32,19 +46,19 @@ Keep an existing application on ports 80/443 until its migration has been planne
 
 Add these repository settings, or use a GitHub environment named `test-server`. Put credentials in **Secrets**, never in workflow files or issue bodies.
 
-| Name | Type | Value |
-| --- | --- | --- |
-| `DEPLOY_ENABLED` | Repository variable | `true` when the server settings are ready; otherwise only verification runs |
-| `HIKMAH_DOMAIN` | Variable | Your DNS hostname, without `https://` or a path |
-| `DEPLOY_USER` | Variable | `root` for this bootstrap flow |
-| `DEPLOY_PORT` | Variable | `22`, or your configured SSH port |
-| `DEPLOY_HOST` | Secret | Your deployment server IP or hostname |
-| `DEPLOY_KNOWN_HOSTS` | Secret | Verified SSH host-key entry for this host and port |
-| `DEPLOY_SSH_KEY` | Secret | A deployment private key whose public key is authorized on the server; preferred |
-| `DEPLOY_SSH_PASSWORD` | Secret | Password alternative if key authentication is not yet configured; leave unset when using a key |
-| `HIKMAH_OWNER_EMAIL` | Secret | Email used to create the owner account |
-| `HIKMAH_OWNER_PASSWORD` | Secret | New app password, 12–128 characters, for the first deployment |
-| `HIKMAH_SESSION_SECRET` | Secret | Output of `openssl rand -hex 32`; keep stable across normal deployments |
+| Name                    | Type                | Value                                                                                          |
+| ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| `DEPLOY_ENABLED`        | Repository variable | `true` when the server settings are ready; otherwise only verification runs                    |
+| `HIKMAH_DOMAIN`         | Variable            | Your DNS hostname, without `https://` or a path                                                |
+| `DEPLOY_USER`           | Variable            | `root` for this bootstrap flow                                                                 |
+| `DEPLOY_PORT`           | Variable            | `22`, or your configured SSH port                                                              |
+| `DEPLOY_HOST`           | Secret              | Your deployment server IP or hostname                                                          |
+| `DEPLOY_KNOWN_HOSTS`    | Secret              | Verified SSH host-key entry for this host and port                                             |
+| `DEPLOY_SSH_KEY`        | Secret              | A deployment private key whose public key is authorized on the server; preferred               |
+| `DEPLOY_SSH_PASSWORD`   | Secret              | Password alternative if key authentication is not yet configured; leave unset when using a key |
+| `HIKMAH_OWNER_EMAIL`    | Secret              | Email used to create the owner account                                                         |
+| `HIKMAH_OWNER_PASSWORD` | Secret              | New app password, 12–128 characters, for the first deployment                                  |
+| `HIKMAH_SESSION_SECRET` | Secret              | Output of `openssl rand -hex 32`; keep stable across normal deployments                        |
 
 Verify the host fingerprint through your server console or a previously trusted SSH connection before accepting its known-host entry. A fresh `ssh-keyscan` result by itself does not authenticate the server. The workflow enforces strict host-key verification.
 

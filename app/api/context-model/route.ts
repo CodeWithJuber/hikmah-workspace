@@ -1,28 +1,216 @@
-import {env} from '@/server/platform.mjs';
-import {ownerIdentity,database,sameOrigin,failure,KernelHttpError} from '@/lib/kernel/server';
-import {validateField,type Sentence} from '@/lib/context-model/field-model';
-import {validateTeaching} from '@/lib/context-model/training';
-import {checkContextGate,type Metrics} from '@/lib/context-model/gate';
+import { env } from '@/server/platform.mjs';
+import { ownerIdentity, database, sameOrigin, failure, KernelHttpError } from '@/lib/kernel/server';
+import { validateField, type Sentence } from '@/lib/context-model/field-model';
+import { validateTeaching } from '@/lib/context-model/training';
+import { checkContextGate, type Metrics } from '@/lib/context-model/gate';
 import frozen from '@/lib/context-model/frozen-gates.json';
-export const dynamic='force-dynamic';
-function bucket(){if(!env.BUCKET)throw new KernelHttpError(503,'Checkpoint storage is unavailable. Keep or export the trained candidate and retry.');return env.BUCKET;}
-const headers={'Cache-Control':'no-store'};
-async function boundedBody(request:Request){if(!request.body)throw new KernelHttpError(400,'A JSON request body is required.');const reader=request.body.getReader(),decoder=new TextDecoder();let raw='',size=0;try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>4000000)throw new KernelHttpError(413,'Use a checkpoint smaller than 4 MB.');raw+=decoder.decode(value,{stream:true});}return JSON.parse(raw+decoder.decode());}finally{void reader.cancel().catch(()=>{});}}
+export const dynamic = 'force-dynamic';
+function bucket() {
+  if (!env.BUCKET)
+    throw new KernelHttpError(
+      503,
+      'Checkpoint storage is unavailable. Keep or export the trained candidate and retry.',
+    );
+  return env.BUCKET;
+}
+const headers = { 'Cache-Control': 'no-store' };
+async function boundedBody(request: Request) {
+  if (!request.body) throw new KernelHttpError(400, 'A JSON request body is required.');
+  const reader = request.body.getReader(),
+    decoder = new TextDecoder();
+  let raw = '',
+    size = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 4000000) throw new KernelHttpError(413, 'Use a checkpoint smaller than 4 MB.');
+      raw += decoder.decode(value, { stream: true });
+    }
+    return JSON.parse(raw + decoder.decode());
+  } finally {
+    void reader.cancel().catch(() => {});
+  }
+}
 
-type Version={id:string;user_id:string;language:string;blob_key:string;receipt:string;created_at:string};
-export async function GET(request:Request){try{const user=await ownerIdentity();const params=new URL(request.url).searchParams,id=params.get('id'),language=params.get('language');
- if(id||language){let selected=id;if(!selected){const active=await database().prepare('SELECT version_id FROM context_active WHERE id = ?').bind(user.userId+':'+language).first<{version_id:string}>();selected=active?.version_id??null;}if(!selected)return Response.json({model:null},{headers});const row=await database().prepare('SELECT * FROM context_versions WHERE id = ? AND user_id = ?').bind(selected,user.userId).first<Version>();if(!row)throw new KernelHttpError(404,'Checkpoint not found.');const object=await bucket().get(row.blob_key);if(!object)throw new KernelHttpError(503,'Saved checkpoint bytes are unavailable.');return new Response(await object.text(),{headers:{...headers,'Content-Type':'application/json'}});}
- const versions=await database().prepare('SELECT id,language,receipt,created_at FROM context_versions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50').bind(user.userId).all<{id:string;language:string;receipt:string;created_at:string}>();const active=await database().prepare('SELECT language,version_id,revision FROM context_active WHERE user_id = ?').bind(user.userId).all();return Response.json({versions:versions.results.map(v=>({...v,receipt:JSON.parse(v.receipt)})),active:active.results},{headers});
- }catch(e){return failure(e);}}
-export async function POST(request:Request){try{sameOrigin(request);const user=await ownerIdentity();if(Number(request.headers.get('content-length'))>4000000)throw new KernelHttpError(413,'Use a checkpoint smaller than 4 MB.');const body=await boundedBody(request);
- if(body.action==='activate'||body.action==='reset'){
-  if(!['en','ar','hi','es','tr'].includes(body.language))throw new KernelHttpError(400,'Choose a supported language.');
-  if(body.action==='reset'){await database().prepare('DELETE FROM context_active WHERE id = ?').bind(user.userId+':'+body.language).run();return Response.json({active:null},{headers});}
-  const version=await database().prepare('SELECT * FROM context_versions WHERE id = ? AND user_id = ? AND language = ?').bind(String(body.id),user.userId,body.language).first<Version>();if(!version)throw new KernelHttpError(404,'Checkpoint not found.');if(!JSON.parse(version.receipt).approved)throw new KernelHttpError(409,'This candidate did not pass the development gate.');
-  const expected=JSON.parse(version.receipt).basedOn??'released';const active=await database().prepare('SELECT version_id FROM context_active WHERE id = ?').bind(user.userId+':'+body.language).first<{version_id:string}>();if(active?.version_id===version.id)return Response.json({active:version.id},{headers});if((active?.version_id??'released')!==expected)throw new KernelHttpError(409,'The active checkpoint changed after this gate. Train against the current checkpoint, or restore the released model first.');
-  const result=expected==='released'?await database().prepare('INSERT INTO context_active (id,user_id,language,version_id,revision) VALUES (?,?,?,?,0) ON CONFLICT(id) DO NOTHING').bind(user.userId+':'+body.language,user.userId,body.language,version.id).run():await database().prepare('UPDATE context_active SET version_id = ?, revision = revision + 1 WHERE id = ? AND version_id = ?').bind(version.id,user.userId+':'+body.language,expected).run();if(result.meta.changes!==1)throw new KernelHttpError(409,'Another activation won this update. Refresh and retry.');return Response.json({active:version.id},{headers});
- }
- if(body.action!=='save')throw new KernelHttpError(400,'Unknown checkpoint action.');const model=validateField(body.model);const data=frozen[model.language as keyof typeof frozen];const active=await database().prepare('SELECT v.id,v.receipt FROM context_active a JOIN context_versions v ON v.id = a.version_id WHERE a.id = ? AND v.user_id = ?').bind(user.userId+':'+model.language,user.userId).first<{id:string;receipt:string}>();const reference=active?JSON.parse(active.receipt).current:data.baseline;const receipt={...checkContextGate(model,{...data,baseline:reference} as unknown as {sentences:Sentence[];baseline:Metrics;excludedGroups:string[]}),basedOn:active?.id??'released'};const reviewedRows=body.reviewedRows?.length?validateTeaching(body.reviewedRows,new Set(data.excludedGroups)):[];const bytes=JSON.stringify({model,receipt,reviewedRows,source:'Owner-submitted parameters; provenance metadata supplied by trainer. Server independently recomputed the development score.'});const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(model))))).map(b=>b.toString(16).padStart(2,'0')).join('');const id=crypto.randomUUID(),key='context/'+user.userId+'/'+id+'.json',created=new Date().toISOString();
- await bucket().put(key,bytes,{httpMetadata:{contentType:'application/json'}});try{await database().prepare('INSERT INTO context_versions (id,user_id,language,blob_key,receipt,created_at) VALUES (?,?,?,?,?,?)').bind(id,user.userId,model.language,key,JSON.stringify({...receipt,sha256:digest}),created).run();}catch(e){await bucket().delete(key);throw e;}
- return Response.json({id,language:model.language,receipt:{...receipt,sha256:digest},created_at:created},{headers});
- }catch(e){return failure(e);}}
+type Version = {
+  id: string;
+  user_id: string;
+  language: string;
+  blob_key: string;
+  receipt: string;
+  created_at: string;
+};
+export async function GET(request: Request) {
+  try {
+    const user = await ownerIdentity();
+    const params = new URL(request.url).searchParams,
+      id = params.get('id'),
+      language = params.get('language');
+    if (id || language) {
+      let selected = id;
+      if (!selected) {
+        const active = await database()
+          .prepare('SELECT version_id FROM context_active WHERE id = ?')
+          .bind(user.userId + ':' + language)
+          .first<{ version_id: string }>();
+        selected = active?.version_id ?? null;
+      }
+      if (!selected) return Response.json({ model: null }, { headers });
+      const row = await database()
+        .prepare('SELECT * FROM context_versions WHERE id = ? AND user_id = ?')
+        .bind(selected, user.userId)
+        .first<Version>();
+      if (!row) throw new KernelHttpError(404, 'Checkpoint not found.');
+      const object = await bucket().get(row.blob_key);
+      if (!object) throw new KernelHttpError(503, 'Saved checkpoint bytes are unavailable.');
+      return new Response(await object.text(), {
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+    }
+    const versions = await database()
+      .prepare(
+        'SELECT id,language,receipt,created_at FROM context_versions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+      )
+      .bind(user.userId)
+      .all<{ id: string; language: string; receipt: string; created_at: string }>();
+    const active = await database()
+      .prepare('SELECT language,version_id,revision FROM context_active WHERE user_id = ?')
+      .bind(user.userId)
+      .all();
+    return Response.json(
+      {
+        versions: versions.results.map((v) => ({ ...v, receipt: JSON.parse(v.receipt) })),
+        active: active.results,
+      },
+      { headers },
+    );
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function POST(request: Request) {
+  try {
+    sameOrigin(request);
+    const user = await ownerIdentity();
+    if (Number(request.headers.get('content-length')) > 4000000)
+      throw new KernelHttpError(413, 'Use a checkpoint smaller than 4 MB.');
+    const body = await boundedBody(request);
+    if (body.action === 'activate' || body.action === 'reset') {
+      if (!['en', 'ar', 'hi', 'es', 'tr'].includes(body.language))
+        throw new KernelHttpError(400, 'Choose a supported language.');
+      if (body.action === 'reset') {
+        await database()
+          .prepare('DELETE FROM context_active WHERE id = ?')
+          .bind(user.userId + ':' + body.language)
+          .run();
+        return Response.json({ active: null }, { headers });
+      }
+      const version = await database()
+        .prepare('SELECT * FROM context_versions WHERE id = ? AND user_id = ? AND language = ?')
+        .bind(String(body.id), user.userId, body.language)
+        .first<Version>();
+      if (!version) throw new KernelHttpError(404, 'Checkpoint not found.');
+      if (!JSON.parse(version.receipt).approved)
+        throw new KernelHttpError(409, 'This candidate did not pass the development gate.');
+      const expected = JSON.parse(version.receipt).basedOn ?? 'released';
+      const active = await database()
+        .prepare('SELECT version_id FROM context_active WHERE id = ?')
+        .bind(user.userId + ':' + body.language)
+        .first<{ version_id: string }>();
+      if (active?.version_id === version.id)
+        return Response.json({ active: version.id }, { headers });
+      if ((active?.version_id ?? 'released') !== expected)
+        throw new KernelHttpError(
+          409,
+          'The active checkpoint changed after this gate. Train against the current checkpoint, or restore the released model first.',
+        );
+      const result =
+        expected === 'released'
+          ? await database()
+              .prepare(
+                'INSERT INTO context_active (id,user_id,language,version_id,revision) VALUES (?,?,?,?,0) ON CONFLICT(id) DO NOTHING',
+              )
+              .bind(user.userId + ':' + body.language, user.userId, body.language, version.id)
+              .run()
+          : await database()
+              .prepare(
+                'UPDATE context_active SET version_id = ?, revision = revision + 1 WHERE id = ? AND version_id = ?',
+              )
+              .bind(version.id, user.userId + ':' + body.language, expected)
+              .run();
+      if (result.meta.changes !== 1)
+        throw new KernelHttpError(409, 'Another activation won this update. Refresh and retry.');
+      return Response.json({ active: version.id }, { headers });
+    }
+    if (body.action !== 'save') throw new KernelHttpError(400, 'Unknown checkpoint action.');
+    const model = validateField(body.model);
+    const data = frozen[model.language as keyof typeof frozen];
+    const active = await database()
+      .prepare(
+        'SELECT v.id,v.receipt FROM context_active a JOIN context_versions v ON v.id = a.version_id WHERE a.id = ? AND v.user_id = ?',
+      )
+      .bind(user.userId + ':' + model.language, user.userId)
+      .first<{ id: string; receipt: string }>();
+    const reference = active ? JSON.parse(active.receipt).current : data.baseline;
+    const receipt = {
+      ...checkContextGate(model, { ...data, baseline: reference } as unknown as {
+        sentences: Sentence[];
+        baseline: Metrics;
+        excludedGroups: string[];
+      }),
+      basedOn: active?.id ?? 'released',
+    };
+    const reviewedRows = body.reviewedRows?.length
+      ? validateTeaching(body.reviewedRows, new Set(data.excludedGroups))
+      : [];
+    const bytes = JSON.stringify({
+      model,
+      receipt,
+      reviewedRows,
+      source:
+        'Owner-submitted parameters; provenance metadata supplied by trainer. Server independently recomputed the development score.',
+    });
+    const digest = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(model))),
+      ),
+    )
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const id = crypto.randomUUID(),
+      key = 'context/' + user.userId + '/' + id + '.json',
+      created = new Date().toISOString();
+    await bucket().put(key, bytes, { httpMetadata: { contentType: 'application/json' } });
+    try {
+      await database()
+        .prepare(
+          'INSERT INTO context_versions (id,user_id,language,blob_key,receipt,created_at) VALUES (?,?,?,?,?,?)',
+        )
+        .bind(
+          id,
+          user.userId,
+          model.language,
+          key,
+          JSON.stringify({ ...receipt, sha256: digest }),
+          created,
+        )
+        .run();
+    } catch (e) {
+      await bucket().delete(key);
+      throw e;
+    }
+    return Response.json(
+      {
+        id,
+        language: model.language,
+        receipt: { ...receipt, sha256: digest },
+        created_at: created,
+      },
+      { headers },
+    );
+  } catch (e) {
+    return failure(e);
+  }
+}

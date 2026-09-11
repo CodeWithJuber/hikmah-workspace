@@ -1,0 +1,31 @@
+# Vendored shadcn registry source: keep byte-identical to upstream.
+components/ui/
+hooks/use-mobile.ts
+vendor/
+
+# AI Elements registry source, installed with `npx ai-elements add`. Left in the
+# upstream style so re-running the installer produces a readable diff rather
+# than a whole-file reformat. Local edits are commented where they exist.
+components/ai-elements/
+
+# Migrations are SHA-pinned by server/storage.mjs; reformatting breaks startup.
+drizzle/
+
+# Research corpus, runtime adapter and static assets.
+public/
+
+# Large generated/frozen data files.
+lib/playground/frozen-dataset.json
+lib/playground/root-study.json
+lib/kernel/principles.json
+lib/context-model/frozen-gates.json
+tests/fixtures/
+docs/v6/worker-training-check.json
+
+# Build output and lockfiles.
+.next/
+node_modules/
+package-lock.json
+
+# Workbench dependencies (its own npm install).
+workbench/node_modules/

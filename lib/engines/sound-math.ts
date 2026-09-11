@@ -102,8 +102,12 @@ function positiveSampleRate(value: number): void {
   }
 }
 
-function validateArray(input: NumericArray, label = 'samples', cap: number = SOUND_LIMITS.maxSignalSamples,
-  magnitudeCap: number = SOUND_LIMITS.maxInputMagnitude): number {
+function validateArray(
+  input: NumericArray,
+  label = 'samples',
+  cap: number = SOUND_LIMITS.maxSignalSamples,
+  magnitudeCap: number = SOUND_LIMITS.maxInputMagnitude,
+): number {
   if (input == null || !Number.isInteger(input.length) || input.length < 1 || input.length > cap) {
     throw new RangeError(`${label} length must be an integer in 1..${cap}`);
   }
@@ -116,7 +120,12 @@ function validateArray(input: NumericArray, label = 'samples', cap: number = SOU
 }
 
 export function isPowerOfTwo(size: number): boolean {
-  return Number.isInteger(size) && size > 0 && size <= SOUND_LIMITS.maxFftSize && (size & (size - 1)) === 0;
+  return (
+    Number.isInteger(size) &&
+    size > 0 &&
+    size <= SOUND_LIMITS.maxFftSize &&
+    (size & (size - 1)) === 0
+  );
 }
 
 export function nextPowerOfTwo(size: number): number {
@@ -144,11 +153,14 @@ export function generateSignal(options: SignalOptions): GeneratedSignal {
   if (options.durationSeconds <= 0 || amplitude < 0 || amplitude > 1) {
     throw new RangeError('durationSeconds must be positive and amplitude must be in [0, 1]');
   }
-  if (!['two-tone', 'sequence', 'chirp'].includes(options.mode)) throw new RangeError('Unknown signal mode');
+  if (!['two-tone', 'sequence', 'chirp'].includes(options.mode))
+    throw new RangeError('Unknown signal mode');
   for (const frequency of [options.frequencyAHz, options.frequencyBHz]) {
     finite(frequency, 'tone frequency');
     if (frequency < 0 || frequency >= sampleRateHz / 2) {
-      throw new RangeError('Tone frequencies must be >= 0 and strictly below the Nyquist frequency');
+      throw new RangeError(
+        'Tone frequencies must be >= 0 and strictly below the Nyquist frequency',
+      );
     }
   }
   const size = Math.round(options.durationSeconds * sampleRateHz);
@@ -163,28 +175,43 @@ export function generateSignal(options: SignalOptions): GeneratedSignal {
     const t = i / sampleRateHz;
     let value: number;
     if (options.mode === 'two-tone') {
-      value = 0.5 * (Math.sin(2 * Math.PI * options.frequencyAHz * t)
-        + Math.sin(2 * Math.PI * options.frequencyBHz * t));
+      value =
+        0.5 *
+        (Math.sin(2 * Math.PI * options.frequencyAHz * t) +
+          Math.sin(2 * Math.PI * options.frequencyBHz * t));
     } else if (options.mode === 'sequence') {
       // Phase is continuous at the switch; instantaneous frequency changes.
-      const cycles = i < split ? options.frequencyAHz * t
-        : options.frequencyAHz * splitSeconds + options.frequencyBHz * (t - splitSeconds);
+      const cycles =
+        i < split
+          ? options.frequencyAHz * t
+          : options.frequencyAHz * splitSeconds + options.frequencyBHz * (t - splitSeconds);
       value = Math.sin(2 * Math.PI * cycles);
     } else {
       // f(t)=fA+(fB-fA)t/T, so phase is the integral of that frequency.
-      const cycles = options.frequencyAHz * t
-        + (options.frequencyBHz - options.frequencyAHz) * t * t / (2 * durationSeconds);
+      const cycles =
+        options.frequencyAHz * t +
+        ((options.frequencyBHz - options.frequencyAHz) * t * t) / (2 * durationSeconds);
       value = Math.sin(2 * Math.PI * cycles);
     }
     samples[i] = amplitude * value;
   }
-  return { samples: options.reverse ? reverseSamples(samples) : samples,
-    sampleRateHz, durationSeconds, mode: options.mode, reversed: options.reverse ?? false };
+  return {
+    samples: options.reverse ? reverseSamples(samples) : samples,
+    sampleRateHz,
+    durationSeconds,
+    mode: options.mode,
+    reversed: options.reverse ?? false,
+  };
 }
 
-function transformComplex(realInput: NumericArray, imaginaryInput: NumericArray | null, inverse: boolean): ComplexArrays {
+function transformComplex(
+  realInput: NumericArray,
+  imaginaryInput: NumericArray | null,
+  inverse: boolean,
+): ComplexArrays {
   const size = realInput.length;
-  if (!isPowerOfTwo(size)) throw new RangeError('FFT length must be a power of two within the size cap');
+  if (!isPowerOfTwo(size))
+    throw new RangeError('FFT length must be a power of two within the size cap');
   const real = Float64Array.from(realInput);
   const imaginary = imaginaryInput ? Float64Array.from(imaginaryInput) : new Float64Array(size);
   // In-place bit reversal in our private copies; input arrays are never mutated.
@@ -199,7 +226,7 @@ function transformComplex(realInput: NumericArray, imaginaryInput: NumericArray 
   }
   for (let width = 2; width <= size; width *= 2) {
     const half = width / 2;
-    const angle = (inverse ? 2 : -2) * Math.PI / width;
+    const angle = ((inverse ? 2 : -2) * Math.PI) / width;
     const stepReal = Math.cos(angle);
     const stepImaginary = Math.sin(angle);
     for (let start = 0; start < size; start += width) {
@@ -221,7 +248,10 @@ function transformComplex(realInput: NumericArray, imaginaryInput: NumericArray 
     }
   }
   if (inverse) {
-    for (let i = 0; i < size; i++) { real[i] /= size; imaginary[i] /= size; }
+    for (let i = 0; i < size; i++) {
+      real[i] /= size;
+      imaginary[i] /= size;
+    }
   }
   return { real, imaginary };
 }
@@ -237,8 +267,8 @@ export function fftReal(input: NumericArray, sampleRateHz: number): RealSpectrum
   for (let k = 0; k < bins; k++) {
     const rawMagnitude = Math.hypot(complex.real[k], complex.imaginary[k]);
     const endpoint = k === 0 || (size % 2 === 0 && k === size / 2);
-    frequenciesHz[k] = k * sampleRateHz / size;
-    magnitude[k] = rawMagnitude * (endpoint ? 1 : 2) / size;
+    frequenciesHz[k] = (k * sampleRateHz) / size;
+    magnitude[k] = (rawMagnitude * (endpoint ? 1 : 2)) / size;
     phaseRadians[k] = rawMagnitude === 0 ? 0 : Math.atan2(complex.imaginary[k], complex.real[k]);
   }
   return { ...complex, fftSize: size, sampleRateHz, frequenciesHz, magnitude, phaseRadians };
@@ -255,11 +285,15 @@ export function ifft(spectrum: { real: NumericArray; imaginary: NumericArray }):
   const maxCoefficient = SOUND_LIMITS.maxInputMagnitude * SOUND_LIMITS.maxFftSize;
   const size = validateArray(spectrum.real, 'real', SOUND_LIMITS.maxFftSize, maxCoefficient);
   validateArray(spectrum.imaginary, 'imaginary', SOUND_LIMITS.maxFftSize, maxCoefficient);
-  if (size !== spectrum.imaginary.length) throw new RangeError('Complex arrays must have equal lengths');
+  if (size !== spectrum.imaginary.length)
+    throw new RangeError('Complex arrays must have equal lengths');
   return transformComplex(spectrum.real, spectrum.imaginary, true);
 }
 
-function stftConfiguration(size: number, options: StftOptions): { windowSize: number; hopSize: number; frameCount: number } {
+function stftConfiguration(
+  size: number,
+  options: StftOptions,
+): { windowSize: number; hopSize: number; frameCount: number } {
   const windowSize = options.windowSize ?? 256;
   const hopSize = options.hopSize ?? windowSize / 4;
   if (!isPowerOfTwo(windowSize) || windowSize < 4 || windowSize > SOUND_LIMITS.maxStftWindowSize) {
@@ -270,19 +304,31 @@ function stftConfiguration(size: number, options: StftOptions): { windowSize: nu
   }
   const frameCount = Math.ceil(size / hopSize) + 1;
   if (frameCount * windowSize > SOUND_LIMITS.maxStftComplexCells) {
-    throw new RangeError('STFT exceeds the complex-cell budget; shorten the signal or increase hopSize');
+    throw new RangeError(
+      'STFT exceeds the complex-cell budget; shorten the signal or increase hopSize',
+    );
   }
   return { windowSize, hopSize, frameCount };
 }
 
-export function stft(input: NumericArray, sampleRateHz: number, options: StftOptions = {}): StftResult {
+export function stft(
+  input: NumericArray,
+  sampleRateHz: number,
+  options: StftOptions = {},
+): StftResult {
   const originalLength = validateArray(input);
   positiveSampleRate(sampleRateHz);
   const { windowSize, hopSize, frameCount } = stftConfiguration(originalLength, options);
   const paddingLeft = windowSize / 2;
-  const window = Float64Array.from({ length: windowSize }, (_, i) => 0.5 - 0.5 * Math.cos(2 * Math.PI * i / windowSize));
+  const window = Float64Array.from(
+    { length: windowSize },
+    (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / windowSize),
+  );
   const timesSeconds = new Float64Array(frameCount);
-  const frequenciesHz = Float64Array.from({ length: windowSize / 2 + 1 }, (_, k) => k * sampleRateHz / windowSize);
+  const frequenciesHz = Float64Array.from(
+    { length: windowSize / 2 + 1 },
+    (_, k) => (k * sampleRateHz) / windowSize,
+  );
   const frames: ComplexArrays[] = [];
   const magnitude: Float64Array[] = [];
   const windowSum = window.reduce((sum, value) => sum + value, 0);
@@ -291,32 +337,55 @@ export function stft(input: NumericArray, sampleRateHz: number, options: StftOpt
     const chunk = new Float64Array(windowSize);
     for (let n = 0; n < windowSize; n++) {
       const sourceIndex = offset + n;
-      if (sourceIndex >= 0 && sourceIndex < originalLength) chunk[n] = input[sourceIndex] * window[n];
+      if (sourceIndex >= 0 && sourceIndex < originalLength)
+        chunk[n] = input[sourceIndex] * window[n];
     }
     const spectrum = fftReal(chunk, sampleRateHz);
     frames.push({ real: spectrum.real, imaginary: spectrum.imaginary });
     // Correct the displayed amplitude for the analysis window's coherent gain.
-    magnitude.push(spectrum.magnitude.map(value => value * windowSize / windowSum));
-    timesSeconds[frame] = frame * hopSize / sampleRateHz;
+    magnitude.push(spectrum.magnitude.map((value) => (value * windowSize) / windowSum));
+    timesSeconds[frame] = (frame * hopSize) / sampleRateHz;
   }
-  return { sampleRateHz, originalLength, windowSize, hopSize, paddingLeft, window,
-    windowName: 'periodic-hann', timesSeconds, frequenciesHz, magnitude, frames };
+  return {
+    sampleRateHz,
+    originalLength,
+    windowSize,
+    hopSize,
+    paddingLeft,
+    window,
+    windowName: 'periodic-hann',
+    timesSeconds,
+    frequenciesHz,
+    magnitude,
+    frames,
+  };
 }
 
 export function inverseStft(result: StftResult): Float64Array {
-  if (!Number.isInteger(result.originalLength) || result.originalLength < 1 || result.originalLength > SOUND_LIMITS.maxSignalSamples) {
+  if (
+    !Number.isInteger(result.originalLength) ||
+    result.originalLength < 1 ||
+    result.originalLength > SOUND_LIMITS.maxSignalSamples
+  ) {
     throw new RangeError('Invalid originalLength');
   }
   const configuration = stftConfiguration(result.originalLength, result);
-  if (result.frames.length !== configuration.frameCount || result.paddingLeft !== result.windowSize / 2
-    || result.window.length !== result.windowSize || result.windowName !== 'periodic-hann') {
+  if (
+    result.frames.length !== configuration.frameCount ||
+    result.paddingLeft !== result.windowSize / 2 ||
+    result.window.length !== result.windowSize ||
+    result.windowName !== 'periodic-hann'
+  ) {
     throw new RangeError('STFT metadata does not match this transform convention');
   }
   validateArray(result.window, 'window', SOUND_LIMITS.maxStftWindowSize, 1);
   const output = new Float64Array(result.originalLength);
   const weights = new Float64Array(result.originalLength);
   for (let frame = 0; frame < result.frames.length; frame++) {
-    if (result.frames[frame].real.length !== result.windowSize || result.frames[frame].imaginary.length !== result.windowSize) {
+    if (
+      result.frames[frame].real.length !== result.windowSize ||
+      result.frames[frame].imaginary.length !== result.windowSize
+    ) {
       throw new RangeError('STFT frame length mismatch');
     }
     const chunk = ifft(result.frames[frame]);
@@ -336,7 +405,10 @@ export function inverseStft(result: StftResult): Float64Array {
   return output;
 }
 
-export function reconstructionError(expected: NumericArray, actual: NumericArray): ReconstructionError {
+export function reconstructionError(
+  expected: NumericArray,
+  actual: NumericArray,
+): ReconstructionError {
   validateArray(expected, 'expected');
   validateArray(actual, 'actual');
   if (expected.length !== actual.length) throw new RangeError('Reconstruction lengths must match');
@@ -355,27 +427,54 @@ export function cosineDistance(a: NumericArray, b: NumericArray): number | null 
   validateArray(a, 'a', SOUND_LIMITS.maxFftSize, 1e12);
   validateArray(b, 'b', SOUND_LIMITS.maxFftSize, 1e12);
   if (a.length !== b.length) throw new RangeError('Feature dimensions must match');
-  let dot = 0; let normA = 0; let normB = 0;
-  for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; normA += a[i] * a[i]; normB += b[i] * b[i]; }
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
   if (normA === 0 || normB === 0) return null;
   return 1 - Math.max(-1, Math.min(1, dot / Math.sqrt(normA * normB)));
 }
 
 export function energyReport(input: NumericArray, spectrum: RealSpectrum): EnergyReport {
   validateArray(input);
-  if (input.length > spectrum.fftSize || spectrum.real.length !== spectrum.fftSize || spectrum.imaginary.length !== spectrum.fftSize) {
+  if (
+    input.length > spectrum.fftSize ||
+    spectrum.real.length !== spectrum.fftSize ||
+    spectrum.imaginary.length !== spectrum.fftSize
+  ) {
     throw new RangeError('Spectrum size does not match the input or its zero-padded length');
   }
   // Validate external spectrum data as well; this report is not a proof that it came from input.
-  validateArray(spectrum.real, 'real', SOUND_LIMITS.maxFftSize, SOUND_LIMITS.maxInputMagnitude * SOUND_LIMITS.maxFftSize);
-  validateArray(spectrum.imaginary, 'imaginary', SOUND_LIMITS.maxFftSize, SOUND_LIMITS.maxInputMagnitude * SOUND_LIMITS.maxFftSize);
-  let timeDomainSumSquares = 0; let frequencyDomainSumSquares = 0;
+  validateArray(
+    spectrum.real,
+    'real',
+    SOUND_LIMITS.maxFftSize,
+    SOUND_LIMITS.maxInputMagnitude * SOUND_LIMITS.maxFftSize,
+  );
+  validateArray(
+    spectrum.imaginary,
+    'imaginary',
+    SOUND_LIMITS.maxFftSize,
+    SOUND_LIMITS.maxInputMagnitude * SOUND_LIMITS.maxFftSize,
+  );
+  let timeDomainSumSquares = 0;
+  let frequencyDomainSumSquares = 0;
   for (let i = 0; i < input.length; i++) timeDomainSumSquares += input[i] ** 2;
-  for (let k = 0; k < spectrum.fftSize; k++) frequencyDomainSumSquares += spectrum.real[k] ** 2 + spectrum.imaginary[k] ** 2;
+  for (let k = 0; k < spectrum.fftSize; k++)
+    frequencyDomainSumSquares += spectrum.real[k] ** 2 + spectrum.imaginary[k] ** 2;
   frequencyDomainSumSquares /= spectrum.fftSize;
   const absoluteDifference = Math.abs(timeDomainSumSquares - frequencyDomainSumSquares);
-  return { timeDomainSumSquares, frequencyDomainSumSquares, absoluteDifference,
-    relativeDifference: timeDomainSumSquares === 0 ? absoluteDifference : absoluteDifference / timeDomainSumSquares };
+  return {
+    timeDomainSumSquares,
+    frequencyDomainSumSquares,
+    absoluteDifference,
+    relativeDifference:
+      timeDomainSumSquares === 0 ? absoluteDifference : absoluteDifference / timeDomainSumSquares,
+  };
 }
 
 export interface SignalAnalysis {
@@ -391,16 +490,27 @@ export interface SignalAnalysis {
   observationDurationSeconds: number;
 }
 
-export function analyzeSignal(input: NumericArray, sampleRateHz: number, options: StftOptions = {}): SignalAnalysis {
+export function analyzeSignal(
+  input: NumericArray,
+  sampleRateHz: number,
+  options: StftOptions = {},
+): SignalAnalysis {
   validateArray(input);
   const spectrum = fftPadded(input, sampleRateHz);
   const fftReconstructed = ifft(spectrum).real.slice(0, input.length);
   const shortTime = stft(input, sampleRateHz, options);
   const stftReconstructed = inverseStft(shortTime);
-  return { originalLength: input.length, sampleRateHz, spectrum, shortTime,
+  return {
+    originalLength: input.length,
+    sampleRateHz,
+    spectrum,
+    shortTime,
     fftReconstructionError: reconstructionError(input, fftReconstructed),
-    stftReconstructionError: reconstructionError(input, stftReconstructed), energy: energyReport(input, spectrum),
-    binSpacingHz: sampleRateHz / spectrum.fftSize, observationDurationSeconds: input.length / sampleRateHz };
+    stftReconstructionError: reconstructionError(input, stftReconstructed),
+    energy: energyReport(input, spectrum),
+    binSpacingHz: sampleRateHz / spectrum.fftSize,
+    observationDurationSeconds: input.length / sampleRateHz,
+  };
 }
 
 export interface ReversalComparison {
@@ -420,17 +530,30 @@ export function compareTimeReversal(input: NumericArray, sampleRateHz: number): 
   const reversedSpectrum = fftPadded(reversedSamples, sampleRateHz);
   let maxMagnitudeDifference = 0;
   for (let k = 0; k < originalSpectrum.magnitude.length; k++) {
-    maxMagnitudeDifference = Math.max(maxMagnitudeDifference, Math.abs(originalSpectrum.magnitude[k] - reversedSpectrum.magnitude[k]));
+    maxMagnitudeDifference = Math.max(
+      maxMagnitudeDifference,
+      Math.abs(originalSpectrum.magnitude[k] - reversedSpectrum.magnitude[k]),
+    );
   }
-  return { originalSpectrum, reversedSpectrum, reversedSamples,
+  return {
+    originalSpectrum,
+    reversedSpectrum,
+    reversedSamples,
     magnitudeCosineDistance: cosineDistance(originalSpectrum.magnitude, reversedSpectrum.magnitude),
-    maxMagnitudeDifference, waveformCosineDistance: cosineDistance(input, reversedSamples),
+    maxMagnitudeDifference,
+    waveformCosineDistance: cosineDistance(input, reversedSamples),
     semanticInference: 'not-established',
-    explanation: 'Time reversal of a real sequence preserves its global Fourier magnitude, while phase and temporal order can change. Spectral similarity does not establish shared linguistic meaning.' };
+    explanation:
+      'Time reversal of a real sequence preserves its global Fourier magnitude, while phase and temporal order can change. Spectral similarity does not establish shared linguistic meaning.',
+  };
 }
 
 /** At most maxPoints coordinate pairs for simple SVG plots; not an audio resampler. */
-export function plotPoints(values: NumericArray, step = 1, maxPoints = 500): Array<{ x: number; y: number }> {
+export function plotPoints(
+  values: NumericArray,
+  step = 1,
+  maxPoints = 500,
+): Array<{ x: number; y: number }> {
   validateArray(values, 'values', SOUND_LIMITS.maxFftSize, 1e12);
   finite(step, 'step');
   if (step <= 0 || !Number.isInteger(maxPoints) || maxPoints < 2 || maxPoints > 2_000) {
@@ -438,7 +561,7 @@ export function plotPoints(values: NumericArray, step = 1, maxPoints = 500): Arr
   }
   const count = Math.min(values.length, maxPoints);
   return Array.from({ length: count }, (_, i) => {
-    const index = count === 1 ? 0 : Math.round(i * (values.length - 1) / (count - 1));
+    const index = count === 1 ? 0 : Math.round((i * (values.length - 1)) / (count - 1));
     return { x: index * step, y: values[index] };
   });
 }

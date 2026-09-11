@@ -1,7 +1,58 @@
-import {identity,ownerIdentity,database,sameOrigin,failure,KernelHttpError} from '@/lib/kernel/server';
-import {parseKnowledge} from '@/lib/playground/knowledge';
-export const dynamic='force-dynamic';
-const headers={'Cache-Control':'no-store'};
-export async function GET(){try{await identity();const rows=await database().prepare('SELECT body FROM shared_knowledge ORDER BY updated_at DESC LIMIT 500').all<{body:string}>();return Response.json({items:rows.results.map(r=>JSON.parse(r.body))},{headers});}catch(e){return failure(e);}}
-export async function POST(request:Request){try{sameOrigin(request);await ownerIdentity();const raw=await request.text();if(raw.length>60000)throw new KernelHttpError(413,'Knowledge item is too large.');const [item]=parseKnowledge([JSON.parse(raw)]);if(item.status==='suggested')throw Error('Review the item before publishing.');const row=await database().prepare('SELECT COUNT(*) AS count FROM shared_knowledge WHERE id != ?').bind(item.id).first<{count:number}>();if((row?.count??0)>=500)throw Error('Shared knowledge supports 500 curated items.');await database().prepare('INSERT INTO shared_knowledge (id,body,updated_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body, updated_at=excluded.updated_at').bind(item.id,JSON.stringify(item),new Date().toISOString()).run();return Response.json({saved:true},{headers});}catch(e){return failure(e);}}
-export async function DELETE(request:Request){try{sameOrigin(request);await ownerIdentity();const id=new URL(request.url).searchParams.get('id');if(!id||id.length>80)throw Error('Invalid knowledge ID.');await database().prepare('DELETE FROM shared_knowledge WHERE id = ?').bind(id).run();return Response.json({deleted:true},{headers});}catch(e){return failure(e);}}
+import {
+  identity,
+  ownerIdentity,
+  database,
+  sameOrigin,
+  failure,
+  KernelHttpError,
+} from '@/lib/kernel/server';
+import { parseKnowledge } from '@/lib/playground/knowledge';
+export const dynamic = 'force-dynamic';
+const headers = { 'Cache-Control': 'no-store' };
+export async function GET() {
+  try {
+    await identity();
+    const rows = await database()
+      .prepare('SELECT body FROM shared_knowledge ORDER BY updated_at DESC LIMIT 500')
+      .all<{ body: string }>();
+    return Response.json({ items: rows.results.map((r) => JSON.parse(r.body)) }, { headers });
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function POST(request: Request) {
+  try {
+    sameOrigin(request);
+    await ownerIdentity();
+    const raw = await request.text();
+    if (raw.length > 60000) throw new KernelHttpError(413, 'Knowledge item is too large.');
+    const [item] = parseKnowledge([JSON.parse(raw)]);
+    if (item.status === 'suggested') throw Error('Review the item before publishing.');
+    const row = await database()
+      .prepare('SELECT COUNT(*) AS count FROM shared_knowledge WHERE id != ?')
+      .bind(item.id)
+      .first<{ count: number }>();
+    if ((row?.count ?? 0) >= 500) throw Error('Shared knowledge supports 500 curated items.');
+    await database()
+      .prepare(
+        'INSERT INTO shared_knowledge (id,body,updated_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body, updated_at=excluded.updated_at',
+      )
+      .bind(item.id, JSON.stringify(item), new Date().toISOString())
+      .run();
+    return Response.json({ saved: true }, { headers });
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function DELETE(request: Request) {
+  try {
+    sameOrigin(request);
+    await ownerIdentity();
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id || id.length > 80) throw Error('Invalid knowledge ID.');
+    await database().prepare('DELETE FROM shared_knowledge WHERE id = ?').bind(id).run();
+    return Response.json({ deleted: true }, { headers });
+  } catch (e) {
+    return failure(e);
+  }
+}

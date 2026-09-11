@@ -1,4 +1,4 @@
-import type { ReactNode, SVGProps } from "react";
+import type { ReactNode, SVGProps } from 'react';
 
 /**
  * Hikmah's functional line icons. 24-unit grid, 1.65px rounded strokes.
@@ -6,32 +6,65 @@ import type { ReactNode, SVGProps } from "react";
  * Controls still need their own accessible names, e.g. <button aria-label="Attach file">.
  */
 export type HikmahIconName =
-  | "agent" | "terminal" | "browser" | "voice" | "search"
-  | "orbit"
-  | "conversation"
-  | "compose"
-  | "artifact"
-  | "attachment"
-  | "tools"
-  | "send"
-  | "preview"
-  | "workspaceAdmin"
-  | "ownerAdmin"
-  | "compare"
-  | "learning"
-  | "menu"
-  | "close";
+  | 'agent'
+  | 'terminal'
+  | 'browser'
+  | 'voice'
+  | 'search'
+  | 'orbit'
+  | 'conversation'
+  | 'compose'
+  | 'artifact'
+  | 'attachment'
+  | 'tools'
+  | 'send'
+  | 'preview'
+  | 'workspaceAdmin'
+  | 'ownerAdmin'
+  | 'compare'
+  | 'learning'
+  | 'menu'
+  | 'close';
 
 const paths: Record<HikmahIconName, ReactNode> = {
-  orbit: (<><path d="M5 5v14M19 5v14M5 12h14" strokeWidth="3"/><path d="m9 5 3-3 3 3m-6 14 3 3 3-3" strokeWidth="1.8"/></>),
-  agent: (<><rect x="4" y="7" width="16" height="13" rx="5"/><path d="M12 3v4m-4 6h.01M16 13h.01M9 17h6"/><circle cx="12" cy="3" r="1"/></>),
-  terminal: (<><rect x="3" y="4" width="18" height="16" rx="4"/><path d="m7 9 3 3-3 3m6 0h4"/></>),
-  browser: (<><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01m0 7 5-2-2 5-1-2-2-1Z"/></>),
-  voice: (<><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1m-7 8v3m-3 0h6"/></>),
-  search: (<><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5M8 10.5h5m-2.5-2.5v5"/></>),
-  conversation: (
-    <path d="M7 4.5h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-5 3v-13a3 3 0 0 1 3-3Z" />
+  orbit: (
+    <>
+      <path d="M5 5v14M19 5v14M5 12h14" strokeWidth="3" />
+      <path d="m9 5 3-3 3 3m-6 14 3 3 3-3" strokeWidth="1.8" />
+    </>
   ),
+  agent: (
+    <>
+      <rect x="4" y="7" width="16" height="13" rx="5" />
+      <path d="M12 3v4m-4 6h.01M16 13h.01M9 17h6" />
+      <circle cx="12" cy="3" r="1" />
+    </>
+  ),
+  terminal: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="4" />
+      <path d="m7 9 3 3-3 3m6 0h4" />
+    </>
+  ),
+  browser: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="4" />
+      <path d="M3 9h18M7 6.5h.01M10 6.5h.01m0 7 5-2-2 5-1-2-2-1Z" />
+    </>
+  ),
+  voice: (
+    <>
+      <rect x="9" y="3" width="6" height="12" rx="3" />
+      <path d="M5 11v1a7 7 0 0 0 14 0v-1m-7 8v3m-3 0h6" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m16 16 5 5M8 10.5h5m-2.5-2.5v5" />
+    </>
+  ),
+  conversation: <path d="M7 4.5h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-5 3v-13a3 3 0 0 1 3-3Z" />,
   compose: (
     <>
       <path d="M11 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4" />
@@ -100,7 +133,7 @@ const paths: Record<HikmahIconName, ReactNode> = {
   close: <path d="m6 6 12 12M18 6 6 18" />,
 };
 
-export interface HikmahIconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
+export interface HikmahIconProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
   name: HikmahIconName;
   size?: number;
   label?: string;
@@ -120,7 +153,7 @@ export function HikmahIcon({ name, size = 20, label, ...props }: HikmahIconProps
       focusable="false"
       aria-hidden={label ? undefined : true}
       aria-label={label}
-      role={label ? "img" : undefined}
+      role={label ? 'img' : undefined}
       {...props}
     >
       {paths[name]}

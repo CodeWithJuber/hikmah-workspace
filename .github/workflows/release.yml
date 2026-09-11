@@ -15,18 +15,40 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with: {persist-credentials: false}
+        with: { persist-credentials: false }
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with: {node-version: '24', cache: npm}
+        with: { node-version: '24', cache: npm }
       - run: npm ci --ignore-scripts
+      - run: npm run format:check
+      - run: npm run lint
       - run: npm test
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high
       - run: python3 -m unittest discover -s public/runtime -p 'test_*.py'
       - run: python3 -m unittest discover -s deploy -p 'test_*.py'
-      - run: bash -n deploy/bootstrap.sh deploy/release.sh deploy/from-actions.sh scripts/smoke-container.sh
+      - run: bash -n deploy/bootstrap.sh deploy/release.sh deploy/from-actions.sh scripts/smoke-container.sh scripts/smoke-workbench.sh
+      # The workbench is a separate package with its own dependencies, so it is
+      # verified separately. A broken sidecar means no terminal and no SSH.
+      - run: npm ci --ignore-scripts
+        working-directory: workbench
+      - run: npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
+        working-directory: workbench
+      # A Caddyfile that fails to parse takes the whole site down, and the error
+      # would otherwise appear for the first time on the server.
+      # The domain is passed into the container, not just to the step: without
+      # it the site address is empty and Caddy reads the block as global
+      # options, which fails for a reason that has nothing to do with the file.
+      - run: docker run --rm -e HIKMAH_DOMAIN=hikmah.invalid -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      # Stages the standalone build in an isolated directory, signs in, rejects
+      # spoofed identities and cross-origin writes, restarts the process and
+      # re-reads the saved session. It existed but was never wired into CI.
+      - run: npm run build && npm run test:production
       - name: Build immutable image
         run: docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workspace:$GITHUB_SHA" .
+      - name: Build immutable workbench image
+        run: docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workbench:$GITHUB_SHA" workbench
+      - name: Test that the workbench starts and demands its token
+        run: bash scripts/smoke-workbench.sh "hikmah-workbench:$GITHUB_SHA"
       - name: Test container login and persistence after restart
         env:
           SMOKE_REVISION: ${{ github.sha }}
@@ -36,8 +58,9 @@ jobs:
         run: |
           mkdir artifact
           docker save "hikmah-workspace:$GITHUB_SHA" | gzip -1 > artifact/image.tar.gz
+          docker save "hikmah-workbench:$GITHUB_SHA" | gzip -1 > artifact/workbench.tar.gz
           cd artifact
-          sha256sum image.tar.gz > image.sha256
+          sha256sum image.tar.gz workbench.tar.gz > image.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
@@ -54,7 +77,7 @@ jobs:
     environment: test-server
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with: {persist-credentials: false}
+        with: { persist-credentials: false }
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: hikmah-image-${{ github.sha }}

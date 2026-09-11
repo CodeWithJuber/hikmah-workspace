@@ -1,9 +1,201 @@
-"use client";
-import {useState} from 'react';import {ArrowUpRight,BookOpen,LoaderCircle,Search} from 'lucide-react';import {Button} from '@/components/ui/button';
+'use client';
+import { useState } from 'react';
+import { ArrowUpRight, BookOpen, LoaderCircle, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import seed from '@/public/research/v6/root-context-seed-contrasts.json';
-const examples=seed.examples;const roots=[...new Set(examples.map(e=>e.root_arabic))];
-export function RootResearch(){const[root,setRoot]=useState(roots[0]);return <section className="context-card"><h3>One root, different contextual meanings</h3><p>Inspect the source-checked AI research seed. Root identity does not erase word sense, negation, participants, tense or exceptions. These 18 examples still need independent linguistic adjudication.</p><div className="root-selector">{roots.map(r=><button key={r} aria-pressed={root===r} onClick={()=>setRoot(r)} dir="rtl">{r}</button>)}</div>{examples.filter(e=>e.root_arabic===root).map(e=><article className="root-sense-card" key={e.id}><header><strong dir="rtl">{e.arabic_token}</strong><span>{e.contextual_sense_label}</span><a href={e.morphology_source_url} target="_blank" rel="noreferrer">{e.word_location}<ArrowUpRight size={14}/></a></header><p>{e.source_observation}</p><div className="sense-engineering"><strong>Proposed representation</strong><p>{e.proposed_computational_role}</p></div><details><summary>Context, sources & excluded inferences</summary><p>Context read: {e.context_read} · {e.analysis_status}</p>{e.excluded_inferences.map((x,i)=><p key={i}>• {x}</p>)}<a href={e.tafsir_source_url} target="_blank" rel="noreferrer">Read the linked commentary</a>{e.review_flags.map((f,i)=><p key={i}>{f.detail}</p>)}</details></article>)}</section>;}
-type AyahRow={ayah_key:string;surah:number;ayah:number;surah_name:string;study_rank:number;context_span:string;observation:string;disposition:string;pattern_ids:string[];application_note:string;verse_url:string;tafsir_url:string;review_status:string};
-export function CorpusExplorer(){const[rows,setRows]=useState<AyahRow[]|null>(null),[query,setQuery]=useState(''),[disposition,setDisposition]=useState('all'),[page,setPage]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState('');const load=async()=>{setBusy(true);setError('');try{const r=await fetch('/research/v6/original/ayah-ledger.jsonl');if(!r.ok)throw Error('Corpus ledger could not load.');const data=(await r.text()).trim().split('\n').map(s=>JSON.parse(s) as AyahRow);setRows(data);}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
- const q=query.toLowerCase().trim(),filtered=(rows??[]).filter(r=>(disposition==='all'||r.disposition===disposition)&&(!q||[r.ayah_key,r.surah_name,r.observation,r.application_note,...r.pattern_ids].some(s=>s.toLowerCase().includes(q))));return <section className="context-card"><h3>Inspect all 6,236 first-pass records</h3><p>Search the original observations, context spans and pattern memberships. Listed in the retained study order: a traditional surah-onset proxy, not the exact revelation chronology of every ayah.</p>{!rows?<Button variant="outline" disabled={busy} onClick={()=>void load()}>{busy?<LoaderCircle size={16} className="spin"/>:<BookOpen size={16}/>}Load complete review ledger · 6.5 MB</Button>:<><div className="corpus-controls"><label><Search size={16}/><input aria-label="Search ayah research records" placeholder="Ayah, concept, surah or pattern ID…" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label><select aria-label="Review disposition" value={disposition} onChange={e=>{setDisposition(e.target.value);setPage(0);}}>{['all','candidate','no_direct_analogy','context_only','needs_deeper_review'].map(v=><option value={v} key={v}>{v==='all'?'All dispositions':v.replaceAll('_',' ')}</option>)}</select></div><p>{filtered.length.toLocaleString()} records · AI contextual first pass; not independently verified tafsir.</p>{filtered.slice(page*20,(page+1)*20).map(r=><details className="corpus-row" key={r.ayah_key}><summary><strong>{r.ayah_key}</strong><span>{r.observation}</span><small>{r.disposition.replaceAll('_',' ')}</small></summary><p>{r.application_note}</p><p>Context: {r.context_span} · Patterns: {r.pattern_ids.join(', ')||'No engineering pattern assigned'}</p><div><a href={r.verse_url} target="_blank" rel="noreferrer">Source ayah</a><a href={r.tafsir_url} target="_blank" rel="noreferrer">Tafsir source</a></div></details>)}<div className="corpus-pagination"><Button variant="outline" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous</Button><span>Page {page+1} / {Math.max(1,Math.ceil(filtered.length/20))}</span><Button variant="outline" disabled={(page+1)*20>=filtered.length} onClick={()=>setPage(p=>p+1)}>Next</Button></div></>}{error&&<p role="alert">{error}</p>}</section>;
+const examples = seed.examples;
+const roots = [...new Set(examples.map((e) => e.root_arabic))];
+export function RootResearch() {
+  const [root, setRoot] = useState(roots[0]);
+  return (
+    <section className="context-card">
+      <h3>One root, different contextual meanings</h3>
+      <p>
+        Inspect the source-checked AI research seed. Root identity does not erase word sense,
+        negation, participants, tense or exceptions. These 18 examples still need independent
+        linguistic adjudication.
+      </p>
+      <div className="root-selector">
+        {roots.map((r) => (
+          <button key={r} aria-pressed={root === r} onClick={() => setRoot(r)} dir="rtl">
+            {r}
+          </button>
+        ))}
+      </div>
+      {examples
+        .filter((e) => e.root_arabic === root)
+        .map((e) => (
+          <article className="root-sense-card" key={e.id}>
+            <header>
+              <strong dir="rtl">{e.arabic_token}</strong>
+              <span>{e.contextual_sense_label}</span>
+              <a href={e.morphology_source_url} target="_blank" rel="noreferrer">
+                {e.word_location}
+                <ArrowUpRight size={14} />
+              </a>
+            </header>
+            <p>{e.source_observation}</p>
+            <div className="sense-engineering">
+              <strong>Proposed representation</strong>
+              <p>{e.proposed_computational_role}</p>
+            </div>
+            <details>
+              <summary>Context, sources & excluded inferences</summary>
+              <p>
+                Context read: {e.context_read} · {e.analysis_status}
+              </p>
+              {e.excluded_inferences.map((x, i) => (
+                <p key={i}>• {x}</p>
+              ))}
+              <a href={e.tafsir_source_url} target="_blank" rel="noreferrer">
+                Read the linked commentary
+              </a>
+              {e.review_flags.map((f, i) => (
+                <p key={i}>{f.detail}</p>
+              ))}
+            </details>
+          </article>
+        ))}
+    </section>
+  );
+}
+type AyahRow = {
+  ayah_key: string;
+  surah: number;
+  ayah: number;
+  surah_name: string;
+  study_rank: number;
+  context_span: string;
+  observation: string;
+  disposition: string;
+  pattern_ids: string[];
+  application_note: string;
+  verse_url: string;
+  tafsir_url: string;
+  review_status: string;
+};
+export function CorpusExplorer() {
+  const [rows, setRows] = useState<AyahRow[] | null>(null),
+    [query, setQuery] = useState(''),
+    [disposition, setDisposition] = useState('all'),
+    [page, setPage] = useState(0),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const load = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await fetch('/research/v6/original/ayah-ledger.jsonl');
+      if (!r.ok) throw Error('Corpus ledger could not load.');
+      const data = (await r.text())
+        .trim()
+        .split('\n')
+        .map((s) => JSON.parse(s) as AyahRow);
+      setRows(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const q = query.toLowerCase().trim(),
+    filtered = (rows ?? []).filter(
+      (r) =>
+        (disposition === 'all' || r.disposition === disposition) &&
+        (!q ||
+          [r.ayah_key, r.surah_name, r.observation, r.application_note, ...r.pattern_ids].some(
+            (s) => s.toLowerCase().includes(q),
+          )),
+    );
+  return (
+    <section className="context-card">
+      <h3>Inspect all 6,236 first-pass records</h3>
+      <p>
+        Search the original observations, context spans and pattern memberships. Listed in the
+        retained study order: a traditional surah-onset proxy, not the exact revelation chronology
+        of every ayah.
+      </p>
+      {!rows ? (
+        <Button variant="outline" disabled={busy} onClick={() => void load()}>
+          {busy ? <LoaderCircle size={16} className="spin" /> : <BookOpen size={16} />}Load complete
+          review ledger · 6.5 MB
+        </Button>
+      ) : (
+        <>
+          <div className="corpus-controls">
+            <label>
+              <Search size={16} />
+              <input
+                aria-label="Search ayah research records"
+                placeholder="Ayah, concept, surah or pattern ID…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </label>
+            <select
+              aria-label="Review disposition"
+              value={disposition}
+              onChange={(e) => {
+                setDisposition(e.target.value);
+                setPage(0);
+              }}
+            >
+              {['all', 'candidate', 'no_direct_analogy', 'context_only', 'needs_deeper_review'].map(
+                (v) => (
+                  <option value={v} key={v}>
+                    {v === 'all' ? 'All dispositions' : v.replaceAll('_', ' ')}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+          <p>
+            {filtered.length.toLocaleString()} records · AI contextual first pass; not independently
+            verified tafsir.
+          </p>
+          {filtered.slice(page * 20, (page + 1) * 20).map((r) => (
+            <details className="corpus-row" key={r.ayah_key}>
+              <summary>
+                <strong>{r.ayah_key}</strong>
+                <span>{r.observation}</span>
+                <small>{r.disposition.replaceAll('_', ' ')}</small>
+              </summary>
+              <p>{r.application_note}</p>
+              <p>
+                Context: {r.context_span} · Patterns:{' '}
+                {r.pattern_ids.join(', ') || 'No engineering pattern assigned'}
+              </p>
+              <div>
+                <a href={r.verse_url} target="_blank" rel="noreferrer">
+                  Source ayah
+                </a>
+                <a href={r.tafsir_url} target="_blank" rel="noreferrer">
+                  Tafsir source
+                </a>
+              </div>
+            </details>
+          ))}
+          <div className="corpus-pagination">
+            <Button variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+            <span>
+              Page {page + 1} / {Math.max(1, Math.ceil(filtered.length / 20))}
+            </span>
+            <Button
+              variant="outline"
+              disabled={(page + 1) * 20 >= filtered.length}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </section>
+  );
 }

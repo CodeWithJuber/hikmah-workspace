@@ -1,28 +1,299 @@
-"use client";
-import {useMemo,useState} from 'react';
-import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
-import {Textarea} from '@/components/ui/textarea';
-import {predict,type Frame,type Prediction} from '@/lib/engines/meaning-engine';
-import {baseRows} from '@/lib/playground/session';
+'use client';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { predict, type Frame, type Prediction } from '@/lib/engines/meaning-engine';
+import { baseRows } from '@/lib/playground/session';
 import rootStudy from '@/lib/playground/root-study.json';
-import {usePlayground} from './context';
-import {Choice,DataTable,Notice,JsonView,pretty,errorMessage} from './common';
-export const languageOptions=[{value:'en',label:'English'},{value:'ar',label:'Arabic'},{value:'hi',label:'Hindi'}];
-function FrameGraph({frame}:{frame:Frame}){return <svg className="meaning-graph" viewBox="0 0 430 190" role="img" aria-label={`${pretty(frame.agent)} is the actor, ${pretty(frame.action)} is the action, ${pretty(frame.patient)} is the recipient`}><rect x="160" y="12" width="110" height="36"/><text x="215" y="36" textAnchor="middle">{pretty(frame.action).toUpperCase()}</text><path d="M188 48 L110 106 M242 48 L320 106"/><text x="103" y="124" textAnchor="middle" className="role-label">actor</text><text x="324" y="124" textAnchor="middle" className="role-label">recipient</text><path d="M103 135 L103 151 M98 145 L103 152 L108 145 M324 135 L324 151 M319 145 L324 152 L329 145"/><text x="103" y="179" textAnchor="middle">{pretty(frame.agent).replace(/^./,c=>c.toUpperCase())}</text><text x="324" y="179" textAnchor="middle">{pretty(frame.patient).replace(/^./,c=>c.toUpperCase())}</text></svg>;}
-export function Meaning({onLearn}:{onLearn:()=>void}){const{model,experimental}=usePlayground();const[language,setLanguage]=useState('en');const[example,setExample]=useState('help');const[text,setText]=useState('Sara helped Lina.');const[submitted,setSubmitted]=useState({language:'en',text:'Sara helped Lina.'});const[error,setError]=useState('');const[contrasts,setContrasts]=useState(['Sara did not help Lina.','Lina helped Sara.']);const[comparison,setComparison]=useState<{text:string;result:Prediction}[]>([]);
- const result=useMemo(()=>{try{return predict(model,submitted.language,submitted.text);}catch{return null;}},[model,submitted]);
- const loadExample=(lang=language,ex=example)=>{const row=baseRows.find(r=>r.language===lang&&r.gold.action.endsWith('#'+(ex==='remember'?'remember':'help'))&&r.gold.polarity===(ex!=='negative'));const value=ex==='unknown'?'What makes an idea original?':lang==='en'&&ex==='help'?'Sara helped Lina.':row?.text??'Sara helped Lina.';setText(value);setSubmitted({language:lang,text:value});setComparison([]);if(lang==='en')setContrasts(['Sara did not help Lina.','Lina helped Sara.']);else setContrasts([baseRows.find(r=>r.language===lang&&!r.gold.polarity)?.text??'',baseRows.find(r=>r.language===lang&&r.gold.polarity)?.text??'']);};
- const interpret=()=>{try{predict(model,language,text);setSubmitted({language,text});setError('');}catch(e){setError(errorMessage(e));}};
- const rule=result?.rule_evidence[0]!==undefined?model.rules[result.rule_evidence[0].rule_index]:null;
- return <><div className="fields"><Choice label="Language" value={language} onChange={v=>{setLanguage(v);loadExample(v);}} options={languageOptions}/><Choice label="Example" value={example} onChange={setExample} options={[{value:'help',label:'Help and remember'},{value:'negative',label:'Negation'},{value:'remember',label:'Remembering'},{value:'unknown',label:'Outside the schema'}]}/></div>
- <Textarea aria-label="Sentence to interpret" value={text} maxLength={512} onChange={e=>setText(e.target.value)} dir="auto"/>
- <div className="actions"><Button onClick={interpret}>Interpret</Button><Button variant="outline" onClick={()=>loadExample()}>Load example</Button></div>
- {error&&<Notice error>{error}</Notice>}{text!==submitted.text&&<p className="small-note" style={{marginTop:12}}>Displayed result is for “{submitted.text}”. Select Interpret to update it.</p>}
- {result?.frame?<div className="result-columns" aria-live="polite"><section><h2>Meaning structure</h2><FrameGraph frame={result.frame}/><DataTable heads={[]} rows={[[<code>polarity</code>,<code>{result.frame.polarity?'positive':'negative'}</code>],[<code>tense</code>,<code>{result.frame.tense}</code>]]}/></section><section><h2>How it matched</h2><DataTable heads={['Token','Meaning']} rows={result.diagnostics.tokens.map(token=>{const m=model.lexicon.find(l=>l.language===submitted.language&&l.token===token);return [token,<code>{m?m.symbol.startsWith('action:')?'action:'+pretty(m.symbol):m.symbol:'grammar cue'}</code>];})}/><div className="rule"><h3>Learned rule</h3><code>{rule?.pattern.map(([kind,value])=>kind==='slot'?value:JSON.stringify(value)).join(' + ')}</code></div></section></div>:<Notice><strong>No supported match.</strong> {result?.reason==='ambiguous_parse'?'More than one meaning fits the learned rules.':'This construction is outside the rules the model has learned.'}<div className="actions"><Button variant="outline" onClick={onLearn}>Teach a construction</Button></div></Notice>}
- <section className="section"><h2>Try a contrast</h2><div className="contrast-fields">{contrasts.map((c,i)=><Input key={i} aria-label={`Contrast sentence ${i+1}`} maxLength={512} dir="auto" value={c} onChange={e=>setContrasts(contrasts.map((v,j)=>j===i?e.target.value:v))}/>)}</div><div className="actions"><Button variant="outline" onClick={()=>{try{setComparison(contrasts.map(t=>({text:t,result:predict(model,language,t)})));setError('');}catch(e){setError(errorMessage(e));}}}>Compare</Button></div>{comparison.length>0&&<div className="comparison-list">{comparison.map((c,i)=><div className="comparison-result" key={i}><p><strong>{c.text}</strong></p><p>{c.result.frame?`${pretty(c.result.frame.agent)} → ${pretty(c.result.frame.action)} → ${pretty(c.result.frame.patient)}; ${c.result.frame.polarity?'positive':'negative'}, ${c.result.frame.tense}, ${c.result.frame.modality}`:'No supported match'}</p></div>)}</div>}<p className="small-note" style={{marginTop:14}}>Controlled language model. Unknown constructions can return no match.</p></section>
- {experimental&&<Notice>This device is using an experimental model you activated. The frozen benchmark does not certify this version.</Notice>}
- <JsonView value={{model_id:model.model_id,training_rows:model.training_ids.length,result}} label="Inspect the full meaning record"/>
- <details className="disclosure"><summary>Quranic roots and contextual senses</summary><p className="small-note">Seven source-checked research families. The trained toy currently uses help, thank, and remember labels. A root label is an indexing choice; syntax, roles, negation, and evidence carry additional meaning. This does not establish a universal source language.</p>{rootStudy.roots.map(r=><div key={r.buckwalter} className="root-row"><div className="root-arabic" dir="rtl">{r.arabic}</div><div><p>{r.research_description}</p><a href={r.dictionary_url} target="_blank" rel="noreferrer" className="small-note">Open the morphological source</a>{rootStudy.examples.filter(e=>e.root_buckwalter===r.buckwalter).slice(0,1).map(e=><p className="small-note" key={e.id}>Engineering proposal: {e.proposed_computational_role} <a href={e.morphology_source_url} target="_blank" rel="noreferrer">{e.ayah_key}</a></p>)}</div></div>)}</details>
- </>;
+import { usePlayground } from './context';
+import { Choice, DataTable, Notice, JsonView, pretty, errorMessage } from './common';
+export const languageOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'hi', label: 'Hindi' },
+];
+function FrameGraph({ frame }: { frame: Frame }) {
+  return (
+    <svg
+      className="meaning-graph"
+      viewBox="0 0 430 190"
+      role="img"
+      aria-label={`${pretty(frame.agent)} is the actor, ${pretty(frame.action)} is the action, ${pretty(frame.patient)} is the recipient`}
+    >
+      <rect x="160" y="12" width="110" height="36" />
+      <text x="215" y="36" textAnchor="middle">
+        {pretty(frame.action).toUpperCase()}
+      </text>
+      <path d="M188 48 L110 106 M242 48 L320 106" />
+      <text x="103" y="124" textAnchor="middle" className="role-label">
+        actor
+      </text>
+      <text x="324" y="124" textAnchor="middle" className="role-label">
+        recipient
+      </text>
+      <path d="M103 135 L103 151 M98 145 L103 152 L108 145 M324 135 L324 151 M319 145 L324 152 L329 145" />
+      <text x="103" y="179" textAnchor="middle">
+        {pretty(frame.agent).replace(/^./, (c) => c.toUpperCase())}
+      </text>
+      <text x="324" y="179" textAnchor="middle">
+        {pretty(frame.patient).replace(/^./, (c) => c.toUpperCase())}
+      </text>
+    </svg>
+  );
+}
+export function Meaning({ onLearn }: { onLearn: () => void }) {
+  const { model, experimental } = usePlayground();
+  const [language, setLanguage] = useState('en');
+  const [example, setExample] = useState('help');
+  const [text, setText] = useState('Sara helped Lina.');
+  const [submitted, setSubmitted] = useState({ language: 'en', text: 'Sara helped Lina.' });
+  const [error, setError] = useState('');
+  const [contrasts, setContrasts] = useState(['Sara did not help Lina.', 'Lina helped Sara.']);
+  const [comparison, setComparison] = useState<{ text: string; result: Prediction }[]>([]);
+  const result = useMemo(() => {
+    try {
+      return predict(model, submitted.language, submitted.text);
+    } catch {
+      return null;
+    }
+  }, [model, submitted]);
+  const loadExample = (lang = language, ex = example) => {
+    const row = baseRows.find(
+      (r) =>
+        r.language === lang &&
+        r.gold.action.endsWith('#' + (ex === 'remember' ? 'remember' : 'help')) &&
+        r.gold.polarity === (ex !== 'negative'),
+    );
+    const value =
+      ex === 'unknown'
+        ? 'What makes an idea original?'
+        : lang === 'en' && ex === 'help'
+          ? 'Sara helped Lina.'
+          : (row?.text ?? 'Sara helped Lina.');
+    setText(value);
+    setSubmitted({ language: lang, text: value });
+    setComparison([]);
+    if (lang === 'en') setContrasts(['Sara did not help Lina.', 'Lina helped Sara.']);
+    else
+      setContrasts([
+        baseRows.find((r) => r.language === lang && !r.gold.polarity)?.text ?? '',
+        baseRows.find((r) => r.language === lang && r.gold.polarity)?.text ?? '',
+      ]);
+  };
+  const interpret = () => {
+    try {
+      predict(model, language, text);
+      setSubmitted({ language, text });
+      setError('');
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+  const rule =
+    result?.rule_evidence[0] !== undefined ? model.rules[result.rule_evidence[0].rule_index] : null;
+  return (
+    <>
+      <div className="fields">
+        <Choice
+          label="Language"
+          value={language}
+          onChange={(v) => {
+            setLanguage(v);
+            loadExample(v);
+          }}
+          options={languageOptions}
+        />
+        <Choice
+          label="Example"
+          value={example}
+          onChange={setExample}
+          options={[
+            { value: 'help', label: 'Help and remember' },
+            { value: 'negative', label: 'Negation' },
+            { value: 'remember', label: 'Remembering' },
+            { value: 'unknown', label: 'Outside the schema' },
+          ]}
+        />
+      </div>
+      <Textarea
+        aria-label="Sentence to interpret"
+        value={text}
+        maxLength={512}
+        onChange={(e) => setText(e.target.value)}
+        dir="auto"
+      />
+      <div className="actions">
+        <Button onClick={interpret}>Interpret</Button>
+        <Button variant="outline" onClick={() => loadExample()}>
+          Load example
+        </Button>
+      </div>
+      {error && <Notice error>{error}</Notice>}
+      {text !== submitted.text && (
+        <p className="small-note" style={{ marginTop: 12 }}>
+          Displayed result is for “{submitted.text}”. Select Interpret to update it.
+        </p>
+      )}
+      {result?.frame ? (
+        <div className="result-columns" aria-live="polite">
+          <section>
+            <h2>Meaning structure</h2>
+            <FrameGraph frame={result.frame} />
+            <DataTable
+              heads={[]}
+              rows={[
+                [
+                  <code key="polarity-label">polarity</code>,
+                  <code key="polarity-value">
+                    {result.frame.polarity ? 'positive' : 'negative'}
+                  </code>,
+                ],
+                [
+                  <code key="tense-label">tense</code>,
+                  <code key="tense-value">{result.frame.tense}</code>,
+                ],
+              ]}
+            />
+          </section>
+          <section>
+            <h2>How it matched</h2>
+            <DataTable
+              heads={['Token', 'Meaning']}
+              rows={result.diagnostics.tokens.map((token) => {
+                const m = model.lexicon.find(
+                  (l) => l.language === submitted.language && l.token === token,
+                );
+                return [
+                  token,
+                  <code key={'meaning-' + token}>
+                    {m
+                      ? m.symbol.startsWith('action:')
+                        ? 'action:' + pretty(m.symbol)
+                        : m.symbol
+                      : 'grammar cue'}
+                  </code>,
+                ];
+              })}
+            />
+            <div className="rule">
+              <h3>Learned rule</h3>
+              <code>
+                {rule?.pattern
+                  .map(([kind, value]) => (kind === 'slot' ? value : JSON.stringify(value)))
+                  .join(' + ')}
+              </code>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <Notice>
+          <strong>No supported match.</strong>{' '}
+          {result?.reason === 'ambiguous_parse'
+            ? 'More than one meaning fits the learned rules.'
+            : 'This construction is outside the rules the model has learned.'}
+          <div className="actions">
+            <Button variant="outline" onClick={onLearn}>
+              Teach a construction
+            </Button>
+          </div>
+        </Notice>
+      )}
+      <section className="section">
+        <h2>Try a contrast</h2>
+        <div className="contrast-fields">
+          {contrasts.map((c, i) => (
+            <Input
+              key={i}
+              aria-label={`Contrast sentence ${i + 1}`}
+              maxLength={512}
+              dir="auto"
+              value={c}
+              onChange={(e) =>
+                setContrasts(contrasts.map((v, j) => (j === i ? e.target.value : v)))
+              }
+            />
+          ))}
+        </div>
+        <div className="actions">
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                setComparison(
+                  contrasts.map((t) => ({ text: t, result: predict(model, language, t) })),
+                );
+                setError('');
+              } catch (e) {
+                setError(errorMessage(e));
+              }
+            }}
+          >
+            Compare
+          </Button>
+        </div>
+        {comparison.length > 0 && (
+          <div className="comparison-list">
+            {comparison.map((c, i) => (
+              <div className="comparison-result" key={i}>
+                <p>
+                  <strong>{c.text}</strong>
+                </p>
+                <p>
+                  {c.result.frame
+                    ? `${pretty(c.result.frame.agent)} → ${pretty(c.result.frame.action)} → ${pretty(c.result.frame.patient)}; ${c.result.frame.polarity ? 'positive' : 'negative'}, ${c.result.frame.tense}, ${c.result.frame.modality}`
+                    : 'No supported match'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="small-note" style={{ marginTop: 14 }}>
+          Controlled language model. Unknown constructions can return no match.
+        </p>
+      </section>
+      {experimental && (
+        <Notice>
+          This device is using an experimental model you activated. The frozen benchmark does not
+          certify this version.
+        </Notice>
+      )}
+      <JsonView
+        value={{ model_id: model.model_id, training_rows: model.training_ids.length, result }}
+        label="Inspect the full meaning record"
+      />
+      <details className="disclosure">
+        <summary>Quranic roots and contextual senses</summary>
+        <p className="small-note">
+          Seven source-checked research families. The trained toy currently uses help, thank, and
+          remember labels. A root label is an indexing choice; syntax, roles, negation, and evidence
+          carry additional meaning. This does not establish a universal source language.
+        </p>
+        {rootStudy.roots.map((r) => (
+          <div key={r.buckwalter} className="root-row">
+            <div className="root-arabic" dir="rtl">
+              {r.arabic}
+            </div>
+            <div>
+              <p>{r.research_description}</p>
+              <a href={r.dictionary_url} target="_blank" rel="noreferrer" className="small-note">
+                Open the morphological source
+              </a>
+              {rootStudy.examples
+                .filter((e) => e.root_buckwalter === r.buckwalter)
+                .slice(0, 1)
+                .map((e) => (
+                  <p className="small-note" key={e.id}>
+                    Engineering proposal: {e.proposed_computational_role}{' '}
+                    <a href={e.morphology_source_url} target="_blank" rel="noreferrer">
+                      {e.ayah_key}
+                    </a>
+                  </p>
+                ))}
+            </div>
+          </div>
+        ))}
+      </details>
+    </>
+  );
 }

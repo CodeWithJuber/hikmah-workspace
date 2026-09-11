@@ -16,8 +16,8 @@ Reproduction: train on two labeled sentences `cats run` and `dogs sleep`, each w
 
 ```json
 [
-  {"id":1,"form":"run","head":0,"relation":"root"},
-  {"id":2,"form":"sleep","head":1,"relation":"root"}
+  { "id": 1, "form": "run", "head": 0, "relation": "root" },
+  { "id": 2, "form": "sleep", "head": 1, "relation": "root" }
 ]
 ```
 

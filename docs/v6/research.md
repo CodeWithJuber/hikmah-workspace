@@ -12,18 +12,18 @@ A complete shared meaning system needs distinct layers for symbols, senses, role
 
 ## What is trained and what is not
 
-| Component | Actual v6 state | Evidence boundary |
-|---|---|---|
-| Sparse syntax models | Five models fitted from English, Arabic, Hindi, Spanish and Turkish PUD data | Syntax labels, not gold meaning |
-| POS decoder | Whole-sequence Viterbi over learned lexical/affix and transition factors | Gold segmentation in reported evaluation |
-| Dependency decoder | Learned arc factors, maximum rooted tree per candidate root | Top three root candidates; global root search is approximate |
-| Document compiler | Multiple event hypotheses, source sentences, candidate role edges, operator cues, exact literals and unresolved references | Explicit heuristic rules; not a trained or validated full scope parser |
-| Cross-language associations | Bidirectional IBM Model 1 parameters learned for English with Arabic, Hindi, Urdu, Spanish and Turkish | Single-token association candidates; not translation or sense equivalence |
-| Quranic-root research | Seven root families, 18 word examples and six contextual contrasts | Source-checked AI research seed; not independent scholarly gold |
-| Formal meaning fixtures | Fourteen licensed PMB gold-status examples, German/Italian/Dutch | Inspection fixtures only; not used for model training or an accuracy claim |
-| Controlled local output | Deterministic readable rendering of event hypotheses and unresolved references | No general free-text generation |
-| Reviewed updates | Browser worker refits parameters; server recomputes the development gate; D1/R2 retain receipts and models | Reused development gate is not a fresh test |
-| Main-model replacement | Not achieved | Requires independent semantics, realization, world interaction and unseen task evidence |
+| Component                   | Actual v6 state                                                                                                            | Evidence boundary                                                                       |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Sparse syntax models        | Five models fitted from English, Arabic, Hindi, Spanish and Turkish PUD data                                               | Syntax labels, not gold meaning                                                         |
+| POS decoder                 | Whole-sequence Viterbi over learned lexical/affix and transition factors                                                   | Gold segmentation in reported evaluation                                                |
+| Dependency decoder          | Learned arc factors, maximum rooted tree per candidate root                                                                | Top three root candidates; global root search is approximate                            |
+| Document compiler           | Multiple event hypotheses, source sentences, candidate role edges, operator cues, exact literals and unresolved references | Explicit heuristic rules; not a trained or validated full scope parser                  |
+| Cross-language associations | Bidirectional IBM Model 1 parameters learned for English with Arabic, Hindi, Urdu, Spanish and Turkish                     | Single-token association candidates; not translation or sense equivalence               |
+| Quranic-root research       | Seven root families, 18 word examples and six contextual contrasts                                                         | Source-checked AI research seed; not independent scholarly gold                         |
+| Formal meaning fixtures     | Fourteen licensed PMB gold-status examples, German/Italian/Dutch                                                           | Inspection fixtures only; not used for model training or an accuracy claim              |
+| Controlled local output     | Deterministic readable rendering of event hypotheses and unresolved references                                             | No general free-text generation                                                         |
+| Reviewed updates            | Browser worker refits parameters; server recomputes the development gate; D1/R2 retain receipts and models                 | Reused development gate is not a fresh test                                             |
+| Main-model replacement      | Not achieved                                                                                                               | Requires independent semantics, realization, world interaction and unseen task evidence |
 
 This is an owned trained multilingual **syntactic base with partial context graphs**, not a completed foundation model. Established methods are credited: spanning-tree dependency parsing, dynamic programming and IBM Model 1 are prior art. Ownership of this implementation and learned parameters is different from inventing every mathematical primitive. [McDonald et al., non-projective dependency parsing](https://aclanthology.org/H05-1066/), [Brown et al., statistical translation models](https://aclanthology.org/J93-2003/).
 
@@ -110,12 +110,12 @@ This loss is a research specification, not a loss already optimized in v6. Candi
 ## Measured parser results
 
 | Language | Train tokens | Development LAS | Test LAS | Test POS |
-|---|---:|---:|---:|---:|
-| English | 17,541 | 53.45% | 48.85% | 87.23% |
-| Arabic | 17,143 | 49.58% | 47.81% | 83.62% |
-| Hindi | 19,764 | 50.42% | 48.96% | 88.25% |
-| Spanish | 19,273 | 57.68% | 59.90% | 90.04% |
-| Turkish | 13,982 | 36.73% | 35.69% | 82.88% |
+| -------- | -----------: | --------------: | -------: | -------: |
+| English  |       17,541 |          53.45% |   48.85% |   87.23% |
+| Arabic   |       17,143 |          49.58% |   47.81% |   83.62% |
+| Hindi    |       19,764 |          50.42% |   48.96% |   88.25% |
+| Spanish  |       19,273 |          57.68% |   59.90% |   90.04% |
+| Turkish  |       13,982 |          36.73% |   35.69% |   82.88% |
 
 LAS counts an edge correct only when its head and base relation label match. Evaluation uses **gold basic-token segmentation, predicted POS and gold-punctuation exclusion**. Raw browser tokenization does not inherit these scores. Urdu has a lexical association model but no trained syntax parser. Romanized Hindi/Urdu, code switching, arbitrary sound-to-meaning mapping, semantic accuracy, general generation quality and autonomous task success have not been established.
 

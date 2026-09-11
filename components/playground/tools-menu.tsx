@@ -1,17 +1,268 @@
-"use client";
-import {questionTool} from '@/lib/kernel/controller';
-import {useKernel} from '@/components/kernel/context';
-import {agentScope} from '@/lib/playground/agents';
-import {resolveRunTools} from '@/lib/playground/tool-registry';
-import {HikmahIcon} from '@/components/kernel/icons';
-import {useState} from 'react';
-import {Wrench,ChevronDown,FolderCode,Calculator,Globe,Search,Terminal,Plug,ArrowUpRight,LoaderCircle,Check} from 'lucide-react';
-import {Button} from '@/components/ui/button';import {Switch} from '@/components/ui/switch';import {Popover,PopoverTrigger,PopoverContent} from '@/components/ui/popover';
-import {usePlayground} from './context';import {toast} from 'sonner';
-export function ToolsMenu(){const kernel=useKernel();const {preferences,setPreferences,workspace,setWorkspace,connectorTools,connectorStatus,connectConnector,models,provider,isRunning,setWorkspacePage}=usePlayground();const [open,setOpen]=useState(false);const [busy,setBusy]=useState('');const supported=models.find(m=>m.id===provider.model)?.tools;
- const toggle=(names:string[],on:boolean)=>setPreferences(p=>({...p,enabledTools:on?[...new Set([...p.enabledTools,...names])]:p.enabledTools.filter(n=>!names.includes(n))}));
- const agent=workspace.agents.find(a=>a.id===workspace.activeAgentId);const scope=agentScope(agent,preferences,workspace.connectors);
- const groups=[{title:'Web search',description:'Find current information and primary sources',names:['search_web'],icon:Search},{title:'Quran research',description:'Source links, context and clearly labelled research notes',names:['research_quran'],icon:Search},{title:'JavaScript sandbox',description:'Execute pure JS locally · no network or host access',names:['run_javascript'],icon:Terminal},{title:'Reference search',description:'Wikipedia sources · not general web search',names:['search_reference'],icon:Search},{title:'Read public pages',description:'Public HTTPS page text via Jina Reader',names:['read_webpage'],icon:Globe},{title:'Files & preview',description:'Read files; create and edit with permission',names:['list_files','read_file','write_file'],icon:FolderCode},{title:'Calculator',description:'Calculate with the workspace engine',names:['calculate'],icon:Calculator}];
- const connected=workspace.connectors.filter(c=>c.enabled&&connectorTools[c.id]?.length);const ready=resolveRunTools({modelTools:supported,preferences:scope.preferences,connectors:scope.connectors,catalogs:connectorTools,memory:agent?.memory,question:kernel.state.config.enabled?questionTool:undefined})?.length??0;
- return <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button variant="ghost" className="composer-tools-button" disabled={isRunning}><HikmahIcon name="tools" size={17}/>Tools{ready>0&&<span className="tool-count">{ready}</span>}<ChevronDown size={13}/></Button></PopoverTrigger><PopoverContent align="start" side="top" className="tools-popover"><header><strong>Tools for this conversation</strong><p>{agent?'Allowed by '+agent.name+'. Workspace switches apply too.':'Available in every chat. External services need a connection.'}</p></header>{supported===false&&<p className="tool-compatibility">This model supports text only. Choose a tool-capable model to use these connections.</p>}{supported===undefined&&provider.model&&<p className="tool-compatibility">Tool support is not listed for this model. Compatibility will be checked by the provider.</p>}{groups.map(g=><div className="capability-row" key={g.title}><g.icon size={20}/><div><strong>{g.title}</strong><p>{g.description}</p></div><Switch aria-label={'Enable '+g.title} disabled={supported===false||!!agent&&!g.names.some(n=>agent.tools.includes(n))} checked={g.names.some(n=>scope.preferences.enabledTools.includes(n))} onCheckedChange={v=>toggle(g.names,v)}/></div>)}<div className="capability-permission"><label htmlFor="workspace-edits">Allow workspace edits</label><Switch id="workspace-edits" checked={preferences.allowEdits} disabled={supported===false} onCheckedChange={allowEdits=>setPreferences(p=>({...p,allowEdits}))}/></div><div className="capability-section-title">Connected services</div>{(['browser','search','ssh'] as const).map(kind=>{const list=workspace.connectors.filter(c=>c.purpose===kind);const Icon=kind==='browser'?Globe:kind==='search'?Search:Terminal;return <div className="capability-row" key={kind}><Icon size={20}/><div><strong>{kind==='browser'?'Browser':kind==='search'?'Web search':'SSH / terminal'}</strong><p>{list.length?list.map(c=>c.name).join(', '):kind==='ssh'?'Connect your SSH service through MCP':'Connect an MCP service'}</p></div>{list.some(c=>c.enabled&&connectorTools[c.id]?.length)?<span className="capability-ready"><Check size={14}/>Ready</span>:<Button variant="ghost" size="sm" onClick={()=>{setOpen(false);setWorkspacePage('admin/connectors');}}>Set up<ArrowUpRight size={14}/></Button>}</div>;})}{workspace.connectors.map(c=><div className="connector-quick" key={c.id}><Plug size={17}/><div><strong>{c.name}</strong><p>{!c.enabled?'Disabled':connectorStatus[c.id]?.status==='error'?connectorStatus[c.id].message:connectorTools[c.id]?connectorTools[c.id].length+' tools discovered · '+(c.approval==='ask'?'ask before use':'calls allowed'):'Needs connection'}</p></div><Switch aria-label={'Enable '+c.name} checked={c.enabled} onCheckedChange={enabled=>setWorkspace(p=>({...p,connectors:p.connectors.map(x=>x.id===c.id?{...x,enabled}:x)}))}/>{c.enabled&&<Button size="sm" variant="ghost" disabled={busy===c.id} onClick={async()=>{setBusy(c.id);try{await connectConnector(c.id);toast.success('Tools refreshed');}catch(e){toast.error(e instanceof Error?e.message:'Connection failed.');}finally{setBusy('');}}}>{busy===c.id?<LoaderCircle size={16} className="spin"/>:'Connect'}</Button>}</div>)}<Button variant="outline" className="tools-manage" onClick={()=>{setOpen(false);setWorkspacePage('tools');}}><Plug size={16}/>Tools & runtimes</Button></PopoverContent></Popover>;
+'use client';
+import { questionTool } from '@/lib/kernel/controller';
+import { useKernel } from '@/components/kernel/context';
+import { agentScope } from '@/lib/playground/agents';
+import { resolveRunTools } from '@/lib/playground/tool-registry';
+import { HikmahIcon } from '@/components/kernel/icons';
+import { useState } from 'react';
+import {
+  ChevronDown,
+  FolderCode,
+  Calculator,
+  Globe,
+  Search,
+  Terminal,
+  Plug,
+  ArrowUpRight,
+  LoaderCircle,
+  Check,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { usePlayground } from './context';
+import { toast } from 'sonner';
+export function ToolsMenu() {
+  const kernel = useKernel();
+  const {
+    preferences,
+    setPreferences,
+    workspace,
+    setWorkspace,
+    connectorTools,
+    connectorStatus,
+    connectConnector,
+    models,
+    provider,
+    isRunning,
+    setWorkspacePage,
+  } = usePlayground();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState('');
+  const supported = models.find((m) => m.id === provider.model)?.tools;
+  const toggle = (names: string[], on: boolean) =>
+    setPreferences((p) => ({
+      ...p,
+      enabledTools: on
+        ? [...new Set([...p.enabledTools, ...names])]
+        : p.enabledTools.filter((n) => !names.includes(n)),
+    }));
+  const agent = workspace.agents.find((a) => a.id === workspace.activeAgentId);
+  const scope = agentScope(agent, preferences, workspace.connectors);
+  const groups = [
+    {
+      title: 'Web search',
+      description: 'Find current information and primary sources',
+      names: ['search_web'],
+      icon: Search,
+    },
+    {
+      title: 'Quran research',
+      description: 'Source links, context and clearly labelled research notes',
+      names: ['research_quran'],
+      icon: Search,
+    },
+    {
+      title: 'JavaScript sandbox',
+      description: 'Execute pure JS locally · no network or host access',
+      names: ['run_javascript'],
+      icon: Terminal,
+    },
+    {
+      title: 'Reference search',
+      description: 'Wikipedia sources · not general web search',
+      names: ['search_reference'],
+      icon: Search,
+    },
+    {
+      title: 'Read public pages',
+      description: 'Public HTTPS page text via Jina Reader',
+      names: ['read_webpage'],
+      icon: Globe,
+    },
+    {
+      title: 'Files & preview',
+      description: 'Read files; create and edit with permission',
+      names: ['list_files', 'read_file', 'write_file'],
+      icon: FolderCode,
+    },
+    {
+      title: 'Calculator',
+      description: 'Calculate with the workspace engine',
+      names: ['calculate'],
+      icon: Calculator,
+    },
+  ];
+  const connected = workspace.connectors.filter((c) => c.enabled && connectorTools[c.id]?.length);
+  const ready =
+    resolveRunTools({
+      modelTools: supported,
+      preferences: scope.preferences,
+      connectors: scope.connectors,
+      catalogs: connectorTools,
+      memory: agent?.memory,
+      question: kernel.state.config.enabled ? questionTool : undefined,
+    })?.length ?? 0;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" className="composer-tools-button" disabled={isRunning}>
+          <HikmahIcon name="tools" size={17} />
+          Tools{ready > 0 && <span className="tool-count">{ready}</span>}
+          <ChevronDown size={13} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" side="top" className="tools-popover">
+        <header>
+          <strong>Tools for this conversation</strong>
+          <p>
+            {agent
+              ? 'Allowed by ' + agent.name + '. Workspace switches apply too.'
+              : 'Available in every chat. External services need a connection.'}
+          </p>
+        </header>
+        {supported === false && (
+          <p className="tool-compatibility">
+            This model supports text only. Choose a tool-capable model to use these connections.
+          </p>
+        )}
+        {supported === undefined && provider.model && (
+          <p className="tool-compatibility">
+            Tool support is not listed for this model. Compatibility will be checked by the
+            provider.
+          </p>
+        )}
+        {groups.map((g) => (
+          <div className="capability-row" key={g.title}>
+            <g.icon size={20} />
+            <div>
+              <strong>{g.title}</strong>
+              <p>{g.description}</p>
+            </div>
+            <Switch
+              aria-label={'Enable ' + g.title}
+              disabled={
+                supported === false || (!!agent && !g.names.some((n) => agent.tools.includes(n)))
+              }
+              checked={g.names.some((n) => scope.preferences.enabledTools.includes(n))}
+              onCheckedChange={(v) => toggle(g.names, v)}
+            />
+          </div>
+        ))}
+        <div className="capability-permission">
+          <label htmlFor="workspace-edits">Allow workspace edits</label>
+          <Switch
+            id="workspace-edits"
+            checked={preferences.allowEdits}
+            disabled={supported === false}
+            onCheckedChange={(allowEdits) => setPreferences((p) => ({ ...p, allowEdits }))}
+          />
+        </div>
+        <div className="capability-section-title">Connected services</div>
+        {(['browser', 'search', 'ssh'] as const).map((kind) => {
+          const list = workspace.connectors.filter((c) => c.purpose === kind);
+          const Icon = kind === 'browser' ? Globe : kind === 'search' ? Search : Terminal;
+          return (
+            <div className="capability-row" key={kind}>
+              <Icon size={20} />
+              <div>
+                <strong>
+                  {kind === 'browser'
+                    ? 'Browser'
+                    : kind === 'search'
+                      ? 'Web search'
+                      : 'SSH / terminal'}
+                </strong>
+                <p>
+                  {list.length
+                    ? list.map((c) => c.name).join(', ')
+                    : kind === 'ssh'
+                      ? 'Connect your SSH service through MCP'
+                      : 'Connect an MCP service'}
+                </p>
+              </div>
+              {list.some((c) => c.enabled && connectorTools[c.id]?.length) ? (
+                <span className="capability-ready">
+                  <Check size={14} />
+                  Ready
+                </span>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setOpen(false);
+                    setWorkspacePage('admin/connectors');
+                  }}
+                >
+                  Set up
+                  <ArrowUpRight size={14} />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+        {workspace.connectors.map((c) => (
+          <div className="connector-quick" key={c.id}>
+            <Plug size={17} />
+            <div>
+              <strong>{c.name}</strong>
+              <p>
+                {!c.enabled
+                  ? 'Disabled'
+                  : connectorStatus[c.id]?.status === 'error'
+                    ? connectorStatus[c.id].message
+                    : connectorTools[c.id]
+                      ? connectorTools[c.id].length +
+                        ' tools discovered · ' +
+                        (c.approval === 'ask' ? 'ask before use' : 'calls allowed')
+                      : 'Needs connection'}
+              </p>
+            </div>
+            <Switch
+              aria-label={'Enable ' + c.name}
+              checked={c.enabled}
+              onCheckedChange={(enabled) =>
+                setWorkspace((p) => ({
+                  ...p,
+                  connectors: p.connectors.map((x) => (x.id === c.id ? { ...x, enabled } : x)),
+                }))
+              }
+            />
+            {c.enabled && (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy === c.id}
+                onClick={async () => {
+                  setBusy(c.id);
+                  try {
+                    await connectConnector(c.id);
+                    toast.success('Tools refreshed');
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : 'Connection failed.');
+                  } finally {
+                    setBusy('');
+                  }
+                }}
+              >
+                {busy === c.id ? <LoaderCircle size={16} className="spin" /> : 'Connect'}
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          className="tools-manage"
+          onClick={() => {
+            setOpen(false);
+            setWorkspacePage('tools');
+          }}
+        >
+          <Plug size={16} />
+          Tools & runtimes
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
 }

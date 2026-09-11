@@ -1,6 +1,59 @@
-import {z} from 'zod';
-import {ownerIdentity,readState,writeState,sameOrigin,failure,KernelHttpError} from '@/lib/kernel/server';
-import {reduceKernel,actionSchema,activeModel,developmentMetrics} from '@/lib/kernel/core';
-export const dynamic='force-dynamic';
-export async function GET(){try{const user=await ownerIdentity();const data=await readState(user.userId);const m=activeModel(data.state);const d=developmentMetrics(data.state);return Response.json({...data,role:'super_admin',name:user.fullName||user.displayName,metrics:{training:m.training_ids.length,lexicon:m.lexicon.length,rules:m.rules.length,correct:d.correct_frames,scored:d.frame_scored_examples,abstentions:d.abstentions},model:m},{headers:{'Cache-Control':'no-store'}});}catch(e){return failure(e);}}
-export async function POST(request:Request){try{sameOrigin(request);const user=await ownerIdentity();const raw=await request.text();if(raw.length>300000)throw new KernelHttpError(413,'Use a smaller training batch.');const {revision,action}=z.object({revision:z.number().int().min(-1),action:actionSchema}).strict().parse(JSON.parse(raw));const current=await readState(user.userId);if(current.revision!==revision)throw new KernelHttpError(409,'Another tab updated this state. Refresh and retry.');const state=reduceKernel(current.state,action);const next=state===current.state?revision:await writeState(user.userId,state,revision);return Response.json({state,revision:next},{headers:{'Cache-Control':'no-store'}});}catch(e){return failure(e);}}
+import { z } from 'zod';
+import {
+  ownerIdentity,
+  readState,
+  writeState,
+  sameOrigin,
+  failure,
+  KernelHttpError,
+} from '@/lib/kernel/server';
+import { reduceKernel, actionSchema, activeModel, developmentMetrics } from '@/lib/kernel/core';
+export const dynamic = 'force-dynamic';
+export async function GET() {
+  try {
+    const user = await ownerIdentity();
+    const data = await readState(user.userId);
+    const m = activeModel(data.state);
+    const d = developmentMetrics(data.state);
+    return Response.json(
+      {
+        ...data,
+        role: 'super_admin',
+        name: user.fullName || user.displayName,
+        metrics: {
+          training: m.training_ids.length,
+          lexicon: m.lexicon.length,
+          rules: m.rules.length,
+          correct: d.correct_frames,
+          scored: d.frame_scored_examples,
+          abstentions: d.abstentions,
+        },
+        model: m,
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function POST(request: Request) {
+  try {
+    sameOrigin(request);
+    const user = await ownerIdentity();
+    const raw = await request.text();
+    if (raw.length > 300000) throw new KernelHttpError(413, 'Use a smaller training batch.');
+    const { revision, action } = z
+      .object({ revision: z.number().int().min(-1), action: actionSchema })
+      .strict()
+      .parse(JSON.parse(raw));
+    const current = await readState(user.userId);
+    if (current.revision !== revision)
+      throw new KernelHttpError(409, 'Another tab updated this state. Refresh and retry.');
+    const state = reduceKernel(current.state, action);
+    const next =
+      state === current.state ? revision : await writeState(user.userId, state, revision);
+    return Response.json({ state, revision: next }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (e) {
+    return failure(e);
+  }
+}

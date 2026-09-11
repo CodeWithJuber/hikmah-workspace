@@ -1,0 +1,213 @@
+# Architecture
+
+What runs where, and why it is split that way. Written for whoever has to operate
+this or change it later, including the parts that are deliberately limited.
+
+## The two services
+
+| Service     | What it is                                                               |
+| ----------- | ------------------------------------------------------------------------ |
+| `app`       | Next.js, the run worker, SQLite. Read-only filesystem, `cap_drop ALL`.   |
+| `workbench` | Terminal, SSH, shell commands, stdio MCP servers. Writable `/workspace`. |
+| `search`    | SearXNG, reachable only from the private network.                        |
+| `caddy`     | HTTPS, and the only thing exposed publicly.                              |
+
+The split is not a preference. Next.js 16 cannot serve a WebSocket in
+production: a route handler's `handleUpgrade` is a no-op, `NextResponse.upgrade`
+is still a draft RFC, and a custom server is incompatible with
+`output: 'standalone'`. The app image is also read-only and installed with
+`npm ci --ignore-scripts`, so a pty binding cannot be built there and `npx`
+cannot run. A terminal, a shell tool and a command-line MCP server all need
+exactly those things.
+
+Keeping them apart has a second effect worth stating plainly: a command that
+misbehaves in the workbench has no route to the app's database or to the
+encrypted secret store. The workbench holds no secrets of its own.
+
+## Who trusts whom
+
+```
+browser ──HTTPS──> caddy ──┬──> app        (session cookie, Better Auth)
+                           └──> workbench  (single-use ticket, /ws/*)
+
+app ──private network──> workbench         (shared bearer token)
+```
+
+- **Browser → app**: the ordinary signed-in session.
+- **Browser → workbench**: the app mints an HMAC-signed, single-use, 30-second
+  ticket; the workbench checks the signature is its own, that the ticket has not
+  expired or been used, and that `Origin` is the app's. It has no session store
+  and no idea who is signed in, which keeps the authentication rules in one place
+  rather than drifting across two services.
+- **App → workbench**: `HIKMAH_WORKBENCH_TOKEN`, over the compose network only.
+
+The ticket format is implemented twice, in `lib/workbench/ticket.ts` and
+`workbench/src/ticket.ts`, because the two packages cannot import each other.
+`tests/workbench-ticket.test.mjs` issues with one copy and verifies with the
+other, so drift fails in CI rather than in production.
+
+The workbench deliberately does **not** read `.env`. That file holds the vault
+key and the session secret, and this service hands people a shell. It receives
+only `HIKMAH_WORKBENCH_TOKEN` and `HIKMAH_APP_ORIGIN`, and the shell itself
+inherits an allowlist (`PATH`, `HOME`, `TERM`, locale) rather than whatever the
+process happens to hold. A denylist would have to be updated every time the
+service gains a variable, and the cost of forgetting once is someone's vault key
+in `env` output.
+
+## Runs
+
+A run belongs to the server, not to the tab that started it.
+
+```
+POST /api/conversations/[id]/runs   → queues a run, returns its id immediately
+GET  /api/runs/[id]/stream?after=N  → SSE, replayable, leave and rejoin at will
+POST /api/runs/[id]/cancel          → aborts the provider call, not just the socket
+```
+
+The worker starts from `instrumentation.ts`, the only documented once-per-server
+hook. Three details there are load-bearing:
+
+- The Node-only work sits behind a runtime check and a dynamic import, so
+  `node:sqlite` stays out of the edge compile.
+- The loop is started **without** being awaited. Next waits for `register()` to
+  resolve before serving any request, and a loop that runs for the life of the
+  process would never resolve.
+- `SIGTERM` and `SIGINT` hand back whatever is in flight, so the next boot
+  resumes it rather than finding rows marked `running` with nobody driving them.
+
+Whether any of that actually happens depends on `instrumentation.js` being traced
+into the standalone build — invisible until runs silently queue forever after a
+deploy. `/api/health` therefore reports the worker's state and the queue depth,
+and the production smoke test asserts it. The health check never _fails_ on the
+worker: a stalled loop is worth seeing, and is not a reason to take a container
+out of rotation while it is still serving chat.
+
+Claiming uses `UPDATE ... RETURNING` so a run is taken exactly once; without it,
+claiming is a read-then-write race. Reconnect subscribes, then replays, then
+drops already-covered events — the other order loses any chunk written between
+the read and the subscribe.
+
+**Documented limit:** one worker per process, and the resume buffer is a
+process-local `EventEmitter`. A second replica would break the tail.
+
+## Approvals
+
+A tool that needs the owner's say-so pauses the run. This is expressed as the AI
+SDK's `toolApproval` policy rather than as a question inside a tool's `execute`,
+because pausing a run and asking a person is something the framework can do and a
+tool body cannot: by the time `execute` runs, there is nobody listening.
+
+```
+model calls a gated tool
+  → policy returns 'user-approval'
+  → the SDK emits approval-requested and stops the step
+  → the worker records waiting_approval and persists the question as a message
+  → the browser renders the Confirmation card
+  → the answer POSTs back, replaces that message, and requeues the same run
+```
+
+The question is persisted, so a reload renders the card after the tab that asked
+is gone. Answering is a _resume_, not a new run — treating it as one would hit
+the "this conversation already has a run" refusal and strand the very run the
+answer was meant to release. `requeueApproved` only moves a run out of
+`waiting_approval`, so a second answer (two tabs, a double click) is absorbed
+rather than starting a duplicate.
+
+What is gated, and by what rule:
+
+| Tool                | Rule                                                              |
+| ------------------- | ----------------------------------------------------------------- |
+| `ssh_exec`          | The owner's own per-host allowlist, matched on the whole command. |
+| `bash`              | A server-side read-only command list, matched on the first word.  |
+| `sandbox_run`       | Always asks.                                                      |
+| `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin. |
+| everything else     | Not gated. They read or compute.                                  |
+
+Two mistakes these rules exist to avoid. Matching a command by **prefix** would
+let `df; rm -rf /` through on a pattern of `df`, so matching is anchored and any
+command containing `;`, `|`, `&`, a backtick or a redirect is excluded before the
+list is consulted at all. And a `readOnlyHint` is supplied by the same server
+that supplies the tool, so it is honoured only for a server the owner explicitly
+marked trusted — otherwise any server could opt itself out of every prompt.
+
+## MCP
+
+Each MCP tool is a first-class model tool with its real schema, named
+`mcp__<server>__<tool>`. The previous design exposed two meta-tools and made the
+model discover everything through them, which cost three round-trips before any
+work, truncated every description to 250 characters, declared arguments as a
+free-form object so the provider could not validate them, and made per-tool
+permissions impossible.
+
+Servers are rows, seeded from `lib/mcp/defaults.ts` on first read rather than by
+a migration — so a server added to the catalogue later reaches owners who already
+have rows. They are connected once per run and released when the stream ends,
+because a worker that lives for the life of the process would otherwise
+accumulate one set of connections per run it has ever driven.
+
+**Tool pinning.** A tool's name, description and input schema are hashed. A
+read-only tool on a trusted server still asks the _first_ time, because its
+description has not been shown to anyone yet; once seen it runs freely; once
+rewritten it drops back to asking and the change is reported. That is the
+rug-pull case. A denied tool is not gated but **withheld** — gating it would
+still put its description into the prompt, which is the thing being refused.
+
+**Stdio servers** run in the workbench. It speaks streamable HTTP outward and
+stdio inward, so `npx -y @modelcontextprotocol/server-filesystem` reaches the
+client as an ordinary remote server and the manager keeps one transport. The
+command travels in a request header rather than being registered beforehand:
+registration state would go stale against a config the owner edited, and anything
+holding the shared token can already run commands there through `bash`, so it
+grants nothing new.
+
+## Third-party service terms
+
+**Quran.com MCP** (`https://mcp.quran.ai`, the root URL — both `/mcp` and `/sse`
+return 404) is the one default server that is enabled, because it changes what
+the model may assert rather than merely adding a capability: it carries grounding
+rules requiring a cited edition instead of an answer from memory.
+
+Its licence is **QFGPL-1.0, which is non-commercial and network-copyleft**. This
+app therefore only ever _calls the hosted endpoint_: no fork, no vendored code,
+no self-hosting of that server inside Hikmah. The licence covers the software,
+not the Qur'an, translation or tafsir data.
+
+The local `research_quran` ledger remains a first-class fallback, so Qur'an
+grounding still works if the endpoint is withdrawn or a commercial launch makes
+the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
+itself, not only here.
+
+## SSH
+
+The model may name a saved host id and a command. It may never supply a
+hostname, a port, a username or a key path — those come from the owner's own row,
+so an instruction injected through a fetched page or a tool description can name
+a server the owner already trusts but cannot construct a connection to one they
+did not. Naming an unknown host fails before any credential is decrypted, and the
+refusal lists the real hosts so the model corrects itself rather than guessing.
+
+Adding a host is three steps on purpose: save the details, connect once to see
+the host key, and pin it only after the owner has read the fingerprint. Pinning
+whatever answered the first connection would record an impostor just as happily
+as the real server. Confirming re-probes and compares, so a stale or forged form
+post cannot pin a key the host is not presenting. A pin is never silently
+replaced: rotating a host key means removing the host and adding it again.
+
+`ssh2` accepts any host key when `hostVerifier` is absent, so it is never
+omitted.
+
+## What is not here
+
+Stated so nobody goes looking:
+
+- **No disposable per-run containers.** The workbench container _is_ the sandbox:
+  `cap_drop ALL`, `no-new-privileges`, an unprivileged user, its own network. It
+  is not a jail — a command there has network access and can read what the shell
+  user can. Per-run isolation (dockerode with a socket proxy, or gVisor) is a
+  documented later hardening.
+- **No OAuth for remote MCP.** Credentials are `${NAME}` references into the
+  encrypted store.
+- **No second app replica.** See the worker limit above.
+- **The old browser-driven surface still exists** at the workspace page, and
+  still exclusively owns media generation, Compare, artifacts, agents and the
+  labs. Nothing legacy can be deleted until those move.

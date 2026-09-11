@@ -4,10 +4,10 @@ Self-hosted chat, coding, agents and experimental context learning. This is the 
 
 The app version and research version are deliberately separate:
 
-| Label | Meaning |
-| --- | --- |
-| App v9.1 | This self-hosted application release |
-| Build `<commit>` | Exact source revision compiled into the running app |
+| Label                             | Meaning                                              |
+| --------------------------------- | ---------------------------------------------------- |
+| App v9.1                          | This self-hosted application release                 |
+| Build `<commit>`                  | Exact source revision compiled into the running app  |
 | Context Field · Research model v6 | Existing research dataset and learned parser release |
 
 The sidebar, sign-in screen and `/api/health` identify the application release. A v6 research label does not mean the app has reverted to v6.
@@ -76,13 +76,18 @@ Full source and research assets are included. Credentials, private conversations
 
 ## Tools and services
 
-| Capability | Availability |
-| --- | --- |
-| Local JavaScript sandbox, calculator, workspace files | Built into the app |
-| Web reference search and webpage reading | Server routes; require outbound network access |
-| Python/Node execution and approved SSH actions | Runtime adapter included in `public/runtime`; deploy separately on a dedicated Docker host |
-| Voice dictation and read-aloud | Browser support and user microphone permission required |
-| Image/audio/video generation | Requires a configured provider and an available allowed model; no paid generation was used for validation |
-| MCP connectors | Configure endpoint, credentials and agent permissions; unrelated services are not provisioned automatically |
+| Capability                                            | Availability                                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Local JavaScript sandbox, calculator, workspace files | Built into the app                                                                                                 |
+| Web reference search and webpage reading              | Server routes; require outbound network access                                                                     |
+| Terminal, `bash`, `sandbox_run`, `ssh_exec`           | The `workbench` service. Nothing runs without it; the app container cannot host a shell or a pty                   |
+| Python/Node execution and approved SSH actions        | Legacy path: runtime adapter in `public/runtime`, deployed separately. Superseded by the workbench                 |
+| Voice dictation and read-aloud                        | Browser support and user microphone permission required                                                            |
+| Image/audio/video generation                          | Requires a configured provider and an available allowed model; no paid generation was used for validation          |
+| MCP servers                                           | Seeded catalogue under Connections. Remote servers connect from the app; command-line servers run in the workbench |
 
-The app container has no Docker socket or host SSH credentials. Keep execution workers separate from the application and its private data.
+The app container has no Docker socket or host SSH credentials, and the workbench
+holds no secrets of its own. Commands run in the workbench container, which has a
+writable `/workspace` and network access but no route to the app's database or
+its encrypted secrets. See `docs/architecture.md` for the trust boundaries, what
+is gated behind an approval and why, and what is deliberately not built.
