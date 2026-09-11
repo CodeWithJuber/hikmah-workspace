@@ -156,3 +156,28 @@ test('deleting a conversation takes its runs and events with it', async (t) => {
   assert.equal(store.getRun('r1'), null);
   assert.equal(store.eventsAfter('r1', -1).length, 0);
 });
+
+test('one unfinished run per conversation is visible to the caller', async (t) => {
+  // Two tabs on the same thread must not both start answering it.
+  const { store } = await freshStore(t);
+  assert.equal(store.activeForConversation('c1'), null);
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  assert.equal(store.activeForConversation('c1'), 'r1');
+  store.finish('r1', 'done');
+  assert.equal(store.activeForConversation('c1'), null, 'a finished run must not block the next');
+});
+
+test('active runs are counted per owner so a looping client cannot flood the queue', async (t) => {
+  const { store } = await freshStore(t);
+  store.createConversation({ id: 'c2', userId: 'u1' });
+  store.createConversation({ id: 'c3', userId: 'u2' });
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  store.createRun({ id: 'r2', conversationId: 'c2', userId: 'u1', config: {} });
+  store.createRun({ id: 'r3', conversationId: 'c3', userId: 'u2', config: {} });
+
+  assert.equal(store.countActive('u1'), 2);
+  assert.equal(store.countActive('u2'), 1, "another owner's runs must not count");
+
+  store.finish('r1', 'cancelled');
+  assert.equal(store.countActive('u1'), 1, 'a cancelled run frees its slot');
+});

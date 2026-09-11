@@ -94,6 +94,16 @@ export function createRunStore(
     nextEventSeq: db.prepare(
       'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM run_events WHERE run_id = ?',
     ),
+    countQueued: db.prepare("SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'"),
+    countActive: db.prepare(
+      `SELECT COUNT(*) AS n FROM runs
+       WHERE user_id = ? AND status IN ('queued', 'running', 'waiting_approval')`,
+    ),
+    activeForConversation: db.prepare(
+      `SELECT id FROM runs
+       WHERE conversation_id = ? AND status IN ('queued', 'running', 'waiting_approval')
+       LIMIT 1`,
+    ),
     eventsAfter: db.prepare(
       'SELECT seq, payload FROM run_events WHERE run_id = ? AND seq > ? ORDER BY seq',
     ),
@@ -209,6 +219,24 @@ export function createRunStore(
       return (
         statements.eventsAfter.all(runId, after) as Array<{ seq: number; payload: string }>
       ).map((row) => ({ seq: row.seq, payload: JSON.parse(row.payload) }));
+    },
+
+    /** Runs waiting for the worker, across all owners. Reported by /api/health
+     * so a stalled loop is visible before anyone notices a hung answer. */
+    countQueued(): number {
+      return (statements.countQueued.get() as { n: number }).n;
+    },
+
+    /** Runs not yet finished for this owner, used to bound queue growth. */
+    countActive(userId: string): number {
+      return (statements.countActive.get(userId) as { n: number }).n;
+    },
+
+    /** The unfinished run for a conversation, if any. */
+    activeForConversation(conversationId: string): string | null {
+      const row = statements.activeForConversation.get(conversationId) as
+        { id: string } | undefined;
+      return row?.id ?? null;
     },
 
     pruneEvents(runId: string) {

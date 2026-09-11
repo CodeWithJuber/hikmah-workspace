@@ -84,6 +84,8 @@ export type WorkerOptions = {
 export type Worker = {
   store: RunStore;
   bus: RunBus;
+  /** Whether the poll loop is armed. Reported by /api/health. */
+  readonly started: boolean;
   /** Drive at most one queued run. Returns the run it handled, or null. */
   tick(): Promise<RunRow | null>;
   start(): void;
@@ -162,6 +164,9 @@ export function createWorker(options: WorkerOptions): Worker {
     store,
     bus,
     tick,
+    get started() {
+      return timer !== undefined;
+    },
     start() {
       if (timer) return;
       // Anything left marked running belongs to a process that is gone.

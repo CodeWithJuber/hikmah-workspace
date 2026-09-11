@@ -19,6 +19,11 @@ assert(healthy, 'Server must become healthy');
 const health = await (await fetch(base + '/api/health')).json();
 assert.equal(health.release, '9.1');
 if (process.env.SMOKE_REVISION) assert.equal(health.revision, process.env.SMOKE_REVISION);
+// The run worker is started from instrumentation.ts, which only runs if that
+// file was traced into the standalone build. Assert it here rather than
+// discovering after a deploy that runs queue up and nothing drives them.
+assert(health.worker, 'Health must report the run worker');
+assert.equal(health.worker.started, true, 'The run worker must be running');
 const spoof = {
   'oai-authenticated-user-id': 'owner',
   'oai-authenticated-user-email': process.env.SMOKE_EMAIL,
