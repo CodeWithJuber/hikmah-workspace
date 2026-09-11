@@ -224,6 +224,30 @@ grounding still works if the endpoint is withdrawn or a commercial launch makes
 the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
 itself, not only here.
 
+## Agents
+
+An agent is a named bundle of instructions and a tool allowlist. It applies from
+the next turn on, never retrospectively, and changes the model only if it names
+one — so choosing an agent cannot quietly move a conversation to a different
+provider.
+
+Its instructions are **appended** to the workspace's rather than replacing them:
+the base prompt says true things about this deployment, and an agent should not
+be able to switch those off by accident.
+
+The allowlist narrows the built-in tools and deliberately does **not** touch MCP
+tools. Which servers are connected is the owner's decision, gated per tool by
+the MCP policy; which built-ins a preset uses is a different question, and an
+agent narrowing one should not silently answer the other. The owner's own
+`disabledTools` outranks an agent either way.
+
+Templates seed only into a workspace with no agents at all — a deliberate
+difference from the MCP catalogue. There, a server added later genuinely should
+reach existing owners. An agent is a starting point the owner then owns: seeding
+by name would resurrect a template they deleted and sit the original beside their
+renamed version of it. The cost is that a template added later reaches only new
+owners, which is the right side to err on for something that is theirs.
+
 ## Workspace files
 
 `list_files`, `read_file`, `write_file` and `delete_file` operate on rows rather

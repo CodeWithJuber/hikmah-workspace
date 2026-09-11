@@ -167,6 +167,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         instructions: parsed.instructions,
         maxSteps: parsed.maxSteps,
         disabledTools: parsed.disabledTools,
+        enabledTools: parsed.enabledTools,
         compare: parsed.compare,
       },
     });

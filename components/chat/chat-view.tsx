@@ -40,6 +40,8 @@ export type ChatViewProps = {
     instructions: string;
     maxSteps?: number;
     disabledTools?: string[];
+    /** An agent's allowlist over the built-in tools. */
+    enabledTools?: string[];
   };
   /** The stored transcript, loaded before this mounts. useChat captures it when
    * the conversation is created, so it cannot be supplied later. */

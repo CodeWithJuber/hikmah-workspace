@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react';
 import type { UIMessage } from 'ai';
 import { ChatView } from './chat-view';
+import type { Agent } from './agents-panel';
 import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
 
 type RunConfig = {
@@ -75,9 +76,13 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
 
 export function ChatPreview({
   conversationId,
+  agent,
   onSettled,
 }: {
   conversationId: string;
+  /** Applied to the next turn: its instructions are added and its tool list
+   * narrows what the model is offered. */
+  agent?: Agent | null;
   /** Called when a run finishes, so the conversation list can catch up. */
   onSettled?: () => void;
 }) {
@@ -105,7 +110,19 @@ export function ChatPreview({
       {loaded ? (
         <ChatView
           id={conversationId}
-          run={loaded.config}
+          run={{
+            ...loaded.config,
+            // Appended rather than replacing: the workspace's own instructions
+            // say true things about this deployment that an agent should not be
+            // able to switch off by accident.
+            instructions: agent?.instructions
+              ? `${loaded.config.instructions}\n\n${agent.instructions}`
+              : loaded.config.instructions,
+            enabledTools: agent?.tools?.length ? agent.tools : undefined,
+            // Only when the agent names one, so picking an agent cannot quietly
+            // move the conversation to a different provider.
+            model: agent?.model || loaded.config.model,
+          }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}

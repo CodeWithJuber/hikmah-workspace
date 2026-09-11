@@ -14,6 +14,8 @@ export type ChatRequestBody = {
   instructions: string;
   maxSteps?: number;
   disabledTools: string[];
+  /** An agent's allowlist over the built-in tools; empty means all of them. */
+  enabledTools: string[];
   /** Compare mode: answer a second time with no tools, for contrast. */
   compare?: { model?: string };
   messages: unknown;
@@ -99,6 +101,9 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     maxSteps,
     disabledTools: Array.isArray(body.disabledTools)
       ? body.disabledTools.filter((tool): tool is string => typeof tool === 'string')
+      : [],
+    enabledTools: Array.isArray(body.enabledTools)
+      ? body.enabledTools.filter((tool): tool is string => typeof tool === 'string')
       : [],
     // Only the model is taken from the caller, and only as a string. The key,
     // the endpoint and the free-only rule come from the run's own

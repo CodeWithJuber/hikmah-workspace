@@ -84,8 +84,9 @@ export function FilesPanel({ revision }: { revision: number }) {
   );
 
   return (
-    <aside className="files-panel" aria-label="Workspace files">
-      <h2>Files</h2>
+    // A plain div: the panel around this is the landmark, and nesting a second
+    // one inside it would announce two regions where a person sees one.
+    <div className="files-panel">
       {entries === null && <p className="files-note">Loading…</p>}
       {entries?.length === 0 && (
         <p className="files-note">Nothing here yet. Ask for something to be written.</p>
@@ -133,6 +134,6 @@ export function FilesPanel({ revision }: { revision: number }) {
           </div>
         </div>
       )}
-    </aside>
+    </div>
   );
 }

@@ -8772,7 +8772,7 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  .files-panel {
+  .workspace-panel {
     width: auto;
     max-height: 40dvh;
     border-left: none;
@@ -8780,32 +8780,53 @@ body {
   }
 }
 
-.files-panel {
+.workspace-panel {
   width: 260px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
   padding: 12px 10px env(safe-area-inset-bottom);
   overflow-y: auto;
 }
+.workspace-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.workspace-tabs button {
+  flex: 1;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.workspace-tabs button[aria-selected='true'] {
+  background: var(--muted);
+  font-weight: 600;
+}
 .files-panel h2 {
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 8px;
 }
-.files-panel ul {
+.files-panel ul,
+.agents-panel ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.files-panel li {
+.files-panel li,
+.agents-panel li {
   display: flex;
   align-items: center;
   border-radius: 6px;
 }
-.files-panel li.is-open {
+.files-panel li.is-open,
+.agents-panel li.is-open {
   background: var(--muted);
 }
-.files-panel li > button:first-child {
+.files-panel li > button:first-child,
+.agents-panel li > button:first-child {
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -8838,8 +8859,44 @@ body {
   opacity: 0;
 }
 .files-panel li:hover .files-delete,
+.agents-panel li:hover .files-delete,
 .files-delete:focus-visible {
   opacity: 1;
+}
+.agents-active {
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.agents-tools {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.agents-tools legend {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  padding: 0 4px;
+}
+.agents-tools label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin: 0;
+  padding: 2px 0;
+}
+.files-editor input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin-bottom: 8px;
 }
 .files-editor {
   margin-top: 12px;
