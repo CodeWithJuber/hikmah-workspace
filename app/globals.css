@@ -8822,6 +8822,24 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
+.chat-media {
+  margin: 8px 0;
+}
+.chat-media img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+.chat-media audio {
+  width: 100%;
+  max-width: 480px;
+}
+.chat-media figcaption {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin-top: 6px;
+}
 .chat-attachment-note {
   color: var(--muted-foreground);
   font-size: 13px;

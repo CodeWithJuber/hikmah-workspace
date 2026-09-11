@@ -224,6 +224,32 @@ grounding still works if the endpoint is withdrawn or a commercial launch makes
 the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
 itself, not only here.
 
+## Generated media
+
+`generate_image` and `generate_speech` are run tools rather than a button in the
+composer, which changes two things: the model can decide a picture is the answer
+without the owner having to know that in advance, and the result is stored where
+a reopened conversation can still find it. The old surface kept generated media
+in the browser's IndexedDB, which was the only option while the run belonged to
+the tab.
+
+What the model gets back is a reference and the prompt, never the bytes: twenty
+megabytes of base64 in a transcript would cost more context than the whole
+conversation and tell it nothing it can reason about. The owner's id is part of
+the storage key, so an asset id copied out of a transcript reaches nothing from
+another session, and the type is recovered from the stored extension against a
+fixed table — a provider's claimed media type is replaced rather than trusted,
+because the type is what decides how a browser interprets the bytes.
+
+Media goes through OpenRouter, so a workspace already running on OpenRouter
+needs no second credential. On any other provider it needs `HIKMAH_MEDIA_KEY`,
+and without one the tools are not offered at all.
+
+**Not here:** video generation, which is an asynchronous job that has to be
+polled across steps, and transcription, which needs a file the owner uploads.
+Both are their own piece of work rather than a variation on these. The old
+surface still has them.
+
 ## SSH
 
 The model may name a saved host id and a command. It may never supply a

@@ -49,6 +49,60 @@ function approvalSummary(part: { input?: unknown }): string {
   return JSON.stringify(part.input ?? {}, null, 2);
 }
 
+/** One generated asset, as the media tools describe it in their output. */
+type GeneratedMedia = {
+  kind?: string;
+  url?: string;
+  mediaType?: string;
+  prompt?: string;
+};
+
+const isMedia = (value: unknown): value is GeneratedMedia =>
+  !!value &&
+  typeof value === 'object' &&
+  typeof (value as GeneratedMedia).url === 'string' &&
+  // Only paths this app serves. A url from anywhere else is not something to
+  // load into the page on a tool's say-so.
+  (value as GeneratedMedia).url!.startsWith('/api/media/assets/');
+
+/**
+ * The images and audio in a media tool's output, if it produced any.
+ *
+ * Read structurally rather than by tool name so a failed call — which returns
+ * an error instead — falls through to the ordinary output card and says what
+ * went wrong, rather than rendering as a broken picture.
+ */
+function generatedMedia(output: unknown): GeneratedMedia[] {
+  if (!output || typeof output !== 'object') return [];
+  const value = output as { images?: unknown; audio?: unknown };
+  const found = [...(Array.isArray(value.images) ? value.images : []), value.audio];
+  return found.filter(isMedia);
+}
+
+/** Generated media, played or shown rather than printed as JSON. */
+function MediaAttachment({ media }: { media: GeneratedMedia }) {
+  if (media.kind === 'audio')
+    return (
+      <figure className="chat-media">
+        {/* The figcaption below carries the text that was spoken, which is the
+            caption this needs. preload="none" so a transcript with several of
+            these does not fetch them all on open. */}
+        <audio controls src={media.url} preload="none" />
+        {media.prompt && <figcaption dir="auto">{media.prompt}</figcaption>}
+      </figure>
+    );
+  return (
+    <figure className="chat-media">
+      {/* Not next/image: these are generated at run time behind an
+          owner-scoped route, so there is nothing for the optimiser to
+          pre-process and a loader would only add a hop. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={media.url} alt={media.prompt ?? 'Generated image'} loading="lazy" />
+      {media.prompt && <figcaption dir="auto">{media.prompt}</figcaption>}
+    </figure>
+  );
+}
+
 /** Sources are collected across the message so citations render as one list. */
 function sourceParts(message: UIMessage) {
   return message.parts.filter(
@@ -91,7 +145,8 @@ export function MessageParts({
 
           // isToolUIPart covers both declared tools and dynamic ones, so the
           // two share a branch; only the header needs to distinguish them.
-          if (isToolUIPart(part))
+          if (isToolUIPart(part)) {
+            const media = generatedMedia(part.output);
             return (
               <Tool key={key}>
                 {part.type === 'dynamic-tool' ? (
@@ -132,13 +187,25 @@ export function MessageParts({
                       </ConfirmationAction>
                     </ConfirmationActions>
                   </Confirmation>
-                  {/* errorText and output are mutually exclusive; the component
-                      shows whichever is present, so a failed tool stays visible
-                      in the transcript rather than silently missing. */}
-                  <ToolOutput output={part.output} errorText={part.errorText} />
+                  {/* A generated picture is the answer, not a description of
+                      one, so it is shown rather than printed as the JSON
+                      reference the model received. A call that failed produced
+                      no media and falls through to the card below, which says
+                      what went wrong. */}
+                  {media.length > 0 ? (
+                    media.map((entry, position) => (
+                      <MediaAttachment key={key + '-media-' + position} media={entry} />
+                    ))
+                  ) : (
+                    /* errorText and output are mutually exclusive; the component
+                       shows whichever is present, so a failed tool stays visible
+                       in the transcript rather than silently missing. */
+                    <ToolOutput output={part.output} errorText={part.errorText} />
+                  )}
                 </ToolContent>
               </Tool>
             );
+          }
 
           // Rendered once, after the parts loop, so repeated citations of the
           // same source do not each open their own list.

@@ -84,15 +84,21 @@ export function openStorage(directory, migrations = resolve('drizzle')) {
     async get(key) {
       const path = await objectPath(key);
       try {
-        const text = await readFile(path, 'utf8');
-        return { text: async () => text };
+        const bytes = await readFile(path);
+        // Both views of the same read: workspace state wants text, a generated
+        // image wants the bytes, and neither should cost a second read.
+        return { text: async () => bytes.toString('utf8'), bytes: async () => bytes };
       } catch (error) {
         if (error.code === 'ENOENT') return null;
         throw error;
       }
     },
     async put(key, body) {
-      if (typeof body !== 'string' || Buffer.byteLength(body) > 24_000_000)
+      // Binary as well as text, because generated images and speech are stored
+      // here too and base64 in a text object would cost a third more disk and a
+      // decode on every read.
+      const binary = body instanceof Uint8Array;
+      if ((typeof body !== 'string' && !binary) || Buffer.byteLength(body) > 24_000_000)
         throw Error('Object exceeds storage envelope');
       const path = await objectPath(key);
       await mkdir(dirname(path), { recursive: true, mode: 0o700 });

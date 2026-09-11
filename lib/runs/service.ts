@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import { createAgentUIStream, readUIMessageStream } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
+import { createMediaAssets } from '../server/media-assets.ts';
 import { buildRunAgent } from '../ai/run-agent.ts';
 import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
@@ -52,6 +53,14 @@ async function driveWithAgent({
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
+  // Media goes through OpenRouter. When the run is already on OpenRouter its
+  // key is the same key, so media works without configuring anything twice; on
+  // any other provider it needs its own, and without one the tools are simply
+  // not offered rather than offered and failing.
+  const mediaKey = /(^|\.)openrouter\.ai$/.test(hostOf(config.baseUrl))
+    ? config.apiKey
+    : (process.env.HIKMAH_MEDIA_KEY ?? '');
+
   const agent = buildRunAgent({
     provider: {
       baseUrl: config.baseUrl,
@@ -68,6 +77,16 @@ async function driveWithAgent({
     ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
     shell: { conversationId: run.conversation_id ?? run.id, available: workbenchReady() },
     mcp,
+    media: run.user_id
+      ? {
+          userId: run.user_id,
+          assets: createMediaAssets(getStorage().BUCKET),
+          key: mediaKey,
+          imageModel: process.env.HIKMAH_IMAGE_MODEL,
+          speechModel: process.env.HIKMAH_SPEECH_MODEL,
+          speechVoice: process.env.HIKMAH_SPEECH_VOICE,
+        }
+      : undefined,
     signal,
   });
 
@@ -115,6 +134,15 @@ export function runService(): Worker {
   });
   globalThis.__hikmahRunService = worker;
   return worker;
+}
+
+/** The host of a base URL, or '' when it is not a URL at all. */
+function hostOf(baseUrl: string): string {
+  try {
+    return new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
 }
 
 export const newRunId = () => 'run_' + randomUUID();
