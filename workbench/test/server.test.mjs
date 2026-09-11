@@ -134,7 +134,7 @@ test('another path is not a terminal', async (t) => {
 test('keystrokes reach the shell and a resize frame does not', async (t) => {
   const { port, shells } = await start(t);
   const { ws } = await connect(ticketUrl(port));
-  ws.send('ls -la\r');
+  ws.send(Buffer.from('ls -la\r'));
   ws.send(JSON.stringify({ type: 'resize', cols: 120, rows: 40 }));
   await new Promise((resolve) => setTimeout(resolve, 50));
   assert.deepEqual(shells[0].written, ['ls -la\r'], 'a resize must not be typed into the shell');
@@ -142,7 +142,20 @@ test('keystrokes reach the shell and a resize frame does not', async (t) => {
   ws.close();
 });
 
-test('text that merely looks like JSON is still typed', async (t) => {
+test('pasting a resize frame types it instead of resizing', async (t) => {
+  // Input is binary and control frames are text, so a JSON document someone
+  // pastes into the shell cannot be mistaken for a command to the workbench.
+  const { port, shells } = await start(t);
+  const { ws } = await connect(ticketUrl(port));
+  const pasted = JSON.stringify({ type: 'resize', cols: 1, rows: 1 });
+  ws.send(Buffer.from(pasted));
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.deepEqual(shells[0].written, [pasted]);
+  assert.deepEqual(shells[0].resized, []);
+  ws.close();
+});
+
+test('a text frame that is not a control frame is still typed', async (t) => {
   const { port, shells } = await start(t);
   const { ws } = await connect(ticketUrl(port));
   ws.send('{not json');

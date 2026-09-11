@@ -33,17 +33,22 @@ function fakePty() {
 
 const sink = { onData: () => {}, onExit: () => {} };
 
-test('the shell never inherits the credentials that protect the workbench', () => {
-  // A shell that can read the token can mint its own tickets and its own
-  // sessions, which would make every other check here pointless.
+test('the shell inherits only what it needs, not whatever the service holds', () => {
+  // A shell that can read the token can mint its own tickets, and one that can
+  // read a vault key can decrypt the owner's saved secrets. The allowlist is
+  // what stops a variable added later from silently reaching a prompt.
   const env = shellEnvironment({
     HIKMAH_WORKBENCH_TOKEN: 'secret',
-    HIKMAH_APP_ORIGIN: 'https://example.test',
+    HIKMAH_VAULT_KEY: 'secret',
+    BETTER_AUTH_SECRET: 'secret',
+    SOME_FUTURE_CREDENTIAL: 'secret',
     PATH: '/usr/bin',
+    HOME: '/home/node',
+    LC_ALL: 'C.UTF-8',
   });
-  assert.equal(env.HIKMAH_WORKBENCH_TOKEN, undefined);
-  assert.equal(env.HIKMAH_APP_ORIGIN, undefined);
-  assert.equal(env.PATH, '/usr/bin', 'ordinary variables still reach the shell');
+  assert.deepEqual(Object.keys(env).sort(), ['COLORTERM', 'HOME', 'LC_ALL', 'PATH', 'TERM']);
+  assert.equal(env.PATH, '/usr/bin', 'the shell is still usable');
+  assert.equal(env.HOME, '/home/node');
 });
 
 test('TERM is set so full-screen programs can draw', () => {

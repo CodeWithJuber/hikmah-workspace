@@ -33,6 +33,19 @@ class ConfigurationTests(unittest.TestCase):
                 self.assertEqual(values['BETTER_AUTH_SECRET'],session_secret)
                 self.assertEqual(values['HIKMAH_RUNTIME_TOKEN'],'fixture-runtime-token')
                 self.assertEqual(len(values['HIKMAH_SEARCH_SECRET']),64)
+                self.assertEqual(len(values['HIKMAH_WORKBENCH_TOKEN']),64)
                 self.assertFalse(incoming.exists())
+
+    def test_workbench_token_survives_releases(self):
+        # Rotating it would invalidate every open terminal and every ticket in
+        # flight, so a release must carry the existing one forward.
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'.env').write_text('HIKMAH_OWNER_EMAIL=owner@example.com\nBETTER_AUTH_SECRET='+('b'*64)+'\nHIKMAH_WORKBENCH_TOKEN=fixture-workbench-token\n')
+            incoming=root/'incoming.json'
+            incoming.write_text(json.dumps(self.config|{'owner_password':''}))
+            with patch('configure.Path',side_effect=lambda path: root if path=='/opt/hikmah' else Path(path)), patch.object(sys,'argv',['configure.py',str(incoming)]):main()
+            values=dict(line.split('=',1) for line in (root/'.env').read_text().splitlines())
+            self.assertEqual(values['HIKMAH_WORKBENCH_TOKEN'],'fixture-workbench-token')
 
 if __name__=='__main__':unittest.main()

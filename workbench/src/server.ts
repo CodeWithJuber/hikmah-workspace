@@ -118,14 +118,15 @@ export function createWorkbench(options: WorkbenchOptions) {
     });
     sessions.set(ws, session);
 
-    ws.on('message', (raw: Buffer | ArrayBuffer | Buffer[]) => {
+    // Keystrokes arrive as binary frames and control frames as text, so a
+    // pasted JSON document can never be mistaken for a resize. A text frame
+    // that is not a control frame is still typed, so a plain client works.
+    ws.on('message', (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
       const text = raw.toString();
-      // Control frames are JSON; everything else is keystrokes. A resize that
-      // arrives as plain text would otherwise be typed into the shell.
-      if (text.startsWith('{')) {
+      if (!isBinary && text.startsWith('{')) {
         try {
           const message = JSON.parse(text);
-          if (message.type === 'resize') {
+          if (message?.type === 'resize') {
             session.resize(Number(message.cols), Number(message.rows));
             return;
           }

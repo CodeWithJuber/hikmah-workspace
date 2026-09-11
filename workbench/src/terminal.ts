@@ -11,9 +11,26 @@ import pty from '@homebridge/node-pty-prebuilt-multiarch';
  * otherwise fill memory faster than the network drains it. */
 const MAX_PENDING_BYTES = 1_000_000;
 
-/** Variables the workbench needs but a shell has no business seeing: the token
- * is what authorises the app, and a leaked ticket secret is a shell for anyone. */
-const SECRET_ENV = ['HIKMAH_WORKBENCH_TOKEN', 'HIKMAH_APP_ORIGIN'];
+/** What a shell inherits, as an allowlist rather than a denylist.
+ *
+ * A denylist has to be updated every time the service gains a variable, and the
+ * cost of forgetting once is the owner's vault key sitting in `env` output. An
+ * allowlist fails the other way: a missing variable is a visible annoyance. */
+const INHERITED_ENV = [
+  'PATH',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'HOSTNAME',
+  'LANG',
+  'LANGUAGE',
+  'TZ',
+  'TERM',
+  'COLORTERM',
+];
+/** Locale variables are a family, not a fixed list. */
+const INHERITED_PREFIXES = ['LC_'];
 
 export type TerminalSession = {
   readonly pid: number;
@@ -34,12 +51,13 @@ export type TerminalOptions = {
   spawn?: typeof pty.spawn;
 };
 
-/** The workbench's own configuration is stripped before the shell inherits it. */
+/** Only the variables a shell genuinely needs cross into it. */
 export function shellEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(source)) {
-    if (SECRET_ENV.includes(key)) continue;
-    if (value !== undefined) env[key] = value;
+    if (value === undefined) continue;
+    if (INHERITED_ENV.includes(key) || INHERITED_PREFIXES.some((p) => key.startsWith(p)))
+      env[key] = value;
   }
   // A pty with no TERM leaves curses programs drawing nothing at all.
   env.TERM = env.TERM ?? 'xterm-256color';

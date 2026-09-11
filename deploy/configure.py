@@ -36,7 +36,10 @@ def main():
         # Runtime credentials stay on the server and survive subsequent releases.
         current.setdefault('HIKMAH_VAULT_KEY', current.get('BETTER_AUTH_SECRET') or secret)
         current.setdefault('HIKMAH_SEARCH_SECRET', secrets.token_hex(32))
-        for key in ('HIKMAH_VAULT_KEY', 'HIKMAH_SEARCH_SECRET', 'HIKMAH_SEARCH_IMAGE', 'HIKMAH_SEARCH_URL', 'HIKMAH_RUNTIME_URL', 'HIKMAH_RUNTIME_TOKEN', 'BRAVE_SEARCH_API_KEY'):
+        # Signs the workbench's single-use terminal tickets and authenticates the
+        # app to it. Rotating it on a release would end every open terminal.
+        current.setdefault('HIKMAH_WORKBENCH_TOKEN', secrets.token_hex(32))
+        for key in ('HIKMAH_VAULT_KEY', 'HIKMAH_SEARCH_SECRET', 'HIKMAH_WORKBENCH_TOKEN', 'HIKMAH_SEARCH_IMAGE', 'HIKMAH_SEARCH_URL', 'HIKMAH_RUNTIME_URL', 'HIKMAH_RUNTIME_TOKEN', 'BRAVE_SEARCH_API_KEY'):
             if current.get(key):
                 content += f'{key}={current[key]}\n'
         temp = root / '.env.new'

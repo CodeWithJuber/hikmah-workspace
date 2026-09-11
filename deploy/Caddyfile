@@ -6,11 +6,25 @@
     Referrer-Policy strict-origin-when-cross-origin
     -Server
   }
-  reverse_proxy app:3000 {
-    flush_interval -1
-    header_up X-Real-IP {remote_host}
-    header_up -oai-authenticated-user-id
-    header_up -oai-authenticated-user-email
-    header_up -oai-authenticated-user-full-name
+  # The terminal socket, before the app route: Next.js cannot serve a
+  # WebSocket, so /ws/* belongs to the workbench. stream_timeout keeps a long
+  # idle session alive and stream_close_delay stops a config reload from
+  # dropping every open terminal.
+  handle /ws/* {
+    reverse_proxy workbench:3001 {
+      stream_timeout 24h
+      stream_close_delay 5m
+    }
+  }
+  # Everything else is the app. Both routes use handle blocks so the match is
+  # first-wins by the order written here rather than by directive sorting.
+  handle {
+    reverse_proxy app:3000 {
+      flush_interval -1
+      header_up X-Real-IP {remote_host}
+      header_up -oai-authenticated-user-id
+      header_up -oai-authenticated-user-email
+      header_up -oai-authenticated-user-full-name
+    }
   }
 }
