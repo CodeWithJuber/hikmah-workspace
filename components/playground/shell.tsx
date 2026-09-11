@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState, useMemo, type CSSProperties } from 'react';
 import {
   MessageSquare,
@@ -219,6 +220,13 @@ function ShellContent() {
               </button>
             ))}
           </nav>
+          {/* The rebuilt surface is a route of its own rather than a page of
+              this shell, so it needs a real link: without one it exists and
+              nobody can reach it. */}
+          <Link className="knowledge-nav" href="/chat">
+            <HikmahIcon name="conversation" size={20} />
+            Chat (new)
+          </Link>
           <button
             className={'knowledge-nav' + (page === 'tools' ? ' selected' : '')}
             disabled={isRunning}
