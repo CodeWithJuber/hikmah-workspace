@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   TerminalSquare,
+  Plug,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -64,6 +65,7 @@ import { LearningHome, OwnerAccess } from './learning-home';
 import { AgentsHome } from './agents-home';
 import { RuntimeHome } from './runtime-home';
 import { TerminalPage } from '@/components/workbench/terminal-page';
+import { McpServers } from '@/components/settings/mcp-servers';
 import { Knowledge } from './knowledge';
 import { Settings } from './settings';
 import { WorkspaceAdmin } from './admin';
@@ -227,6 +229,16 @@ function ShellContent() {
           >
             <HikmahIcon name="tools" />
             Tools & runtimes
+          </button>
+          <button
+            className={'knowledge-nav' + (page === 'connections' ? ' selected' : '')}
+            onClick={() => {
+              setPage('connections');
+              setOpenMobile(false);
+            }}
+          >
+            <Plug size={20} />
+            Connections
           </button>
           <button
             className={'knowledge-nav' + (page === 'terminal' ? ' selected' : '')}
@@ -433,6 +445,17 @@ function ShellContent() {
           <RuntimeHome />
         ) : page === 'terminal' ? (
           <TerminalPage />
+        ) : page === 'connections' ? (
+          <div className="lab-page">
+            <header className="lab-header">
+              <SidebarTrigger />
+              <div>
+                <h1>Connections</h1>
+                <p>Servers the assistant can call tools on.</p>
+              </div>
+            </header>
+            <McpServers />
+          </div>
         ) : page === 'knowledge' ? (
           <Knowledge />
         ) : page === 'learning' ? (

@@ -5,6 +5,7 @@ import { EndpointError } from '@/lib/ai/endpoint';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { buildRunAgent } from '@/lib/ai/run-agent';
 import { sshRunContext } from '@/lib/ssh/run-context';
+import { mcpForUser } from '@/lib/mcp/app-context';
 import { initialModel } from '@/lib/playground/session';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 
@@ -66,6 +67,10 @@ export async function POST(request: Request) {
   if (!messages.length) return fail('Send a message to start the run.', 400);
 
   try {
+    // Connected once per turn, then released in the finally below: a server's
+    // tool descriptions are part of the prompt, so they are re-read and
+    // re-checked rather than cached into a state nobody re-approves.
+    const mcp = await mcpForUser(user.userId, request.signal);
     const agent = buildRunAgent({
       provider: {
         baseUrl: parsed.baseUrl,
@@ -84,6 +89,7 @@ export async function POST(request: Request) {
       // Undefined when this deployment has no workbench, which keeps ssh_exec
       // out of the tool set rather than offering one that fails on every call.
       ssh: sshRunContext(user.userId),
+      mcp,
       signal: request.signal,
     });
 
@@ -100,6 +106,11 @@ export async function POST(request: Request) {
       // actionable. Provider prose is still never forwarded verbatim: these are
       // this app's own messages, from the endpoint policy and the watchdog.
       onError: (error: unknown) => (error instanceof Error ? error.message : 'The run failed.'),
+      // The stream outlives this function, so the MCP clients are released when
+      // it ends rather than in a finally that would run mid-run.
+      onEnd: () => {
+        void mcp.close();
+      },
     });
   } catch (error) {
     if (error instanceof EndpointError) return fail(error.message, 400);

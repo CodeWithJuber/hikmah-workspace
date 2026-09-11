@@ -10,6 +10,7 @@ import { createAgentUIStream, readUIMessageStream } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
 import { buildRunAgent } from '../ai/run-agent.ts';
 import { sshRunContext } from '../ssh/run-context.ts';
+import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { createWorker, type Worker } from './worker.ts';
 
@@ -47,6 +48,10 @@ async function driveWithAgent({
   emit: (chunk: unknown) => number;
 }) {
   const config = JSON.parse(run.config) as RunConfig;
+  // Connected per run and released in the finally below. A worker that lives
+  // for the life of the process would otherwise accumulate one set of
+  // connections per run it has ever driven.
+  const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
   const agent = buildRunAgent({
     provider: {
       baseUrl: config.baseUrl,
@@ -61,28 +66,33 @@ async function driveWithAgent({
     // Only when the deployment actually has a workbench: without one, ssh_exec
     // would be offered and then fail on every call.
     ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
+    mcp,
     signal,
   });
 
-  const stream = await createAgentUIStream({ agent, uiMessages: messages, abortSignal: signal });
+  try {
+    const stream = await createAgentUIStream({ agent, uiMessages: messages, abortSignal: signal });
 
-  // Tee the chunks: one copy into the durable log, one into the fold that
-  // produces the final message row.
-  const recorded: unknown[] = [];
-  const replay = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of stream as AsyncIterable<unknown>) {
-        emit(chunk);
-        recorded.push(chunk);
-        controller.enqueue(chunk);
-      }
-      controller.close();
-    },
-  });
+    // Tee the chunks: one copy into the durable log, one into the fold that
+    // produces the final message row.
+    const recorded: unknown[] = [];
+    const replay = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of stream as AsyncIterable<unknown>) {
+          emit(chunk);
+          recorded.push(chunk);
+          controller.enqueue(chunk);
+        }
+        controller.close();
+      },
+    });
 
-  let message: unknown;
-  for await (const value of readUIMessageStream({ stream: replay as never })) message = value;
-  return { message };
+    let message: unknown;
+    for await (const value of readUIMessageStream({ stream: replay as never })) message = value;
+    return { message };
+  } finally {
+    await mcp?.close();
+  }
 }
 
 export function runService(): Worker {
