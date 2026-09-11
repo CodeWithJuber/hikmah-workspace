@@ -60,10 +60,6 @@ export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatVie
   // changes, so anything the view kept would never reach the instance actually
   // sending the requests.
   const [transport] = useState(() => createDurableChatTransport({ config: run }));
-  useEffect(() => {
-    transport.setConfig(run);
-  }, [transport, run]);
-
   const { messages, sendMessage, status, stop, error, regenerate, addToolApprovalResponse } =
     useChat({
       id,
@@ -77,6 +73,14 @@ export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatVie
       // have to nudge the conversation by hand for anything to happen.
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     });
+
+  // Compare answers the same question a second time with no tools, to show what
+  // the agent's machinery is actually buying. Held here rather than in the run
+  // configuration because it is a per-turn choice, not a setting.
+  const [compare, setCompare] = useState(false);
+  useEffect(() => {
+    transport.setConfig({ ...run, compare: compare ? {} : undefined });
+  }, [transport, run, compare]);
 
   const busy = status === 'submitted' || status === 'streaming';
 
@@ -142,7 +146,16 @@ export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatVie
           <PromptInputTextarea placeholder="Ask anything, or describe what to build." />
         </PromptInputBody>
         <PromptInputFooter>
-          <PromptInputTools />
+          <PromptInputTools>
+            <label className="chat-compare-toggle">
+              <input
+                type="checkbox"
+                checked={compare}
+                onChange={(event) => setCompare(event.target.checked)}
+              />
+              Compare without tools
+            </label>
+          </PromptInputTools>
           {/* Doubles as Stop while a run is in flight. */}
           <PromptInputSubmit status={status} onClick={busy ? halt : undefined} />
         </PromptInputFooter>

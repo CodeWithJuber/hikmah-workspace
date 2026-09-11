@@ -8822,6 +8822,40 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
+.chat-compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.chat-compare {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+.chat-compare header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.chat-compare-model,
+.chat-compare-timing {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.chat-compare-note {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
 .chat-media {
   margin: 8px 0;
 }

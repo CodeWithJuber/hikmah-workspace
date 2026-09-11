@@ -6,10 +6,11 @@
  * racing for the same queue.
  */
 import { randomUUID } from 'node:crypto';
-import { createAgentUIStream, readUIMessageStream } from 'ai';
+import { createAgentUIStream, readUIMessageStream, type UIMessage } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
 import { createMediaAssets } from '../server/media-assets.ts';
 import { buildRunAgent } from '../ai/run-agent.ts';
+import { runComparison } from '../ai/compare.ts';
 import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
@@ -28,6 +29,8 @@ export type RunConfig = {
   instructions: string;
   maxSteps?: number;
   disabledTools?: string[];
+  /** Compare mode: also answer directly, with no tools, for contrast. */
+  compare?: { model?: string };
 };
 
 /**
@@ -94,15 +97,36 @@ async function driveWithAgent({
     const stream = await createAgentUIStream({ agent, uiMessages: messages, abortSignal: signal });
 
     // Tee the chunks: one copy into the durable log, one into the fold that
-    // produces the final message row.
-    const recorded: unknown[] = [];
+    // produces the final message row. Both halves matter — the log is what a
+    // reconnecting client replays, the fold is what becomes the stored message.
     const replay = new ReadableStream({
       async start(controller) {
-        for await (const chunk of stream as AsyncIterable<unknown>) {
+        const push = (chunk: unknown) => {
           emit(chunk);
-          recorded.push(chunk);
           controller.enqueue(chunk);
-        }
+        };
+        // The comparison runs alongside rather than after: the point of the
+        // mode is watching the two answers arrive together, and running them in
+        // sequence would double the wait for no gain.
+        await Promise.all([
+          (async () => {
+            for await (const chunk of stream as AsyncIterable<unknown>) push(chunk);
+          })(),
+          config.compare
+            ? runComparison({
+                provider: {
+                  baseUrl: config.baseUrl,
+                  model: config.compare.model || config.model,
+                  apiKey: config.apiKey,
+                  freeOnly: config.freeOnly,
+                },
+                instructions: config.instructions,
+                messages: messages as UIMessage[],
+                signal,
+                write: push,
+              })
+            : Promise.resolve(),
+        ]);
         controller.close();
       },
     });

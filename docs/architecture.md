@@ -224,6 +224,34 @@ grounding still works if the endpoint is withdrawn or a commercial launch makes
 the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
 itself, not only here.
 
+## Compare
+
+Compare mode answers the same question twice: once through the full agent, and
+once directly with no tools at all. It is not a second opinion from a second
+model, though it can be — it is the same question without the machinery, which
+is what makes the difference between the two workflows visible.
+
+The baseline runs _alongside_ the main answer rather than after it, and streams
+into the same durable log as `data-compare` chunks sharing one part id. Both
+follow from what the mode is for: running them in sequence would double the wait
+for no gain, and a comparison that lived only in the tab that started it would
+be gone on the reload where someone actually reads the two side by side. One
+part id rather than one part per delta, or the stored message would hold a
+hundred fragments instead of an answer.
+
+The lane never fails the run. It is the second answer on the page; a provider
+that refuses it should cost the comparison and not the answer the person asked
+for. Two states are easy to get wrong and are handled explicitly: a provider
+error arrives through `streamText`'s `onError` and does **not** throw out of the
+iteration, so without catching it there a comparison that never started would be
+published as finished and empty; and an aborted stream simply ends with no error
+at all, so abort is checked before anything else, or a run someone stopped
+halfway would be recorded as complete.
+
+Only the model may be chosen by the caller. The key, the endpoint and the
+free-only rule come from the run's own configuration, so the comparison cannot
+be pointed at another endpoint carrying the owner's credentials.
+
 ## Generated media
 
 `generate_image` and `generate_speech` are run tools rather than a button in the

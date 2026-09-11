@@ -103,6 +103,50 @@ function MediaAttachment({ media }: { media: GeneratedMedia }) {
   );
 }
 
+/** The comparison lane's state, as the run writes it. */
+type CompareView = {
+  status?: string;
+  model?: string;
+  text?: string;
+  latencyMs?: number;
+  firstTextMs?: number;
+  error?: string;
+};
+
+/** The same question answered without the agent's tools, beside the answer that
+ * used them. Rendered as its own block rather than inline, because the whole
+ * point of the mode is reading the two next to each other. */
+function ComparisonLane({ view }: { view: CompareView }) {
+  const running = view.status === 'running';
+  return (
+    <section className="chat-compare" aria-label="Comparison: the same question without tools">
+      <header>
+        <strong>Without tools</strong>
+        <span className="chat-compare-model">{view.model}</span>
+        {/* Time to the first token is the number a person actually feels; the
+            total is what the workflows cost. Both, once they exist. */}
+        {view.firstTextMs !== undefined && (
+          <span className="chat-compare-timing">
+            {Math.round(view.firstTextMs)} ms to first word
+            {view.latencyMs !== undefined && ` · ${Math.round(view.latencyMs)} ms total`}
+          </span>
+        )}
+      </header>
+      {/* Shown whatever the status: a stopped or failed comparison has usually
+          written something, and hiding a partial answer is the defect this
+          surface was rebuilt to fix. */}
+      {view.text && <div dir="auto">{view.text}</div>}
+      {running && <p className="chat-compare-note">Answering…</p>}
+      {view.status === 'failed' && (
+        <p className="chat-compare-note" role="alert">
+          {view.error ?? 'The comparison did not finish.'}
+        </p>
+      )}
+      {view.status === 'cancelled' && <p className="chat-compare-note">Stopped.</p>}
+    </section>
+  );
+}
+
 /** Sources are collected across the message so citations render as one list. */
 function sourceParts(message: UIMessage) {
   return message.parts.filter(
@@ -217,6 +261,9 @@ export function MessageParts({
                 Attached: {part.filename ?? part.mediaType}
               </p>
             );
+
+          if (part.type === 'data-compare')
+            return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
           // A step boundary in a multi-step run. It carries no content of its
           // own; the tool cards around it already show what happened.
