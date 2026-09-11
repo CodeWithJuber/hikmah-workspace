@@ -87,6 +87,40 @@ claiming is a read-then-write race. Reconnect subscribes, then replays, then
 drops already-covered events — the other order loses any chunk written between
 the read and the subscribe.
 
+The resume buffer holds only the step in flight and is pruned when that step
+becomes a message row, so a reconnecting client is not handed chunks it will
+also receive as history. Sequence numbers therefore cannot be counted from it:
+they are claimed from a counter on the run, which is never pruned. Counting from
+the buffer worked for a run that finished in one step and failed silently for
+one that paused for an approval — the numbers restarted at zero, every event of
+the second half arrived below the cursor the client was holding, and both the
+replay and the client discarded the rest of the answer with no error anywhere.
+
+The browser side of this is `lib/chat/durable-transport.ts`, which exists
+because the AI SDK's own transport expects one request that answers with the
+stream and this route deliberately does not work that way. Posting a message
+returns a run id; the output is tailed separately. Three things follow, and all
+three are the reason the split is worth its cost:
+
+- A dropped connection resumes from the last sequence number seen, so a reload
+  mid-answer rejoins rather than restarting or losing the middle.
+- A closed body does not mean the run ended — a proxy idle timeout closes one
+  too. Asking again from the cursor tells them apart, which is what the stream
+  route's `204` is for.
+- A second submit while a run is in flight gets `409` with that run's id, and
+  the transport tails it. Reporting an error there would hide work that is
+  already producing output.
+
+Stopping is two halves: `stop()` ends this tab's stream, and a POST to
+`/api/runs/[id]/cancel` aborts the provider call the worker is still driving.
+Only the first would leave the run finishing into the log with nobody watching.
+
+The conversation id comes from the client, so an existing conversation's owner
+is checked rather than assumed, and refused as "not found" so the reply does not
+confirm that someone else's conversation exists. `/chat` derives one id per
+owner from a hash of the account id: a shared constant would put two owners in
+the same conversation, which that check would then refuse forever.
+
 **Documented limit:** one worker per process, and the resume buffer is a
 process-local `EventEmitter`. A second replica would break the tail.
 

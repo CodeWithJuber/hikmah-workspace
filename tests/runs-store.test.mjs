@@ -3,20 +3,18 @@
 // Run: node --test tests/runs-store.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { applySchema } from './schema.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
 import { createRunStore } from '../lib/runs/store.ts';
-
-const schema = readFileSync('drizzle/0004_runs.sql', 'utf8');
 
 async function freshStore(t) {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-runs-'));
   const db = new DatabaseSync(join(dir, 'test.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;');
-  db.exec(schema);
+  applySchema(db);
   t.after(async () => {
     db.close();
     await rm(dir, { recursive: true, force: true });
@@ -180,4 +178,43 @@ test('active runs are counted per owner so a looping client cannot flood the que
 
   store.finish('r1', 'cancelled');
   assert.equal(store.countActive('u1'), 1, 'a cancelled run frees its slot');
+});
+
+test('a conversation reports its owner, so a guessed id cannot be written into', async (t) => {
+  // The conversation id comes from the client now, so the route has to be able
+  // to ask who owns an existing row rather than assume the caller does.
+  const { store } = await freshStore(t);
+  assert.equal(store.getConversation('c1').user_id, 'u1');
+  assert.equal(store.getConversation('nope'), null, 'a missing row is absence, not an error');
+});
+
+test('sequence numbers keep climbing after the buffer is pruned', async (t) => {
+  // The buffer is pruned at the end of every step. When the numbers were
+  // counted from it, a run that paused for an approval and resumed restarted at
+  // zero, and every event of the second half arrived below the cursor a
+  // reconnecting client was already holding — so the server's replay and the
+  // client both discarded the rest of the answer, without an error anywhere.
+  const { store } = await freshStore(t);
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  assert.equal(store.appendEvent('r1', { type: 'a' }), 0);
+  assert.equal(store.appendEvent('r1', { type: 'b' }), 1);
+
+  store.pruneEvents('r1');
+  assert.equal(store.appendEvent('r1', { type: 'c' }), 2, 'not 0: the client is still at 1');
+  assert.deepEqual(
+    store.eventsAfter('r1', 1).map((event) => event.seq),
+    [2],
+    'and the reconnecting client sees exactly what it missed',
+  );
+});
+
+test('each run counts its own events', async (t) => {
+  // Two conversations answering at once must not share a cursor.
+  const { store } = await freshStore(t);
+  store.createConversation({ id: 'c2', userId: 'u1' });
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  store.createRun({ id: 'r2', conversationId: 'c2', userId: 'u1', config: {} });
+  store.appendEvent('r1', { type: 'a' });
+  store.appendEvent('r1', { type: 'b' });
+  assert.equal(store.appendEvent('r2', { type: 'a' }), 0);
 });
