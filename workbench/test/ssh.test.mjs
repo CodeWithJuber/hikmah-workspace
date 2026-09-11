@@ -9,12 +9,29 @@ import ssh2 from 'ssh2';
 const { Server, utils } = ssh2;
 import { HostKeyMismatch, MAX_INLINE_OUTPUT, sshExec } from '../src/ssh.ts';
 
-/** Start a server that answers one command, and return how to reach it. The
- * host key is generated per run rather than committed. */
+/**
+ * One host key for the whole file, generated rather than committed.
+ *
+ * ssh2's own generateKeyPairSync emits a private key its own parseKey rejects
+ * roughly once in three hundred ("Malformed OpenSSH private key"). Such a key
+ * would fail in the Server constructor too, so it is discarded and regenerated
+ * rather than retried at the test level — the key really is unusable.
+ */
+function generateHostKey() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const key = utils.generateKeyPairSync('ed25519').private;
+    const parsed = utils.parseKey(key);
+    if (typeof parsed?.getPublicSSH === 'function')
+      return { key, fingerprint: createHash('sha256').update(parsed.getPublicSSH()).digest('hex') };
+  }
+  throw new Error('ssh2 could not generate a key it can parse.');
+}
+
+const hostKey = generateHostKey();
+
+/** Start a server that answers one command, and return how to reach it. */
 async function startServer({ stdout = 'ok\n', stderr = '', exitCode = 0 } = {}) {
-  const key = utils.generateKeyPairSync('ed25519').private;
-  const parsed = utils.parseKey(key);
-  const fingerprint = createHash('sha256').update(parsed.getPublicSSH()).digest('hex');
+  const { key, fingerprint } = hostKey;
 
   const server = new Server({ hostKeys: [key] }, (client) => {
     client.on('authentication', (ctx) => ctx.accept());
