@@ -4,6 +4,7 @@ import { publicOrigin } from '@/lib/server/origin';
 import { EndpointError } from '@/lib/ai/endpoint';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { buildRunAgent } from '@/lib/ai/run-agent';
+import { sshRunContext } from '@/lib/ssh/run-context';
 import { initialModel } from '@/lib/playground/session';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 
@@ -80,6 +81,9 @@ export async function POST(request: Request) {
       disabledTools: parsed.disabledTools,
       savedSearchKey: () =>
         createSecretStore().resolve(user.userId, 'BRAVE_SEARCH_API_KEY', 'search:brave'),
+      // Undefined when this deployment has no workbench, which keeps ssh_exec
+      // out of the tool set rather than offering one that fails on every call.
+      ssh: sshRunContext(user.userId),
       signal: request.signal,
     });
 
