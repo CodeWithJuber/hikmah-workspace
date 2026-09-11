@@ -20,6 +20,28 @@ function hasApprovalResponse(message: UIMessage): boolean {
 }
 
 /**
+ * Which run, if any, is currently in flight for this conversation.
+ *
+ * A reload knows the conversation from the URL but not the run, so it cannot
+ * rejoin an answer that is still being written without asking. Authenticated
+ * the same way the stream is, and for the same reason: a browser sends no
+ * Origin on a same-origin GET, so requiring one would reject every reload.
+ */
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const user = await getChatGPTUser();
+  if (!user) return fail('Sign in to your private workspace.', 401);
+
+  const { id: conversationId } = await context.params;
+  const store = runService().store;
+  const runId = store.activeForConversation(conversationId);
+  // Ownership is checked on the run rather than the conversation id, so naming
+  // someone else's conversation reveals nothing about whether it exists.
+  const run = runId ? store.getRun(runId) : null;
+  if (!run || run.user_id !== user.userId) return Response.json({ runId: null }, { headers });
+  return Response.json({ runId: run.id, status: run.status }, { headers });
+}
+
+/**
  * Queue a run for this conversation and return immediately.
  *
  * The response is the run id, not the answer. The client then tails
@@ -55,8 +77,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return fail('The conversation could not be read. Reload and try again.', 400);
   }
 
-  // The conversation may not exist yet: the first message creates it.
-  if (!store.listMessages(conversationId).length)
+  // The conversation id comes from the client, so an existing row has to be
+  // checked rather than assumed: without this, naming someone else's
+  // conversation would append to it. Refused as "not found" so the reply does
+  // not confirm that the conversation exists.
+  const existing = store.getConversation(conversationId);
+  if (existing && existing.user_id !== user.userId) return fail('Conversation not found.', 404);
+  if (!existing)
     try {
       store.createConversation({ id: conversationId, userId: user.userId, model: parsed.model });
     } catch {

@@ -4,15 +4,14 @@
 // Run: node --test tests/runs-approval.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { applySchema } from './schema.mjs';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
 import { createWorker } from '../lib/runs/worker.ts';
 
 function setup(t, drive) {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
-  for (const file of ['0004_runs.sql', '0005_mcp.sql'])
-    db.exec(readFileSync(new URL(`../drizzle/${file}`, import.meta.url), 'utf8'));
+  applySchema(db);
   const worker = createWorker({ db, drive });
   t.after(() => {
     void worker.stop();

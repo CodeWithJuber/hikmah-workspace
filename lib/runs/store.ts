@@ -60,6 +60,7 @@ export function createRunStore(
       `INSERT INTO messages (id, conversation_id, seq, role, parts, metadata, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ),
+    getConversation: db.prepare('SELECT id, user_id FROM conversations WHERE id = ?'),
     nextSeq: db.prepare(
       'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM messages WHERE conversation_id = ?',
     ),
@@ -99,8 +100,11 @@ export function createRunStore(
     appendEvent: db.prepare(
       'INSERT INTO run_events (run_id, seq, payload, created_at) VALUES (?, ?, ?, ?)',
     ),
+    // Claimed from the run rather than counted from run_events: that table is
+    // pruned at the end of every step, and deriving the number from it made a
+    // resumed run restart at 0 and its output vanish behind a stale cursor.
     nextEventSeq: db.prepare(
-      'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM run_events WHERE run_id = ?',
+      'UPDATE runs SET event_seq = event_seq + 1 WHERE id = ? RETURNING event_seq - 1 AS next',
     ),
     countQueued: db.prepare("SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'"),
     countActive: db.prepare(
@@ -139,6 +143,11 @@ export function createRunStore(
         stamp,
       );
       return input.id;
+    },
+
+    /** Who owns this conversation, or null when there is no such row. */
+    getConversation(id: string): { id: string; user_id: string } | null {
+      return one<{ id: string; user_id: string }>(statements.getConversation.get(id));
     },
 
     appendMessage(conversationId: string, message: StoredMessage) {
@@ -245,7 +254,9 @@ export function createRunStore(
     },
 
     appendEvent(runId: string, payload: unknown): number {
-      const seq = (statements.nextEventSeq.get(runId) as { next: number }).next;
+      const claimed = statements.nextEventSeq.get(runId) as { next: number } | undefined;
+      if (!claimed) throw new Error('No such run: ' + runId);
+      const seq = claimed.next;
       statements.appendEvent.run(runId, seq, JSON.stringify(payload), now());
       return seq;
     },

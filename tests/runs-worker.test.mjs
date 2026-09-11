@@ -4,20 +4,18 @@
 // Run: node --test tests/runs-worker.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { applySchema } from './schema.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createWorker } from '../lib/runs/worker.ts';
 
-const schema = readFileSync('drizzle/0004_runs.sql', 'utf8');
-
 async function harness(t, drive) {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-worker-'));
   const db = new DatabaseSync(join(dir, 'test.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;');
-  db.exec(schema);
+  applySchema(db);
   t.after(async () => {
     db.close();
     await rm(dir, { recursive: true, force: true });
