@@ -365,3 +365,9 @@ body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI"
  .studio-shell .agent-selector select{max-width:calc(100vw - 85px)}
  .studio-shell .chat-message.user .chat-message-inner{max-width:94%}
 }
+
+/* Secret values stay in the form; only metadata appears in the saved list. */
+.secret-select{width:100%;min-height:40px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--background);color:var(--foreground);font:inherit}
+.secret-form{display:grid;gap:12px;margin:20px 0}.secret-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.secret-list{margin-top:24px;border-top:1px solid var(--border)}
+.secret-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}.secret-row strong,.secret-row p{overflow-wrap:anywhere}.secret-row p,.secret-row small{color:var(--muted-foreground);font-size:12px}.secret-row>div:first-child{min-width:0}.secrets-settings{max-width:780px}
+@media(max-width:600px){.secret-row{align-items:flex-start;flex-direction:column}.settings-tabs-list{overflow-x:auto;justify-content:flex-start}.settings-tabs-list [role=tab]{flex-shrink:0}}

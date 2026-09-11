@@ -1,6 +1,7 @@
 import http.client,json,threading,unittest
 from http.server import ThreadingHTTPServer
 import server
+from unittest.mock import patch
 class RuntimeTests(unittest.TestCase):
     def test_docker_boundary(self):
         args=server.docker_args('python','test-run')
@@ -12,6 +13,18 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(r['stdout'].strip(),'42');self.assertEqual(r['exitCode'],0)
         with self.assertRaises(ValueError):server.capture(['python3','-I','-'],b'print("x"*100000)')
         with self.assertRaises(TimeoutError):server.capture(['python3','-I','-'],b'while True: pass',seconds=.2)
+    def test_environment_is_supplied_without_values_in_command_arguments(self):
+        environment={'REPORT_TOKEN':'private-runtime-fixture'}
+        with patch('server.shutil.which',return_value='/usr/bin/docker'), patch('server.capture',return_value={'stdout':'','stderr':'','exitCode':0}) as capture, patch('server.subprocess.run'):
+            server.run_code({'language':'python','code':'print(42)','_env':environment})
+            argv=capture.call_args.args[0]
+            self.assertIn('REPORT_TOKEN',argv)
+            self.assertNotIn('private-runtime-fixture',argv)
+            self.assertEqual(capture.call_args.kwargs['environment']['REPORT_TOKEN'],'private-runtime-fixture')
+        with self.assertRaises(ValueError):server.run_code({'language':'node','code':'1','_env':{'NODE_OPTIONS':'--require=bad'}})
+        with self.assertRaises(ValueError):server.run_code({'language':'node','code':'1','_env':{'TOKEN':'x'*8193}})
+        result=server.capture(['python3','-I','-'],b'import os; print(os.environ["REPORT_TOKEN"])',environment={**server.os.environ,**environment})
+        self.assertEqual(result['stdout'].strip(),'private-runtime-fixture')
     def test_ssh_alias_only(self):
         with self.assertRaises(ValueError):server.ssh_action({'action':'arbitrary'}, {})
     def test_adapter_authentication_and_catalog(self):

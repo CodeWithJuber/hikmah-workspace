@@ -15,6 +15,7 @@ assert.equal(health.release,'9.1');
 if(process.env.SMOKE_REVISION)assert.equal(health.revision,process.env.SMOKE_REVISION);
 const spoof={'oai-authenticated-user-id':'owner','oai-authenticated-user-email':process.env.SMOKE_EMAIL};
 assert.equal((await fetch(base+'/api/workspace-state',{headers:spoof})).status,401);
+assert.equal((await fetch(base+'/api/secrets',{headers:spoof})).status,401);
 assert.equal((await fetch(base+'/',{redirect:'manual'})).status,307);
 assert.match(await (await fetch(base+'/sign-in')).text(),/Good to have you here/);
 let cookie;
@@ -29,6 +30,21 @@ const headers={cookie,Origin:base,'Content-Type':'application/json'};
 const kernel=await fetch(base+'/api/kernel',{headers});
 assert.equal(kernel.status,200);assert.equal((await kernel.json()).role,'super_admin');
 const context=await fetch(base+'/api/context-model',{headers});assert.equal(context.status,200);
+const fixtureSecret='smoke-secret-value-private';
+if(phase==='write') {
+  const secretBody=JSON.stringify({name:'SMOKE_KEY',value:fixtureSecret,destination:'provider:openrouter'});
+  assert.equal((await fetch(base+'/api/secrets',{method:'PUT',headers:{...headers,Origin:'https://evil.test'},body:secretBody})).status,403);
+  const savedSecret=await fetch(base+'/api/secrets',{method:'PUT',headers,body:secretBody});
+  assert.equal(savedSecret.status,200);assert.ok(!(await savedSecret.text()).includes(fixtureSecret));
+}
+const secretList=await fetch(base+'/api/secrets',{headers});assert.equal(secretList.status,200);
+const metadata=await secretList.json();assert.equal(metadata.secrets[0].name,'SMOKE_KEY');
+assert.deepEqual(Object.keys(metadata.secrets[0]).sort(),['destination','name','updatedAt']);
+assert.ok(!JSON.stringify(metadata).includes(fixtureSecret));
+if(phase==='read') {
+  assert.equal((await fetch(base+'/api/secrets?name=SMOKE_KEY',{method:'DELETE',headers})).status,200);
+  assert.equal((await (await fetch(base+'/api/secrets',{headers})).json()).secrets.length,0);
+}
 const message='Memory محفوظ • '.repeat(60_000);
 if(phase==='write') {
   const session={version:1,additions:[],experimental:false,conversations:[{id:'smoke',title:'Persistence check',messages:[{id:'message',role:'user',text:message}]}],files:{'main.js':'console.log("Hikmah")'},knowledge:[],connection:{baseUrl:'https://openrouter.ai/api/v1',model:'openrouter/free',freeOnly:true}};
@@ -44,4 +60,4 @@ if(phase==='read') {
   assert.equal((await fetch(base+'/api/auth/sign-out',{method:'POST',headers,body:'{}'})).status,200);
   assert.equal((await fetch(base+'/api/workspace-state',{headers})).status,401);
 }
-console.info(`HTTP smoke ${phase}: login, role, origin checks, release and large saved workspace passed.`);
+console.info(`HTTP smoke ${phase}: login, role, origin checks, release, saved secrets and large saved workspace passed.`);

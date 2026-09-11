@@ -1,7 +1,8 @@
+import {parseSecretRef} from './secret-reference.ts';
 import {CompletionFramer,FramingError} from './completion-framing.ts';
 /** OpenAI-compatible Chat Completions transport. Known providers use the app relay;
- * other compatible endpoints connect directly from the browser. No credential storage.
- * Keep ProviderConfig in caller state; never persist it in chat/session exports.
+ * other compatible endpoints connect directly from the browser.
+ * Plaintext keys remain in caller memory. Saved settings contain only vault references.
  * Protocol: https://openrouter.ai/docs/api_reference/streaming
  * Tools: https://openrouter.ai/docs/guides/features/tool-calling
  */
@@ -14,6 +15,7 @@ export interface ProviderConfig {
   freeOnly?: boolean;
   baseUrl: string;
   apiKey: string;
+  apiKeySecret?: string;
   model: string;
   maxTokens: number;
   temperature: number;
@@ -106,7 +108,9 @@ function normalizeConfig(config: ProviderConfig, requireModel: boolean): Provide
   if (typeof config.apiKey !== 'string' || /[\r\n\u0000-\u001f\u007f]/.test(config.apiKey) || config.apiKey.length > 8192) fail('config', 'Enter a valid API key without line breaks.');
   const apiKey = config.apiKey.trim();
   if(apiKey.startsWith('sk-or-v1-') && url.origin+path!=='https://openrouter.ai/api/v1') fail('config','This is an OpenRouter key. Choose OpenRouter and use https://openrouter.ai/api/v1.');
-  if (!local && !apiKey) fail('config', 'Enter an API key for this provider.');
+  const apiKeySecret = parseSecretRef(config.apiKeySecret);
+  if (config.apiKeySecret && (!apiKeySecret || !relayProviderFor(raw.replace(/\/+$/, '')))) fail('config', 'Saved keys support OpenRouter and Experiential. Choose a supported provider or use a session key for a custom endpoint.');
+  if (!local && !apiKey && !apiKeySecret) fail('config', 'Enter an API key or select a saved secret for this provider.');
   if (typeof config.model !== 'string' || (requireModel && !shortString(config.model.trim())) || config.model.length > 256) fail('config', 'Enter or select a model ID.');
   if (!Number.isInteger(config.maxTokens) || config.maxTokens < 1 || config.maxTokens > TRANSPORT_LIMITS.maxTokens) fail('config', 'Max tokens must be a whole number between 1 and 131072.');
   if (!Number.isFinite(config.temperature) || config.temperature < 0 || config.temperature > 2) fail('config', 'Temperature must be between 0 and 2.');
@@ -116,7 +120,7 @@ function normalizeConfig(config: ProviderConfig, requireModel: boolean): Provide
   if (config.stream !== undefined && typeof config.stream !== 'boolean') fail('config', 'Streaming must be on or off.');
   if (config.tokenParameter !== undefined && !['max_tokens','max_completion_tokens'].includes(config.tokenParameter)) fail('config', 'Choose a supported token parameter.');
   if (config.reasoningEffort !== undefined && !['default','none','minimal','low','medium','high','xhigh','max','ultra'].includes(config.reasoningEffort)) fail('config', 'Choose a supported reasoning effort.');
-  return { freeOnly:config.freeOnly===true, reasoningEffort: config.reasoningEffort ?? 'default', baseUrl: raw.replace(/\/+$/, ''), apiKey, model: config.model.trim(), maxTokens: config.maxTokens, temperature: config.temperature, customSampling: config.customSampling===true, stream: config.stream!==false, tokenParameter: config.tokenParameter??'max_tokens' };
+  return { apiKeySecret, freeOnly:config.freeOnly===true, reasoningEffort: config.reasoningEffort ?? 'default', baseUrl: raw.replace(/\/+$/, ''), apiKey, model: config.model.trim(), maxTokens: config.maxTokens, temperature: config.temperature, customSampling: config.customSampling===true, stream: config.stream!==false, tokenParameter: config.tokenParameter??'max_tokens' };
 }
 export function validateConfig(config: ProviderConfig): ProviderConfig { return normalizeConfig(config, true); }
 
@@ -155,7 +159,8 @@ async function request<T>(config: ProviderConfig, endpoint: string, body: string
   try {
     if (controller.signal.aborted) fail('aborted', 'Request cancelled.');
     const headers: Record<string, string> = { Accept: body ? 'text/event-stream, application/json' : 'application/json' };
-    if (config.apiKey) headers[relay ? 'X-Hikmah-Provider-Key' : 'Authorization'] = relay ? config.apiKey : `Bearer ${config.apiKey}`;
+    if (config.apiKeySecret && relay) headers['X-Hikmah-Secret-Ref'] = config.apiKeySecret;
+    else if (config.apiKey) headers[relay ? 'X-Hikmah-Provider-Key' : 'Authorization'] = relay ? config.apiKey : `Bearer ${config.apiKey}`;
     if(body&&config.freeOnly)headers['X-Hikmah-Free-Only']='true';
     if (body) headers['Content-Type'] = 'application/json';
     const target = relay ? `/api/provider?provider=${relay.id}&operation=${body ? 'chat' : 'models'}` : `${config.baseUrl}/${endpoint}`;

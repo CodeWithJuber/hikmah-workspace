@@ -34,8 +34,9 @@ def main():
             raise ValueError('First deployment requires HIKMAH_OWNER_PASSWORD.')
         content = f'HIKMAH_DOMAIN={domain}\nBETTER_AUTH_URL=https://{domain}\nHIKMAH_OWNER_EMAIL={email}\nBETTER_AUTH_SECRET={secret}\n'
         # Runtime credentials stay on the server and survive subsequent releases.
+        current.setdefault('HIKMAH_VAULT_KEY', current.get('BETTER_AUTH_SECRET') or secret)
         current.setdefault('HIKMAH_SEARCH_SECRET', secrets.token_hex(32))
-        for key in ('HIKMAH_SEARCH_SECRET', 'HIKMAH_SEARCH_IMAGE', 'HIKMAH_SEARCH_URL', 'HIKMAH_RUNTIME_URL', 'HIKMAH_RUNTIME_TOKEN', 'BRAVE_SEARCH_API_KEY'):
+        for key in ('HIKMAH_VAULT_KEY', 'HIKMAH_SEARCH_SECRET', 'HIKMAH_SEARCH_IMAGE', 'HIKMAH_SEARCH_URL', 'HIKMAH_RUNTIME_URL', 'HIKMAH_RUNTIME_TOKEN', 'BRAVE_SEARCH_API_KEY'):
             if current.get(key):
                 content += f'{key}={current[key]}\n'
         temp = root / '.env.new'

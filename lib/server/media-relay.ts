@@ -1,3 +1,4 @@
+import type {SecretResolver} from '../playground/secret-reference.ts';
 import {publicOrigin} from './origin.ts';
 import {diagnoseProviderError} from '../playground/provider-diagnostics.ts';
 const BASE='https://openrouter.ai/api/v1';
@@ -6,11 +7,13 @@ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&
 const safeId=(v:unknown):v is string=>typeof v==='string'&&/^[A-Za-z0-9_.:-]{1,240}$/.test(v);
 function failure(message:string,status=400,code='media_request'){return Response.json({error:{message,code}},{status,headers:HEADERS});}
 async function bounded(body:ReadableStream<Uint8Array>|null,limit:number):Promise<Uint8Array>{if(!body)throw Error('empty');const reader=body.getReader();const parts:Uint8Array[]=[];let size=0;try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>limit)throw Error('limit');parts.push(part.value);}const out=new Uint8Array(size);let at=0;for(const part of parts){out.set(part,at);at+=part.length;}return out;}finally{void reader.cancel().catch(()=>{});}}
-export async function relayMediaRequest(request:Request,authenticated:boolean):Promise<Response>{
+export async function relayMediaRequest(request:Request,authenticated:boolean,resolveSecret?:SecretResolver):Promise<Response>{
  if(!authenticated)return failure('Sign in to this workspace again.',401,'media_session');
  const url=new URL(request.url);const origin=request.headers.get('origin');const site=request.headers.get('sec-fetch-site');
  if((origin&&origin!==publicOrigin(request))||(site&&site!=='same-origin')||(!origin&&site!=='same-origin'))return failure('Use this workspace to make the request.',403,'media_origin');
- const key=request.headers.get('X-Hikmah-Provider-Key')?.trim()??'';if(!key||key.length>8192||/[\u0000-\u001f\u007f]/.test(key))return failure('Add an OpenRouter media key in Workspace admin.',401,'media_key');
+ let key=request.headers.get('X-Hikmah-Provider-Key')?.trim()??'';
+ const reference=request.headers.get('X-Hikmah-Secret-Ref');if(reference){try{if(!resolveSecret)throw Error();key=await resolveSecret(reference,'provider:openrouter');}catch{return failure('Saved media secret is missing or assigned to another service. Check Settings → Secrets.',401,'media_key');}}
+ if(!key||key.length>8192||/[\u0000-\u001f\u007f]/.test(key))return failure('Add an OpenRouter media key in Workspace admin.',401,'media_key');
  const op=url.searchParams.get('operation');const kind=url.searchParams.get('kind');let path='';let payload:Record<string,unknown>|undefined;
  const isGet=op==='models'||op==='video_status'||op==='video_content';if(request.method!==(isGet?'GET':'POST'))return failure('Unsupported media request.');
  try{

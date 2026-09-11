@@ -1,10 +1,11 @@
+import {redactJson} from './redact-secrets.ts';
 import {publicPageUrl} from './web-tools';
 
 type SearchRow = {title?: unknown; url?: unknown; content?: unknown; description?: unknown};
-export async function searchWeb(query: unknown, signal: AbortSignal) {
+export async function searchWeb(query: unknown, signal: AbortSignal, savedKey?: () => Promise<string>) {
   if (typeof query !== 'string' || !query.trim() || query.length > 300) throw Error('Enter a web query up to 300 characters.');
   const endpoint = process.env.HIKMAH_SEARCH_URL;
-  const key = process.env.BRAVE_SEARCH_API_KEY;
+  const key = !endpoint && savedKey ? (await savedKey()) || process.env.BRAVE_SEARCH_API_KEY : process.env.BRAVE_SEARCH_API_KEY;
   if (!endpoint && !key) throw Error('Web search is unavailable. Configure HIKMAH_SEARCH_URL (SearXNG) or BRAVE_SEARCH_API_KEY on the server, or use a connected search tool.');
   // Only an operator-configured endpoint is used. The model cannot choose a host.
   const target = new URL(endpoint || 'https://api.search.brave.com/res/v1/web/search');
@@ -24,7 +25,9 @@ export async function searchWeb(query: unknown, signal: AbortSignal) {
       body += decoder.decode(part.value, {stream: true});
     }
   } finally { await reader.cancel().catch(() => {}); }
-  const json = JSON.parse(body + decoder.decode());
+  body += decoder.decode();
+  if (!endpoint && key) body = redactJson(body, [key]);
+  const json = JSON.parse(body);
   const rows: SearchRow[] = endpoint ? json.results : json.web?.results;
   if (!Array.isArray(rows)) throw Error('Search service returned an unsupported response.');
   const results = rows.slice(0, 20).flatMap(row => {

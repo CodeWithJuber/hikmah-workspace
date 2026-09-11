@@ -1,3 +1,4 @@
+import type {SecretResolver} from '../playground/secret-reference.ts';
 import {publicOrigin} from './origin.ts';
 import { RELAY_PROVIDERS, RELAY_ERRORS, type RelayErrorCode } from '../playground/provider-routes.ts';
 import { createCompletionBody, TRANSPORT_LIMITS, type ChatMessage, type ToolDefinition } from '../playground/transport.ts';
@@ -44,7 +45,7 @@ async function boundedJson(body: ReadableStream<Uint8Array> | null, max: number,
 
 /** Called only with identity resolved by the Site's server auth helper. Never logs
  * headers, request bodies, provider errors, or credentials. No retries or redirects. */
-export async function relayProviderRequest(request: Request, authenticated: boolean): Promise<Response> {
+export async function relayProviderRequest(request: Request, authenticated: boolean, resolveSecret?: SecretResolver): Promise<Response> {
   if (!authenticated) return relayFailure('session');
   const url = new URL(request.url);
   const origin = request.headers.get('origin');
@@ -54,7 +55,12 @@ export async function relayProviderRequest(request: Request, authenticated: bool
   const operation = url.searchParams.get('operation');
   if (!provider || !['models', 'chat'].includes(operation ?? '')) return relayFailure('destination');
   if (request.method !== (operation === 'chat' ? 'POST' : 'GET')) return relayFailure('request');
-  const key = request.headers.get('X-Hikmah-Provider-Key')?.trim() ?? '';
+  const reference = request.headers.get('X-Hikmah-Secret-Ref');
+  let key = request.headers.get('X-Hikmah-Provider-Key')?.trim() ?? '';
+  if (reference) {
+    if (!resolveSecret) return relayFailure('key');
+    try { key = await resolveSecret(reference, 'provider:' + provider.id); } catch { return relayFailure('key'); }
+  }
   if (!key || key.length > 8192 || /[\u0000-\u001f\u007f]/.test(key)) return relayFailure('key');
   if (operation === 'chat' && !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return relayFailure('request');
   if (Number(request.headers.get('content-length')) > TRANSPORT_LIMITS.requestBytes) return relayFailure('limit');
