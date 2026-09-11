@@ -32,6 +32,16 @@ export type RunAgentOptions = {
   /** Tool names the owner has switched off for this run. */
   disabledTools?: readonly string[];
   /**
+   * An agent's allowlist over the built-in tools. Empty or absent means every
+   * tool this run would otherwise offer.
+   *
+   * MCP tools are never filtered by it: they are enabled per server by the
+   * owner and gated per tool by the MCP policy, which is a separate decision
+   * from which built-ins an agent uses. An agent narrowing the built-ins should
+   * not also silently switch off a server the owner turned on.
+   */
+  enabledTools?: readonly string[];
+  /**
    * Enables ssh_exec and list_ssh_hosts.
    *
    * Omitted, they are not offered at all. That is deliberate: a caller with no
@@ -87,7 +97,14 @@ export function buildRunAgent(options: RunAgentOptions) {
     // unlikely, but "unlikely" is not the property worth relying on here.
     ...(options.mcp?.tools ?? {}),
   };
-  const tools = Object.fromEntries(Object.entries(all).filter(([name]) => !disabled.has(name)));
+  const allowed = new Set(options.enabledTools ?? []);
+  const tools = Object.fromEntries(
+    Object.entries(all).filter(
+      ([name]) =>
+        !disabled.has(name) &&
+        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')),
+    ),
+  );
   const limit = options.contextCharacters ?? DEFAULT_CONTEXT_CHARACTERS;
 
   // Only tools that reach outside this process are gated. Everything else in the

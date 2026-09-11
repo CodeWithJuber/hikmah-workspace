@@ -30,6 +30,7 @@ export type RunConfig = {
   instructions: string;
   maxSteps?: number;
   disabledTools?: string[];
+  enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
   compare?: { model?: string };
 };
@@ -76,6 +77,7 @@ async function driveWithAgent({
     maxSteps: config.maxSteps,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
+    enabledTools: config.enabledTools ?? [],
     // Only when the deployment actually has a workbench: without one, ssh_exec
     // would be offered and then fail on every call.
     ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
