@@ -14,6 +14,8 @@ export type ChatRequestBody = {
   instructions: string;
   maxSteps?: number;
   disabledTools: string[];
+  /** Compare mode: answer a second time with no tools, for contrast. */
+  compare?: { model?: string };
   messages: unknown;
 };
 
@@ -75,6 +77,19 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
       ? body.apiKeySecret
       : undefined;
 
+  // Absent means the mode is off, which is different from on with no model
+  // named — that one falls back to the run's own model, comparing workflows
+  // rather than models.
+  let compare: { model?: string } | undefined;
+  if (body.compare !== undefined && body.compare !== null && body.compare !== false) {
+    if (typeof body.compare !== 'object' || Array.isArray(body.compare))
+      throw new ChatRequestError('Compare mode is configured with an object.');
+    const requested = (body.compare as { model?: unknown }).model;
+    if (requested !== undefined && (typeof requested !== 'string' || requested.length > 256))
+      throw new ChatRequestError('Choose a valid model to compare against.');
+    compare = { model: typeof requested === 'string' ? requested.trim() || undefined : undefined };
+  }
+
   return {
     baseUrl: body.baseUrl.trim(),
     model: body.model.trim(),
@@ -85,6 +100,10 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     disabledTools: Array.isArray(body.disabledTools)
       ? body.disabledTools.filter((tool): tool is string => typeof tool === 'string')
       : [],
+    // Only the model is taken from the caller, and only as a string. The key,
+    // the endpoint and the free-only rule come from the run's own
+    // configuration, so the comparison cannot be pointed somewhere else.
+    compare,
     messages: body.messages,
   };
 }

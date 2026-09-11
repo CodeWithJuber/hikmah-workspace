@@ -2,6 +2,7 @@ import { validateUIMessages, type UIMessage } from 'ai';
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
+import { conversationTitle } from '@/lib/chat/title';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 
@@ -128,6 +129,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     parts: incoming.parts,
     metadata: undefined,
   });
+  // Name it from the message that started it. setTitle only writes when the
+  // title is still empty, so a later message cannot rename a conversation the
+  // owner has been finding in the list by that name.
+  if (incoming.role === 'user') {
+    const title = conversationTitle(incoming.parts);
+    if (title) store.setTitle(conversationId, title);
+  }
 
   // The key is resolved once, here, and stored on the run so the worker can
   // drive it after this request has gone. It is never returned to the browser.
@@ -159,6 +167,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         instructions: parsed.instructions,
         maxSteps: parsed.maxSteps,
         disabledTools: parsed.disabledTools,
+        compare: parsed.compare,
       },
     });
   } catch {

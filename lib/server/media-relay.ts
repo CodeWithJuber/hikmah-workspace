@@ -1,6 +1,7 @@
 import type { SecretResolver } from '../playground/secret-reference.ts';
 import { publicOrigin } from './origin.ts';
 import { diagnoseProviderError } from '../playground/provider-diagnostics.ts';
+import { parseImageResponse } from './media-core.ts';
 const BASE = 'https://openrouter.ai/api/v1';
 const HEADERS = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 const object = (v: unknown): v is Record<string, unknown> =>
@@ -235,18 +236,13 @@ export async function relayMediaRequest(
     if (op === 'image') {
       if (!Array.isArray(data.data))
         return failure('The model returned no images.', 502, 'media_protocol');
-      const images = data.data
-        .filter(object)
-        .filter((x) => typeof x.b64_json === 'string' && x.b64_json.length < 23_000_000)
-        .slice(0, 4)
-        .map((x) => ({
-          b64_json: x.b64_json,
-          media_type: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(
-            String(x.media_type),
-          )
-            ? x.media_type
-            : 'image/png',
-        }));
+      // Shared with the run tool's path: which image types are accepted from a
+      // provider decides how a browser will interpret the bytes, so it is one
+      // list rather than two that can drift apart.
+      const images = parseImageResponse(data).map((image) => ({
+        b64_json: image.b64,
+        media_type: image.mime,
+      }));
       if (!images.length)
         return failure(
           'This image response did not contain a supported image file.',

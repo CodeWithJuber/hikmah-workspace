@@ -117,9 +117,22 @@ Only the first would leave the run finishing into the log with nobody watching.
 
 The conversation id comes from the client, so an existing conversation's owner
 is checked rather than assumed, and refused as "not found" so the reply does not
-confirm that someone else's conversation exists. `/chat` derives one id per
-owner from a hash of the account id: a shared constant would put two owners in
-the same conversation, which that check would then refuse forever.
+confirm that someone else's conversation exists.
+
+Each conversation has its own URL (`/chat/[id]`), and `/chat` only picks one —
+the most recently active, or a fresh id — and redirects, so a reload lands where
+the owner was. A row is not created by opening a conversation: the first message
+creates it, so an abandoned "New chat" leaves nothing in the list. It is titled
+from that message rather than by asking a model, which would cost a request and
+a wait before the answer actually asked for, and on the free models this
+deployment defaults to would sometimes return prose instead of a title. The
+title is written once and never rewritten, because the owner finds a
+conversation by the name it had when they last looked.
+
+The list joins each conversation to its active run, because "working" and
+"stopped to ask you something" look identical from the conversation row and need
+opposite things from the owner. A run paused on an approval that the list cannot
+show is a conversation that never finishes.
 
 **Documented limit:** one worker per process, and the resume buffer is a
 process-local `EventEmitter`. A second replica would break the tail.
@@ -210,6 +223,83 @@ The local `research_quran` ledger remains a first-class fallback, so Qur'an
 grounding still works if the endpoint is withdrawn or a commercial launch makes
 the dependency unwanted. That constraint is recorded in `lib/mcp/defaults.ts`
 itself, not only here.
+
+## Workspace files
+
+`list_files`, `read_file`, `write_file` and `delete_file` operate on rows rather
+than on the workspace blob, which changes what they are for: a file written in
+one conversation is there in the next, and it survives the tab that wrote it.
+That is the difference between a scratchpad and a workspace.
+
+It also lifts the limits. The blob allowed twelve files of eighty thousand
+characters, which was never a statement about what a workspace should hold — it
+was what could be rewritten as one JSON document on every keystroke-level save.
+Rows are written one at a time, so the ceilings are now 200 files, 256k
+characters each, 8 MB in total.
+
+Paths may contain folders, and every segment is checked rather than the whole
+string normalised: `..`, an absolute path and a prototype key are each refused,
+never rewritten into something that happens to be inside. A caller that believes
+it wrote to `../secrets` and did not is worse off than one that was told no.
+
+These tools are **not** gated behind approval. They write inside the owner's own
+workspace, which nothing else reads and no program runs; a file written here has
+no effect until someone asks for one. `bash` and `ssh_exec` are gated because
+they act on a machine.
+
+## Compare
+
+Compare mode answers the same question twice: once through the full agent, and
+once directly with no tools at all. It is not a second opinion from a second
+model, though it can be — it is the same question without the machinery, which
+is what makes the difference between the two workflows visible.
+
+The baseline runs _alongside_ the main answer rather than after it, and streams
+into the same durable log as `data-compare` chunks sharing one part id. Both
+follow from what the mode is for: running them in sequence would double the wait
+for no gain, and a comparison that lived only in the tab that started it would
+be gone on the reload where someone actually reads the two side by side. One
+part id rather than one part per delta, or the stored message would hold a
+hundred fragments instead of an answer.
+
+The lane never fails the run. It is the second answer on the page; a provider
+that refuses it should cost the comparison and not the answer the person asked
+for. Two states are easy to get wrong and are handled explicitly: a provider
+error arrives through `streamText`'s `onError` and does **not** throw out of the
+iteration, so without catching it there a comparison that never started would be
+published as finished and empty; and an aborted stream simply ends with no error
+at all, so abort is checked before anything else, or a run someone stopped
+halfway would be recorded as complete.
+
+Only the model may be chosen by the caller. The key, the endpoint and the
+free-only rule come from the run's own configuration, so the comparison cannot
+be pointed at another endpoint carrying the owner's credentials.
+
+## Generated media
+
+`generate_image` and `generate_speech` are run tools rather than a button in the
+composer, which changes two things: the model can decide a picture is the answer
+without the owner having to know that in advance, and the result is stored where
+a reopened conversation can still find it. The old surface kept generated media
+in the browser's IndexedDB, which was the only option while the run belonged to
+the tab.
+
+What the model gets back is a reference and the prompt, never the bytes: twenty
+megabytes of base64 in a transcript would cost more context than the whole
+conversation and tell it nothing it can reason about. The owner's id is part of
+the storage key, so an asset id copied out of a transcript reaches nothing from
+another session, and the type is recovered from the stored extension against a
+fixed table — a provider's claimed media type is replaced rather than trusted,
+because the type is what decides how a browser interprets the bytes.
+
+Media goes through OpenRouter, so a workspace already running on OpenRouter
+needs no second credential. On any other provider it needs `HIKMAH_MEDIA_KEY`,
+and without one the tools are not offered at all.
+
+**Not here:** video generation, which is an asynchronous job that has to be
+polled across steps, and transcription, which needs a file the owner uploads.
+Both are their own piece of work rather than a variation on these. The old
+surface still has them.
 
 ## SSH
 

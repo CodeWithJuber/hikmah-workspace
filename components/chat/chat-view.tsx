@@ -9,7 +9,7 @@
  * What that buys, and what the old surface could not do: close the tab
  * mid-answer, come back, and the answer is still being written.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import {
@@ -44,11 +44,13 @@ export type ChatViewProps = {
   /** The stored transcript, loaded before this mounts. useChat captures it when
    * the conversation is created, so it cannot be supplied later. */
   initialMessages?: UIMessage[];
+  /** Called when a run settles, so a conversation list can catch up. */
+  onSettled?: () => void;
   /** Shown when the conversation is empty. */
   empty?: React.ReactNode;
 };
 
-export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
+export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
   //
@@ -58,10 +60,6 @@ export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
   // changes, so anything the view kept would never reach the instance actually
   // sending the requests.
   const [transport] = useState(() => createDurableChatTransport({ config: run }));
-  useEffect(() => {
-    transport.setConfig(run);
-  }, [transport, run]);
-
   const { messages, sendMessage, status, stop, error, regenerate, addToolApprovalResponse } =
     useChat({
       id,
@@ -76,7 +74,23 @@ export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     });
 
+  // Compare answers the same question a second time with no tools, to show what
+  // the agent's machinery is actually buying. Held here rather than in the run
+  // configuration because it is a per-turn choice, not a setting.
+  const [compare, setCompare] = useState(false);
+  useEffect(() => {
+    transport.setConfig({ ...run, compare: compare ? {} : undefined });
+  }, [transport, run, compare]);
+
   const busy = status === 'submitted' || status === 'streaming';
+
+  // Report the edge, not the state: firing on every render while idle would
+  // refetch the conversation list forever.
+  const wasBusy = useRef(false);
+  useEffect(() => {
+    if (wasBusy.current && !busy) onSettled?.();
+    wasBusy.current = busy;
+  }, [busy, onSettled]);
 
   // Two halves, and both are needed: stop() ends this tab's stream, and the
   // cancel aborts the provider call the worker is still driving. Without the
@@ -132,7 +146,16 @@ export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
           <PromptInputTextarea placeholder="Ask anything, or describe what to build." />
         </PromptInputBody>
         <PromptInputFooter>
-          <PromptInputTools />
+          <PromptInputTools>
+            <label className="chat-compare-toggle">
+              <input
+                type="checkbox"
+                checked={compare}
+                onChange={(event) => setCompare(event.target.checked)}
+              />
+              Compare without tools
+            </label>
+          </PromptInputTools>
           {/* Doubles as Stop while a run is in flight. */}
           <PromptInputSubmit status={status} onClick={busy ? halt : undefined} />
         </PromptInputFooter>

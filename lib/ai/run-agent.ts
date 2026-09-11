@@ -12,6 +12,8 @@ import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
 import { mcpToolApproval, type McpRunTools } from '../mcp/run-context.ts';
 import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/shell.ts';
+import { mediaTools, type MediaToolContext } from './tools/media.ts';
+import { fileTools, type FileToolContext } from './tools/files.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 
 /** Ceiling on tool-calling rounds, so a loop cannot run forever unattended. */
@@ -46,6 +48,22 @@ export type RunAgentOptions = {
    */
   shell?: Omit<ShellToolContext, 'signal'>;
   /**
+   * Enables generate_image and generate_speech.
+   *
+   * Omitted when the deployment has no media key: offering a tool that fails on
+   * every call wastes a step and tells the person nothing they can act on.
+   */
+  media?: Omit<MediaToolContext, 'signal'>;
+  /**
+   * Enables list_file/read_file/write_file/delete_file over the owner's
+   * workspace.
+   *
+   * Not gated behind approval: these write inside the owner's own workspace,
+   * which nothing else reads and no program runs. bash and ssh_exec are gated
+   * because they act on a machine.
+   */
+  files?: FileToolContext;
+  /**
    * MCP tools for this run, already connected and gated.
    *
    * Connecting is the caller's job because it is async and has to happen once
@@ -62,6 +80,8 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...deterministicTools({ model: options.meaningModel, onPlan: options.onPlan }),
     ...(options.ssh ? sshTools({ ...options.ssh, signal: options.signal }) : {}),
     ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
+    ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),
+    ...(options.files ? fileTools(options.files) : {}),
     // Last, so a built-in tool can never be shadowed by a server that named one
     // of its tools after it. The mcp__server__tool prefix makes a collision
     // unlikely, but "unlikely" is not the property worth relying on here.
