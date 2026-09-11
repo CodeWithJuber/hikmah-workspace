@@ -18,12 +18,29 @@ for candidate in "$image" "$workbench"; do
   [[ $(docker image inspect --format "$label" "$candidate") == "$revision" ]] || { echo "Image revision mismatch: $candidate" >&2; exit 1; }
 done
 compose=(docker compose --env-file .env --env-file release.env -f compose.yml)
+# Stop only what the compose file on disk defines.
+#
+# That file is still the PREVIOUS release's until it is copied below, so a
+# release that adds a service must not name it here: `docker compose stop`
+# rejects the whole command with "no such service" before doing anything, and
+# the first upgrade to such a release fails before it has begun. Copying the new
+# compose file earlier is not the fix — the backup tars compose.yml, so the
+# snapshot would capture the new one and a rollback would restore the wrong file.
+stop_present() {
+  local timeout=$1; shift
+  local defined present=()
+  defined=$("${compose[@]}" config --services 2>/dev/null || true)
+  for name in "$@"; do
+    if grep -qx -- "$name" <<< "$defined"; then present+=("$name"); fi
+  done
+  if [[ ${#present[@]} -gt 0 ]]; then "${compose[@]}" stop -t "$timeout" "${present[@]}"; fi
+}
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 previous=false
 backup="backups/pre-$stamp.tar.gz"
 if [[ -f release.env && -f compose.yml ]]; then
   previous=true
-  "${compose[@]}" stop -t 30 caddy app workbench
+  stop_present 30 caddy app workbench
   mkdir -p workbench-data
   if ! tar -czf "$backup" .env release.env compose.yml Caddyfile data workbench-data; then
     "${compose[@]}" up -d --wait --wait-timeout 120
@@ -34,7 +51,7 @@ fi
 rollback() {
   trap - ERR
   echo 'Deployment failed. Restoring the previous release when available.' >&2
-  if [[ -f release.env && -f compose.yml ]]; then "${compose[@]}" stop -t 15 caddy app workbench || true; fi
+  if [[ -f release.env && -f compose.yml ]]; then stop_present 15 caddy app workbench || true; fi
   if $previous && [[ -f "$backup" ]]; then
     mv data "data-failed-$stamp"
     if [[ -d workbench-data ]]; then mv workbench-data "workbench-data-failed-$stamp"; fi
