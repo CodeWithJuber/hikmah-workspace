@@ -1,11 +1,12 @@
 'use client';
 /** The Terminal page: a full-height shell on the workbench container. */
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SshHosts } from './ssh-hosts';
 import { Terminal } from './terminal';
 
 export function TerminalPage() {
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       <header className="flex items-start gap-3 border-b px-4 py-3">
         <SidebarTrigger />
         <div>
@@ -17,7 +18,10 @@ export function TerminalPage() {
           </p>
         </div>
       </header>
-      <Terminal className="flex min-h-0 flex-1 flex-col" />
+      <Terminal className="flex min-h-64 flex-1 flex-col" />
+      <div className="border-t p-4">
+        <SshHosts />
+      </div>
     </div>
   );
 }

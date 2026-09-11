@@ -14,6 +14,9 @@ import { foldFrames, type CommandResult, type RunFrame } from '../../ssh/frames.
 import { sshExecStream, type SshCredential } from '../../ssh/client.ts';
 import { isAutoApproved, parseAutoApprove, type SshHostRow } from '../../ssh/hosts.ts';
 
+/** What the owner is shown on the approval card. */
+export type SshApprovalRequest = { hostId: string; hostLabel: string; command: string };
+
 /** Matches the workbench's own ceiling. */
 const MAX_TIMEOUT_MS = 600_000;
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -25,12 +28,6 @@ export type SshToolContext = {
   credentialFor: (host: SshHostRow) => Promise<SshCredential>;
   /** Records the fingerprint seen on a first connection. */
   pinFingerprint?: (hostId: string, fingerprint: string) => void | Promise<void>;
-  /** Asks the owner. Resolves false when they decline. */
-  requestApproval: (request: {
-    hostId: string;
-    hostLabel: string;
-    command: string;
-  }) => Promise<boolean>;
   /** Called for each output chunk, so the transcript fills in live. */
   onOutput?: (hostId: string, frame: RunFrame) => void;
   /** Records what was asked, decided and returned. */
@@ -92,27 +89,11 @@ export function sshTools(context: SshToolContext) {
             }.`,
           };
 
+        // Approval has already happened by the time execute runs: the policy
+        // below is what paused the run and asked. Reaching here means either the
+        // owner said yes or their own list said this command is fine.
         const label = `${host.name} (${host.username}@${host.host}:${host.port})`;
         const autoApproved = isAutoApproved(command, parseAutoApprove(host.auto_approve));
-        if (!autoApproved) {
-          const approved = await context.requestApproval({
-            hostId: host.id,
-            hostLabel: label,
-            command,
-          });
-          if (!approved) {
-            await context.record?.({
-              hostId: host.id,
-              command,
-              status: 'denied',
-              autoApproved: false,
-            });
-            return {
-              ok: false as const,
-              error: 'The owner declined this command. Do not retry it; ask what to do instead.',
-            };
-          }
-        }
 
         const frames: RunFrame[] = [];
         try {
@@ -182,5 +163,33 @@ export function sshTools(context: SshToolContext) {
         };
       },
     }),
+  };
+}
+
+/**
+ * Which SSH calls need the owner's say-so.
+ *
+ * Expressed as the AI SDK's tool-approval policy rather than as a question
+ * inside `execute`, because pausing a run and asking a person is something the
+ * framework can do and a tool body cannot: by the time execute runs there is
+ * nobody listening.
+ *
+ * Anything not on the owner's own per-host list asks. A host the model invented
+ * is approved here and refused inside the tool, where the refusal can explain
+ * itself and list the real hosts.
+ */
+export function sshApprovalPolicy(context: {
+  listHosts: () => SshHostRow[] | Promise<SshHostRow[]>;
+}) {
+  return async (raw: unknown) => {
+    const input = (raw ?? {}) as { host_id?: unknown; command?: unknown };
+    // Anything this cannot read is asked about rather than assumed safe.
+    if (typeof input.host_id !== 'string' || typeof input.command !== 'string')
+      return 'user-approval' as const;
+    const host = (await context.listHosts()).find((entry) => entry.id === input.host_id);
+    if (!host) return 'approved' as const;
+    return isAutoApproved(input.command, parseAutoApprove(host.auto_approve))
+      ? ('approved' as const)
+      : ('user-approval' as const);
   };
 }
