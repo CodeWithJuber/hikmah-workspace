@@ -142,6 +142,19 @@ if (phase === 'read') {
   );
   assert.equal((await fetch(base + '/api/workspace-state', { headers })).status, 401);
 }
+// The JavaScript sandbox is a pre-built ES module served as a static asset.
+// It is built during `npm run build` and copied into the image, and if either
+// step is ever dropped the symptom is not a failed build — it is every code run
+// failing in production, which is exactly how the last one went unnoticed.
+const worker = await fetch(base + '/sandbox-worker.js');
+assert.equal(worker.status, 200, 'the JavaScript sandbox worker is served');
+const workerSource = await worker.text();
+assert.ok(workerSource.length > 100_000, 'the runtime is bundled into it');
+assert.ok(
+  !/importScripts\s*\(/.test(workerSource),
+  'importScripts means a classic worker, which cannot load this runtime',
+);
+
 console.info(
-  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets and large saved workspace passed.`,
+  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets, sandbox worker and large saved workspace passed.`,
 );
