@@ -1,4 +1,5 @@
 import { parseSecretRef } from './secret-reference.ts';
+import { isLoopback, isNonPublic } from '../ai/host-policy.ts';
 import { CompletionFramer, FramingError } from './completion-framing.ts';
 /** OpenAI-compatible Chat Completions transport. Known providers use the app relay;
  * other compatible endpoints connect directly from the browser.
@@ -121,32 +122,6 @@ const shortString = (value: unknown, max = 256): value is string =>
   value.length > 0 &&
   value.length <= max &&
   !/[\u0000-\u001f\u007f]/.test(value);
-function isLoopback(host: string): boolean {
-  return host === 'localhost' || host === '[::1]' || /^127(?:\.\d{1,3}){3}$/.test(host);
-}
-function isNonPublic(host: string): boolean {
-  if (host.startsWith('[')) {
-    const ip = host.slice(1, -1).toLowerCase();
-    // Only globally routed IPv6 unicast (2000::/3); reject private/mapped addresses.
-    return !/^[23][0-9a-f]{0,3}:/.test(ip) || ip.startsWith('2001:db8:');
-  }
-  if (/^\d+(\.\d+){3}$/.test(host)) {
-    const [a, b, c] = host.split('.').map(Number);
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      a >= 224 ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && (b === 168 || b === 0)) ||
-      (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
-      (a === 203 && b === 0 && c === 113)
-    );
-  }
-  return !host.includes('.') || /\.(local|localhost|internal|invalid|test)$/.test(host);
-}
 function normalizeConfig(config: ProviderConfig, requireModel: boolean): ProviderConfig {
   if (!config || typeof config.baseUrl !== 'string')
     fail('config', 'Enter an OpenAI-compatible API base URL.');
