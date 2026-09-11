@@ -19,30 +19,45 @@ const POLL_MS = 400;
 export type RunEvent = { seq: number; payload: unknown };
 export type RunListener = (event: RunEvent) => void;
 
+type Subscriber = { onEvent: RunListener; onEnd?: () => void };
+
 /** Process-local fan-out to any SSE responses currently tailing a run. */
 export class RunBus {
-  private listeners = new Map<string, Set<RunListener>>();
+  private listeners = new Map<string, Set<Subscriber>>();
 
-  subscribe(runId: string, listener: RunListener): () => void {
-    const set = this.listeners.get(runId) ?? new Set<RunListener>();
-    set.add(listener);
+  /** `onEnd` fires when the run reaches a terminal state, so a tailing response
+   * can close instead of hanging open until the client gives up. */
+  subscribe(runId: string, onEvent: RunListener, onEnd?: () => void): () => void {
+    const set = this.listeners.get(runId) ?? new Set<Subscriber>();
+    const subscriber: Subscriber = { onEvent, onEnd };
+    set.add(subscriber);
     this.listeners.set(runId, set);
     return () => {
-      set.delete(listener);
+      set.delete(subscriber);
       if (!set.size) this.listeners.delete(runId);
     };
   }
 
   emit(runId: string, event: RunEvent) {
+    this.deliver(runId, (subscriber) => subscriber.onEvent(event));
+  }
+
+  /** Signal that no further events will arrive for this run. */
+  end(runId: string) {
+    this.deliver(runId, (subscriber) => subscriber.onEnd?.());
+    this.listeners.delete(runId);
+  }
+
+  private deliver(runId: string, call: (subscriber: Subscriber) => void) {
     const set = this.listeners.get(runId);
     if (!set) return;
     // A listener that throws (a disconnected response, say) must not stop the
     // run or starve the other listeners.
-    for (const listener of set) {
+    for (const subscriber of set) {
       try {
-        listener(event);
+        call(subscriber);
       } catch {
-        set.delete(listener);
+        set.delete(subscriber);
       }
     }
   }
@@ -134,6 +149,8 @@ export function createWorker(options: WorkerOptions): Worker {
           );
       } finally {
         running.delete(run.id);
+        // Whatever the outcome, tailing responses must be told to close.
+        bus.end(run.id);
       }
       return run;
     } finally {
