@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import { createAuthClient } from 'better-auth/react';
 const auth = createAuthClient();
@@ -29,9 +30,9 @@ export default function SignOut() {
         >
           {busy ? 'Signing out…' : 'Sign out'}
         </button>
-        <a href="/" className="auth-back">
+        <Link href="/" className="auth-back">
           Back to workspace
-        </a>
+        </Link>
       </section>
     </main>
   );

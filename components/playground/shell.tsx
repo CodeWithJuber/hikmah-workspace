@@ -1,8 +1,6 @@
 'use client';
 import { useState, useMemo, type CSSProperties } from 'react';
 import {
-  Orbit,
-  Plus,
   MessageSquare,
   Code2,
   Bot,
@@ -13,7 +11,6 @@ import {
   Trash2,
   Pencil,
   Download,
-  PanelLeft,
   BookOpen,
   BrainCircuit,
   Waves,
@@ -21,7 +18,6 @@ import {
   Workflow,
   ArrowLeft,
   ArrowUpRight,
-  ShieldCheck,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -58,7 +54,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { PlaygroundProvider, usePlayground } from './context';
 import { KernelProvider, useKernel } from '@/components/kernel/context';
 import { KernelCenter } from '@/components/kernel/center';

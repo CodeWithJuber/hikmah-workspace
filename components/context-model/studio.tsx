@@ -583,7 +583,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                 <p>
                   Lexical counts, sequence transitions and dependency weights are refitted. A worker
                   runs training; the server recomputes the development gate before saving. Your
-                  provider's weights are unchanged.
+                  provider&apos;s weights are unchanged.
                 </p>
               </div>
               <select

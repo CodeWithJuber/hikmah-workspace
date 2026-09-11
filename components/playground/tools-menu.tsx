@@ -6,7 +6,6 @@ import { resolveRunTools } from '@/lib/playground/tool-registry';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { useState } from 'react';
 import {
-  Wrench,
   ChevronDown,
   FolderCode,
   Calculator,

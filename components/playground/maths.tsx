@@ -205,7 +205,7 @@ export function Maths() {
             <DataTable
               heads={['Measure', 'Computed result']}
               rows={[
-                ['Evidence state', <strong>{evidence.state}</strong>],
+                ['Evidence state', <strong key="evidence-state">{evidence.state}</strong>],
                 ['Supporting sources', evidence.distinctSupportingSources.length],
                 ['Refuting sources', evidence.distinctRefutingSources.length],
                 ['Ignored different scopes', evidence.ignoredDifferentPropositionsOrScopes],

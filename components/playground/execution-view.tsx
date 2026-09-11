@@ -14,6 +14,7 @@ import type {
   ComparisonView,
   RunStage,
 } from '@/lib/playground/execution';
+import { shouldRenderMessageText } from '@/lib/playground/execution';
 import { MessageContent } from './message-content';
 export function ProviderExplanation({
   text,
@@ -154,13 +155,11 @@ export function DirectComparison({ value }: { value: ComparisonView }) {
           {value.status ?? 'complete'}
         </span>
       </header>
-      {value.text && (value.status ?? 'complete') === 'complete' ? (
+      {shouldRenderMessageText(value) ? (
         <MessageContent text={value.text} />
       ) : (
         <p className="comparison-wait">
-          {value.status === 'running'
-            ? 'Waiting for the answer…'
-            : 'No completed answer is available.'}
+          {value.status === 'running' ? 'Waiting for the answer…' : 'No answer was returned.'}
         </p>
       )}
       {value.error && (

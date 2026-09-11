@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, ArrowUpRight, Check, Trash2, Copy, ChevronDown } from 'lucide-react';
+import { Plus, ArrowUpRight, Check, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

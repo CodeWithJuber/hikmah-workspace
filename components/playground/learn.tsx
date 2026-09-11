@@ -374,9 +374,11 @@ export function Learn() {
         <summary>Inspect learned rules and reference results</summary>
         <DataTable
           heads={['Language', 'Learned construction', 'Constants', 'Observations']}
-          rows={model.rules.map((r) => [
+          rows={model.rules.map((r, ruleIndex) => [
             r.language,
-            <code>{r.pattern.map(([k, v]) => (k === 'slot' ? `[${v}]` : v)).join(' ')}</code>,
+            <code key={'pattern-' + r.language + '-' + ruleIndex}>
+              {r.pattern.map(([k, v]) => (k === 'slot' ? `[${v}]` : v)).join(' ')}
+            </code>,
             `${r.constants.polarity ? 'positive' : 'negative'}, ${r.constants.tense}`,
             r.observations,
           ])}

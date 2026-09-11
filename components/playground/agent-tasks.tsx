@@ -233,7 +233,10 @@ export function AgentTasks() {
                         heads={['Step', 'Outcome']}
                         rows={execution.trace.map((s) => [
                           s.actionId,
-                          <span className={s.outcome === 'success' ? 'outcome' : 'failure'}>
+                          <span
+                            key={'outcome-' + s.actionId}
+                            className={s.outcome === 'success' ? 'outcome' : 'failure'}
+                          >
                             {s.outcome}
                           </span>,
                         ])}

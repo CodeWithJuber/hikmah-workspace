@@ -115,3 +115,23 @@ export function parseComparison(value: unknown): ComparisonView | undefined {
     firstTextMs: time(x.firstTextMs),
   };
 }
+
+/** Whether a message's text should be shown to the reader.
+ *
+ * Answer text appears as soon as the model produces any, and stays visible
+ * after a run is stopped, paused or fails. Only the *deliverables* built from a
+ * finished answer are gated on completion: artifact extraction, Save code and
+ * the workspace-files prompt.
+ *
+ * This is deliberately not `status === 'complete'`. Gating the text itself hid
+ * every streamed token until the run ended, so a multi-step task showed nothing
+ * but a spinner, and pressing Stop blanked an answer the runner had explicitly
+ * preserved and the UI had promised to keep.
+ */
+export function shouldRenderMessageText(message: {
+  text?: string;
+  role?: string;
+  status?: string;
+}): boolean {
+  return Boolean(message.text);
+}

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Download, Play, Pause, Film, LoaderCircle } from 'lucide-react';
+import { Download, Play, Pause, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { mediaFetch, parseVideoJob, type MediaAsset } from '@/lib/playground/media-client';
 import { saveMediaAsset, readMediaAsset } from '@/lib/playground/storage';

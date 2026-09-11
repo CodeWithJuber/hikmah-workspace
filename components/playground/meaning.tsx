@@ -144,10 +144,15 @@ export function Meaning({ onLearn }: { onLearn: () => void }) {
               heads={[]}
               rows={[
                 [
-                  <code>polarity</code>,
-                  <code>{result.frame.polarity ? 'positive' : 'negative'}</code>,
+                  <code key="polarity-label">polarity</code>,
+                  <code key="polarity-value">
+                    {result.frame.polarity ? 'positive' : 'negative'}
+                  </code>,
                 ],
-                [<code>tense</code>, <code>{result.frame.tense}</code>],
+                [
+                  <code key="tense-label">tense</code>,
+                  <code key="tense-value">{result.frame.tense}</code>,
+                ],
               ]}
             />
           </section>
@@ -161,7 +166,7 @@ export function Meaning({ onLearn }: { onLearn: () => void }) {
                 );
                 return [
                   token,
-                  <code>
+                  <code key={'meaning-' + token}>
                     {m
                       ? m.symbol.startsWith('action:')
                         ? 'action:' + pretty(m.symbol)

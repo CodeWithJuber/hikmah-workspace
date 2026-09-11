@@ -15,7 +15,6 @@ import {
   LoaderCircle,
   ExternalLink,
   ArrowRight,
-  Check,
   KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

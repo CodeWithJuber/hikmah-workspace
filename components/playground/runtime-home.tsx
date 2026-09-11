@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import { Play, Square, ArrowUpRight, Check, Download, LoaderCircle } from 'lucide-react';
+import { Play, Square, ArrowUpRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';

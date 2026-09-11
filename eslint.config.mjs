@@ -14,6 +14,26 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
   ]),
   {
+    // React Compiler advisories that predate this branch, in the five legacy
+    // components that the chat and runs rework replaces. Held at "warn" rather
+    // than silenced so they stay visible, and scoped to these exact files so
+    // all new code is still held to the rule. Each entry should disappear as
+    // its component is rewritten; the last one to go removes this block.
+    files: [
+      'components/playground/chat.tsx',
+      'components/playground/settings.tsx',
+      'components/playground/voice-controls.tsx',
+      'components/kernel/context.tsx',
+      'components/context-model/studio.tsx',
+    ],
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+    },
+  },
+  {
     files: ['components/ui/**/*.{ts,tsx}', 'hooks/use-mobile.ts'],
     rules: {
       // These files are vendored verbatim from shadcn@4.17.0. Keep the

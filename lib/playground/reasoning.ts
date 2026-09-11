@@ -48,7 +48,7 @@ export function mergeReasoningDetails(
   const out = current.map((v) => ({ ...v }));
   delta.forEach((part, position) => {
     const index = part.index ?? position;
-    let at = out.findIndex((v) => (v.index ?? out.indexOf(v)) === index);
+    const at = out.findIndex((v) => (v.index ?? out.indexOf(v)) === index);
     if (at < 0) {
       out.push({ ...part, index });
       return;

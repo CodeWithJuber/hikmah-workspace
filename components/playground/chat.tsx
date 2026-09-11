@@ -12,14 +12,13 @@ import { KnowledgeEditor, newKnowledge } from './knowledge';
 import { retrieveKnowledge, knowledgePrompt, type KnowledgeItem } from '@/lib/playground/knowledge';
 import { resolveRunTools } from '@/lib/playground/tool-registry';
 import { ExecutionProgress, DirectComparison } from './execution-view';
+import { shouldRenderMessageText } from '@/lib/playground/execution';
 import type { ExecutionView, RunStage, ComparisonView } from '@/lib/playground/execution';
 import { analyzeContext } from '@/lib/context-model/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Orbit,
   ArrowUp,
   Square,
-  Paperclip,
   X,
   Copy,
   ThumbsUp,
@@ -35,30 +34,21 @@ import {
   ChevronDown,
   FileText,
   Check,
-  PanelRightClose,
   Play,
   BrainCircuit,
   Download,
   Infinity as InfinityIcon,
-  Plus,
   Image as ImageIcon,
   Film,
   Volume2,
   Mic,
-  ChevronUp,
   Plug,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
+import {} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -106,7 +96,7 @@ import { saveMediaAsset } from '@/lib/playground/storage';
 import { MediaOutput } from './media-output';
 import { runAgent, type RunCheckpoint } from '@/lib/playground/agent-runner';
 import { workspacePrompt } from '@/lib/playground/agent-prompts';
-import { localTools, executeWorkspaceTool } from '@/lib/playground/workspace-tools';
+import { executeWorkspaceTool } from '@/lib/playground/workspace-tools';
 import { predict } from '@/lib/engines/meaning-engine';
 import {
   newConversation,
@@ -131,6 +121,32 @@ import { RunSettings } from './run-settings';
 import { ErrorCard, copyText, type DisplayError } from './error-card';
 import { errorMessage, downloadText } from './common';
 import { toast } from 'sonner';
+/** Per-message attachment cap, enforced once in `attach`. */
+const MAX_ATTACHMENTS = 3;
+/** Stream callbacks fire per token; each one rebuilds the whole conversations
+ * array, so coalesce them onto this cadence. */
+const STREAM_FLUSH_MS = 90;
+/** Coalesce a high-frequency stream callback. `apply` reads the latest value
+ * from its closure, so a coalesced burst always writes the newest state. */
+function createFlusher(apply: () => void) {
+  let last = 0;
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  const run = () => {
+    pending = undefined;
+    last = performance.now();
+    apply();
+  };
+  return {
+    schedule() {
+      if (performance.now() - last > STREAM_FLUSH_MS) run();
+      else if (!pending) pending = setTimeout(run, STREAM_FLUSH_MS);
+    },
+    now() {
+      if (pending) clearTimeout(pending);
+      run();
+    },
+  };
+}
 const modeLabels: Record<ChatMode, string> = {
   chat: 'Chat',
   coding: 'Coding',
@@ -221,13 +237,21 @@ export function Chat() {
   const [editing, setEditing] = useState<string | null>(null);
   const [saveDraft, setSaveDraft] = useState<{ path: string; code: string } | null>(null);
   const [desktop, setDesktop] = useState(false);
-  const [codeTab, setCodeTab] = useState('chat');
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const followRef = useRef(true);
+  // followRef alone cannot drive UI: a ref change does not re-render, so once a
+  // reader scrolled up there was no way back to the live edge.
+  const [following, setFollowing] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const draftKeyRef = useRef<string | null>(null);
+  const inputRef = useRef('');
   const active = conversations.find((c) => c.id === activeId) ?? conversations[0];
+  // The 300 px desktop inspector that docs/workspace-design.md specifies is not
+  // wired up yet; until it is, run settings always open in the Sheet. Kept as a
+  // named flag so the dead branches below stay visible to whoever finishes it.
   const inspectorInline = false;
   useEffect(() => {
     const query = window.matchMedia('(min-width: 1180px)');
@@ -236,13 +260,36 @@ export function Chat() {
     query.addEventListener('change', change);
     return () => query.removeEventListener('change', change);
   }, []);
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const change = () => setReducedMotion(query.matches);
+    change();
+    query.addEventListener('change', change);
+    return () => query.removeEventListener('change', change);
+  }, []);
+  // Mirror the composer value into a ref so the conversation-switch effect can
+  // read it without listing `input` as a dependency (which would re-run it on
+  // every keystroke). Written in an effect, never during render.
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
   useEffect(() => () => abortRef.current?.abort(), []);
   useEffect(() => {
+    // Restoring the workspace flips active?.id from undefined to a real id long
+    // after mount. Treat that as hydration, not a conversation switch: carry the
+    // pending draft across instead of overwriting whatever has been typed.
+    const key = 'hikmah-draft-' + (active?.id ?? 'new');
+    const previous = draftKeyRef.current;
+    if (previous === key) return;
+    draftKeyRef.current = key;
+    const carried = previous === 'hikmah-draft-new' && inputRef.current ? inputRef.current : null;
     try {
-      setInput(sessionStorage.getItem('hikmah-draft-' + (active?.id ?? 'new')) ?? '');
+      if (carried) sessionStorage.setItem(key, carried);
+      else setInput(sessionStorage.getItem(key) ?? '');
     } catch {
-      setInput('');
+      if (!carried) setInput('');
     }
+    if (carried) return;
     setAttachments([]);
     setEditing(null);
     setError(null);
@@ -251,11 +298,18 @@ export function Chat() {
     setWorkspaceOpen(false);
     setQuestion(null);
     followRef.current = true;
+    setFollowing(true);
   }, [active?.id]);
   useEffect(() => {
-    if (followRef.current && scrollRef.current)
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [active?.messages]);
+    const e = scrollRef.current;
+    if (!followRef.current || !e) return;
+    // Smooth while following a live answer, instant when a conversation is
+    // opened, so switching chats does not animate through the whole history.
+    e.scrollTo({
+      top: e.scrollHeight,
+      behavior: isRunning && !reducedMotion ? 'smooth' : 'auto',
+    });
+  }, [active?.messages, isRunning, reducedMotion]);
   const updateAssistant = (id: string, messageId: string, change: Partial<ChatEntry>) =>
     setConversations((cs) =>
       cs.map((c) =>
@@ -272,6 +326,12 @@ export function Chat() {
     [],
   );
   const attach = async (incoming: FileList | File[]) => {
+    // Collect first, then apply once. Reporting the limit from inside a state
+    // updater made the toast impure and duplicated it under StrictMode, and the
+    // updater's own result could not be observed at the call site.
+    const accepted: { name: string; content: string }[] = [];
+    let room = MAX_ATTACHMENTS - attachments.length;
+    let overflow = false;
     for (const file of Array.from(incoming)) {
       if (
         !/\.(txt|md|json|html|css|js|ts|tsx|jsx|py|java|sql|csv|yaml|yml|xml|sh)$/i.test(
@@ -287,14 +347,15 @@ export function Chat() {
         toast.error('This file does not look like plain text.');
         continue;
       }
-      setAttachments((prev) => {
-        if (prev.length >= 3) {
-          toast.error('Up to 3 files per message.');
-          return prev;
-        }
-        return [...prev, { name: file.name.slice(0, 128), content: text }];
-      });
+      if (room <= 0) {
+        overflow = true;
+        continue;
+      }
+      room--;
+      accepted.push({ name: file.name.slice(0, 128), content: text });
     }
+    if (accepted.length) setAttachments((prev) => [...prev, ...accepted].slice(0, MAX_ATTACHMENTS));
+    if (overflow) toast.error(`Up to ${MAX_ATTACHMENTS} files per message.`);
   };
   const generateMedia = async () => {
     if (isRunning || abortRef.current) return;
@@ -545,6 +606,7 @@ export function Chat() {
     setWorkspaceOpen(false);
     setArtifact(null);
     followRef.current = true;
+    setFollowing(true);
     const controller = new AbortController();
     abortRef.current = controller;
     let streamed = resumed?.checkpoint?.output ?? '';
@@ -605,6 +667,10 @@ export function Chat() {
           flush();
         }, 90);
     };
+    let latestReasoning = '';
+    const reasoningFlush = createFlusher(() => {
+      if (currentStage) patchStage(currentStage, { explanation: latestReasoning });
+    });
     const record = (t: TraceEntry) => {
       trace = [
         ...trace,
@@ -761,6 +827,10 @@ export function Chat() {
           updateAssistant(c.id, messageId, {
             comparison: { ...view, latencyMs: performance.now() - baselineStarted },
           });
+        // The comparison lane streamed at one full conversations rebuild per
+        // token. Coalesce the streaming writes; terminal states still sync
+        // immediately so the final answer is never left behind a timer.
+        const baselineFlush = createFlusher(sync);
         sync();
         baselineTask = complete(baselineConfig, baselineMessages, {
           signal: controller.signal,
@@ -770,15 +840,15 @@ export function Chat() {
               text: view.text + delta,
               firstTextMs: view.firstTextMs ?? performance.now() - baselineStarted,
             };
-            sync();
+            baselineFlush.schedule();
           },
           onReasoning: (text) => {
             view = { ...view, explanation: text };
-            sync();
+            baselineFlush.schedule();
           },
           onMeta: (meta) => {
             view = { ...view, ...meta };
-            sync();
+            baselineFlush.schedule();
           },
         })
           .then((value) => {
@@ -790,7 +860,7 @@ export function Chat() {
               tokens: value.usage.total_tokens,
               status: 'complete',
             };
-            sync();
+            baselineFlush.now();
             addUsage(value.usage);
           })
           .catch((e) => {
@@ -802,7 +872,7 @@ export function Chat() {
                 ? 'Stopped by you. Partial answer preserved.'
                 : errorMessage(e),
             };
-            sync();
+            baselineFlush.now();
           });
       }
       const connected = scope.connectors.filter((c) => c.enabled && runCatalogs[c.id]?.length);
@@ -843,7 +913,10 @@ export function Chat() {
           stageStarts.set(currentStage, performance.now());
           patchStage(currentStage, { name: 'Generate · request ' + index, status: 'running' });
         },
-        onReasoning: (text) => patchStage(currentStage, { explanation: text }),
+        onReasoning: (text) => {
+          latestReasoning = text;
+          reasoningFlush.schedule();
+        },
         onMeta: (meta) => patchStage(currentStage, meta),
         onText: onOutput,
         onProgress: (p) =>
@@ -1285,7 +1358,10 @@ export function Chat() {
               ref={scrollRef}
               onScroll={() => {
                 const e = scrollRef.current;
-                if (e) followRef.current = e.scrollHeight - e.scrollTop - e.clientHeight < 140;
+                if (!e) return;
+                const atEdge = e.scrollHeight - e.scrollTop - e.clientHeight < 140;
+                followRef.current = atEdge;
+                setFollowing((was) => (was === atEdge ? was : atEdge));
               }}
               aria-busy={isRunning}
             >
@@ -1365,7 +1441,11 @@ export function Chat() {
                               m.comparison ? 'response-comparison-grid' : 'response-single'
                             }
                           >
-                            <section className="primary-response">
+                            <section
+                              className="primary-response"
+                              aria-live={m.status === 'running' ? 'polite' : 'off'}
+                              aria-atomic="false"
+                            >
                               {m.comparison && (
                                 <header className="primary-response-title">
                                   <HikmahIcon name="orbit" size={18} />
@@ -1373,7 +1453,7 @@ export function Chat() {
                                   <span>{m.model}</span>
                                 </header>
                               )}
-                              {m.text && (m.role === 'user' || m.status === 'complete') && (
+                              {shouldRenderMessageText(m) && (
                                 <MessageContent
                                   text={m.text}
                                   onSave={
@@ -1694,6 +1774,22 @@ export function Chat() {
                 </div>
               )}
             </div>
+            {!following && active?.messages.length ? (
+              <button
+                type="button"
+                className="jump-to-latest"
+                onClick={() => {
+                  const e = scrollRef.current;
+                  if (!e) return;
+                  e.scrollTo({ top: e.scrollHeight, behavior: 'smooth' });
+                  followRef.current = true;
+                  setFollowing(true);
+                }}
+              >
+                <ChevronDown size={16} aria-hidden="true" />
+                Jump to latest
+              </button>
+            ) : null}
             <div className="composer-dock">
               {outputMode === 'text' &&
                 !provider.apiKey &&

@@ -28,17 +28,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandEmpty,
-} from '@/components/ui/command';
+import {} from '@/components/ui/command';
 import { complete, listModels, ProviderTransportError } from '@/lib/playground/transport';
 import { RELAY_PROVIDERS, relayProviderFor } from '@/lib/playground/provider-routes';
 import { usePlayground } from './context';
-import { Choice, Notice, errorMessage, downloadJson } from './common';
+import { Choice, errorMessage, downloadJson } from './common';
 import { ModelPicker, ModelDetails } from './model-picker';
 import { ErrorCard, type DisplayError } from './error-card';
 import { toast } from 'sonner';
