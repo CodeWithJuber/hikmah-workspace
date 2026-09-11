@@ -8677,11 +8677,112 @@ body {
 
 /* Rebuilt chat surface (components/chat). Layout only: the AI Elements
    components carry their own Tailwind styling. */
+.chat-shell {
+  display: flex;
+  height: 100dvh;
+}
+.conversation-list {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 12px 8px env(safe-area-inset-bottom);
+  overflow-y: auto;
+}
+.conversation-list ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.conversation-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+}
+.conversation-list li.is-active {
+  background: var(--muted);
+}
+.conversation-list a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: inherit;
+  text-decoration: none;
+}
+.conversation-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conversation-running {
+  color: var(--primary);
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.conversation-waiting {
+  color: var(--destructive);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.conversation-new {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.conversation-new:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.conversation-delete {
+  padding: 2px 8px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  /* Revealed on hover or keyboard focus, so the row stays readable but the
+     control is still reachable without a mouse. */
+  opacity: 0;
+}
+.conversation-list li:hover .conversation-delete,
+.conversation-delete:focus-visible {
+  opacity: 1;
+}
+.conversation-note {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  padding: 12px 8px;
+}
+
+/* The list becomes a strip across the top on a phone: 240px of sidebar would
+   leave no room for the conversation itself. */
+@media (max-width: 640px) {
+  .chat-shell {
+    flex-direction: column;
+  }
+  .conversation-list {
+    width: auto;
+    max-height: 33dvh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
 .chat-preview {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /* The shell owns the viewport height; claiming it here too would push the
+     composer below the fold on a phone, where the list sits above. */
+  flex: 1;
+  min-height: 0;
   max-width: 860px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 16px env(safe-area-inset-bottom);
 }

@@ -117,9 +117,22 @@ Only the first would leave the run finishing into the log with nobody watching.
 
 The conversation id comes from the client, so an existing conversation's owner
 is checked rather than assumed, and refused as "not found" so the reply does not
-confirm that someone else's conversation exists. `/chat` derives one id per
-owner from a hash of the account id: a shared constant would put two owners in
-the same conversation, which that check would then refuse forever.
+confirm that someone else's conversation exists.
+
+Each conversation has its own URL (`/chat/[id]`), and `/chat` only picks one —
+the most recently active, or a fresh id — and redirects, so a reload lands where
+the owner was. A row is not created by opening a conversation: the first message
+creates it, so an abandoned "New chat" leaves nothing in the list. It is titled
+from that message rather than by asking a model, which would cost a request and
+a wait before the answer actually asked for, and on the free models this
+deployment defaults to would sometimes return prose instead of a title. The
+title is written once and never rewritten, because the owner finds a
+conversation by the name it had when they last looked.
+
+The list joins each conversation to its active run, because "working" and
+"stopped to ask you something" look identical from the conversation row and need
+opposite things from the owner. A run paused on an approval that the list cannot
+show is a conversation that never finishes.
 
 **Documented limit:** one worker per process, and the resume buffer is a
 process-local `EventEmitter`. A second replica would break the tail.

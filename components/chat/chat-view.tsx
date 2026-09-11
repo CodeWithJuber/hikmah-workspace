@@ -9,7 +9,7 @@
  * What that buys, and what the old surface could not do: close the tab
  * mid-answer, come back, and the answer is still being written.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import {
@@ -44,11 +44,13 @@ export type ChatViewProps = {
   /** The stored transcript, loaded before this mounts. useChat captures it when
    * the conversation is created, so it cannot be supplied later. */
   initialMessages?: UIMessage[];
+  /** Called when a run settles, so a conversation list can catch up. */
+  onSettled?: () => void;
   /** Shown when the conversation is empty. */
   empty?: React.ReactNode;
 };
 
-export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
+export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
   //
@@ -77,6 +79,14 @@ export function ChatView({ id, run, initialMessages, empty }: ChatViewProps) {
     });
 
   const busy = status === 'submitted' || status === 'streaming';
+
+  // Report the edge, not the state: firing on every render while idle would
+  // refetch the conversation list forever.
+  const wasBusy = useRef(false);
+  useEffect(() => {
+    if (wasBusy.current && !busy) onSettled?.();
+    wasBusy.current = busy;
+  }, [busy, onSettled]);
 
   // Two halves, and both are needed: stop() ends this tab's stream, and the
   // cancel aborts the provider call the worker is still driving. Without the

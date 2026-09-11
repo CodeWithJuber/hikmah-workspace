@@ -218,3 +218,71 @@ test('each run counts its own events', async (t) => {
   store.appendEvent('r1', { type: 'b' });
   assert.equal(store.appendEvent('r2', { type: 'a' }), 0);
 });
+
+test('conversations are listed newest-active first, per owner', async (t) => {
+  // The sidebar orders by when a conversation last did something, not when it
+  // was made: a thread answered five minutes ago belongs above one opened
+  // yesterday and abandoned.
+  const { store } = await freshStore(t);
+  store.createConversation({ id: 'c2', userId: 'u1' });
+  store.createConversation({ id: 'c3', userId: 'u2' });
+
+  // Starting a run is what moves a conversation up the list.
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  store.createRun({ id: 'r2', conversationId: 'c2', userId: 'u1', config: {} });
+
+  const listed = store.listConversations('u1').map((row) => row.id);
+  assert.deepEqual(listed, ['c2', 'c1']);
+  assert.deepEqual(
+    store.listConversations('u2').map((row) => row.id),
+    ['c3'],
+    "another owner's conversations are not listed",
+  );
+});
+
+test('the list says whether a conversation is working or waiting on the owner', async (t) => {
+  // They look identical from the conversation row, and they need opposite
+  // things: one needs patience, the other needs an answer. A run paused on an
+  // approval that the list cannot show is a conversation that never finishes.
+  const { store } = await freshStore(t);
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  assert.equal(store.listConversations('u1')[0].run_status, 'queued');
+
+  store.setStatus('r1', 'waiting_approval');
+  assert.equal(store.listConversations('u1')[0].run_status, 'waiting_approval');
+
+  store.finish('r1', 'done');
+  const settled = store.listConversations('u1')[0];
+  assert.equal(settled.active_run_id, null);
+  assert.equal(settled.run_status, null, 'a finished run leaves nothing in flight');
+});
+
+test('a conversation is named once and not renamed by later messages', async (t) => {
+  // The owner finds a conversation in the list by the name it had when they
+  // last looked. A second message quietly retitling it loses them.
+  const { store } = await freshStore(t);
+  store.setTitle('c1', 'How do I restart nginx?');
+  store.setTitle('c1', 'and what about postgres');
+  assert.equal(store.listConversations('u1')[0].title, 'How do I restart nginx?');
+});
+
+test('deleting a conversation takes its messages and runs with it', async (t) => {
+  const { store } = await freshStore(t);
+  store.appendMessage('c1', { id: 'm1', role: 'user', parts: [{ type: 'text', text: 'hi' }] });
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  store.appendEvent('r1', { type: 'text-delta' });
+
+  assert.equal(store.deleteConversation('c1', 'u1'), true);
+  assert.deepEqual(store.listMessages('c1'), []);
+  assert.equal(store.getRun('r1'), null, 'a run cannot outlive the conversation it belongs to');
+  assert.deepEqual(store.eventsAfter('r1', -1), []);
+});
+
+test('a conversation is only deletable by its owner', async (t) => {
+  // Refused the same way a missing one is, so the answer cannot be used to
+  // discover that someone else's conversation exists.
+  const { store } = await freshStore(t);
+  assert.equal(store.deleteConversation('c1', 'someone-else'), false);
+  assert.equal(store.deleteConversation('nope', 'u1'), false);
+  assert.equal(store.getConversation('c1').user_id, 'u1', 'and it is still there');
+});

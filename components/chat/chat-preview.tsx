@@ -73,7 +73,14 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
   }
 }
 
-export function ChatPreview({ conversationId }: { conversationId: string }) {
+export function ChatPreview({
+  conversationId,
+  onSettled,
+}: {
+  conversationId: string;
+  /** Called when a run finishes, so the conversation list can catch up. */
+  onSettled?: () => void;
+}) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
 
   useEffect(() => {
@@ -100,6 +107,7 @@ export function ChatPreview({ conversationId }: { conversationId: string }) {
           id={conversationId}
           run={loaded.config}
           initialMessages={loaded.messages}
+          onSettled={onSettled}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

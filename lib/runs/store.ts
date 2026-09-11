@@ -27,6 +27,22 @@ export type RunRow = {
   ended_at: string | null;
 };
 
+export type ConversationRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  mode: string;
+  model: string;
+  active_run_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A conversation as the list needs it: the row, plus what its run is doing. */
+export type ConversationSummaryRow = ConversationRow & {
+  run_status: RunStatus | null;
+};
+
 export type StoredMessage = {
   id: string;
   role: string;
@@ -61,6 +77,24 @@ export function createRunStore(
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ),
     getConversation: db.prepare('SELECT id, user_id FROM conversations WHERE id = ?'),
+    // Joined to the active run because "in flight" and "stopped to ask you
+    // something" look identical from the conversation row alone, and a run
+    // paused on an approval nobody can see is a conversation that never
+    // finishes.
+    listConversations: db.prepare(
+      `SELECT c.id, c.user_id, c.title, c.mode, c.model, c.active_run_id,
+              c.created_at, c.updated_at, r.status AS run_status
+       FROM conversations c
+       LEFT JOIN runs r ON r.id = c.active_run_id
+       WHERE c.user_id = ? ORDER BY c.updated_at DESC LIMIT ?`,
+    ),
+    // Only when it is still unset: the title is written from the opening
+    // message, and a later message must not rename a conversation the owner has
+    // been finding by that name.
+    setTitle: db.prepare("UPDATE conversations SET title = ? WHERE id = ? AND title = ''"),
+    deleteConversation: db.prepare(
+      'DELETE FROM conversations WHERE id = ? AND user_id = ? RETURNING id',
+    ),
     nextSeq: db.prepare(
       'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM messages WHERE conversation_id = ?',
     ),
@@ -143,6 +177,28 @@ export function createRunStore(
         stamp,
       );
       return input.id;
+    },
+
+    /** The owner's conversations, most recently active first. */
+    listConversations(userId: string, limit = 100): ConversationSummaryRow[] {
+      return statements.listConversations.all(userId, limit) as ConversationSummaryRow[];
+    },
+
+    /** Name a conversation, if it does not have one yet. */
+    setTitle(conversationId: string, title: string) {
+      statements.setTitle.run(title, conversationId);
+    },
+
+    /**
+     * Remove a conversation and everything under it.
+     *
+     * Messages, runs and their events go with it through ON DELETE CASCADE, so
+     * this cannot leave a run queued against a conversation that is gone.
+     * Returns false when the conversation is not this owner's, which is the
+     * same answer as it not existing.
+     */
+    deleteConversation(id: string, userId: string): boolean {
+      return (statements.deleteConversation.get(id, userId) ?? null) !== null;
     },
 
     /** Who owns this conversation, or null when there is no such row. */
