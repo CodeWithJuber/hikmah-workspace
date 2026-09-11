@@ -14,6 +14,11 @@ const fail = (error: string, status: number) => Response.json({ error }, { statu
  * stuck or looping client cannot queue work without bound. */
 const MAX_ACTIVE_RUNS = 3;
 
+/** Does this message carry a decision for a tool that was waiting on one? */
+function hasApprovalResponse(message: UIMessage): boolean {
+  return message.parts.some((part) => (part as { state?: string }).state === 'approval-responded');
+}
+
 /**
  * Queue a run for this conversation and return immediately.
  *
@@ -58,18 +63,37 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       /* already created by a concurrent request */
     }
 
-  // One run per conversation keeps two tabs from answering the same thread at
-  // once; the per-owner cap bounds the queue if a client retries in a loop.
+  const incomingMessage = messages.at(-1);
+
+  // A run paused on an approval is answered by re-sending the assistant message
+  // with the decision filled in. That is a resume, not a new run: treating it as
+  // one would refuse the answer and strand the run it was meant to release.
   const already = store.activeForConversation(conversationId);
-  if (already)
+  if (already) {
+    const paused = store.getRun(already);
+    if (
+      paused?.status === 'waiting_approval' &&
+      incomingMessage?.role === 'assistant' &&
+      hasApprovalResponse(incomingMessage)
+    ) {
+      store.replaceMessage(conversationId, {
+        id: incomingMessage.id,
+        parts: incomingMessage.parts,
+      });
+      // False when the run has moved on, which absorbs a duplicate answer
+      // rather than starting a second run over the same conversation.
+      if (store.requeueApproved(already)) void worker.tick();
+      return Response.json({ runId: already, conversationId, resumed: true }, { headers });
+    }
     return Response.json(
       { runId: already, conversationId, alreadyRunning: true },
       { headers, status: 409 },
     );
+  }
   if (store.countActive(user.userId) >= MAX_ACTIVE_RUNS)
     return fail('Too many runs are already in progress. Wait for one to finish.', 429);
 
-  const incoming = messages.at(-1);
+  const incoming = incomingMessage;
   if (!incoming) return fail('Send a message to start the run.', 400);
   store.appendMessage(conversationId, {
     id: incoming.id ?? newMessageId(),

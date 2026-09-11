@@ -89,7 +89,13 @@ async function driveWithAgent({
 
     let message: unknown;
     for await (const value of readUIMessageStream({ stream: replay as never })) message = value;
-    return { message };
+    // A tool that needs the owner's say-so leaves its part in
+    // 'approval-requested'. The run is not finished, it is waiting for a person,
+    // and the worker has to tell those apart or the answer arrives too late to
+    // matter.
+    const parts = (message as { parts?: { state?: string }[] } | undefined)?.parts ?? [];
+    const awaitingApproval = parts.some((part) => part?.state === 'approval-requested');
+    return { message, awaitingApproval };
   } finally {
     await mcp?.close();
   }

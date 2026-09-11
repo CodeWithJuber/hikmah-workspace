@@ -70,7 +70,11 @@ export type RunDriver = (context: {
   signal: AbortSignal;
   /** Record one streamed chunk. Returns its sequence number. */
   emit: (chunk: unknown) => number;
-}) => Promise<{ message?: unknown } | void>;
+}) => Promise<{
+  message?: unknown;
+  /** The stream stopped on a tool the owner has to answer, not on an answer. */
+  awaitingApproval?: boolean;
+} | void>;
 
 export type WorkerOptions = {
   db: SqliteHandle;
@@ -138,7 +142,11 @@ export function createWorker(options: WorkerOptions): Worker {
             });
           }
           store.pruneEvents(run.id);
-          store.finish(run.id, 'done');
+          // Waiting on a person is not finishing. The run keeps its place so the
+          // answer, when it comes, resumes this run rather than starting a new
+          // one over the same conversation.
+          if (result?.awaitingApproval) store.setStatus(run.id, 'waiting_approval');
+          else store.finish(run.id, 'done');
         }
       } catch (error) {
         options.onError?.(error, run);

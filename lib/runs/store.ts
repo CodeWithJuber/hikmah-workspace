@@ -85,6 +85,14 @@ export function createRunStore(
     // driving them. Requeue on boot and on shutdown so the work resumes instead
     // of being stranded.
     requeueRunning: db.prepare("UPDATE runs SET status = 'queued' WHERE status = 'running'"),
+    // Only from waiting_approval: a run that is already queued or running must
+    // not be restarted underneath the worker driving it.
+    requeueApproved: db.prepare(
+      "UPDATE runs SET status = 'queued' WHERE id = ? AND status = 'waiting_approval'",
+    ),
+    replaceMessage: db.prepare(
+      'UPDATE messages SET parts = ?, metadata = ? WHERE id = ? AND conversation_id = ?',
+    ),
     setActiveRun: db.prepare(
       'UPDATE conversations SET active_run_id = ?, updated_at = ? WHERE id = ?',
     ),
@@ -182,6 +190,34 @@ export function createRunStore(
 
     getRun(id: string): RunRow | null {
       return one<RunRow>(statements.getRun.get(id));
+    },
+
+    /**
+     * Put a paused run back in the queue.
+     *
+     * Returns false when the run was not waiting, which is how a duplicate
+     * answer to the same approval is absorbed rather than starting a second run.
+     */
+    requeueApproved(id: string): boolean {
+      const result = statements.requeueApproved.run(id) as { changes?: number };
+      return Number(result?.changes ?? 0) > 0;
+    },
+
+    /** Overwrite a stored message in place, keeping its position in the thread.
+     *
+     * An approval answers a message that is already a row; appending the
+     * answered copy would leave the conversation holding both. */
+    replaceMessage(
+      conversationId: string,
+      message: { id: string; parts: unknown; metadata?: unknown },
+    ): boolean {
+      const result = statements.replaceMessage.run(
+        JSON.stringify(message.parts ?? []),
+        message.metadata === undefined ? null : JSON.stringify(message.metadata),
+        message.id,
+        conversationId,
+      ) as { changes?: number };
+      return Number(result?.changes ?? 0) > 0;
     },
 
     setStatus(id: string, status: RunStatus) {
