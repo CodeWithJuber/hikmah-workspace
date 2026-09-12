@@ -137,6 +137,13 @@ export type ChatViewProps = {
   /** The stored transcript, loaded before this mounts. useChat captures it when
    * the conversation is created, so it cannot be supplied later. */
   initialMessages?: UIMessage[];
+  /** Why the last run for this conversation failed, from the stored row.
+   *
+   * A live failure arrives through useChat; this is the one that already
+   * happened, which useChat cannot know about because it only tails a run it
+   * considers active. Cleared as soon as anything is sent, so a retry does not
+   * argue with its own result. */
+  initialError?: string;
   /** Called when a run settles, so a conversation list can catch up. */
   onSettled?: () => void;
   /** Shown when the conversation is empty. */
@@ -164,6 +171,7 @@ export function ChatView({
   id,
   run,
   initialMessages,
+  initialError,
   onSettled,
   empty,
   starters,
@@ -210,6 +218,15 @@ export function ChatView({
   // the agent's machinery is actually buying. Held here rather than in the run
   // configuration because it is a per-turn choice, not a setting.
   const [compare, setCompare] = useState(false);
+  // The stored failure is shown until this conversation does something else.
+  // Reset during render rather than in an effect, because an effect would show
+  // the previous conversation's failure for one frame after switching.
+  const [staleFor, setStaleFor] = useState(id);
+  const [retried, setRetried] = useState(false);
+  if (staleFor !== id) {
+    setStaleFor(id);
+    setRetried(false);
+  }
   useEffect(() => {
     transport.setConfig({ ...run, compare: compare ? {} : undefined });
   }, [transport, run, compare]);
@@ -277,6 +294,8 @@ export function ChatView({
       const trimmed = (text ?? '').trim();
       // A file on its own is a message: "look at this" is a complete request.
       if ((!trimmed && !files?.length) || busy) return;
+      // Whatever failed before, this turn supersedes it.
+      setRetried(true);
 
       if (editing) {
         setEditing(null);
@@ -366,10 +385,19 @@ export function ChatView({
         <ConversationScrollButton />
       </Conversation>
 
-      {error && (
+      {/* The live failure first; the stored one only while nothing has been
+          sent since, so pressing Try again cannot leave the old reason sitting
+          under the new answer. */}
+      {(error || (initialError && !retried)) && (
         <div className="chat-error" role="alert">
-          <p>{error.message}</p>
-          <button type="button" onClick={() => void regenerate()}>
+          <p>{error ? error.message : initialError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setRetried(true);
+              void regenerate();
+            }}
+          >
             Try again
           </button>
         </div>

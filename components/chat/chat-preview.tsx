@@ -70,7 +70,7 @@ const FALLBACK: RunConfig = {
   instructions: HIKMAH_CORE,
 };
 
-type Loaded = { config: RunConfig; messages: UIMessage[] };
+type Loaded = { config: RunConfig; messages: UIMessage[]; error?: string };
 
 /** The connection the workspace already has, so this surface talks to the same
  * provider as the rest of the app. */
@@ -125,7 +125,15 @@ type SavedConnection = {
   apiKeySecret?: string;
 };
 
-async function loadMessages(conversationId: string): Promise<UIMessage[]> {
+/** The stored transcript, and why the last run failed if it did.
+ *
+ * The failure has to arrive with the transcript rather than over the stream:
+ * useChat only tails a run it considers active, and a failed one is not, so a
+ * reload of a failed conversation used to show the question and nothing else.
+ */
+async function loadMessages(
+  conversationId: string,
+): Promise<{ messages: UIMessage[]; error?: string }> {
   try {
     const response = await fetch(
       `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
@@ -133,13 +141,13 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
         credentials: 'same-origin',
       },
     );
-    if (!response.ok) return [];
-    const payload = (await response.json()) as { messages?: UIMessage[] };
-    return payload.messages ?? [];
+    if (!response.ok) return { messages: [] };
+    const payload = (await response.json()) as { messages?: UIMessage[]; error?: string };
+    return { messages: payload.messages ?? [], error: payload.error };
   } catch {
     // An unreadable transcript is worth starting without; refusing to open the
     // chat over it would be a worse answer than an empty one.
-    return [];
+    return { messages: [] };
   }
 }
 
@@ -176,8 +184,8 @@ export function ChatPreview({
 
   useEffect(() => {
     let live = true;
-    void Promise.all([loadConfig(), loadMessages(conversationId)]).then(([config, messages]) => {
-      if (live) setLoaded({ config, messages });
+    void Promise.all([loadConfig(), loadMessages(conversationId)]).then(([config, stored]) => {
+      if (live) setLoaded({ config, messages: stored.messages, error: stored.error });
     });
     return () => {
       live = false;
@@ -268,6 +276,7 @@ export function ChatPreview({
             disabledTools: settings.disabledTools,
           }}
           initialMessages={loaded.messages}
+          initialError={loaded.error}
           onSettled={onSettled}
           starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
           models={models.length > 1 ? models : []}
