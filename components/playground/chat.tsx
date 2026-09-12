@@ -1645,17 +1645,14 @@ export function Chat() {
                               </div>
                             ) : null}
                             {preferences.showActivity && !!m.trace?.length && (
-                              <details className="activity-group">
-                                <summary>
-                                  <Bot size={18} />
-                                  <span>
-                                    Activity{' '}
-                                    <span className="muted">
-                                      · {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
-                                    </span>
-                                  </span>
-                                  <ChevronDown size={16} />
-                                </summary>
+                              /* One disclosure, not two: every call's name and
+                                 status is a row you can read without clicking,
+                                 so only the payload is behind a disclosure. */
+                              <div className="activity-group">
+                                <p className="activity-head">
+                                  <Bot size={16} />
+                                  {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
+                                </p>
                                 <div className="activity-list">
                                   {m.trace.map((t, i) => (
                                     <details key={t.id + '-' + i} className="activity-item">
@@ -1667,6 +1664,11 @@ export function Chat() {
                                         )}
                                         <span>{t.name.replace(/_/g, ' ')}</span>
                                         <small>{t.status}</small>
+                                        <ChevronDown
+                                          size={14}
+                                          className="activity-caret"
+                                          aria-hidden="true"
+                                        />
                                       </summary>
                                       <pre>
                                         Input: {t.input}
@@ -1675,7 +1677,7 @@ export function Chat() {
                                     </details>
                                   ))}
                                 </div>
-                              </details>
+                              </div>
                             )}
                             {m.role === 'assistant' && m.status !== 'running' && (
                               <HikmahReceipt message={m} />

@@ -71,74 +71,60 @@ function Metrics({ stage }: { stage: RunStage }) {
   );
 }
 export function ExecutionProgress({ value }: { value?: Execution }) {
-  const [expanded, setExpanded] = useState(false);
   if (!value?.stages.length) return null;
-  const current = value.stages.findLast((s) => s.status === 'running');
-  const failed = value.stages.some((s) => s.status === 'error');
   return (
-    <details
-      className="execution-progress execution-details"
-      open={expanded}
-      onToggle={(e) => setExpanded(e.currentTarget.open)}
-    >
-      <summary>
-        <Activity size={15} />
-        {current
-          ? current.name
-          : failed
-            ? 'Activity · some checks unavailable'
-            : 'Activity & model explanation'}
+    /* Where the answer came from is provenance, not trivia, so the stages are
+       always visible. The model's own explanation is the one thing left behind
+       a disclosure — one click, not two. */
+    <div className="execution-progress">
+      <p className="execution-provider">
+        <Activity size={14} />
+        <span>{value.provider}</span>
         <span>
           {value.stages.length} request{value.stages.length > 1 ? 's' : ''}
         </span>
-        {current && <LoaderCircle size={14} className="spin" />}
-      </summary>
-      {expanded && (
-        <>
-          <p className="execution-provider">{value.provider}</p>
-          {value.contextSummary && (
-            <details className="context-receipt">
-              <summary>Context model contribution</summary>
-              <p className="whitespace-pre-wrap">{value.contextSummary}</p>
-              <small>Experimental context analysis; the original conversation is preserved.</small>
+      </p>
+      {value.contextSummary && (
+        <details className="context-receipt">
+          <summary>Context model contribution</summary>
+          <p className="whitespace-pre-wrap">{value.contextSummary}</p>
+          <small>Experimental context analysis; the original conversation is preserved.</small>
+        </details>
+      )}
+      {value.contribution?.context === 'unavailable' && (
+        <p className="small-note">
+          Context analysis was unavailable. The original conversation was used.
+        </p>
+      )}
+      {value.stages.map((stage) => (
+        <section key={stage.id} className={'execution-stage ' + stage.status}>
+          <header>
+            {stage.status === 'running' ? (
+              <LoaderCircle size={15} className="spin" />
+            ) : stage.status === 'error' ? (
+              <AlertCircle size={15} />
+            ) : stage.status === 'stopped' ? (
+              <Pause size={15} />
+            ) : (
+              <Check size={15} />
+            )}
+            <strong>{stage.name}</strong>
+            <span>{stage.model ?? stage.requestedModel}</span>
+          </header>
+          <Metrics stage={stage} />
+          <ProviderExplanation text={stage.explanation} running={stage.status === 'running'} />
+          {!stage.explanation && stage.status !== 'running' && (
+            <small>No readable model explanation was returned.</small>
+          )}
+          {stage.text && stage.status !== 'running' && (
+            <details className="stage-output">
+              <summary>{stage.name === 'Repair' ? 'Revision' : 'Review result'}</summary>
+              <MessageContent text={stage.text} />
             </details>
           )}
-          {value.contribution?.context === 'unavailable' && (
-            <p className="small-note">
-              Context analysis was unavailable. The original conversation was used.
-            </p>
-          )}
-          {value.stages.map((stage) => (
-            <section key={stage.id} className={'execution-stage ' + stage.status}>
-              <header>
-                {stage.status === 'running' ? (
-                  <LoaderCircle size={15} className="spin" />
-                ) : stage.status === 'error' ? (
-                  <AlertCircle size={15} />
-                ) : stage.status === 'stopped' ? (
-                  <Pause size={15} />
-                ) : (
-                  <Check size={15} />
-                )}
-                <strong>{stage.name}</strong>
-                <span>{stage.model ?? stage.requestedModel}</span>
-              </header>
-              <Metrics stage={stage} />
-              <ProviderExplanation text={stage.explanation} running={stage.status === 'running'} />
-              {!stage.explanation && stage.status !== 'running' && (
-                <small>No readable model explanation was returned.</small>
-              )}
-              {stage.text && stage.status !== 'running' && (
-                <details className="stage-output">
-                  <summary>{stage.name === 'Repair' ? 'Revision' : 'Review result'}</summary>
-                  <MessageContent text={stage.text} />
-                </details>
-              )}
-            </section>
-          ))}
-        </>
-      )}
-    </details>
+        </section>
+      ))}
+    </div>
   );
 }
 export function DirectComparison({ value }: { value: ComparisonView }) {
@@ -167,8 +153,7 @@ export function DirectComparison({ value }: { value: ComparisonView }) {
           {value.error}
         </p>
       )}
-      <details className="direct-metrics">
-        <summary>Request details & model explanation</summary>
+      <div className="direct-metrics">
         <ProviderExplanation text={value.explanation} running={value.status === 'running'} />
         <p className="comparison-method">
           {value.provider} · one generation · saved knowledge included · no tools or review
@@ -187,7 +172,7 @@ export function DirectComparison({ value }: { value: ComparisonView }) {
             firstTextMs: value.firstTextMs,
           }}
         />
-      </details>
+      </div>
     </section>
   );
 }

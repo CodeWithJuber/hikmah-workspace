@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '../vendor/shadcn-tailwind-4.13.0.css';
+/* KaTeX ships the rule that hides its MathML twin; without it every formula
+   renders twice, once as MathML and once as HTML. @streamdown/math names this
+   exact path from its getStyles() and leaves the import to the app. */
+@import 'katex/dist/katex.min.css';
+
+/* The workspace stamps its theme on the root element, and Tailwind's `dark:`
+   variant otherwise means `prefers-color-scheme`. Without this the two
+   disagree: Shiki's dark palette and every `dark:` class in components/ui and
+   components/ai-elements follow the operating system while the page follows
+   the saved preference, which is how a dark answer ended up wearing the light
+   code theme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* Streamdown renders assistant markdown. Tailwind 4 only scans the project, so
    the classes inside these packages have to be declared as sources or the
@@ -1471,10 +1483,15 @@ summary:focus-visible {
   font-weight: 400;
   margin-left: auto;
 }
+/* Assistant body text aligns with its own rail, not with the label icon. This
+   was 37px, to sit under the orbit mark, and three later copies of this exact
+   selector list reset it to 0 — so the indent had been gone for a while, while
+   .thinking-indicator and .stopped-note kept offsetting themselves by 37px
+   against text that no longer moved. One definition now, and it is this one. */
 .chat-message.assistant .markdown-content,
 .activity-group,
 .chat-message.assistant .message-actions {
-  margin-left: 37px;
+  margin-left: 0;
 }
 .markdown-content {
   font-size: 16px;
@@ -1486,7 +1503,8 @@ summary:focus-visible {
   line-height: 1.8;
   margin: 0 0 16px;
 }
-.markdown-content > p:last-child {
+.markdown-content > :last-child,
+.markdown-content > :last-child > p:last-child {
   margin-bottom: 0;
 }
 .markdown-content h1 {
@@ -1531,68 +1549,17 @@ summary:focus-visible {
 .markdown-content hr {
   margin: 20px 0;
 }
-.markdown-content :not(pre) > code {
-  font-size: 0.88em;
-  background: var(--secondary);
-  color: var(--foreground);
-  padding: 2px 5px;
-  border-radius: 4px;
+/* Streamdown owns the code block; this only hangs the workspace's own action
+   off the bottom of it. */
+.code-host {
+  position: relative;
 }
-.markdown-table {
-  overflow: auto;
-  margin: 18px 0;
-  max-width: 100%;
-}
-.markdown-table table {
-  width: 100%;
-  font-size: 14px;
-  border-collapse: collapse;
-}
-.markdown-table td,
-.markdown-table th {
-  border: 1px solid var(--border);
-  padding: 9px 12px;
-  text-align: left;
-  white-space: normal;
-}
-.markdown-table th {
-  background: var(--secondary);
-}
-.code-block {
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  overflow: hidden;
-  margin: 16px 0;
-  background: #172033;
-  color: #e2e9f7;
-}
-.code-block-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  background: #212d42;
-  color: #bfcbe0;
-  padding: 5px 9px 5px 14px;
-  font-size: 12px;
-}
-.code-block-toolbar > div {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.code-block-toolbar [data-slot='button'] {
+.code-host .code-host-save {
   height: 30px;
+  margin-top: 6px;
   font-size: 12px;
-  padding: 0 8px;
-}
-.code-block pre {
-  margin: 0;
-  padding: 17px;
-  white-space: pre;
-  overflow: auto;
-  font-size: 13px;
-  line-height: 1.7;
+  padding: 0 9px;
+  color: var(--muted-foreground);
 }
 .message-actions {
   display: flex;
@@ -1656,6 +1623,10 @@ summary:focus-visible {
   background: var(--secondary);
   padding: 12px;
 }
+/* The tool calls are no longer hidden behind a disclosure of their own, so
+   this card is what separates them from the answer above. A later duplicate
+   used to strip the border and background; that block is gone and this is the
+   only definition. */
 .activity-group {
   margin-top: 22px;
   border: 1px solid var(--border);
@@ -1663,32 +1634,45 @@ summary:focus-visible {
   background: var(--card);
   font-size: 14px;
 }
-.activity-group > summary {
-  list-style: none;
+.activity-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px 17px;
-  cursor: pointer;
-}
-.activity-group > summary span {
-  flex: 1;
-}
-.activity-group > summary::-webkit-details-marker {
-  display: none;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--muted-foreground);
 }
 .activity-list {
   border-top: 1px solid var(--border);
   padding: 6px 14px;
 }
 .activity-item {
-  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.activity-item:last-child {
+  border-bottom: 0;
 }
 .activity-item > summary {
   display: flex;
   align-items: center;
   gap: 9px;
   cursor: pointer;
+}
+.activity-caret {
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: var(--muted-foreground);
+  transition: transform 130ms ease;
+}
+.activity-item[open] .activity-caret {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-caret {
+    transition: none;
+  }
 }
 .activity-item small {
   margin-left: auto;
@@ -1705,14 +1689,14 @@ summary:focus-visible {
   margin-top: 8px;
 }
 .stopped-note {
-  margin: 12px 0 0 37px;
+  margin: 12px 0 0;
   font-size: 13px;
   color: var(--muted-foreground);
 }
 .thinking-indicator {
   display: flex;
   gap: 5px;
-  padding: 2px 0 22px 37px;
+  padding: 2px 0 22px;
 }
 .thinking-indicator span {
   height: 7px;
@@ -2869,14 +2853,6 @@ summary:focus-visible {
   .lab-switcher {
     gap: 15px;
   }
-  .code-block-toolbar [data-slot='button'] {
-    font-size: 11px;
-    gap: 4px;
-    padding: 0 6px;
-  }
-  .code-block-toolbar {
-    padding-inline: 9px;
-  }
   .message-actions .icon-button {
     height: 36px;
     width: 35px;
@@ -3088,11 +3064,6 @@ summary:focus-visible {
 }
 .chat-message {
   margin-bottom: 35px;
-}
-.chat-message.assistant .markdown-content,
-.activity-group,
-.chat-message.assistant .message-actions {
-  margin-left: 0;
 }
 .assistant-label {
   font-size: 14px;
@@ -3532,13 +3503,6 @@ summary:focus-visible {
   text-align: center;
   font-size: 12px;
   color: var(--muted-foreground);
-}
-.activity-item {
-  border-bottom: 1px solid var(--border);
-  padding: 12px 0;
-}
-.activity-item:last-child {
-  border-bottom: 0;
 }
 @media (max-width: 767px) {
   .workspace-header {
@@ -4566,11 +4530,6 @@ summary:focus-visible {
   color: var(--muted-foreground);
   max-width: 70%;
 }
-.chat-message.assistant .markdown-content,
-.activity-group,
-.chat-message.assistant .message-actions {
-  margin-left: 0;
-}
 .markdown-content {
   font-size: 16px;
   line-height: 1.8;
@@ -4617,27 +4576,6 @@ summary:focus-visible {
 .message-actions .message-model {
   max-width: 30%;
   font-size: 11px;
-}
-.code-block {
-  background: var(--secondary);
-  color: var(--foreground);
-  border-radius: 11px;
-}
-.code-block-toolbar {
-  background: var(--sidebar);
-  color: var(--muted-foreground);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-.code-block pre {
-  font-size: 13px;
-  max-height: 380px;
-}
-.code-block details > summary {
-  cursor: pointer;
-  padding: 10px 14px;
-  font-size: 14px;
-  color: var(--muted-foreground);
 }
 .composer-dock {
   width: 100%;
@@ -6267,21 +6205,28 @@ summary:focus-visible {
   width: 100%;
   justify-content: space-between;
 }
+/* Was defined twice; the later copy stripped the frame with !important, so
+   the stages carry their own and this stays a plain block. */
 .execution-progress {
-  margin: 23px 0 9px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--card);
+  margin: 20px 0 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .execution-provider {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 11px 14px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
   background: var(--muted);
   font-size: 12px;
   color: var(--muted-foreground);
+}
+.execution-provider > svg {
+  flex-shrink: 0;
 }
 .execution-provider > span:last-child {
   margin-left: auto;
@@ -6973,6 +6918,10 @@ summary:focus-visible {
 }
 .chat-message.assistant .chat-message-inner {
   min-width: 0;
+  /* A rail marks where one answer ends and the next turn begins; --border on
+     its own is too faint against the page to read as a boundary. */
+  border-left: 2px solid color-mix(in oklab, var(--border) 55%, var(--muted-foreground));
+  padding-left: 16px;
 }
 .chat-message.user .chat-message-inner {
   background: #f0f3fb;
@@ -6981,25 +6930,6 @@ summary:focus-visible {
 .message-content {
   font-size: 16px;
   line-height: 1.8;
-}
-.execution-progress {
-  margin-top: 20px !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-}
-.execution-details > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--hk-muted);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 8px 0;
-}
-.execution-details > summary span {
-  margin-left: auto;
-  font-size: 12px;
 }
 .execution-stage {
   background: #f8f9fc !important;
@@ -7042,14 +6972,6 @@ summary:focus-visible {
 .memory-receipt p {
   padding-left: 20px;
   margin: 5px 0;
-}
-.activity-group {
-  border: 0 !important;
-  background: transparent !important;
-}
-.activity-group > summary {
-  font-size: 14px !important;
-  padding-left: 0 !important;
 }
 .comparison-toolbar {
   display: grid !important;
@@ -7113,9 +7035,6 @@ summary:focus-visible {
   font-size: 13px;
   color: var(--hk-muted);
   margin-top: 16px;
-}
-.direct-metrics summary {
-  cursor: pointer;
 }
 .knowledge-page {
   display: flex;
@@ -8569,11 +8488,8 @@ body {
   width: 100%;
   min-width: 0;
 }
-.studio-shell .chat-message.assistant .markdown-content {
-  margin-left: 0;
-}
-.studio-shell .execution-details {
-  margin-top: 16px !important;
+.studio-shell .execution-progress {
+  margin-top: 16px;
   max-width: 100%;
 }
 .studio-shell .working-label {

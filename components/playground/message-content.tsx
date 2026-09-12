@@ -1,10 +1,27 @@
 'use client';
-import { memo, Children, isValidElement, type ReactNode } from 'react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Copy, FileCode2 } from 'lucide-react';
+import {
+  memo,
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { cjk } from '@streamdown/cjk';
+import { code } from '@streamdown/code';
+import { math } from '@streamdown/math';
+import { mermaid } from '@streamdown/mermaid';
+import { Streamdown, type Components } from 'streamdown';
+import { FileCode2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { copyText } from './error-card';
+
+/* The same renderer both surfaces use, so an answer reads identically on each.
+   It brings Shiki highlighting, KaTeX and mermaid, and it repairs the
+   half-written markdown a stream produces mid-token. Its code blocks scroll at
+   400px, which is what replaced the "View source · N lines" disclosure: a long
+   block is now readable in place instead of one more thing to click open. */
+const plugins = { cjk, code, math, mermaid };
+
 function plain(node: ReactNode): string {
   return Children.toArray(node)
     .map((n) =>
@@ -16,6 +33,13 @@ function plain(node: ReactNode): string {
     )
     .join('');
 }
+
+/* Model output is untrusted, so remote images are named rather than fetched. */
+const blockedImage: Components['img'] = ({ alt }) => (
+  <span className="muted">[Image: {alt || 'not loaded'}]</span>
+);
+const readOnly: Components = { img: blockedImage };
+
 export const MessageContent = memo(function MessageContent({
   text,
   onSave,
@@ -23,61 +47,46 @@ export const MessageContent = memo(function MessageContent({
   text: string;
   onSave?: (language: string, code: string) => void;
 }) {
+  /* Streamdown's own <pre> just tags the code element, so wrapping it keeps its
+     copy and download controls while adding the one control the workspace
+     needs, rather than re-implementing a highlighted code block. */
+  /* Cast because Streamdown's `Components` intersects a per-element map with a
+     `Record<string, unknown>` index signature, and no override can satisfy
+     both; `img` above only type-checks because it is written as an element
+     type rather than inside the literal. */
+  const withSave = {
+    img: blockedImage,
+    pre: ({ children }: { children?: ReactNode }) => {
+      if (!isValidElement<{ children?: ReactNode; className?: string }>(children))
+        return <>{children}</>;
+      const language = children.props.className?.replace(/^language-/, '') || 'text';
+      const source = plain(children.props.children).replace(/\n$/, '');
+      return (
+        <div className="code-host">
+          {cloneElement(children as ReactElement<Record<string, unknown>>, {
+            'data-block': 'true',
+          })}
+          <Button
+            variant="ghost"
+            className="code-host-save"
+            onClick={() => onSave?.(language, source)}
+          >
+            <FileCode2 size={14} />
+            Save to workspace
+          </Button>
+        </div>
+      );
+    },
+  } as Components;
   return (
-    <div className="markdown-content" dir="auto">
-      <Markdown
-        remarkPlugins={[remarkGfm]}
-        skipHtml
-        components={{
-          a: ({ children, href }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              {children}
-            </a>
-          ),
-          img: ({ alt }) => <span className="muted">[Image: {alt || 'not loaded'}]</span>,
-          table: ({ children }) => (
-            <div className="markdown-table">
-              <table>{children}</table>
-            </div>
-          ),
-          pre: ({ children }) => {
-            const child = Children.toArray(children)[0];
-            const lang = isValidElement<{ className?: string }>(child)
-              ? (child.props.className?.replace('language-', '') ?? 'text')
-              : 'text';
-            const code = plain(children).replace(/\n$/, '');
-            return (
-              <div className="code-block">
-                <div className="code-block-toolbar">
-                  <span>{lang}</span>
-                  <div>
-                    <Button variant="ghost" onClick={() => void copyText(code)}>
-                      <Copy size={14} />
-                      Copy
-                    </Button>
-                    {onSave && (
-                      <Button variant="ghost" onClick={() => onSave(lang, code)}>
-                        <FileCode2 size={14} />
-                        Save to workspace
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {code.split('\n').length > 18 ? (
-                  <details>
-                    <summary>View source · {code.split('\n').length} lines</summary>
-                    <pre>{children}</pre>
-                  </details>
-                ) : (
-                  <pre>{children}</pre>
-                )}
-              </div>
-            );
-          },
-        }}
-      >
-        {text}
-      </Markdown>
-    </div>
+    <Streamdown
+      className="markdown-content"
+      dir="auto"
+      skipHtml
+      plugins={plugins}
+      components={onSave ? withSave : readOnly}
+    >
+      {text}
+    </Streamdown>
   );
 });
