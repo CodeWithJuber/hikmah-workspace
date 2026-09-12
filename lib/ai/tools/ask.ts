@@ -29,6 +29,11 @@ export function askTools() {
           .describe('One question, in plain words. Say why you are asking if it is not obvious.'),
         options: z
           .array(z.string().min(1).max(120))
+          // Two or more, or none at all. A single option is not a choice — it is
+          // a yes/no dressed as one, and the card would offer one button beside
+          // a free-text box. The kernel's own question schema enforced this
+          // before it was retired.
+          .min(2)
           .max(6)
           .optional()
           .describe('Answers to offer. Leave it out when the answer is open-ended.'),

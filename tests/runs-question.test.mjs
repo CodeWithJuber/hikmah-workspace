@@ -233,3 +233,44 @@ test('working is not the same as waiting', () => {
   assert.equal(isPausedOnPerson('waiting_approval'), true);
   assert.equal(isPausedOnPerson('waiting_client'), true);
 });
+
+// --- What the question itself is allowed to be ---------------------------
+//
+// These moved here from tests/kernel-learning, where they guarded the kernel's
+// own `questionSchema`. That controller drove the browser run loop and went
+// with it; ask_user asks the same thing of the same shape, so the property
+// outlives the code that used to hold it.
+
+const { askTools } = await import('../lib/ai/tools/ask.ts');
+const schema = askTools().ask_user.inputSchema;
+
+test('a question with one option is not a choice', () => {
+  // One button beside a free-text box is a yes/no wearing a costume.
+  assert.equal(schema.safeParse({ question: 'Where?', options: ['One'] }).success, false);
+});
+
+test('two actual choices are accepted', () => {
+  const parsed = schema.parse({ question: 'Which audience?', options: ['Founders', 'Teams'] });
+  assert.equal(parsed.options.length, 2);
+});
+
+test('a question with no options at all is open-ended, and fine', () => {
+  assert.equal(schema.parse({ question: 'What should it be called?' }).options, undefined);
+});
+
+test('a field the schema does not name is dropped rather than passed on', () => {
+  // The kernel's schema rejected the whole call. For a tool input the model
+  // writes, stripping is the better failure: a stray field costs a retry it
+  // cannot learn from, and nothing unnamed reaches the card either way.
+  const parsed = schema.parse({ question: 'Where?', options: ['A', 'B'], execute: 'shell' });
+  assert.equal('execute' in parsed, false);
+});
+
+test('the question is bounded', () => {
+  assert.equal(schema.safeParse({ question: '' }).success, false);
+  assert.equal(schema.safeParse({ question: 'x'.repeat(501) }).success, false);
+  assert.equal(
+    schema.safeParse({ question: 'Where?', options: Array(7).fill('a') }).success,
+    false,
+  );
+});
