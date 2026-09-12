@@ -1,6 +1,7 @@
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { SSE_HEADERS, resumeCursor, runEventStream } from '@/lib/runs/sse';
 import { runService } from '@/lib/runs/service';
+import { streamIsFinished } from '@/lib/runs/resume';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,9 +28,14 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     return Response.json({ error: 'Run not found.' }, { status: 404 });
 
   const after = resumeCursor(request);
-  // Nothing left to send and nothing still running: 204 tells the client to
-  // load the finished conversation instead of holding a stream open.
-  if (worker.store.isTerminal(run.status) && worker.store.eventsAfter(id, after).length === 0)
+  // Nothing left to send and nothing that will send more without someone
+  // acting: 204 tells the client to load the persisted conversation instead of
+  // holding a stream open. A run paused on a person counts — see
+  // streamIsFinished for what went wrong when it did not.
+  if (
+    streamIsFinished(run.status, worker.store.isTerminal(run.status)) &&
+    worker.store.eventsAfter(id, after).length === 0
+  )
     return new Response(null, { status: 204 });
 
   return new Response(

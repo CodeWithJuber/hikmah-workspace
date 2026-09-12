@@ -8,6 +8,7 @@ import { ToolLoopAgent, isStepCount, type LanguageModel } from 'ai';
 import { DEFAULT_CONTEXT_CHARACTERS, reduceMessages } from './context.ts';
 import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
+import { askTools } from './tools/ask.ts';
 import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
 import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
@@ -90,6 +91,9 @@ export function buildRunAgent(options: RunAgentOptions) {
     // Always offered: it needs nothing from the deployment. The container-backed
     // sandbox_run below is the one that comes and goes with the workbench.
     ...javascriptTools(),
+    // Likewise, and for a stronger reason: a run with no way to ask does not
+    // wait, it guesses.
+    ...askTools(),
     ...(options.ssh ? sshTools({ ...options.ssh, signal: options.signal }) : {}),
     ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
     ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),
@@ -134,8 +138,16 @@ export function buildRunAgent(options: RunAgentOptions) {
     tools,
     stopWhen: isStepCount(options.maxSteps ?? DEFAULT_MAX_STEPS),
     prepareStep: ({ messages }) => ({ messages: reduceMessages(messages, limit) }),
-    // Only ssh_exec is gated. Every other tool here reads or computes; this one
-    // runs a command on a machine the owner cares about.
-    ...(sshApproval || mcpApproval ? { toolApproval: { ...mcpApproval, ...sshApproval } } : {}),
+    // Everything that reaches a machine is gated: ssh_exec a remote one, bash
+    // and sandbox_run the workbench, an MCP tool somebody else's server. The
+    // rest of the set reads or computes.
+    //
+    // shellApproval was computed here and then left out of this spread, so
+    // `bash` ran whatever it liked and `sandbox_run` — documented as always
+    // asking — never asked. Nothing failed: the tools worked, they just worked
+    // without the card.
+    ...(sshApproval || mcpApproval || shellApproval
+      ? { toolApproval: { ...mcpApproval, ...shellApproval, ...sshApproval } }
+      : {}),
   });
 }

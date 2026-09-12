@@ -38,6 +38,7 @@ import {
 import { ReadAloud } from './voice-controls';
 import { ChatReceipt } from './chat-receipt';
 import { InlineArtifact } from '@/components/kernel/artifact';
+import { ClarificationCard } from '@/components/kernel/question';
 import { messageArtifact } from '@/lib/chat/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 
@@ -45,6 +46,26 @@ export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
 /** Answers one paused tool call. Resolved by the chat view, which owns useChat. */
 export type RespondToApproval = (response: { id: string; approved: boolean }) => void;
+
+/** Answers one ask_user call. Same owner, same reason: only useChat can write a
+ * tool output back into the message. */
+export type RespondToQuestion = (response: { toolCallId: string; answer: string }) => void;
+
+/** What ask_user is asking, defensively read: it arrives as tool input, which is
+ * model output, so neither field is guaranteed to be the shape the schema asked
+ * for. A card with no question is worse than no card, so an unreadable one falls
+ * back to the generic tool row. */
+function questionFrom(input: unknown): { question: string; options: string[] } | null {
+  const value = (input ?? {}) as { question?: unknown; options?: unknown };
+  const question = typeof value.question === 'string' ? value.question.trim() : '';
+  if (!question) return null;
+  const options = Array.isArray(value.options)
+    ? value.options.filter(
+        (option): option is string => typeof option === 'string' && !!option.trim(),
+      )
+    : [];
+  return { question, options };
+}
 
 /** What the owner is being asked to allow, in their words rather than JSON.
  *
@@ -202,6 +223,7 @@ export function MessageParts({
   message,
   status,
   onApproval,
+  onQuestion,
   onRegenerate,
   onEdit,
   onArtifact,
@@ -210,6 +232,7 @@ export function MessageParts({
   message: UIMessage;
   status: ChatStatus;
   onApproval?: RespondToApproval;
+  onQuestion?: RespondToQuestion;
   /** Whether the run's own working is shown. Off hides the tool cards and the
    * reasoning; it never hides a tool waiting on the owner, because a question
    * nobody can see is a run that never finishes. */
@@ -258,6 +281,33 @@ export function MessageParts({
           // isToolUIPart covers both declared tools and dynamic ones, so the
           // two share a branch; only the header needs to distinguish them.
           if (isToolUIPart(part)) {
+            // A question is not a tool call the reader needs to audit, it is the
+            // run talking to them. Rendered as itself rather than as a row in
+            // the activity list, and shown whatever the activity setting says:
+            // hiding it would leave the run waiting for an answer to a question
+            // nobody could see.
+            if (part.type === 'tool-ask_user') {
+              const asked = questionFrom(part.input);
+              if (asked && part.state === 'input-available')
+                return (
+                  <ClarificationCard
+                    key={key}
+                    value={{
+                      ...asked,
+                      resolve: (answer) => onQuestion?.({ toolCallId: part.toolCallId, answer }),
+                    }}
+                  />
+                );
+              if (asked && part.state === 'output-available')
+                return (
+                  <p className="chat-answered-question" key={key}>
+                    <span>{asked.question}</span>
+                    <strong>{String(part.output ?? '')}</strong>
+                  </p>
+                );
+              // Anything else — an unreadable question, a denied or errored call
+              // — falls through to the generic row, which says what happened.
+            }
             const media = generatedMedia(part.output);
             // Generated pictures and audio are the answer, not the working, so
             // they stay visible however the setting is set. A tool waiting on

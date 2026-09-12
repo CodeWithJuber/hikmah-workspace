@@ -53,7 +53,6 @@ export function Settings({
     storageMessage,
     preferences,
     setPreferences,
-    isRunning,
   } = usePlayground();
   const [busy, setBusy] = useState('');
   const [result, setResult] = useState<{ message: string; kind: 'catalog' | 'generation' } | null>(
@@ -89,7 +88,7 @@ export function Settings({
     }
   }, [open]);
   const check = async (kind: 'catalog' | 'generation') => {
-    if (busy || isRunning) return;
+    if (busy) return;
     const controller = new AbortController();
     abortRef.current = controller;
     setBusy(kind);
@@ -217,7 +216,6 @@ export function Settings({
                 <SavedSecretSelect
                   destination={'provider:' + relay.id}
                   value={provider.apiKeySecret}
-                  disabled={isRunning}
                   onChange={(apiKeySecret) =>
                     setProvider((p) => ({ ...p, apiKeySecret, apiKey: '' }))
                   }
@@ -263,11 +261,7 @@ export function Settings({
                   <h3>Choose a model</h3>
                   <p>Use an exact model ID from your provider.</p>
                 </div>
-                <Button
-                  variant="outline"
-                  disabled={!!busy || isRunning}
-                  onClick={() => void check('catalog')}
-                >
+                <Button variant="outline" disabled={!!busy} onClick={() => void check('catalog')}>
                   {busy === 'catalog' ? <LoaderCircle className="spin" size={16} /> : null}Load
                   models
                 </Button>
@@ -335,7 +329,7 @@ export function Settings({
                   <p>One short model request. Provider usage may apply.</p>
                 </div>
                 <Button
-                  disabled={!!busy || isRunning || !provider.model}
+                  disabled={!!busy || !provider.model}
                   onClick={() => void check('generation')}
                 >
                   {busy === 'generation' ? (
@@ -541,7 +535,6 @@ export function Settings({
                 aria-label="Import session file"
                 type="file"
                 accept="application/json,.json"
-                disabled={isRunning}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {

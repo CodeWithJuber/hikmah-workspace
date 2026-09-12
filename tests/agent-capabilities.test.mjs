@@ -11,7 +11,6 @@ await build({
     'lib/playground/sandbox-core.ts',
     'lib/playground/agents.ts',
     'lib/playground/session.ts',
-    'lib/playground/tool-registry.ts',
     'lib/server/web-tools.ts',
   ],
   outdir: dir,
@@ -26,7 +25,6 @@ const { evaluateJavascript } = await mod('playground/sandbox-core');
 const { agentScope, parseAgents } = await mod('playground/agents');
 const { defaultPreferences, parsePreferences, parseSession, defaultProvider, starterFiles } =
   await mod('playground/session');
-const { resolveRunTools } = await mod('playground/tool-registry');
 const { webToolRequest, publicPageUrl } = await mod('server/web-tools');
 test('QuickJS executes code, isolates runs and exposes no host APIs', async () => {
   const r = await evaluateJavascript('globalThis.secret=7;console.log({withTax:475.2});21*2');
@@ -49,31 +47,10 @@ test('QuickJS cannot import host modules', async () => {
     (await evaluateJavascript('import fs from "node:fs"; fs.readFileSync("/etc/passwd")')).error,
   );
 });
-test('agent scope intersects permissions and does not expand workspace access', () => {
-  const a = { tools: ['write_file', 'run_javascript'], connectors: ['allowed'], memory: false };
-  const scope = agentScope(
-    a,
-    { ...defaultPreferences, allowEdits: false, enabledTools: ['calculate', 'write_file'] },
-    [
-      { id: 'allowed', enabled: true },
-      { id: 'other', enabled: true },
-      { id: 'off', enabled: false },
-    ],
-  );
-  assert.deepEqual(scope.preferences.enabledTools, ['write_file']);
-  assert.equal(scope.preferences.allowEdits, false);
-  assert.deepEqual(
-    scope.connectors.map((c) => c.id),
-    ['allowed'],
-  );
-  assert.deepEqual(
-    resolveRunTools({ ...scope, catalogs: { allowed: [{ name: 'run' }] }, memory: false }).map(
-      (t) => t.function.name,
-    ),
-    ['connector_catalog', 'connector_call'],
-  );
-  assert.equal(resolveRunTools({ ...scope, modelTools: false, catalogs: {} }), undefined);
-});
+// `agentScope` narrowed a browser run to the selected agent's tools and
+// connectors, and `agentInstructions` prefixed its prompt. Both belonged to the
+// run loop that no longer exists; a server-side agent is a row, and
+// lib/agents/store with buildRunAgent's allowlist does this work now.
 test('agents persist while unknown tools, credentials and invalid selections are dropped', () => {
   const config = {
     agents: [

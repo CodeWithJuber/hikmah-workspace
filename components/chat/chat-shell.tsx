@@ -11,7 +11,7 @@ import { AgentsPanel, type Agent } from './agents-panel';
 import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
-import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from '@/lib/chat/settings';
+import { useChatSettings } from '@/hooks/use-chat-settings';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
  * conversation with less room than either of them. Matches the breakpoint the
@@ -35,44 +35,6 @@ function useNarrow() {
     () => window.matchMedia(NARROW).matches,
     () => false,
   );
-}
-
-/** The owner's chat preferences, held here rather than in ChatPreview: that
- * component is keyed by conversation and remounts whenever the route changes,
- * which would refetch the settings on every click in the list. */
-function useChatSettings() {
-  const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
-
-  useEffect(() => {
-    let live = true;
-    void fetch('/api/chat-settings', { credentials: 'same-origin' })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (live && payload?.settings) setSettings(payload.settings as ChatSettings);
-      })
-      // The defaults are usable settings, so a failed read costs nothing worth
-      // interrupting the owner about.
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
-
-  const change = useCallback(async (patch: Partial<ChatSettings>) => {
-    const response = await fetch('/api/chat-settings', {
-      method: 'PUT',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    });
-    if (!response.ok) throw new Error('Settings were not saved.');
-    // Taken from the reply rather than assumed: the server clamps, so what was
-    // asked for and what is now stored are not always the same.
-    const payload = (await response.json()) as { settings?: ChatSettings };
-    if (payload.settings) setSettings(payload.settings);
-  }, []);
-
-  return { settings, change };
 }
 
 export function ChatShell({ conversationId }: { conversationId: string }) {

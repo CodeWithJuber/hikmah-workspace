@@ -1,17 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
-  MessageSquare,
-  Code2,
-  Bot,
   FlaskConical,
   Settings as SettingsIcon,
-  Search,
-  MoreHorizontal,
-  Trash2,
-  Pencil,
-  Download,
   BookOpen,
   BrainCircuit,
   Waves,
@@ -33,30 +25,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from '@/components/ui/alert-dialog';
 import { Toaster } from 'sonner';
 import { PlaygroundProvider, usePlayground } from './context';
 import { KernelProvider, useKernel } from '@/components/kernel/context';
@@ -75,9 +43,6 @@ import { Learn } from './learn';
 import { AgentTasks } from './agent-tasks';
 import { SoundLab } from './sound';
 import { Maths } from './maths';
-import { Chat } from './chat';
-import { newConversation, type ChatMode } from '@/lib/playground/session';
-import { downloadText } from './common';
 import { APP_RELEASE, BUILD_ID } from '@/lib/release';
 const labs = [
   {
@@ -133,14 +98,7 @@ function ShellInner() {
 function ShellContent() {
   const kernel = useKernel();
   const {
-    conversations,
-    setConversations,
-    activeId,
-    setActiveId,
-    mode,
-    setMode,
     openSettings,
-    isRunning,
     preferences,
     knowledge,
     storageMessage,
@@ -150,87 +108,28 @@ function ShellContent() {
   } = usePlayground();
   const { setOpenMobile } = useSidebar();
   const [lab, setLab] = useState('');
-  const [search, setSearch] = useState('');
-  const [renaming, setRenaming] = useState('');
-  const [title, setTitle] = useState('');
-  const [deleting, setDeleting] = useState('');
-  const navigate = (next: ChatMode) => {
-    if (isRunning) return;
-    setMode(next);
-    setPage('workspace');
-    setOpenMobile(false);
-  };
-  const create = () => {
-    if (isRunning) return;
-    const c = newConversation();
-    setConversations((cs) => [c, ...cs]);
-    setActiveId(c.id);
-    setPage('workspace');
-    setOpenMobile(false);
-  };
-  const visibleChats = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q
-      ? conversations.filter(
-          (c) =>
-            c.title.toLowerCase().includes(q) ||
-            c.messages.some((m) => m.text.toLowerCase().includes(q)),
-        )
-      : conversations;
-  }, [conversations, search]);
-  const selected = conversations.find((c) => c.id === activeId) ?? conversations[0];
   return (
     <>
       <Sidebar className="workspace-sidebar">
         <SidebarHeader className="workspace-sidebar-header">
           <Brand />
-          <Button className="new-chat" onClick={create} disabled={isRunning}>
+          {/* Conversations belong to the server now and are listed by the surface
+              that owns them. A second list here, over the workspace blob, would
+              be a second set of conversations that could never hold an answer. */}
+          <Link className="new-chat" href="/chat">
             <HikmahIcon name="compose" size={19} />
             New chat
-          </Button>
+          </Link>
         </SidebarHeader>
         <SidebarContent className="workspace-sidebar-content">
-          <nav aria-label="Main navigation" className="primary-nav">
-            {(
-              [
-                { id: 'chat', name: 'Chat', icon: MessageSquare },
-                { id: 'coding', name: 'Coding', icon: Code2 },
-                { id: 'agent', name: 'Agents', icon: Bot },
-                { id: 'compare', name: 'Compare', icon: Workflow },
-              ] as const
-            ).map((item) => (
-              <button
-                key={item.id}
-                className={page === 'workspace' && mode === item.id ? 'selected' : ''}
-                disabled={isRunning}
-                onClick={() => navigate(item.id)}
-              >
-                <HikmahIcon
-                  name={
-                    item.id === 'chat'
-                      ? 'conversation'
-                      : item.id === 'coding'
-                        ? 'artifact'
-                        : item.id === 'agent'
-                          ? 'agent'
-                          : 'compare'
-                  }
-                  size={20}
-                />
-                {item.name}
-              </button>
-            ))}
-          </nav>
-          {/* The durable chat is a route of its own rather than a page of this
-              shell, and it is what opens by default now — so this is the way
-              back to it, not a curiosity. */}
+          {/* The chat is a route of its own and is what opens by default, so
+              this is the way back to it rather than a curiosity. */}
           <Link className="knowledge-nav" href="/chat">
             <HikmahIcon name="conversation" size={20} />
             Chat
           </Link>
           <button
             className={'knowledge-nav' + (page === 'tools' ? ' selected' : '')}
-            disabled={isRunning}
             onClick={() => {
               setPage('tools');
               setOpenMobile(false);
@@ -261,7 +160,6 @@ function ShellContent() {
           </button>
           <button
             className={'knowledge-nav' + (page === 'knowledge' ? ' selected' : '')}
-            disabled={isRunning}
             onClick={() => {
               setPage('knowledge');
               setOpenMobile(false);
@@ -275,7 +173,6 @@ function ShellContent() {
           </button>
           <button
             className={'knowledge-nav' + (page === 'learning' ? ' selected' : '')}
-            disabled={isRunning}
             onClick={() => {
               setPage('learning');
               setOpenMobile(false);
@@ -289,7 +186,6 @@ function ShellContent() {
           </button>
           <button
             className={'co-model-nav' + (page === 'kernel' ? ' selected' : '')}
-            disabled={isRunning}
             onClick={() => {
               setPage('kernel');
               setOpenMobile(false);
@@ -304,93 +200,9 @@ function ShellContent() {
             </span>
             <span className={kernel.ready ? 'live-dot' : 'pending-dot'} />
           </button>
-          <div className="recent-heading">
-            <span>Recent</span>
-            <span>{conversations.length}</span>
-          </div>
-          {
-            <div className="chat-search">
-              <Search size={15} />
-              <Input
-                aria-label="Search conversations"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search chats"
-              />
-            </div>
-          }
-          <div className="recent-chats">
-            {visibleChats.map((c) => (
-              <div
-                key={c.id}
-                className={
-                  'recent-row' + (page === 'workspace' && selected?.id === c.id ? ' active' : '')
-                }
-              >
-                <button
-                  className="recent-title"
-                  disabled={isRunning}
-                  onClick={() => {
-                    setActiveId(c.id);
-                    setPage('workspace');
-                    setOpenMobile(false);
-                  }}
-                  title={c.title}
-                >
-                  {c.title}
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="icon-button recent-menu"
-                      aria-label={'Actions for ' + c.title}
-                      disabled={isRunning}
-                    >
-                      <MoreHorizontal size={17} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setRenaming(c.id);
-                        setTitle(c.title);
-                      }}
-                    >
-                      <Pencil size={15} />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        downloadText(
-                          c.messages
-                            .map((m) => `## ${m.role === 'user' ? 'You' : 'Hikmah'}\n\n${m.text}`)
-                            .join('\n\n'),
-                          'hikmah-chat.md',
-                        )
-                      }
-                    >
-                      <Download size={15} />
-                      Export chat
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setDeleting(c.id)}>
-                      <Trash2 size={15} />
-                      Delete chat
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-            {!conversations.length && <p className="no-recents">Your conversations appear here.</p>}
-            {search &&
-              !conversations.some((c) => c.title.toLowerCase().includes(search.toLowerCase())) && (
-                <span className="sr-only">Search includes message text.</span>
-              )}
-          </div>
         </SidebarContent>
         <SidebarFooter className="workspace-sidebar-footer">
           <button
-            disabled={isRunning}
             className={page === 'labs' ? 'selected' : ''}
             onClick={() => {
               setPage('labs');
@@ -402,7 +214,6 @@ function ShellContent() {
             Research labs
           </button>
           <button
-            disabled={isRunning}
             className={page === 'admin' ? 'selected' : ''}
             onClick={() => {
               setPage('admin');
@@ -414,7 +225,6 @@ function ShellContent() {
           </button>
           {
             <button
-              disabled={isRunning}
               className={page.startsWith('superadmin') ? 'selected owner-nav' : 'owner-nav'}
               onClick={() => {
                 setPage('superadmin');
@@ -448,9 +258,7 @@ function ShellContent() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="workspace-main">
-        {page === 'workspace' ? (
-          <Chat />
-        ) : page === 'agents' ? (
+        {page === 'agents' ? (
           <AgentsHome />
         ) : page === 'tools' ? (
           <RuntimeHome />
@@ -535,54 +343,6 @@ function ShellContent() {
           </div>
         )}
       </SidebarInset>
-      <Dialog open={!!renaming} onOpenChange={(v) => !v && setRenaming('')}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename chat</DialogTitle>
-            <DialogDescription>Choose a name you can find later.</DialogDescription>
-          </DialogHeader>
-          <Input
-            aria-label="Chat title"
-            value={title}
-            maxLength={120}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <Button
-            disabled={!title.trim()}
-            onClick={() => {
-              setConversations((cs) =>
-                cs.map((c) => (c.id === renaming ? { ...c, title: title.trim() } : c)),
-              );
-              setRenaming('');
-            }}
-          >
-            Save name
-          </Button>
-        </DialogContent>
-      </Dialog>
-      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting('')}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This removes the conversation from your saved workspace. Export it first if you want
-              to keep a copy.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep chat</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConversations((cs) => cs.filter((c) => c.id !== deleting));
-                if (activeId === deleting) setActiveId('');
-                setDeleting('');
-              }}
-            >
-              Delete chat
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <Toaster position="bottom-right" theme={preferences.theme} richColors />
     </>
   );

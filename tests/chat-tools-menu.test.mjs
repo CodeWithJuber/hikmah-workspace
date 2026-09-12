@@ -12,12 +12,21 @@ import { readFile } from 'node:fs/promises';
 import { AGENT_TEMPLATES as TEMPLATES, BUILT_IN_TOOLS } from '../lib/agents/templates.ts';
 import { toolAvailability } from '../lib/agents/availability.ts';
 
-const menu = await readFile('components/chat/tools-menu.tsx', 'utf8');
+const menu = await readFile('components/chat/tool-switches.tsx', 'utf8');
+const popover = await readFile('components/chat/tools-menu.tsx', 'utf8');
+const toolsPage = await readFile('components/playground/runtime-home.tsx', 'utf8');
 
-/** The keys of the LABELS map in the menu, read from the source: the menu must
- * not keep its own idea of what the tools are called. */
+/** Source with its comments removed.
+ *
+ * These tests ask what the code does, and a comment explaining why something
+ * was removed necessarily names the thing it removed — so matching raw source
+ * would fail on the explanation. */
+const code = (source) => source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+
+/** The keys of the LABELS map, read from the source: no screen may keep its own
+ * idea of what the tools are called. */
 function labelledTools() {
-  const block = menu.slice(menu.indexOf('const LABELS'), menu.indexOf('const label ='));
+  const block = menu.slice(menu.indexOf('const LABELS'), menu.indexOf('export const toolLabel'));
   return [...block.matchAll(/^\s{2}([a-z_]+):/gm)].map((match) => match[1]);
 }
 
@@ -58,8 +67,35 @@ test('with a workbench, every built-in tool is on offer', () => {
 test('the menu does not reach for the browser MCP client the server replaced', () => {
   // The old menu drove lib/playground/mcp-client directly. Connecting servers
   // is the run's decision now, made in lib/mcp/run-context.
-  assert.doesNotMatch(menu, /mcp-client|connectConnector|connectorTools/);
-  assert.doesNotMatch(menu, /usePlayground|useKernel/);
+  assert.doesNotMatch(code(menu), /mcp-client|connectConnector|connectorTools/);
+  assert.doesNotMatch(code(menu), /usePlayground|useKernel/);
+});
+
+test('both screens switch tools through the same list and the same store', () => {
+  // The workspace page used to name five of the twenty-one tools and write
+  // `preferences.enabledTools` in the workspace blob — a field nothing had read
+  // since the browser run loop was retired, so its switches changed nothing.
+  // One list, one store, or the two screens disagree again.
+  for (const source of [popover, toolsPage]) {
+    assert.match(source, /from '@\/components\/chat\/tool-switches'|from '\.\/tool-switches'/);
+    assert.doesNotMatch(code(source), /const LABELS/, 'the names come from the shared list');
+  }
+  assert.match(toolsPage, /useChatSettings/);
+  assert.match(toolsPage, /disabled=\{settings\.disabledTools\}/);
+  // The usage, not the word: the file explains in a comment why that field is
+  // gone, and a bare /enabledTools/ would match the explanation.
+  assert.doesNotMatch(
+    code(toolsPage),
+    /enabledTools/,
+    'the store keeps an off-list, not an on-list',
+  );
+});
+
+test('the shared list is what reads the server\u2019s own tool list', () => {
+  // Availability has to travel with the names, or a screen offers a switch for
+  // something this deployment cannot run.
+  assert.match(menu, /fetch\('\/api\/agents'/);
+  assert.match(menu, /payload\.availability/);
 });
 
 test('the code partner can run code without a workbench', async () => {

@@ -69,7 +69,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
     setConnectorKeys,
     connectorTools,
     connectConnector,
-    isRunning,
     setWorkspacePage,
   } = usePlayground();
   const [tab, setTab] = useState(initialTab);
@@ -298,7 +297,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             <SavedSecretSelect
               destination="provider:openrouter"
               value={workspace.media.secretRef}
-              disabled={isRunning}
               label="Saved media secret"
               onChange={(secretRef) => {
                 setMediaKey('');
@@ -323,7 +321,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     ? 'Uses your chat key when left blank'
                     : 'Enter your OpenRouter API key'
                 }
-                disabled={isRunning}
               />
             </div>
             <p className="small-note">
@@ -340,7 +337,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     </div>
                     <Button
                       variant="outline"
-                      disabled={!!busy || isRunning}
+                      disabled={!!busy}
                       onClick={() => void loadCatalog(item.kind)}
                     >
                       {busy === item.kind ? <LoaderCircle size={15} className="spin" /> : null}Load
@@ -370,7 +367,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                       }))
                     }
                     placeholder="Exact model ID"
-                    disabled={isRunning}
                   />
                   {item.kind === 'speech' && (
                     <div className="field">
@@ -385,7 +381,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                           }))
                         }
                         placeholder="Voice supported by your chosen model"
-                        disabled={isRunning}
                       />
                     </div>
                   )}
@@ -420,7 +415,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 <p>Discover and call tools through a compatible HTTP endpoint.</p>
               </div>
               <Button
-                disabled={isRunning}
                 onClick={() =>
                   setConnection({
                     id: randomId(),
@@ -453,7 +447,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <Switch
                     aria-label={'Enable ' + c.name}
                     checked={c.enabled}
-                    disabled={isRunning}
                     onCheckedChange={(v) =>
                       setWorkspace((p) => ({
                         ...p,
@@ -477,7 +470,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     id={'connector-key-' + c.id}
                     type="password"
                     autoComplete="off"
-                    disabled={isRunning}
                     value={connectorKeys[c.id] ?? ''}
                     onChange={(e) => setConnectorKeys((p) => ({ ...p, [c.id]: e.target.value }))}
                     placeholder="Leave blank for a public server"
@@ -485,7 +477,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 </div>
                 <div className="connector-actions">
                   <Button
-                    disabled={!!busy || isRunning}
+                    disabled={!!busy}
                     onClick={async () => {
                       setBusy(c.id);
                       try {
@@ -505,17 +497,12 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     )}
                     Connect & discover
                   </Button>
-                  <Button
-                    variant="outline"
-                    disabled={isRunning}
-                    onClick={() => setConnection({ ...c })}
-                  >
+                  <Button variant="outline" onClick={() => setConnection({ ...c })}>
                     Edit
                   </Button>
                   <Button
                     variant="ghost"
                     aria-label={'Remove ' + c.name}
-                    disabled={isRunning}
                     onClick={() => setRemove({ kind: 'connector', id: c.id })}
                   >
                     <Trash2 size={16} />
@@ -567,7 +554,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 </p>
               </div>
               <Button
-                disabled={isRunning}
                 onClick={() =>
                   setSkill({
                     id: randomId(),
@@ -589,17 +575,12 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <div>
                     <h4>{s.name}</h4>
                     <p>{s.description}</p>
-                    <button
-                      className="text-link"
-                      disabled={isRunning}
-                      onClick={() => setSkill({ ...s })}
-                    >
+                    <button className="text-link" onClick={() => setSkill({ ...s })}>
                       Edit instructions
                     </button>
                   </div>
                   <Switch
                     aria-label={'Enable skill ' + s.name}
-                    disabled={isRunning}
                     checked={s.enabled}
                     onCheckedChange={(v) =>
                       setWorkspace((p) => ({
@@ -611,7 +592,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <Button
                     variant="ghost"
                     className="icon-button"
-                    disabled={isRunning}
                     aria-label={'Delete skill ' + s.name}
                     onClick={() => setRemove({ kind: 'skill', id: s.id })}
                   >
@@ -637,7 +617,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   aria-label="Import configuration bundle"
                   type="file"
                   accept="application/json,.json"
-                  disabled={isRunning}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -712,7 +691,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
           <SavedSecretSelect
             destination={mcpSecretDestination(connection?.url ?? '')}
             value={connection?.secretRef}
-            disabled={isRunning}
             onChange={(secretRef) => setConnection((c) => (c ? { ...c, secretRef } : null))}
           />
           <Choice
@@ -751,7 +729,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             ]}
           />
           <Button
-            disabled={!connection?.name.trim() || isRunning}
+            disabled={!connection?.name.trim()}
             onClick={() => {
               if (!connection) return;
               try {
@@ -804,7 +782,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             onChange={(e) => setSkill((s) => (s ? { ...s, instructions: e.target.value } : null))}
           />
           <Button
-            disabled={!skill?.name.trim() || !skill?.instructions.trim() || isRunning}
+            disabled={!skill?.name.trim() || !skill?.instructions.trim()}
             onClick={() => {
               if (!skill) return;
               setWorkspace((p) => ({

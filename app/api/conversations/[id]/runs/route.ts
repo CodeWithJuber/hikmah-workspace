@@ -3,6 +3,7 @@ import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { conversationTitle } from '@/lib/chat/title';
+import { releases } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 
@@ -35,11 +36,6 @@ async function readBody(request: Request): Promise<unknown> {
   } catch {
     return null;
   }
-}
-
-/** Does this message carry a decision for a tool that was waiting on one? */
-function hasApprovalResponse(message: UIMessage): boolean {
-  return message.parts.some((part) => (part as { state?: string }).state === 'approval-responded');
 }
 
 /**
@@ -121,18 +117,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const already = store.activeForConversation(conversationId);
   if (already) {
     const paused = store.getRun(already);
-    if (
-      paused?.status === 'waiting_approval' &&
-      incomingMessage?.role === 'assistant' &&
-      hasApprovalResponse(incomingMessage)
-    ) {
+    // Two ways a run can be stopped on a person, and each is released only by
+    // its own kind of reply. The rule is in lib/runs/resume so it can be tested
+    // without a worker, a database or a session.
+    const kind = releases(paused?.status, incomingMessage);
+    const release = kind === 'approval' ? store.requeueApproved : store.requeueAnswered;
+    if (kind && incomingMessage) {
       store.replaceMessage(conversationId, {
         id: incomingMessage.id,
         parts: incomingMessage.parts,
       });
       // False when the run has moved on, which absorbs a duplicate answer
       // rather than starting a second run over the same conversation.
-      if (store.requeueApproved(already)) void worker.tick();
+      if (release(already)) void worker.tick();
       return Response.json({ runId: already, conversationId, resumed: true }, { headers });
     }
     return Response.json(

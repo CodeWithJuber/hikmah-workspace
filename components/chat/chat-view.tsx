@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
+import { hasAnsweredQuestion } from '@/lib/runs/resume';
 import { useChat } from '@ai-sdk/react';
 import {
   Conversation,
@@ -94,6 +95,26 @@ function StagedAttachments() {
 /** A context window to measure against when the catalogue does not name one.
  * Deliberately modest: over-stating it would make a full conversation look
  * roomy right up to the point the provider rejects it. */
+/**
+ * Should the turn be sent back on its own, because the owner has finished
+ * answering whatever the run stopped on?
+ *
+ * The question half is `hasAnsweredQuestion` — the same function the route uses
+ * to decide whether to resume, deliberately rather than a second copy of the
+ * rule: if the two ever disagreed, this would send a turn the server then
+ * refused, and the run would sit paused with the owner's answer already given.
+ *
+ * The SDK's `lastAssistantMessageIsCompleteWithToolCalls` is not used here. It
+ * fires whenever the last step ends in a completed tool call, which an ordinary
+ * server-side tool does all the time, and would re-send turns the server had
+ * already finished.
+ */
+function pausedTurnIsAnswered({ messages }: { messages: UIMessage[] }): boolean {
+  if (lastAssistantMessageIsCompleteWithApprovalResponses({ messages })) return true;
+  const last = messages.at(-1);
+  return last?.role === 'assistant' && hasAnsweredQuestion(last);
+}
+
 const ASSUMED_CONTEXT = 32_000;
 
 export type ChatViewProps = {
@@ -171,6 +192,7 @@ export function ChatView({
     error,
     regenerate,
     addToolApprovalResponse,
+    addToolOutput,
   } = useChat({
     id,
     transport,
@@ -181,7 +203,7 @@ export function ChatView({
     // pending request on the last message has an answer, the turn is sent back
     // automatically; without this the owner would answer the card and then
     // have to nudge the conversation by hand for anything to happen.
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    sendAutomaticallyWhen: pausedTurnIsAnswered,
   });
 
   // Compare answers the same question a second time with no tools, to show what
@@ -313,6 +335,12 @@ export function ChatView({
               message={message}
               status={status}
               onApproval={addToolApprovalResponse}
+              // The answer is written into the message as the tool's output,
+              // which is what the run resumes from. The tool name has to match
+              // the call: addToolOutput routes by it.
+              onQuestion={({ toolCallId, answer }) =>
+                addToolOutput({ tool: 'ask_user', toolCallId, output: answer })
+              }
               showActivity={showActivity}
               onArtifact={onArtifact}
               // Offered on every settled answer, not just the last: the server

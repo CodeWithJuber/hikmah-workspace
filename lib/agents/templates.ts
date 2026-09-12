@@ -16,6 +16,7 @@
  * built-ins an agent uses.
  */
 export const BUILT_IN_TOOLS = [
+  'ask_user',
   'bash',
   'calculate',
   'delete_file',
@@ -45,8 +46,10 @@ export type AgentTemplate = {
   tools: string[];
 };
 
-/** What every agent gets: arithmetic, the workspace, and a place to plan. */
-const BASE = ['calculate', 'list_files', 'read_file', 'update_plan'];
+/** What every agent gets: arithmetic, the workspace, a place to plan, and a
+ * way to ask. An agent narrowing its tools should not lose the ability to stop
+ * and check — that is the one capability whose absence makes it guess. */
+const BASE = ['ask_user', 'calculate', 'list_files', 'read_file', 'update_plan'];
 
 export const AGENT_TEMPLATES: AgentTemplate[] = [
   {

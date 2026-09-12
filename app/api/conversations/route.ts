@@ -37,8 +37,15 @@ export async function GET(request: Request) {
       model: row.model,
       // Reported separately because they need different answers from the
       // owner: one is working, the other has stopped and is waiting on them.
+      // Which kind of stop matters too — permission and a question ask for
+      // different things — so the list says which rather than just "paused".
       running: row.run_status === 'queued' || row.run_status === 'running',
-      awaitingApproval: row.run_status === 'waiting_approval',
+      waiting:
+        row.run_status === 'waiting_approval'
+          ? 'approval'
+          : row.run_status === 'waiting_client'
+            ? 'answer'
+            : null,
       updatedAt: row.updated_at,
     }));
   return Response.json({ conversations }, { headers });

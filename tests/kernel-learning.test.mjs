@@ -11,7 +11,6 @@ await build({
   entryPoints: [
     'lib/kernel/core.ts',
     'lib/kernel/artifacts.ts',
-    'lib/kernel/controller.ts',
     'lib/engines/meaning-engine.ts',
     'lib/playground/session.ts',
   ],
@@ -29,7 +28,6 @@ const { dataset, parseSession, defaultProvider, starterFiles } = await import(
 );
 const { predict } = await import(pathToFileURL(join(dir, 'engines/meaning-engine.mjs')));
 const { artifactFiles } = await import(pathToFileURL(join(dir, 'kernel/artifacts.mjs')));
-const { questionSchema } = await import(pathToFileURL(join(dir, 'kernel/controller.mjs')));
 const { initialKernel, reduceKernel, activeModel, policy, chooseStrategy } = core;
 const learn = (s) => reduceKernel(s, { type: 'teach', rows: dataset.good_update_train });
 test('reviewed examples automatically induce a new construction and improve a held-out sentence', () => {
@@ -154,17 +152,11 @@ test('completed code fences produce one reproducible artifact; partial or unsupp
     'style.css': 'h1 {color:blue}\n',
   });
 });
-test('interactive questions require bounded actual choices', () => {
-  assert.throws(() => questionSchema.parse({ question: 'Where?', options: ['One'] }));
-  assert.throws(() =>
-    questionSchema.parse({ question: 'Where?', options: ['A', 'B'], execute: 'shell' }),
-  );
-  assert.equal(
-    questionSchema.parse({ question: 'Which audience?', options: ['Founders', 'Teams'] }).options
-      .length,
-    2,
-  );
-});
+// The kernel's `questionSchema` guarded what an interactive question was
+// allowed to be: at least two real choices, and nothing unnamed smuggled
+// alongside them. Its controller drove the browser run loop and went with it.
+// `ask_user` asks the same thing of the same shape, so the property moved to
+// tests/runs-question rather than being dropped.
 test('kernel receipts and direct baseline survive cloud session validation; credentials do not', () => {
   const s = parseSession(
     JSON.stringify({

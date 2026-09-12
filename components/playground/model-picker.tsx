@@ -75,7 +75,6 @@ export function ModelPicker({
     setProvider,
     models,
     openSettings,
-    isRunning,
     modelsLoading,
     modelsError,
     modelsLoadedAt,
@@ -108,12 +107,7 @@ export function ModelPicker({
   return (
     <Popover open={open} onOpenChange={changeOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="model-picker"
-          disabled={isRunning}
-          aria-label={label ?? 'Choose model'}
-        >
+        <Button variant="outline" className="model-picker" aria-label={label ?? 'Choose model'}>
           <span>{selected?.name || selectedId || 'Choose model'}</span>
           <ChevronDown size={16} />
         </Button>

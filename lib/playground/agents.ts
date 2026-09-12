@@ -1,5 +1,3 @@
-import type { Preferences } from './session';
-import type { McpConnection } from './workspace-config';
 export type AgentProfile = {
   id: string;
   name: string;
@@ -120,23 +118,4 @@ export function parseAgents(raw: unknown): AgentProfile[] {
       },
     ];
   });
-}
-export function agentScope(
-  agent: AgentProfile | undefined,
-  preferences: Preferences,
-  connections: McpConnection[],
-) {
-  return {
-    preferences: agent
-      ? {
-          ...preferences,
-          enabledTools: preferences.enabledTools.filter((t) => agent.tools.includes(t)),
-          allowEdits: preferences.allowEdits && agent.tools.includes('write_file'),
-        }
-      : preferences,
-    connectors: connections.filter((c) => c.enabled && (!agent || agent.connectors.includes(c.id))),
-  };
-}
-export function agentInstructions(agent?: AgentProfile) {
-  return agent ? '\nSelected agent: ' + agent.name + '\n' + agent.instructions : '';
 }

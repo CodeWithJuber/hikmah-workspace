@@ -124,12 +124,15 @@ the most recently active, or a fresh id — and redirects, so a reload lands whe
 the owner was. `/` redirects to `/chat` rather than duplicating that choice, so
 there is one place that decides which conversation opens.
 
-The workspace — the chat that runs in the tab, and the screens around it:
-coding, agents, compare, tools, connections, the terminal, memory, learning, the
-research labs, settings, the owner console and the model connection — is at
-`/workspace`. Its sub-page lives in the URL hash (`/workspace#/admin/media`),
-which `workspaceDestination` reads without regard to the pathname, so those
-addresses survived the move from the root unchanged. A row is not created by opening a conversation: the first message
+The workspace at `/workspace` is the console around the chat: agents, tools,
+connections, the terminal, memory, learning, the research labs, settings, the
+owner console and the model connection. It used to hold a chat of its own — one
+that ran the whole agent loop in the browser tab — and that is gone. There is
+one run loop now, and it belongs to the server. Its sub-page lives in the URL
+hash (`/workspace#/admin/media`), which `workspaceDestination` reads without
+regard to the pathname, so those addresses survived the move from the root
+unchanged; `#/workspace` is no longer one of them and falls back to the first
+real screen. A row is not created by opening a conversation: the first message
 creates it, so an abandoned "New chat" leaves nothing in the list. It is titled
 from that message rather than by asking a model, which would cost a request and
 a wait before the answer actually asked for, and on the free models this
@@ -165,8 +168,9 @@ The question is persisted, so a reload renders the card after the tab that asked
 is gone. Answering is a _resume_, not a new run — treating it as one would hit
 the "this conversation already has a run" refusal and strand the very run the
 answer was meant to release. `requeueApproved` only moves a run out of
-`waiting_approval`, so a second answer (two tabs, a double click) is absorbed
-rather than starting a duplicate.
+`waiting_approval` (and `requeueAnswered` only out of `waiting_client`), so a
+second answer (two tabs, a double click) is absorbed rather than starting a
+duplicate.
 
 What is gated, and by what rule:
 
@@ -177,6 +181,49 @@ What is gated, and by what rule:
 | `sandbox_run`       | Always asks.                                                      |
 | `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin. |
 | everything else     | Not gated. They read or compute.                                  |
+
+## Questions
+
+An approval and a question look alike and are not the same. An approval carries
+yes or no; a question carries what the person said, and `ToolExecutionOptions`
+gives a tool's `execute` no access to that — only the call. So `ask_user` is not
+a gated tool. It is a tool with **no `execute` at all**: the person is the
+implementation.
+
+```
+model calls ask_user
+  → nothing runs; the SDK leaves the call in input-available and ends the stream
+  → the worker records waiting_client and persists the question as a message
+  → the browser renders the question card
+  → the answer is written as the tool's output and POSTs back, resuming the run
+```
+
+The same shape as an approval, and it reuses the same route and the same
+"resume, never a new run" rule, with one guard added: a run stopped on a
+question is released only by an answer, and one stopped on an approval only by a
+decision. `lib/runs/resume.ts` holds that rule, and both the route and the
+browser's auto-send read it from there — two copies that disagreed would send a
+turn the server then refused, leaving the run paused with the answer already
+given.
+
+`waiting_client` needed no migration: `runs.status` is plain `TEXT` with no
+`CHECK`. The status list in the comment at the top of `drizzle/0004_runs.sql`
+therefore predates it and is one short — that file is SHA-pinned by
+`server/storage.mjs` and must never be edited after shipping, so this page is
+where the lifecycle is kept current.
+
+Why the check is narrow rather than "the last tool call has an output":
+`ask_user` is the only tool with no server-side `execute`, so it is the only one
+whose result may legitimately arrive from a browser. Accepting any completed
+tool call would let a client hand the run a result the server was supposed to
+produce.
+
+A third, found by a test written while deleting something else: these policies
+are only rules if they are actually handed to the agent. `bash` and
+`sandbox_run` had their policies computed on every run and then left out of the
+object that carries them, so both ran unprompted from the day the workbench
+shipped — nothing failed, the tools simply worked without the card. The table
+above now describes the code rather than the intention.
 
 Two mistakes these rules exist to avoid. Matching a command by **prefix** would
 let `df; rm -rf /` through on a pattern of `df`, so matching is anchored and any
@@ -364,6 +411,15 @@ Stated so nobody goes looking:
 - **No OAuth for remote MCP.** Credentials are `${NAME}` references into the
   encrypted store.
 - **No second app replica.** See the worker limit above.
-- **The old browser-driven surface still exists** at the workspace page, and
-  still exclusively owns media generation, Compare, artifacts, agents and the
-  labs. Nothing legacy can be deleted until those move.
+- **The workspace blob is still there.** `workspace_states` no longer holds
+  conversations, but two things live only in it: the provider connection, which
+  `components/chat/chat-preview.tsx` reads to know which model to talk to, and
+  personal knowledge, which has no table of its own. Retiring the blob means
+  giving those two a home first.
+- **Some of the browser MCP client survives.** `lib/playground/mcp-client.ts` is
+  still reached from the workspace provider and the admin screen, and it is the
+  only caller of `/api/mcp` and `lib/server/mcp-relay.ts`. Runs use
+  `lib/mcp/*` instead; the two paths are unrelated and only one is legacy.
+- **`lib/playground/transport.ts` is not legacy.** It reads as browser code and
+  is partly that, but `lib/server/provider-relay.ts` and the chat surface's
+  model picker both depend on it.
