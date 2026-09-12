@@ -228,6 +228,7 @@ export function Chat() {
     isRunning,
     setIsRunning,
     preferences,
+    restoreFailed,
     runSettingsOpen,
     setRunSettingsOpen,
   } = usePlayground();
@@ -1367,6 +1368,23 @@ export function Chat() {
         )}
         <div className={'workspace-body unified-workspace' + (hasPanel ? ' has-artifact' : '')}>
           <section className="conversation-pane">
+            {/* A failed restore used to look exactly like a workspace with
+                nothing in it, while saving was quietly switched off — so the
+                obvious next move, typing, produced work that was never kept.
+                Said here rather than in the footer, because it changes what
+                this screen means. */}
+            {restoreFailed && (
+              <div className="restore-failed" role="alert">
+                <strong>Your saved workspace could not be loaded.</strong>
+                <p>
+                  This is not an empty workspace — nothing here is being saved, so that whatever is
+                  stored is not overwritten. Reload to try again.
+                </p>
+                <button type="button" onClick={() => window.location.reload()}>
+                  Reload
+                </button>
+              </div>
+            )}
             {/* Keyed per conversation so opening one starts at its live edge and
                 the previous conversation's escape state does not carry over. */}
             <StickToBottom

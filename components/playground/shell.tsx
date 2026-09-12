@@ -144,6 +144,7 @@ function ShellContent() {
     preferences,
     knowledge,
     storageMessage,
+    restoreFailed,
     workspacePage: page,
     setWorkspacePage: setPage,
   } = usePlayground();
@@ -431,9 +432,11 @@ function ShellContent() {
           <span
             className={
               'local-save' +
-              (storageMessage.includes('full') || storageMessage.includes('could not')
-                ? ' storage-warning'
-                : '')
+              // Keyed on the actual condition rather than on words in the
+              // message: the restore-failure text contained neither "full" nor
+              // "could not", so the one state that most needed the warning
+              // styling never got it.
+              (restoreFailed || storageMessage.includes('full') ? ' storage-warning' : '')
             }
             role="status"
           >

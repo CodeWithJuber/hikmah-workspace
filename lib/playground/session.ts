@@ -411,7 +411,13 @@ export function parseSession(text: string): SavedSession {
   if (text.length > 20000000) throw Error('Session files must be under 20 MB.');
   const x = JSON.parse(text);
   if (x.version !== 1) throw Error('Unsupported session version.');
-  const additions = validateRows(x.additions, 'train') as TrainingRow[];
+  // An absent section is an empty one, not a corrupt file. parseKnowledge
+  // already reads it that way; these two did not, and a throw here is not a
+  // small thing — the client treats any restore failure as "do not touch the
+  // stored workspace", so one missing key made the whole workspace unreadable
+  // and unsaveable. The shared validators stay strict for their own callers;
+  // the defaulting belongs to the envelope.
+  const additions = validateRows(x.additions ?? [], 'train') as TrainingRow[];
   if (additions.length > 400) throw Error('At most 400 added training examples.');
   if (additions.length) {
     const gate = compareCandidates(
@@ -440,7 +446,7 @@ export function parseSession(text: string): SavedSession {
     additions,
     experimental: !!x.experimental,
     conversations: validateConversations(x.conversations),
-    files: validateFiles(x.files),
+    files: validateFiles(x.files ?? {}),
     connection: {
       apiKeySecret: parseSecretRef(p.apiKeySecret),
       freeOnly: p.freeOnly !== false,
