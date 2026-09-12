@@ -121,6 +121,8 @@ import { RunSettings } from './run-settings';
 import { ErrorCard, copyText, type DisplayError } from './error-card';
 import { errorMessage, downloadText } from './common';
 import { toast } from 'sonner';
+import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
+import type { StickToBottomContext } from 'use-stick-to-bottom';
 /** Per-message attachment cap, enforced once in `attach`. */
 const MAX_ATTACHMENTS = 3;
 /** Stream callbacks fire per token; each one rebuilds the whole conversations
@@ -168,6 +170,31 @@ function fileName(language: string) {
               ? 'data.json'
               : 'notes.md';
 }
+/**
+ * The control that returns a reader to the live edge.
+ *
+ * A child of StickToBottom because the follow state lives in its context, and a
+ * sibling of the scrolled element rather than a member of it: overlaid, so that
+ * showing or hiding it cannot change the scroll container's height. The old
+ * version sat in normal flow, and its own appearance shifted the container by
+ * about forty pixels — which fed straight back into the test that decided
+ * whether to keep following.
+ */
+function JumpToLatest({ show, instant }: { show: boolean; instant: boolean }) {
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  if (!show || isAtBottom) return null;
+  return (
+    <button
+      type="button"
+      className="jump-to-latest"
+      onClick={() => void scrollToBottom({ animation: instant ? 'instant' : undefined })}
+    >
+      <ChevronDown size={16} aria-hidden="true" />
+      Jump to latest
+    </button>
+  );
+}
+
 export function Chat() {
   const [memoryDraft, setMemoryDraft] = useState<KnowledgeItem | null>(null);
   const [comparisonModel, setComparisonModel] = useState('');
@@ -238,13 +265,11 @@ export function Chat() {
   const [saveDraft, setSaveDraft] = useState<{ path: string; code: string } | null>(null);
   const [desktop, setDesktop] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // The scroll library owns follow-and-escape; this is only a handle for the
+  // one place that has to command it (sending a message).
+  const stickRef = useRef<StickToBottomContext>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
-  const followRef = useRef(true);
-  // followRef alone cannot drive UI: a ref change does not re-render, so once a
-  // reader scrolled up there was no way back to the live edge.
-  const [following, setFollowing] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const draftKeyRef = useRef<string | null>(null);
   const inputRef = useRef('');
@@ -297,19 +322,7 @@ export function Chat() {
     setArtifact(null);
     setWorkspaceOpen(false);
     setQuestion(null);
-    followRef.current = true;
-    setFollowing(true);
   }, [active?.id]);
-  useEffect(() => {
-    const e = scrollRef.current;
-    if (!followRef.current || !e) return;
-    // Smooth while following a live answer, instant when a conversation is
-    // opened, so switching chats does not animate through the whole history.
-    e.scrollTo({
-      top: e.scrollHeight,
-      behavior: isRunning && !reducedMotion ? 'smooth' : 'auto',
-    });
-  }, [active?.messages, isRunning, reducedMotion]);
   const updateAssistant = (id: string, messageId: string, change: Partial<ChatEntry>) =>
     setConversations((cs) =>
       cs.map((c) =>
@@ -605,8 +618,9 @@ export function Chat() {
     setIsRunning(true);
     setWorkspaceOpen(false);
     setArtifact(null);
-    followRef.current = true;
-    setFollowing(true);
+    // The user's own message has not rendered yet; this marks the transcript as
+    // followed so the growth it causes is allowed to scroll.
+    stickRef.current?.scrollToBottom({ animation: reducedMotion ? 'instant' : undefined });
     const controller = new AbortController();
     abortRef.current = controller;
     let streamed = resumed?.checkpoint?.output ?? '';
@@ -1353,443 +1367,440 @@ export function Chat() {
         )}
         <div className={'workspace-body unified-workspace' + (hasPanel ? ' has-artifact' : '')}>
           <section className="conversation-pane">
-            <div
+            {/* Keyed per conversation so opening one starts at its live edge and
+                the previous conversation's escape state does not carry over. */}
+            <StickToBottom
+              key={active?.id ?? 'new'}
               className="conversation-scroll"
-              ref={scrollRef}
-              onScroll={() => {
-                const e = scrollRef.current;
-                if (!e) return;
-                const atEdge = e.scrollHeight - e.scrollTop - e.clientHeight < 140;
-                followRef.current = atEdge;
-                setFollowing((was) => (was === atEdge ? was : atEdge));
-              }}
+              contextRef={stickRef}
+              role="log"
               aria-busy={isRunning}
+              initial={reducedMotion ? 'instant' : 'smooth'}
+              resize={reducedMotion ? 'instant' : 'smooth'}
             >
-              {!active?.messages.length ? (
-                <div className="welcome">
-                  <HikmahIcon name="orbit" size={48} />
-                  <h2>
-                    {mode === 'coding'
-                      ? 'What would you like to build?'
-                      : mode === 'agent'
-                        ? 'Give your agent a clear task.'
-                        : mode === 'compare'
-                          ? 'Which answer works better for you?'
-                          : 'What would you like to work on?'}
-                  </h2>
-                  <p>
-                    {mode === 'coding'
-                      ? 'Build and edit files, then try your page in the preview.'
-                      : mode === 'agent'
-                        ? 'Set a goal. Your agent can use the workspace tools and show its activity.'
-                        : mode === 'compare'
-                          ? 'Compare the direct answer with a tool-assisted, reviewed answer. Use the same model to compare workflows, or choose a different model above.'
-                          : 'Ask, research or build. Hikmah chooses the available tools here and shows the answer when ready.'}
-                  </p>
-                  <div className="welcome-mode-pills" hidden>
-                    {(['chat', 'coding', 'agent', 'compare'] as ChatMode[]).map((item) => (
-                      <button key={item} aria-pressed={mode === item} onClick={() => setMode(item)}>
-                        {modeLabels[item]}
+              <StickToBottom.Content
+                className="conversation-track"
+                scrollClassName="conversation-scroller"
+              >
+                {!active?.messages.length ? (
+                  <div className="welcome">
+                    <HikmahIcon name="orbit" size={48} />
+                    <h2>
+                      {mode === 'coding'
+                        ? 'What would you like to build?'
+                        : mode === 'agent'
+                          ? 'Give your agent a clear task.'
+                          : mode === 'compare'
+                            ? 'Which answer works better for you?'
+                            : 'What would you like to work on?'}
+                    </h2>
+                    <p>
+                      {mode === 'coding'
+                        ? 'Build and edit files, then try your page in the preview.'
+                        : mode === 'agent'
+                          ? 'Set a goal. Your agent can use the workspace tools and show its activity.'
+                          : mode === 'compare'
+                            ? 'Compare the direct answer with a tool-assisted, reviewed answer. Use the same model to compare workflows, or choose a different model above.'
+                            : 'Ask, research or build. Hikmah chooses the available tools here and shows the answer when ready.'}
+                    </p>
+                    <div className="welcome-mode-pills" hidden>
+                      {(['chat', 'coding', 'agent', 'compare'] as ChatMode[]).map((item) => (
+                        <button
+                          key={item}
+                          aria-pressed={mode === item}
+                          onClick={() => setMode(item)}
+                        >
+                          {modeLabels[item]}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="starter-prompts">
+                      {prompts.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setInput(p);
+                            composerRef.current?.focus();
+                          }}
+                        >
+                          {p}
+                          <ArrowUp size={16} />
+                        </button>
+                      ))}
+                    </div>
+                    {mode === 'agent' && !preferences.allowEdits && (
+                      <button className="text-action" onClick={() => setRunSettingsOpen(true)}>
+                        Workspace is read-only · manage permissions
                       </button>
-                    ))}
+                    )}
                   </div>
-                  <div className="starter-prompts">
-                    {prompts.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          setInput(p);
-                          composerRef.current?.focus();
-                        }}
-                      >
-                        {p}
-                        <ArrowUp size={16} />
-                      </button>
-                    ))}
-                  </div>
-                  {mode === 'agent' && !preferences.allowEdits && (
-                    <button className="text-action" onClick={() => setRunSettingsOpen(true)}>
-                      Workspace is read-only · manage permissions
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="conversation-content">
-                  {active.messages.map((m, index) => {
-                    const previous = lastUserAt(index);
-                    const bundle =
-                      m.role === 'assistant' && m.status === 'complete'
-                        ? artifactFiles(m.text)
-                        : null;
-                    return (
-                      <article key={m.id} className={'chat-message ' + m.role}>
-                        <div className="chat-message-inner">
-                          {m.role === 'assistant' && (
-                            <div className="assistant-label">
-                              <HikmahIcon name="orbit" size={25} />
-                              <span>{m.execution?.contribution?.agentName ?? 'Hikmah'}</span>
-                              {m.status === 'running' && (
-                                <span className="working-label" role="status">
-                                  <LoaderCircle className="spin" size={14} />
-                                  {status || 'Working'}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <div
-                            className={
-                              m.comparison ? 'response-comparison-grid' : 'response-single'
-                            }
-                          >
-                            <section
-                              className="primary-response"
-                              aria-live={m.status === 'running' ? 'polite' : 'off'}
-                              aria-atomic="false"
+                ) : (
+                  <div className="conversation-content">
+                    {active.messages.map((m, index) => {
+                      const previous = lastUserAt(index);
+                      const bundle =
+                        m.role === 'assistant' && m.status === 'complete'
+                          ? artifactFiles(m.text)
+                          : null;
+                      return (
+                        <article key={m.id} className={'chat-message ' + m.role}>
+                          <div className="chat-message-inner">
+                            {m.role === 'assistant' && (
+                              <div className="assistant-label">
+                                <HikmahIcon name="orbit" size={25} />
+                                <span>{m.execution?.contribution?.agentName ?? 'Hikmah'}</span>
+                                {m.status === 'running' && (
+                                  <span className="working-label" role="status">
+                                    <LoaderCircle className="spin" size={14} />
+                                    {status || 'Working'}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <div
+                              className={
+                                m.comparison ? 'response-comparison-grid' : 'response-single'
+                              }
                             >
-                              {m.comparison && (
-                                <header className="primary-response-title">
-                                  <HikmahIcon name="orbit" size={18} />
-                                  <strong>A · Hikmah + tools</strong>
-                                  <span>{m.model}</span>
-                                </header>
-                              )}
-                              {shouldRenderMessageText(m) && (
-                                <MessageContent
-                                  text={m.text}
-                                  onSave={
-                                    m.role === 'assistant' && m.status === 'complete'
-                                      ? saveCode
-                                      : undefined
-                                  }
-                                />
-                              )}{' '}
-                              {bundle && (
-                                <InlineArtifact
-                                  files={bundle}
-                                  onOpen={(f) => {
-                                    setArtifact(f);
-                                    setWorkspaceOpen(false);
-                                  }}
-                                />
-                              )}
-                              {m.role === 'assistant' &&
-                                m.status === 'complete' &&
-                                m.trace?.some(
-                                  (t) => t.name === 'write_file' && t.status === 'success',
-                                ) && (
+                              <section
+                                className="primary-response"
+                                aria-live={m.status === 'running' ? 'polite' : 'off'}
+                                aria-atomic="false"
+                              >
+                                {m.comparison && (
+                                  <header className="primary-response-title">
+                                    <HikmahIcon name="orbit" size={18} />
+                                    <strong>A · Hikmah + tools</strong>
+                                    <span>{m.model}</span>
+                                  </header>
+                                )}
+                                {shouldRenderMessageText(m) && (
+                                  <MessageContent
+                                    text={m.text}
+                                    onSave={
+                                      m.role === 'assistant' && m.status === 'complete'
+                                        ? saveCode
+                                        : undefined
+                                    }
+                                  />
+                                )}{' '}
+                                {bundle && (
+                                  <InlineArtifact
+                                    files={bundle}
+                                    onOpen={(f) => {
+                                      setArtifact(f);
+                                      setWorkspaceOpen(false);
+                                    }}
+                                  />
+                                )}
+                                {m.role === 'assistant' &&
+                                  m.status === 'complete' &&
+                                  m.trace?.some(
+                                    (t) => t.name === 'write_file' && t.status === 'success',
+                                  ) && (
+                                    <Button
+                                      variant="outline"
+                                      className="completed-files"
+                                      onClick={() => {
+                                        setArtifact(null);
+                                        setWorkspaceOpen(true);
+                                      }}
+                                    >
+                                      <Code2 size={16} />
+                                      View workspace files
+                                    </Button>
+                                  )}
+                                {m.role === 'assistant' && (
+                                  <ExecutionProgress value={m.execution} />
+                                )}
+                              </section>
+                              {m.comparison && <DirectComparison value={m.comparison} />}
+                            </div>
+                            {question && m.status === 'running' && (
+                              <ClarificationCard key={question.question} value={question} />
+                            )}
+                            {!!m.memoryUsed?.length && (
+                              <details className="memory-receipt">
+                                <summary>
+                                  <BrainCircuit size={14} />
+                                  Used {m.memoryUsed.length} saved item
+                                  {m.memoryUsed.length > 1 ? 's' : ''}
+                                </summary>
+                                {m.memoryUsed.map((k) => (
+                                  <p key={k.id}>{k.title}</p>
+                                ))}
+                              </details>
+                            )}
+                            {m.media?.map((asset) => (
+                              <MediaOutput
+                                key={asset.id}
+                                asset={asset}
+                                mediaKey={effectiveMediaKey}
+                                secretRef={effectiveMediaSecret}
+                                onReady={() =>
+                                  updateAssistant(active.id, m.id, {
+                                    media: m.media?.map((a) =>
+                                      a.id === asset.id ? { ...a, status: 'ready' } : a,
+                                    ),
+                                  })
+                                }
+                              />
+                            ))}
+                            <div className="message-attachments">
+                              {m.attachments?.map((a, i) => (
+                                <details key={i}>
+                                  <summary>
+                                    <FileText size={14} />
+                                    {a.name}
+                                  </summary>
+                                  <pre>{a.content}</pre>
+                                </details>
+                              ))}
+                            </div>
+                            {m.role === 'assistant' && m.status === 'running' && (
+                              <div
+                                className="thinking-indicator"
+                                aria-label="Working on your request"
+                              >
+                                <span />
+                                <span />
+                                <span />
+                              </div>
+                            )}
+                            {m.error && (
+                              <ErrorCard
+                                error={m.error}
+                                onSettings={
+                                  m.mediaOperation
+                                    ? () => setWorkspacePage('admin/media')
+                                    : openSettings
+                                }
+                                disabled={isRunning}
+                                onRetry={
+                                  !m.mediaOperation &&
+                                  index === active.messages.length - 1 &&
+                                  previous !== undefined
+                                    ? () =>
+                                        void send(
+                                          m.checkpoint ? undefined : previous,
+                                          m.checkpoint ? m.id : undefined,
+                                        )
+                                    : undefined
+                                }
+                              />
+                            )}{' '}
+                            {(m.status === 'paused' || m.status === 'stopped') && (
+                              <div className="run-paused">
+                                <p>
+                                  {m.pauseReason || 'Work paused. Completed actions remain saved.'}
+                                </p>
+                                {m.checkpoint && index === active.messages.length - 1 && (
                                   <Button
                                     variant="outline"
-                                    className="completed-files"
-                                    onClick={() => {
-                                      setArtifact(null);
-                                      setWorkspaceOpen(true);
-                                    }}
+                                    disabled={isRunning}
+                                    onClick={() => void send(undefined, m.id)}
                                   >
-                                    <Code2 size={16} />
-                                    View workspace files
+                                    <Play size={15} />
+                                    Continue task
                                   </Button>
                                 )}
-                              {m.role === 'assistant' && <ExecutionProgress value={m.execution} />}
-                            </section>
-                            {m.comparison && <DirectComparison value={m.comparison} />}
-                          </div>
-                          {question && m.status === 'running' && (
-                            <ClarificationCard key={question.question} value={question} />
-                          )}
-                          {!!m.memoryUsed?.length && (
-                            <details className="memory-receipt">
-                              <summary>
-                                <BrainCircuit size={14} />
-                                Used {m.memoryUsed.length} saved item
-                                {m.memoryUsed.length > 1 ? 's' : ''}
-                              </summary>
-                              {m.memoryUsed.map((k) => (
-                                <p key={k.id}>{k.title}</p>
-                              ))}
-                            </details>
-                          )}
-                          {m.media?.map((asset) => (
-                            <MediaOutput
-                              key={asset.id}
-                              asset={asset}
-                              mediaKey={effectiveMediaKey}
-                              secretRef={effectiveMediaSecret}
-                              onReady={() =>
-                                updateAssistant(active.id, m.id, {
-                                  media: m.media?.map((a) =>
-                                    a.id === asset.id ? { ...a, status: 'ready' } : a,
-                                  ),
-                                })
-                              }
-                            />
-                          ))}
-                          <div className="message-attachments">
-                            {m.attachments?.map((a, i) => (
-                              <details key={i}>
-                                <summary>
-                                  <FileText size={14} />
-                                  {a.name}
-                                </summary>
-                                <pre>{a.content}</pre>
-                              </details>
-                            ))}
-                          </div>
-                          {m.role === 'assistant' && m.status === 'running' && (
-                            <div
-                              className="thinking-indicator"
-                              aria-label="Working on your request"
-                            >
-                              <span />
-                              <span />
-                              <span />
-                            </div>
-                          )}
-                          {m.error && (
-                            <ErrorCard
-                              error={m.error}
-                              onSettings={
-                                m.mediaOperation
-                                  ? () => setWorkspacePage('admin/media')
-                                  : openSettings
-                              }
-                              disabled={isRunning}
-                              onRetry={
-                                !m.mediaOperation &&
-                                index === active.messages.length - 1 &&
-                                previous !== undefined
-                                  ? () =>
-                                      void send(
-                                        m.checkpoint ? undefined : previous,
-                                        m.checkpoint ? m.id : undefined,
-                                      )
-                                  : undefined
-                              }
-                            />
-                          )}{' '}
-                          {(m.status === 'paused' || m.status === 'stopped') && (
-                            <div className="run-paused">
-                              <p>
-                                {m.pauseReason || 'Work paused. Completed actions remain saved.'}
-                              </p>
-                              {m.checkpoint && index === active.messages.length - 1 && (
-                                <Button
-                                  variant="outline"
-                                  disabled={isRunning}
-                                  onClick={() => void send(undefined, m.id)}
-                                >
-                                  <Play size={15} />
-                                  Continue task
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                          {preferences.showActivity && m.plan?.length ? (
-                            <div className="task-plan">
-                              <h3>
-                                <BrainCircuit size={17} />
-                                Task plan
-                              </h3>
-                              {m.plan.map((p, i) => (
-                                <div className={'plan-step ' + p.status} key={i}>
-                                  {p.status === 'completed' ? (
-                                    <Check size={16} />
-                                  ) : p.status === 'in_progress' ? (
-                                    <LoaderCircle size={16} className="spin" />
-                                  ) : (
-                                    <span className="plan-number">{i + 1}</span>
-                                  )}
-                                  <span>{p.step}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                          {preferences.showActivity && !!m.trace?.length && (
-                            <details className="activity-group">
-                              <summary>
-                                <Bot size={18} />
-                                <span>
-                                  Activity{' '}
-                                  <span className="muted">
-                                    · {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
-                                  </span>
-                                </span>
-                                <ChevronDown size={16} />
-                              </summary>
-                              <div className="activity-list">
-                                {m.trace.map((t, i) => (
-                                  <details key={t.id + '-' + i} className="activity-item">
-                                    <summary>
-                                      {t.status === 'success' ? (
-                                        <Check size={15} />
-                                      ) : (
-                                        <X size={15} />
-                                      )}
-                                      <span>{t.name.replace(/_/g, ' ')}</span>
-                                      <small>{t.status}</small>
-                                    </summary>
-                                    <pre>
-                                      Input: {t.input}
-                                      {'\n\n'}Result: {t.output}
-                                    </pre>
-                                  </details>
+                              </div>
+                            )}
+                            {preferences.showActivity && m.plan?.length ? (
+                              <div className="task-plan">
+                                <h3>
+                                  <BrainCircuit size={17} />
+                                  Task plan
+                                </h3>
+                                {m.plan.map((p, i) => (
+                                  <div className={'plan-step ' + p.status} key={i}>
+                                    {p.status === 'completed' ? (
+                                      <Check size={16} />
+                                    ) : p.status === 'in_progress' ? (
+                                      <LoaderCircle size={16} className="spin" />
+                                    ) : (
+                                      <span className="plan-number">{i + 1}</span>
+                                    )}
+                                    <span>{p.step}</span>
+                                  </div>
                                 ))}
                               </div>
-                            </details>
-                          )}
-                          {m.role === 'assistant' && m.status !== 'running' && (
-                            <HikmahReceipt message={m} />
-                          )}
-                          {m.role === 'assistant' && m.status !== 'running' && (
-                            <div className="message-actions">
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Copy response"
-                                onClick={() => void copyText(m.text)}
-                              >
-                                <Copy size={16} />
-                              </Button>
-                              <ReadAloud text={m.text} />
-                              {(['up', 'down'] as const).map((r) => (
+                            ) : null}
+                            {preferences.showActivity && !!m.trace?.length && (
+                              <details className="activity-group">
+                                <summary>
+                                  <Bot size={18} />
+                                  <span>
+                                    Activity{' '}
+                                    <span className="muted">
+                                      · {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
+                                    </span>
+                                  </span>
+                                  <ChevronDown size={16} />
+                                </summary>
+                                <div className="activity-list">
+                                  {m.trace.map((t, i) => (
+                                    <details key={t.id + '-' + i} className="activity-item">
+                                      <summary>
+                                        {t.status === 'success' ? (
+                                          <Check size={15} />
+                                        ) : (
+                                          <X size={15} />
+                                        )}
+                                        <span>{t.name.replace(/_/g, ' ')}</span>
+                                        <small>{t.status}</small>
+                                      </summary>
+                                      <pre>
+                                        Input: {t.input}
+                                        {'\n\n'}Result: {t.output}
+                                      </pre>
+                                    </details>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+                            {m.role === 'assistant' && m.status !== 'running' && (
+                              <HikmahReceipt message={m} />
+                            )}
+                            {m.role === 'assistant' && m.status !== 'running' && (
+                              <div className="message-actions">
                                 <Button
-                                  key={r}
                                   variant="ghost"
-                                  className={'icon-button' + (m.rating === r ? ' active' : '')}
-                                  aria-label={
-                                    r === 'up' ? 'Mark response helpful' : 'Mark response unhelpful'
-                                  }
-                                  aria-pressed={m.rating === r}
-                                  onClick={async () => {
-                                    const next = m.rating === r ? undefined : r;
-                                    try {
-                                      if (m.kernel) {
-                                        await kernel.act({
-                                          type: 'feedback',
-                                          runId: m.kernel.runId,
-                                          rating: next ?? null,
-                                        });
-                                      }
-                                      updateAssistant(active.id, m.id, { rating: next });
-                                      toast.success('Feedback saved.');
-                                    } catch (e) {
-                                      toast.error(errorMessage(e));
+                                  className="icon-button"
+                                  aria-label="Copy response"
+                                  onClick={() => void copyText(m.text)}
+                                >
+                                  <Copy size={16} />
+                                </Button>
+                                <ReadAloud text={m.text} />
+                                {(['up', 'down'] as const).map((r) => (
+                                  <Button
+                                    key={r}
+                                    variant="ghost"
+                                    className={'icon-button' + (m.rating === r ? ' active' : '')}
+                                    aria-label={
+                                      r === 'up'
+                                        ? 'Mark response helpful'
+                                        : 'Mark response unhelpful'
                                     }
+                                    aria-pressed={m.rating === r}
+                                    onClick={async () => {
+                                      const next = m.rating === r ? undefined : r;
+                                      try {
+                                        if (m.kernel) {
+                                          await kernel.act({
+                                            type: 'feedback',
+                                            runId: m.kernel.runId,
+                                            rating: next ?? null,
+                                          });
+                                        }
+                                        updateAssistant(active.id, m.id, { rating: next });
+                                        toast.success('Feedback saved.');
+                                      } catch (e) {
+                                        toast.error(errorMessage(e));
+                                      }
+                                    }}
+                                  >
+                                    {r === 'up' ? <ThumbsUp size={16} /> : <ThumbsDown size={16} />}
+                                  </Button>
+                                ))}
+                                {index === active.messages.length - 1 &&
+                                  !m.error &&
+                                  !m.mediaOperation &&
+                                  previous !== undefined && (
+                                    <Button
+                                      variant="ghost"
+                                      className="icon-button"
+                                      aria-label="Regenerate response"
+                                      disabled={isRunning}
+                                      onClick={() => void send(previous)}
+                                    >
+                                      <RefreshCw size={16} />
+                                    </Button>
+                                  )}
+                                {m.usage?.total_tokens !== undefined && (
+                                  <span>
+                                    {m.usage.total_tokens.toLocaleString()}{' '}
+                                    {m.comparison ? 'combined tokens' : 'reported tokens'}
+                                  </span>
+                                )}
+                                {m.usage?.cost !== undefined && (
+                                  <span title="Provider-reported cost in USD">
+                                    ${m.usage.cost.toFixed(4)}
+                                  </span>
+                                )}
+                                {m.usage?.reasoning_tokens !== undefined && (
+                                  <span>
+                                    {m.usage.reasoning_tokens.toLocaleString()} reasoning tokens
+                                  </span>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  className="icon-button"
+                                  aria-label="Remember response"
+                                  onClick={() =>
+                                    setMemoryDraft(newKnowledge(m.text, 'Chat: ' + active.title))
+                                  }
+                                >
+                                  <BrainCircuit size={16} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="icon-button"
+                                  aria-label="Download response"
+                                  onClick={() => downloadText(m.text, 'hikmah-response.md')}
+                                >
+                                  <Download size={16} />
+                                </Button>
+                                <span className="message-model" title={m.model}>
+                                  {m.model}
+                                </span>
+                              </div>
+                            )}
+                            {m.role === 'user' && !isRunning && (
+                              <div className="user-actions">
+                                <Button
+                                  variant="ghost"
+                                  className="icon-button"
+                                  aria-label="Remember message"
+                                  onClick={() =>
+                                    setMemoryDraft(newKnowledge(m.text, 'You · ' + active.title))
+                                  }
+                                >
+                                  <BrainCircuit size={14} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="icon-button"
+                                  aria-label="Edit message"
+                                  onClick={() => {
+                                    setEditing(m.id);
+                                    setInput(m.text);
+                                    setAttachments(m.attachments ?? []);
+                                    composerRef.current?.focus();
                                   }}
                                 >
-                                  {r === 'up' ? <ThumbsUp size={16} /> : <ThumbsDown size={16} />}
+                                  <Pencil size={14} />
                                 </Button>
-                              ))}
-                              {index === active.messages.length - 1 &&
-                                !m.error &&
-                                !m.mediaOperation &&
-                                previous !== undefined && (
-                                  <Button
-                                    variant="ghost"
-                                    className="icon-button"
-                                    aria-label="Regenerate response"
-                                    disabled={isRunning}
-                                    onClick={() => void send(previous)}
-                                  >
-                                    <RefreshCw size={16} />
-                                  </Button>
-                                )}
-                              {m.usage?.total_tokens !== undefined && (
-                                <span>
-                                  {m.usage.total_tokens.toLocaleString()}{' '}
-                                  {m.comparison ? 'combined tokens' : 'reported tokens'}
-                                </span>
-                              )}
-                              {m.usage?.cost !== undefined && (
-                                <span title="Provider-reported cost in USD">
-                                  ${m.usage.cost.toFixed(4)}
-                                </span>
-                              )}
-                              {m.usage?.reasoning_tokens !== undefined && (
-                                <span>
-                                  {m.usage.reasoning_tokens.toLocaleString()} reasoning tokens
-                                </span>
-                              )}
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Remember response"
-                                onClick={() =>
-                                  setMemoryDraft(newKnowledge(m.text, 'Chat: ' + active.title))
-                                }
-                              >
-                                <BrainCircuit size={16} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Download response"
-                                onClick={() => downloadText(m.text, 'hikmah-response.md')}
-                              >
-                                <Download size={16} />
-                              </Button>
-                              <span className="message-model" title={m.model}>
-                                {m.model}
-                              </span>
-                            </div>
-                          )}
-                          {m.role === 'user' && !isRunning && (
-                            <div className="user-actions">
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Remember message"
-                                onClick={() =>
-                                  setMemoryDraft(newKnowledge(m.text, 'You · ' + active.title))
-                                }
-                              >
-                                <BrainCircuit size={14} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Edit message"
-                                onClick={() => {
-                                  setEditing(m.id);
-                                  setInput(m.text);
-                                  setAttachments(m.attachments ?? []);
-                                  composerRef.current?.focus();
-                                }}
-                              >
-                                <Pencil size={14} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                className="icon-button"
-                                aria-label="Copy message"
-                                onClick={() => void copyText(m.text)}
-                              >
-                                <Copy size={14} />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            {!following && active?.messages.length ? (
-              <button
-                type="button"
-                className="jump-to-latest"
-                onClick={() => {
-                  const e = scrollRef.current;
-                  if (!e) return;
-                  e.scrollTo({ top: e.scrollHeight, behavior: 'smooth' });
-                  followRef.current = true;
-                  setFollowing(true);
-                }}
-              >
-                <ChevronDown size={16} aria-hidden="true" />
-                Jump to latest
-              </button>
-            ) : null}
+                                <Button
+                                  variant="ghost"
+                                  className="icon-button"
+                                  aria-label="Copy message"
+                                  onClick={() => void copyText(m.text)}
+                                >
+                                  <Copy size={14} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </StickToBottom.Content>
+              <JumpToLatest show={!!active?.messages.length} instant={reducedMotion} />
+            </StickToBottom>
             <div className="composer-dock">
               {outputMode === 'text' &&
                 !provider.apiKey &&
