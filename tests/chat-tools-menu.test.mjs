@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { BUILT_IN_TOOLS } from '../lib/agents/templates.ts';
+import { AGENT_TEMPLATES as TEMPLATES, BUILT_IN_TOOLS } from '../lib/agents/templates.ts';
 import { toolAvailability } from '../lib/agents/availability.ts';
 
 const menu = await readFile('components/chat/tools-menu.tsx', 'utf8');
@@ -60,4 +60,22 @@ test('the menu does not reach for the browser MCP client the server replaced', (
   // is the run's decision now, made in lib/mcp/run-context.
   assert.doesNotMatch(menu, /mcp-client|connectConnector|connectorTools/);
   assert.doesNotMatch(menu, /usePlayground|useKernel/);
+});
+
+test('the code partner can run code without a workbench', async () => {
+  // `coding` mode was three starter prompts and one prompt sentence, which is
+  // what this agent already is. It needs an interpreter that does not depend on
+  // a container, or the agent is useless on a deployment without one.
+  const { AGENT_TEMPLATES } = await import('../lib/agents/templates.ts');
+  const coder = AGENT_TEMPLATES.find((template) => template.name === 'Code partner');
+  assert.ok(coder, 'the template the coding mode retires into must exist');
+  assert.ok(coder.tools.includes('run_javascript'));
+});
+
+test('every tool an agent template names is a real one', () => {
+  // A template naming a tool the run cannot offer narrows the agent to nothing.
+  const known = new Set(BUILT_IN_TOOLS);
+  for (const template of TEMPLATES)
+    for (const name of template.tools)
+      assert.ok(known.has(name), `${template.name} names ${name}, which is not a built-in tool`);
 });

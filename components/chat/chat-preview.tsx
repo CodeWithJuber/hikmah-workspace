@@ -29,6 +29,31 @@ const STARTERS = [
   'Review code or notes from an attached file.',
 ];
 
+/** Openers for an agent that has its own kind of work.
+ *
+ * This is what the workspace's four modes were mostly for: `coding` differed
+ * from `chat` by three starter prompts and one sentence appended to the
+ * instructions, which is precisely what an agent already is here. Keyed by name
+ * rather than id, because the built-in templates are seeded per owner and get a
+ * fresh id each time. An agent with nothing listed falls back to the general
+ * three, so a custom one is never left with an empty screen. */
+const AGENT_STARTERS: Record<string, string[]> = {
+  'Code partner': [
+    'Build a clean calculator with HTML, CSS and JavaScript.',
+    'Create a responsive support request form.',
+    'Review my workspace files and suggest improvements.',
+  ],
+  'Research partner': [
+    'Compare two approaches to a reliable support workflow.',
+    'Find and cite the primary sources on this question.',
+    'Summarise what is settled here and what is still open.',
+  ],
+  Operations: [
+    'Check what is running on my server and report back.',
+    'Walk through this deployment and tell me what would break first.',
+  ],
+};
+
 type RunConfig = {
   baseUrl: string;
   model: string;
@@ -206,7 +231,7 @@ export function ChatPreview({
           }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
-          starters={STARTERS}
+          starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
           models={models.length > 1 ? models : []}
           onModel={pick}
           contextWindow={contextWindow}

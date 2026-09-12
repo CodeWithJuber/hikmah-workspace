@@ -61,7 +61,15 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     description: 'Read and write workspace files, and run what you write.',
     instructions:
       'Inspect the existing workspace files before changing anything. Plan the change, make it, then verify it by running it. State what was actually executed and what it printed, rather than what it should have printed. Name any dependency that is missing instead of assuming it is present.',
-    tools: [...BASE, 'write_file', 'delete_file', 'sandbox_run', 'bash', 'read_webpage'],
+    tools: [
+      ...BASE,
+      'write_file',
+      'delete_file',
+      'run_javascript',
+      'sandbox_run',
+      'bash',
+      'read_webpage',
+    ],
   },
   {
     name: 'Voice assistant',
