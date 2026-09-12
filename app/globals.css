@@ -1296,15 +1296,19 @@ summary:focus-visible {
   min-height: 0;
   min-width: 0;
 }
-/* Appears only once the reader has scrolled away from the live edge. Kept in
-   normal flow between the transcript and the composer so it can never overlap
-   a message or the input. */
+/* Appears only once the reader has scrolled away from the live edge. Overlaid
+   on the transcript rather than placed in flow: in flow, showing and hiding it
+   changed the scroll container's height by about forty pixels, and that height
+   was an input to the test deciding whether to keep following. */
 .jump-to-latest {
-  align-self: center;
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 6px 0;
   padding: 7px 14px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1322,9 +1326,20 @@ summary:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+/* The stick-to-bottom wrapper. It does not scroll: it is the definite-height
+   box the library's own scroller fills, and the positioning context for the
+   overlaid jump button. `overflow: hidden` is what keeps a failure here from
+   becoming a page-level scroll. */
 .conversation-scroll {
+  position: relative;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+/* The element the library actually scrolls: StickToBottom.Content's outer div,
+   which it sizes height:100%/width:100% inline. */
+.conversation-scroller {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
