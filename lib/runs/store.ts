@@ -31,6 +31,9 @@ export type RunRow = {
   step_count: number;
   error: string | null;
   config: string;
+  /** Next unused chunk sequence. Claimed from the row rather than counted from
+   * run_events, which is pruned at the end of every step. */
+  event_seq: number;
   created_at: string;
   ended_at: string | null;
 };

@@ -123,6 +123,16 @@ async function driveWithAgent({
         part.type === 'finish'
           ? { model: config.model, usage: part.totalUsage, finishedAt: Date.now() }
           : undefined,
+      // Without this the SDK redacts every failure to "An error occurred." and
+      // emits that as the error chunk — so a missing key, a rejected model and
+      // a provider outage all reached the owner identically, with the real
+      // reason discarded before it was ever written down.
+      //
+      // This is a single-owner deployment talking to a provider the owner
+      // configured, so the provider's own words are theirs to see. It is the
+      // only way to tell "you have no key" from "that model does not exist".
+      onError: (error) =>
+        error instanceof Error && error.message ? error.message : 'The run failed.',
     });
 
     // Tee the chunks: one copy into the durable log, one into the fold that

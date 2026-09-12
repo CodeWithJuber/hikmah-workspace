@@ -21,6 +21,17 @@ test('a failure with no events is not "nothing to send"', () => {
   assert.equal(nothingToSend(failed('No API key for this provider.'), 0, true), false);
 });
 
+test('the failure is offered once, not on every reconnect', () => {
+  // The transport re-opens the stream until it gets a 204. Offering the notice
+  // again to a client whose cursor is already past it would hand it the same
+  // error up to MAX_CONTINUATIONS times.
+  const run = { ...failed('No API key for this provider.'), event_seq: 4 };
+  assert.equal(nothingToSend(run, 0, true, -1), false, 'a fresh client is told');
+  assert.equal(nothingToSend(run, 0, true, 3), false, 'a client mid-run is told');
+  assert.equal(nothingToSend(run, 0, true, 4), true, 'a client already told is not told twice');
+  assert.equal(nothingToSend(run, 0, true, 9), true);
+});
+
 test('a failure that recorded no reason has nothing to add', () => {
   // Without a message there is genuinely nothing to send, and 204 is right.
   assert.equal(nothingToSend(failed(null), 0, true), true);

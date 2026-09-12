@@ -82,11 +82,14 @@ export function streamIsFinished(status: RunStatus | undefined, terminal: boolea
  * error occurred" while the actual reason sits in the database.
  */
 export function nothingToSend(
-  run: { status?: RunStatus; error?: string | null } | null | undefined,
+  run: { status?: RunStatus; error?: string | null; event_seq?: number } | null | undefined,
   pendingEvents: number,
   terminal: boolean,
+  /** The client's cursor. The failure notice sits one past every stored chunk,
+   * so a cursor at or beyond that has already been told. */
+  after = -1,
 ): boolean {
   if (pendingEvents > 0) return false;
-  if (run?.status === 'failed' && run.error) return false;
+  if (run?.status === 'failed' && run.error && after < (run.event_seq ?? 0)) return false;
   return streamIsFinished(run?.status, terminal);
 }
