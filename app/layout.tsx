@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { isTheme, THEME_COOKIE } from '@/lib/theme';
+import { isTheme, THEME_COOKIE, type Theme } from '@/lib/theme';
+import { savedTheme } from '@/lib/server/saved-theme';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,12 +16,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Stamped here rather than after hydration, so the page is the owner's colour
-  // in its first paint and not after a flash of the other one. The workspace
-  // keeps this cookie current; /chat, which never mounts that provider, has no
-  // other way to know.
-  const saved = (await cookies()).get(THEME_COOKIE)?.value;
+  // in its first paint and not after a flash of the other one.
+  //
+  // The cookie is written by the workspace, and since the chat became the
+  // default surface an owner can sign in, land on /chat and never mount the
+  // thing that writes it — so a saved dark theme showed as light until they
+  // happened to open /workspace. When there is no cookie, the saved preference
+  // is read directly.
+  const cookie = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme: Theme = isTheme(cookie) ? cookie : await savedTheme();
   return (
-    <html lang="en" data-theme={isTheme(saved) ? saved : 'light'}>
+    <html lang="en" data-theme={theme}>
       <body className="antialiased">{children}</body>
     </html>
   );
