@@ -50,6 +50,7 @@ import {
   ContextTrigger,
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
+import { VoiceInput } from './voice-controls';
 import { MessageParts } from './message-parts';
 
 /** What the run recorded about itself when it finished. Written by the worker
@@ -195,6 +196,20 @@ export function ChatView({
     if (runId) void cancelRun(runId);
   }, [transport, stop]);
 
+  // Dictation writes straight into the textarea rather than through
+  // PromptInputProvider. The provider would lift the attachment state out of
+  // PromptInput too, and its own `add` applies none of the accept, count or
+  // size limits the local one does — so wrapping for the sake of the text would
+  // quietly drop the caps on the files. The textarea is uncontrolled and its
+  // value is read from the form on submit, so writing to it is enough.
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const dictate = useCallback((text: string) => {
+    const field = composer.current;
+    if (!field) return;
+    field.value = field.value ? field.value.trimEnd() + ' ' + text : text;
+    field.focus();
+  }, []);
+
   const submit = useCallback(
     ({ text, files }: { text?: string; files?: FileUIPart[] }) => {
       const trimmed = (text ?? '').trim();
@@ -266,7 +281,10 @@ export function ChatView({
       >
         <PromptInputBody>
           <StagedAttachments />
-          <PromptInputTextarea placeholder="Ask anything, or describe what to build." />
+          <PromptInputTextarea
+            ref={composer}
+            placeholder="Ask anything, or describe what to build."
+          />
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
@@ -276,6 +294,7 @@ export function ChatView({
                 <PromptInputActionAddAttachments />
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
+            <VoiceInput disabled={busy} onText={dictate} />
             {!!models?.length && (
               <PromptInputSelect value={run.model} onValueChange={onModel}>
                 <PromptInputSelectTrigger className="chat-model-select">

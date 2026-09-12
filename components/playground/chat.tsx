@@ -4,7 +4,7 @@ import { randomId } from '../../lib/id.ts';
 
 import { AgentSelector } from './agents-home';
 import { HikmahReceipt } from './hikmah-receipt';
-import { VoiceInput, ReadAloud } from './voice-controls';
+import { VoiceInput, ReadAloud } from '@/components/chat/voice-controls';
 import { agentScope, agentInstructions } from '@/lib/playground/agents';
 import { builtInTools, executeBuiltin } from '@/lib/playground/builtin-tools';
 import { ToolsMenu } from './tools-menu';

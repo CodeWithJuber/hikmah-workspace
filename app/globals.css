@@ -8232,9 +8232,12 @@ body {
 .provider-explanation .markdown {
   font-size: 13px;
 }
+/* Recording is worth being unmistakable, so it keeps the destructive accent
+   rather than the muted grey of the other composer buttons. Tokens, not the
+   literal pink it used to hardcode, which was invisible against a dark page. */
 .voice-control.active {
-  color: #af364b;
-  background: #fcecf0 !important;
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 14%, transparent) !important;
 }
 .composer-controls .composer-remember,
 .composer-controls .composer-run-mode {
@@ -8980,11 +8983,14 @@ body {
   margin: 0 auto;
   padding: 0 16px env(safe-area-inset-bottom);
 }
+/* The scroller sizes itself to its content, so `flex: 1` here had nothing to
+   grow into and the openers sat at the top of an empty screen. A minimum height
+   is what actually puts them where the eye lands. */
 .chat-welcome {
   display: flex;
-  flex: 1;
   flex-direction: column;
   gap: 14px;
+  min-height: 58dvh;
   align-items: center;
   justify-content: center;
   padding: 24px 0;

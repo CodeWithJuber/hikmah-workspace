@@ -35,6 +35,7 @@ import {
   ToolInput,
   ToolOutput,
 } from '@/components/ai-elements/tool';
+import { ReadAloud } from './voice-controls';
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -318,6 +319,10 @@ export function MessageParts({
               >
                 <Copy size={15} />
               </MessageAction>
+              {/* Reads the text parts only, so the tool receipts and reasoning
+                  between them are not spoken. Silent about code, which the
+                  component replaces with a spoken note rather than reciting. */}
+              <ReadAloud text={messageText(message)} />
               {onRegenerate && (
                 <MessageAction tooltip="Answer again" onClick={onRegenerate}>
                   <RefreshCw size={15} />

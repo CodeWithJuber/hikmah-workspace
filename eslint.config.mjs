@@ -27,7 +27,6 @@ const eslintConfig = defineConfig([
     files: [
       'components/playground/chat.tsx',
       'components/playground/settings.tsx',
-      'components/playground/voice-controls.tsx',
       'components/kernel/context.tsx',
       'components/context-model/studio.tsx',
     ],
