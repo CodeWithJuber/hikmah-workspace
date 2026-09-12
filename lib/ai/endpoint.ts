@@ -1,3 +1,4 @@
+import { relayProviderFor } from '../playground/provider-routes.ts';
 /** Endpoint policy for server-side provider calls.
  *
  * The browser transport validated a base URL because the browser was the one
@@ -85,4 +86,45 @@ export function assertModelAllowed(options: {
     throw new EndpointError(
       'Free models only is on, which blocks this model. Choose the OpenRouter Free Router or an OpenRouter :free model, or turn the setting off.',
     );
+}
+
+/**
+ * Which saved-secret destination a base URL's key belongs to.
+ *
+ * The destination allowlist names a *provider* — `provider:openrouter` — and
+ * these routes were building it from the model instead, producing strings like
+ * `provider:deepseek/deepseek-chat:free` that no allowlist entry could match.
+ * `validateDestination` threw, the caller's catch turned that into an empty
+ * key, and the run failed against the provider with no key at all. A key the
+ * owner had saved was never once used.
+ *
+ * Undefined for an endpoint that is not a known relay preset: a custom or local
+ * endpoint has no shared destination to resolve against.
+ */
+export function providerDestination(baseUrl: string): string {
+  const provider = relayProviderFor(baseUrl);
+  return provider ? 'provider:' + provider.id : '';
+}
+
+/**
+ * Would this run reach a provider with no credentials?
+ *
+ * A hosted endpoint answers 401 and the run dies for a reason the owner cannot
+ * see, so it is refused up front instead. A private or loopback endpoint —
+ * Ollama, vLLM, an OpenAI-compatible server on the same box — legitimately
+ * needs no key, and refusing those would break the one setup that never had a
+ * key to give.
+ */
+export function needsKey(baseUrl: string, apiKey: string): boolean {
+  if (apiKey) return false;
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    // Not a URL at all. The request fails either way, and "no API key" is the
+    // more useful of the two messages. Falling through to the host check would
+    // read the empty host as private and let it queue.
+    return true;
+  }
+  return !isNonPublic(host);
 }

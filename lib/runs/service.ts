@@ -16,6 +16,7 @@ import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
+import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 
 declare global {
@@ -28,6 +29,17 @@ export type RunConfig = {
   model: string;
   freeOnly: boolean;
   apiKey: string;
+  /** Whether the deployment's own key is paying for this run, decided at
+   * creation from the person's tier. Recorded so usage can be charged against
+   * an allowance without re-deriving who was entitled to what. */
+  metered?: boolean;
+  /** Whether this run may reach a machine: the workbench shell and SSH.
+   *
+   * Decided at creation rather than per step, so a plan change mid-run cannot
+   * widen a run already in flight. Absent means yes, which keeps every run row
+   * written before this existed behaving as it did.
+   */
+  execution?: boolean;
   instructions: string;
   maxSteps?: number;
   /** How much earlier conversation the run may carry, in characters. */
@@ -57,6 +69,10 @@ async function driveWithAgent({
   emit: (chunk: unknown) => number;
 }) {
   const config = JSON.parse(run.config) as RunConfig;
+  // Absent on runs written before tiers existed, and on a single-owner
+  // deployment that has never had a second account. Both mean the run behaves
+  // as it always did.
+  const execution = config.execution !== false;
   // Connected per run and released in the finally below. A worker that lives
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
@@ -90,9 +106,15 @@ async function driveWithAgent({
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],
     // Only when the deployment actually has a workbench: without one, ssh_exec
-    // would be offered and then fail on every call.
-    ssh: run.user_id ? sshRunContext(run.user_id) : undefined,
-    shell: { conversationId: run.conversation_id ?? run.id, available: workbenchReady() },
+    // would be offered and then fail on every call. And only for a run entitled
+    // to reach a machine — the workbench is one container with one /workspace
+    // volume shared by everyone, so with more than one account these are the
+    // operator's tools until execution is per-tenant.
+    ssh: execution && run.user_id ? sshRunContext(run.user_id) : undefined,
+    shell: {
+      conversationId: run.conversation_id ?? run.id,
+      available: execution && workbenchReady(),
+    },
     mcp,
     files: run.user_id
       ? { userId: run.user_id, files: createFileStore(getStorage().raw) }
@@ -123,6 +145,16 @@ async function driveWithAgent({
         part.type === 'finish'
           ? { model: config.model, usage: part.totalUsage, finishedAt: Date.now() }
           : undefined,
+      // Without this the SDK redacts every failure to "An error occurred." and
+      // emits that as the error chunk — so a missing key, a rejected model and
+      // a provider outage all reached the owner identically, with the real
+      // reason discarded before it was ever written down.
+      //
+      // This is a single-owner deployment talking to a provider the owner
+      // configured, so the provider's own words are theirs to see. It is the
+      // only way to tell "you have no key" from "that model does not exist".
+      onError: (error) =>
+        error instanceof Error && error.message ? error.message : 'The run failed.',
     });
 
     // Tee the chunks: one copy into the durable log, one into the fold that
@@ -162,6 +194,10 @@ async function driveWithAgent({
 
     let message: unknown;
     for await (const value of readUIMessageStream({ stream: replay as never })) message = value;
+    // What the answer cost, as a row rather than only as JSON on the message.
+    // A cap has to be a SUM over an index, and the spend survives the person
+    // deleting the conversation that caused it.
+    recordRunUsage(run, config, message);
     // A tool that needs the owner's say-so leaves its part in
     // 'approval-requested'. The run is not finished, it is waiting for a person,
     // and the worker has to tell those apart or the answer arrives too late to
@@ -194,6 +230,41 @@ export function runService(): Worker {
   });
   globalThis.__hikmahRunService = worker;
   return worker;
+}
+
+/** Write one usage row for a finished drive.
+ *
+ * Best effort on purpose: a run that produced an answer must not be reported as
+ * failed because the accounting row could not be written. A missing row
+ * undercounts one run; a thrown error loses the answer.
+ */
+function recordRunUsage(
+  run: { id: string; user_id?: string },
+  config: RunConfig,
+  message: unknown,
+): void {
+  if (!run.user_id) return;
+  const usage = (
+    message as
+      { metadata?: { usage?: { inputTokens?: number; outputTokens?: number } } } | undefined
+  )?.metadata?.usage;
+  const inputTokens = Number(usage?.inputTokens ?? 0);
+  const outputTokens = Number(usage?.outputTokens ?? 0);
+  if (!Number.isFinite(inputTokens) || !Number.isFinite(outputTokens)) return;
+  if (inputTokens <= 0 && outputTokens <= 0) return;
+  try {
+    createBillingStore(getStorage().raw).recordUsage({
+      id: 'use_' + randomUUID(),
+      userId: run.user_id,
+      runId: run.id,
+      model: config.model,
+      metered: config.metered === true,
+      inputTokens,
+      outputTokens,
+    });
+  } catch (error) {
+    console.error('[hikmah] usage not recorded:', error instanceof Error ? error.message : error);
+  }
 }
 
 /** The host of a base URL, or '' when it is not a URL at all. */

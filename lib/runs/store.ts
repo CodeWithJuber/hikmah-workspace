@@ -31,6 +31,9 @@ export type RunRow = {
   step_count: number;
   error: string | null;
   config: string;
+  /** Next unused chunk sequence. Claimed from the row rather than counted from
+   * run_events, which is pruned at the end of every step. */
+  event_seq: number;
   created_at: string;
   ended_at: string | null;
 };
@@ -173,6 +176,15 @@ export function createRunStore(
     activeForConversation: db.prepare(
       `SELECT id FROM runs
        WHERE conversation_id = ? AND status IN ('queued', 'running', 'waiting_approval', 'waiting_client')
+       LIMIT 1`,
+    ),
+    // The newest run for a conversation, whatever became of it. Ordered the
+    // same way claim() orders the queue, so "newest" means the same thing in
+    // both places.
+    lastRun: db.prepare(
+      `SELECT status, error FROM runs
+       WHERE conversation_id = ?
+       ORDER BY created_at DESC, id DESC
        LIMIT 1`,
     ),
     eventsAfter: db.prepare(
@@ -393,6 +405,25 @@ export function createRunStore(
       const row = statements.activeForConversation.get(conversationId) as
         { id: string } | undefined;
       return row?.id ?? null;
+    },
+
+    /** Why the last run for this conversation failed, or null.
+     *
+     * A failure is recorded on the run row and, until this existed, read by
+     * nothing: the browser only tails a run it thinks is active, and a failed
+     * one is not, so reopening a conversation that had failed showed the
+     * question, no answer, and no explanation.
+     *
+     * Only the newest run counts. A retry that succeeded must clear the old
+     * reason, or the reload after a successful retry reads as another failure.
+     */
+    lastFailure(conversationId: string): string | null {
+      const row = statements.lastRun.get(conversationId) as
+        { status: RunStatus; error: string | null } | undefined;
+      if (row?.status !== 'failed') return null;
+      // Cancelling is something the person did on purpose, and is filtered out
+      // by the status check above rather than by inspecting the reason.
+      return row.error || 'The run failed.';
     },
 
     pruneEvents(runId: string) {

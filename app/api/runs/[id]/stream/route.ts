@@ -1,7 +1,7 @@
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { SSE_HEADERS, resumeCursor, runEventStream } from '@/lib/runs/sse';
 import { runService } from '@/lib/runs/service';
-import { streamIsFinished } from '@/lib/runs/resume';
+import { nothingToSend } from '@/lib/runs/resume';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +33,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   // holding a stream open. A run paused on a person counts — see
   // streamIsFinished for what went wrong when it did not.
   if (
-    streamIsFinished(run.status, worker.store.isTerminal(run.status)) &&
-    worker.store.eventsAfter(id, after).length === 0
+    nothingToSend(
+      run,
+      worker.store.eventsAfter(id, after).length,
+      worker.store.isTerminal(run.status),
+      after,
+    )
   )
     return new Response(null, { status: 204 });
 

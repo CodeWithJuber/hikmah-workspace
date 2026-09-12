@@ -20,6 +20,7 @@ import { priceKind } from '@/lib/playground/model-catalog';
 import { defaultProvider } from '@/lib/playground/session';
 import type { ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
+import { HikmahIcon } from '@/components/kernel/icons';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -69,11 +70,34 @@ const FALLBACK: RunConfig = {
   instructions: HIKMAH_CORE,
 };
 
-type Loaded = { config: RunConfig; messages: UIMessage[] };
+type Loaded = { config: RunConfig; messages: UIMessage[]; error?: string };
 
 /** The connection the workspace already has, so this surface talks to the same
  * provider as the rest of the app. */
 async function loadConfig(): Promise<RunConfig> {
+  // The chat's own settings first. This used to read the workspace blob only,
+  // which meant the connection could be set in one place and used in another —
+  // and an owner who never opened the workspace got the keyless fallback and a
+  // run that failed against the provider.
+  try {
+    const response = await fetch('/api/chat-settings', { credentials: 'same-origin' });
+    if (response.ok) {
+      const saved = ((await response.json()) as { settings?: { connection?: SavedConnection } })
+        .settings?.connection;
+      if (saved?.baseUrl && saved.model)
+        return {
+          baseUrl: saved.baseUrl,
+          model: saved.model,
+          freeOnly: saved.freeOnly !== false,
+          apiKeySecret: saved.apiKeySecret || undefined,
+          instructions: HIKMAH_CORE,
+        };
+    }
+  } catch {
+    /* fall through to the workspace's own connection */
+  }
+  // Then the workspace, so an owner who configured it there before this panel
+  // existed is not asked to do it again.
   try {
     const response = await fetch('/api/workspace-state', { credentials: 'same-origin' });
     if (!response.ok) return FALLBACK;
@@ -89,12 +113,27 @@ async function loadConfig(): Promise<RunConfig> {
       instructions: HIKMAH_CORE,
     };
   } catch {
-    // Keep the free-only default; the run route reports a real error.
+    // Keep the free-only default; the run route now reports a real error.
     return FALLBACK;
   }
 }
 
-async function loadMessages(conversationId: string): Promise<UIMessage[]> {
+type SavedConnection = {
+  baseUrl?: string;
+  model?: string;
+  freeOnly?: boolean;
+  apiKeySecret?: string;
+};
+
+/** The stored transcript, and why the last run failed if it did.
+ *
+ * The failure has to arrive with the transcript rather than over the stream:
+ * useChat only tails a run it considers active, and a failed one is not, so a
+ * reload of a failed conversation used to show the question and nothing else.
+ */
+async function loadMessages(
+  conversationId: string,
+): Promise<{ messages: UIMessage[]; error?: string }> {
   try {
     const response = await fetch(
       `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
@@ -102,13 +141,13 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
         credentials: 'same-origin',
       },
     );
-    if (!response.ok) return [];
-    const payload = (await response.json()) as { messages?: UIMessage[] };
-    return payload.messages ?? [];
+    if (!response.ok) return { messages: [] };
+    const payload = (await response.json()) as { messages?: UIMessage[]; error?: string };
+    return { messages: payload.messages ?? [], error: payload.error };
   } catch {
     // An unreadable transcript is worth starting without; refusing to open the
     // chat over it would be a worse answer than an empty one.
-    return [];
+    return { messages: [] };
   }
 }
 
@@ -145,8 +184,8 @@ export function ChatPreview({
 
   useEffect(() => {
     let live = true;
-    void Promise.all([loadConfig(), loadMessages(conversationId)]).then(([config, messages]) => {
-      if (live) setLoaded({ config, messages });
+    void Promise.all([loadConfig(), loadMessages(conversationId)]).then(([config, stored]) => {
+      if (live) setLoaded({ config, messages: stored.messages, error: stored.error });
     });
     return () => {
       live = false;
@@ -221,7 +260,14 @@ export function ChatPreview({
             // The owner's own choice first, then the agent's, then the saved
             // connection: picking an agent should not quietly override a model
             // the owner just selected.
-            model: active ?? loaded.config.model,
+            model: active ?? settings.connection.model ?? loaded.config.model,
+            // From the live settings, not the copy read when this mounted:
+            // saving a key and sending a message in the same visit has to work,
+            // and reading it once meant the run still went out keyless until
+            // the owner happened to reload.
+            baseUrl: settings.connection.baseUrl || loaded.config.baseUrl,
+            freeOnly: settings.connection.freeOnly,
+            apiKeySecret: settings.connection.apiKeySecret || loaded.config.apiKeySecret,
             maxSteps: settings.maxSteps,
             contextCharacters: settings.contextCharacters,
             // An agent's allowlist and the owner's off-switches are different
@@ -230,6 +276,7 @@ export function ChatPreview({
             disabledTools: settings.disabledTools,
           }}
           initialMessages={loaded.messages}
+          initialError={loaded.error}
           onSettled={onSettled}
           starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
           models={models.length > 1 ? models : []}
@@ -238,12 +285,37 @@ export function ChatPreview({
           showActivity={settings.showActivity}
           onTools={onTools}
           onArtifact={onArtifact}
-          empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
+          empty={
+            <div className="chat-greeting">
+              <HikmahIcon name="orbit" size={34} />
+              <h2>What are we working on?</h2>
+            </div>
+          }
         />
       ) : (
-        <p className="chat-preview-empty" aria-live="polite">
-          Opening your conversation…
-        </p>
+        // A line of grey text on an empty screen reads as a page that failed,
+        // especially on a phone where it sits alone above a metre of white.
+        // The skeleton is the shape the transcript is about to take, so the
+        // load resolves into the page instead of replacing it.
+        <div className="chat-skeleton" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Opening your conversation</span>
+          <div className="chat-skeleton-turn chat-skeleton-you">
+            <span style={{ width: '58%' }} />
+          </div>
+          <div className="chat-skeleton-turn">
+            <span style={{ width: '92%' }} />
+            <span style={{ width: '80%' }} />
+            <span style={{ width: '86%' }} />
+            <span style={{ width: '44%' }} />
+          </div>
+          <div className="chat-skeleton-turn chat-skeleton-you">
+            <span style={{ width: '38%' }} />
+          </div>
+          <div className="chat-skeleton-turn">
+            <span style={{ width: '88%' }} />
+            <span style={{ width: '62%' }} />
+          </div>
+        </div>
       )}
     </main>
   );

@@ -117,23 +117,28 @@
     monospace;
 }
 
+/* One accent for the whole product.
+   The mark, the sign-in card and the landing page were green while the app
+   itself was blue, so the two halves of the same product did not look related.
+   Green wins because it is the brand: the logo and the front door already wear
+   it. #285d46 on white is 8.9:1, so it carries text as well as fills. */
 :root {
   --foreground: #17212b;
   --card-foreground: #17212b;
-  --primary: #2457dc;
+  --primary: #285d46;
   --primary-foreground: #fff;
-  --secondary: #f5f7fa;
-  --muted: #f5f7fa;
-  --muted-foreground: #657181;
-  --accent: #eaf0ff;
-  --border: #dde3eb;
-  --input: #bcc7d6;
-  --ring: #2457dc;
-  --sidebar: #f5f7fa;
+  --secondary: #f4f7f5;
+  --muted: #f4f7f5;
+  --muted-foreground: #64756c;
+  --accent: #e8f2ec;
+  --border: #dee5e0;
+  --input: #bccbc2;
+  --ring: #3d8a67;
+  --sidebar: #f4f7f5;
   --sidebar-foreground: #17212b;
-  --sidebar-accent: #e5ecff;
-  --sidebar-accent-foreground: #1645c7;
-  --sidebar-border: #dde3eb;
+  --sidebar-accent: #e3efe8;
+  --sidebar-accent-foreground: #1f4b39;
+  --sidebar-border: #dee5e0;
   --radius: 0.375rem;
 }
 * {
@@ -391,8 +396,8 @@ pre {
   font-size: 14px;
 }
 .notice {
-  border-left: 3px solid #2457dc;
-  background: #f3f6ff;
+  border-left: 3px solid var(--primary);
+  background: #f2f7f4;
   padding: 12px 16px;
   margin-top: 16px;
   font-size: 14px;
@@ -446,7 +451,7 @@ pre {
   color: #657181;
 }
 .equation {
-  border-left: 2px solid #2457dc;
+  border-left: 2px solid var(--primary);
   padding: 8px 18px;
   margin: 18px 0 22px;
 }
@@ -600,7 +605,7 @@ pre {
   margin-top: 20px;
 }
 .math-flow > div {
-  border-top: 2px solid #2457dc;
+  border-top: 2px solid var(--primary);
   padding-top: 12px;
 }
 .math-flow p {
@@ -711,17 +716,17 @@ pre {
   --card-foreground: #172033;
   --popover: #fff;
   --popover-foreground: #172033;
-  --primary: #4f55e7;
+  --primary: #285d46;
   --primary-foreground: #fff;
   --secondary: #f0f2f7;
   --secondary-foreground: #35425c;
   --muted: #f0f2f7;
   --muted-foreground: #687791;
-  --accent: #eeefff;
-  --accent-foreground: #4147d0;
+  --accent: #e8f2ec;
+  --accent-foreground: #1f4b39;
   --border: #e3e7ef;
   --input: #d3dbe8;
-  --ring: #666bea;
+  --ring: #3d8a67;
   --sidebar: #151d30;
   --sidebar-foreground: #dde5f5;
   --sidebar-accent: #2b3447;
@@ -745,11 +750,11 @@ pre {
   --secondary-foreground: #d4dcee;
   --muted: #232e43;
   --muted-foreground: #a1afc6;
-  --accent: #2c3158;
-  --accent-foreground: #b7b9ff;
+  --accent: #22392f;
+  --accent-foreground: #b6dfc9;
   --border: #303b51;
   --input: #45536f;
-  --ring: #898dfa;
+  --ring: #6fc39c;
   --user-bubble: #263148;
   --error-bg: #35232b;
   --error-text: #ffb0a7;
@@ -1849,42 +1854,48 @@ summary:focus-visible {
 :root {
   --background: #fff;
   --foreground: #172033;
-  --primary: #365cf5;
+  --primary: #285d46;
   --primary-foreground: #fff;
   --card: #fff;
   --popover: #fff;
   --secondary: #f7f8fa;
   --muted: #f7f8fa;
   --muted-foreground: #6b7280;
-  --accent: #eef2ff;
-  --accent-foreground: #274bdc;
+  --accent: #e8f2ec;
+  --accent-foreground: #1f4b39;
   --border: #e4e7ed;
   --input: #d5dae5;
-  --ring: #365cf5;
+  --ring: #3d8a67;
   --sidebar: #f7f8fa;
   --sidebar-foreground: #172033;
-  --sidebar-accent: #eef2ff;
+  --sidebar-accent: #e3efe8;
   --sidebar-border: #e4e7ed;
   --user-bubble: #f0f2f6;
 }
 :root[data-theme='dark'] {
-  --background: #11141b;
-  --foreground: #e9edf5;
-  --card: #181d27;
-  --popover: #1c2230;
-  --secondary: #202735;
-  --muted: #202735;
-  --muted-foreground: #a4afc3;
-  --accent: #253255;
-  --accent-foreground: #b5c7ff;
-  --border: #30394a;
-  --input: #434e65;
-  --ring: #819bff;
-  --sidebar: #171c26;
-  --sidebar-foreground: #e9edf5;
-  --sidebar-accent: #253255;
-  --sidebar-border: #30394a;
-  --user-bubble: #232b3a;
+  --background: #11151b;
+  --foreground: #e9f0ec;
+  --card: #181e25;
+  --popover: #1c242c;
+  --secondary: #202832;
+  --muted: #202832;
+  --muted-foreground: #a4b3ab;
+  --accent: #22392f;
+  --accent-foreground: #b6dfc9;
+  --border: #303c37;
+  --input: #43524b;
+  --ring: #6fc39c;
+  /* Inverted rather than darkened: the brand green on this background is 2.6:1,
+     which fails as a button. A light fill with dark ink is 9:1 and still reads
+     as the same colour. */
+  --primary: #7fd3aa;
+  --primary-foreground: #10241b;
+  --sidebar: #161c22;
+  --sidebar-foreground: #e9f0ec;
+  --sidebar-accent: #22392f;
+  --sidebar-accent-foreground: #b6dfc9;
+  --sidebar-border: #303c37;
+  --user-bubble: #232f2a;
 }
 .studio-shell.app-shell {
   --sidebar-width: 232px !important;
@@ -2839,7 +2850,12 @@ summary:focus-visible {
   line-height: 1.5;
 }
 
-/* Hikmah v5 — unified workspace and owned intelligence layer. */
+/* Hikmah v5 — unified workspace and owned intelligence layer.
+   This block outranks every plain :root below it, because :not() adds
+   specificity that source order cannot beat. That is why the accent has to be
+   set here and not only at the top: several palettes accumulated in this file
+   over time, and the app wore whichever one happened to win. They now all name
+   the same green, so the cascade cannot change the answer. */
 :root:not([data-theme='dark']) {
   --background: #ffffff;
   --foreground: #182230;
@@ -2850,14 +2866,14 @@ summary:focus-visible {
   --muted: #f8f9fb;
   --muted-foreground: #596579;
   --secondary: #f5f6f8;
-  --accent: #eaf2ff;
-  --accent-foreground: #235bd6;
-  --primary: #235bd6;
+  --accent: #e8f2ec;
+  --accent-foreground: #1f4b39;
+  --primary: #285d46;
   --primary-foreground: #fff;
   --border: #e4e8ef;
   --input: #aab4c3;
-  --user-bubble: #edf3fd;
-  --ring: #235bd6;
+  --user-bubble: #eef4f0;
+  --ring: #3d8a67;
 }
 .studio-shell {
   font-size: 16px;
@@ -4707,7 +4723,7 @@ summary:focus-visible {
 }
 /* v7: a calm, task-first workspace with progressive disclosure. */
 :root {
-  --hk-accent: #3155d9;
+  --hk-accent: #285d46;
   --hk-surface: #ffffff;
   --hk-muted: #647084;
   --hk-border: #e5e9f0;
@@ -5454,8 +5470,8 @@ summary:focus-visible {
 }
 
 .studio-shell .knowledge-nav.selected {
-  background: #eaf0ff;
-  color: #2457bc;
+  background: var(--accent);
+  color: var(--sidebar-accent-foreground);
   font-weight: 600;
 }
 .studio-shell .knowledge-nav.selected .nav-count {
@@ -5465,12 +5481,12 @@ summary:focus-visible {
 /* Hikmah workspace v9: a compact, consistent action and navigation language. */
 :root {
   --radius: 0.75rem;
-  --primary: #326857;
+  --primary: #285d46;
   --primary-foreground: #fff;
-  --ring: #326857;
-  --accent: #edf4f0;
-  --sidebar-accent: #e6efea;
-  --sidebar-accent-foreground: #245645;
+  --ring: #3d8a67;
+  --accent: #e8f2ec;
+  --sidebar-accent: #e3efe8;
+  --sidebar-accent-foreground: #1f4b39;
 }
 body {
   font-family:
@@ -6173,6 +6189,80 @@ body {
   font-size: 13px;
   text-decoration: underline;
 }
+/* The brand is a link home now that there is a page to go home to, so it must
+   not inherit the underline every other link in the card has. */
+a.auth-brand {
+  color: inherit;
+  text-decoration: none;
+}
+/* Google, above the password form. Outlined rather than filled: the primary
+   action in this card is the one that submits it. */
+.auth-social {
+  background: #fff !important;
+  color: #20352e !important;
+  border: 1px solid #d6ded7;
+  font-weight: 500;
+}
+.auth-social:hover {
+  background: #f7f8f5 !important;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+  font-size: 11px;
+  color: #96a097;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ecf0eb;
+}
+.auth-hint {
+  font-size: 12px;
+  color: #7d8a80;
+  margin-top: -4px;
+}
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  margin-top: 22px;
+  font-size: 13px;
+  color: #567265;
+  line-height: 1.6;
+}
+.auth-links a {
+  text-decoration: underline;
+}
+.auth-links .auth-note {
+  margin-top: 0;
+}
+/* The one screen in the pair that has no form: what happens after a signup or
+   a reset request, where the only useful thing to say is "go and look". */
+.auth-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #37544a;
+  background: #f2f7f3;
+  border: 1px solid #dde8e0;
+  border-radius: 14px;
+  padding: 22px 20px;
+}
+.auth-sent strong {
+  font-weight: 600;
+  word-break: break-all;
+}
 .auth-card button:focus-visible,
 .auth-card a:focus-visible {
   outline: 3px solid #7fba9c;
@@ -6372,11 +6462,21 @@ body {
   margin-left: auto;
 }
 .chat-topbar-links a {
+  white-space: nowrap;
   padding: 7px 11px;
   border-radius: 7px;
   font-size: 13px;
   color: var(--muted-foreground);
   text-decoration: none;
+}
+.chat-topbar-links.is-compact a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 .chat-topbar-links a:hover {
   background: var(--muted);
@@ -6692,24 +6792,47 @@ body {
 /* The scroller sizes itself to its content, so `flex: 1` here had nothing to
    grow into and the openers sat at the top of an empty screen. A minimum height
    is what actually puts them where the eye lands. */
+/* Was 58dvh of forced height with the openers floating in the middle of it,
+   which on a phone is most of a screen of nothing. The column is sized by its
+   content and pushed off the top instead. */
 .chat-welcome {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 58dvh;
+  gap: 18px;
+  align-items: stretch;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: clamp(28px, 9vh, 88px) 0 24px;
+}
+/* One column of equal rows rather than wrapped pills of different heights: the
+   openers are a list of things to say, and a list reads as a list. */
+/* The mark and the question, once, at the top of an empty conversation. The
+   openers below answer it, so nothing else needs saying here. */
+.chat-greeting {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 0;
+  gap: 12px;
+  color: var(--primary);
+  text-align: center;
+}
+.chat-greeting h2 {
+  margin: 0;
+  font-size: clamp(20px, 5vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
 }
 .chat-starters {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 620px;
+  display: grid;
+  gap: 8px;
 }
 .chat-starters button {
-  padding: 11px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
@@ -6717,9 +6840,27 @@ body {
   line-height: 1.5;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
-.chat-starters button:hover {
-  background: var(--muted);
+.chat-starters button::before {
+  content: '';
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.15s ease;
+}
+.chat-starters button:hover,
+.chat-starters button:focus-visible {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+.chat-starters button:hover::before,
+.chat-starters button:focus-visible::before {
+  background: var(--primary);
 }
 .chat-model-select {
   max-width: 210px;
@@ -6944,6 +7085,80 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 2px 14px;
 }
+/* The connection panel. Denser than the rest of the settings because it is a
+   form the owner fills in once, not a row of switches they skim. */
+.chat-connection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+.chat-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.chat-setting label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.chat-setting small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.chat-setting select {
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.chat-key-row {
+  display: flex;
+  gap: 6px;
+}
+.chat-key-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.chat-key-row > button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.chat-setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chat-setting-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-connection-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chat-connection-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
 .chat-settings-panel {
   display: flex;
   flex-direction: column;
@@ -7054,6 +7269,50 @@ body {
 .chat-attachments button:hover {
   color: var(--foreground);
 }
+/* The shape the transcript is about to take. Two turns each way is enough to
+   read as a conversation without pretending to know how long the real one is. */
+.chat-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+.chat-skeleton-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chat-skeleton-turn > span {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 37%, var(--muted) 63%);
+  background-size: 400% 100%;
+  animation: chat-skeleton-sheen 1.4s ease-in-out infinite;
+}
+/* The owner's own turn sits right and short, the way their messages do. */
+.chat-skeleton-you {
+  align-items: flex-end;
+}
+.chat-skeleton-you > span {
+  height: 34px;
+  border-radius: 12px;
+}
+@keyframes chat-skeleton-sheen {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-skeleton-turn > span {
+    animation: none;
+  }
+}
+
 .chat-preview-empty {
   color: var(--muted-foreground);
   padding: 32px 0;
@@ -7079,6 +7338,7 @@ body {
   cursor: pointer;
 }
 .chat-compare-toggle {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -7137,4 +7397,399 @@ body {
 .chat-unknown-part pre {
   overflow-x: auto;
   font-size: 12px;
+}
+
+/* Plan and usage.
+   Theme-aware through the same tokens the chat uses, unlike the auth cards,
+   which are a deliberately light-only front door. */
+.billing-page {
+  min-height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 28px 20px 64px;
+}
+.billing {
+  max-width: 840px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.billing-head h1 {
+  font-size: 26px;
+  letter-spacing: -0.7px;
+  font-weight: 560;
+  margin-top: 14px;
+}
+.billing-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.billing-back:hover {
+  color: var(--foreground);
+}
+.billing-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 64px 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.billing-eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.billing-current {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card);
+}
+.billing-current h2 {
+  font-size: 20px;
+  font-weight: 560;
+  letter-spacing: -0.4px;
+}
+.billing-usage-line {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.billing-meter {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.billing-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--primary);
+}
+.billing-current button,
+.billing-plan button {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.billing-current button:disabled,
+.billing-plan button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+/* One column on a phone, two where there is room. The plans are read top to
+   bottom either way, so nothing depends on them sitting side by side. */
+.billing-plans {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.billing-plan {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--card);
+}
+.billing-plan.is-current {
+  border-color: var(--primary);
+}
+.billing-plan h3 {
+  font-size: 17px;
+  font-weight: 560;
+}
+.billing-tagline {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.billing-plan ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.billing-plan li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+.billing-plan li svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--primary);
+}
+.billing-note {
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+/* The landing page.
+   Its own palette rather than the app tokens: this is the one surface a visitor
+   sees before choosing anything, so it commits to a single look instead of
+   following a theme they have not set yet. Phone-first — a landing page that
+   breaks at 400px sells nothing. */
+.landing {
+  --ink: #16261f;
+  --ink-soft: #55695f;
+  --line: #e2e9e3;
+  --accent: #285d46;
+  background: radial-gradient(ellipse at 20% -5%, #e6efe8, transparent 60%), #fbfcfa;
+  color: var(--ink);
+  min-height: 100dvh;
+  padding: 0 20px 72px;
+}
+.landing > * {
+  max-width: 1020px;
+  margin: 0 auto;
+}
+.landing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  flex-wrap: wrap;
+}
+.landing-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+}
+.landing-bar nav,
+.landing-foot nav {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.landing-bar nav a:hover,
+.landing-foot nav a:hover {
+  color: var(--ink);
+}
+.landing-hero {
+  padding: 56px 0 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.landing-eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  font-weight: 650;
+  color: var(--accent);
+}
+.landing-hero h1 {
+  /* Scales with the viewport rather than at a breakpoint, so there is no width
+     at which it is either cramped or absurd. */
+  font-size: clamp(30px, 6.4vw, 54px);
+  line-height: 1.1;
+  letter-spacing: -1.8px;
+  font-weight: 550;
+}
+.landing-lede {
+  font-size: clamp(15px, 2.1vw, 17.5px);
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+.landing-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+.landing-primary,
+.landing-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.landing-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.landing-primary:hover {
+  background: #1f4b39;
+}
+.landing-secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+.landing-fineprint {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+/* 340px rather than 260px on purpose: at the 1020px container that gives two
+   columns, so four cards are a 2x2 block instead of a row of three and a
+   stranded fourth. One column on a phone, as before. */
+.landing-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  padding: 44px 0;
+}
+.landing-grid article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.landing-grid svg {
+  color: var(--accent);
+}
+.landing-grid h2 {
+  font-size: 16.5px;
+  font-weight: 580;
+  letter-spacing: -0.3px;
+}
+.landing-grid p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+.landing-pricing {
+  padding: 36px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.landing-pricing h2,
+.landing-faq h2 {
+  font-size: clamp(23px, 3.6vw, 32px);
+  letter-spacing: -1px;
+  font-weight: 550;
+}
+.landing-plans {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  width: 100%;
+  margin-top: 20px;
+  text-align: left;
+}
+.landing-plans article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.landing-plans article.is-featured {
+  border-color: var(--accent);
+  box-shadow: 0 18px 50px #243b2e12;
+}
+.landing-plans h3 {
+  font-size: 19px;
+  font-weight: 580;
+}
+.landing-tagline {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.landing-plans ul {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.5;
+  flex: 1;
+}
+.landing-plans li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+.landing-plans li svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--accent);
+}
+.landing-plans article > a {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 14.5px;
+}
+.landing-faq {
+  padding: 32px 0;
+}
+.landing-faq dl {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  margin-top: 22px;
+}
+.landing-faq dt {
+  font-weight: 570;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.landing-faq dd {
+  font-size: 14px;
+  line-height: 1.68;
+  color: var(--ink-soft);
+}
+.landing-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  margin-top: 12px;
+}
+.landing a:focus-visible {
+  outline: 3px solid #7fba9c;
+  outline-offset: 3px;
 }

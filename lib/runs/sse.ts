@@ -32,6 +32,15 @@ export function resumeCursor(request: Request): number {
   return Number.isInteger(parsed) && parsed >= -1 ? parsed : -1;
 }
 
+/** The sequence the failure notice occupies: one past every stored chunk.
+ *
+ * It needs a number so the client's cursor moves past it. Without one the
+ * transport reconnects with the same `after`, is handed the same notice, and
+ * loops until it runs out of continuations. */
+export function failureSeq(run: { event_seq?: number } | null | undefined): number {
+  return run?.event_seq ?? 0;
+}
+
 function frame(event: RunEvent): string {
   return `id: ${event.seq}\ndata: ${JSON.stringify(event.payload)}\n\n`;
 }
@@ -90,6 +99,20 @@ export function runEventStream(options: {
 
       function finish() {
         if (closed) return;
+        // Why the run stopped, if it stopped badly. The worker records the
+        // reason on the row and nothing used to forward it, so every failure
+        // reached the owner as the SDK's own "An error occurred." — no key, a
+        // rejected model and a provider outage all looked identical, and the
+        // one thing that would have told them apart was already written down.
+        //
+        // Sent as a UI-message error chunk because that is the shape useChat
+        // surfaces as `error`, and it is the last thing on the wire.
+        const ended = store.getRun(runId);
+        const errorSeq = failureSeq(ended);
+        if (ended?.status === 'failed' && ended.error && errorSeq > highest)
+          send(
+            `id: ${errorSeq}\ndata: ${JSON.stringify({ type: 'error', errorText: ended.error })}\n\n`,
+          );
         closed = true;
         unsubscribe();
         clearInterval(keepalive);

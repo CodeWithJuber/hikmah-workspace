@@ -1,6 +1,7 @@
 import { getChatGPTUser } from '../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { WorkbenchError, issueTicket, terminalUrl, workbenchToken } from '@/lib/workbench/ticket';
+import { entitlementsForUser } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,16 @@ export async function POST(request: Request) {
   if (request.headers.get('origin') !== publicOrigin(request))
     return Response.json(
       { error: 'Open the terminal from your signed-in workspace.' },
+      { status: 403, headers },
+    );
+
+  // The workbench is one container with one /workspace volume shared by every
+  // account on the deployment, so a terminal is a shell on the operator's box
+  // rather than on the person's own. Until execution is per-tenant it belongs
+  // to the operator alone — the same rule the run tools follow.
+  if (!entitlementsForUser(user).execution)
+    return Response.json(
+      { error: 'The terminal is available to the workspace operator only.' },
       { status: 403, headers },
     );
 

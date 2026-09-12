@@ -37,5 +37,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!conversation || conversation.user_id !== user.userId)
     return Response.json({ messages: [] }, { headers });
 
-  return Response.json({ messages: store.listMessages(id) }, { headers });
+  // The reason the last run failed, when it did. Without it, reopening a
+  // conversation that had failed showed the question, no answer, and nothing
+  // to say why: the browser only tails a run it thinks is active, and a failed
+  // run is not.
+  return Response.json(
+    { messages: store.listMessages(id), error: store.lastFailure(id) ?? undefined },
+    { headers },
+  );
 }

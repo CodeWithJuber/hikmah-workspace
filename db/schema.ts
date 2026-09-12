@@ -56,3 +56,20 @@ export const chatSettings = sqliteTable('chat_settings', {
   body: text('body').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+export const userTiers = sqliteTable('user_tiers', {
+  userId: text('user_id').primaryKey(),
+  tier: text('tier').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const usageEvents = sqliteTable('usage_events', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  runId: text('run_id').notNull(),
+  model: text('model').notNull(),
+  metered: integer('metered').notNull().default(0),
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});

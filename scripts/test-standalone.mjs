@@ -17,6 +17,11 @@ const environment = {
   BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
   HIKMAH_DATA_DIR: join(directory, 'data'),
   HIKMAH_OWNER_EMAIL: 'owner@example.test',
+  // A run is now refused up front when a hosted provider has no key, which is
+  // the point of that check — but it made these smoke assertions test the
+  // refusal instead of the run lifecycle they exist for. The value is never
+  // used: nothing here reaches a provider.
+  HIKMAH_PROVIDER_KEY: 'smoke-provider-key',
   SMOKE_EMAIL: 'owner@example.test',
   SMOKE_PASSWORD: randomBytes(24).toString('base64url'),
   SMOKE_URL: 'http://127.0.0.1:3210',
