@@ -29,6 +29,8 @@ export type RunConfig = {
   apiKey: string;
   instructions: string;
   maxSteps?: number;
+  /** How much earlier conversation the run may carry, in characters. */
+  contextCharacters?: number;
   disabledTools?: string[];
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
@@ -75,6 +77,9 @@ async function driveWithAgent({
     },
     instructions: config.instructions,
     maxSteps: config.maxSteps,
+    // buildRunAgent has accepted this since it was written and nothing passed
+    // it, so the setting existed with nowhere to land.
+    contextCharacters: config.contextCharacters,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],

@@ -205,6 +205,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         apiKey,
         instructions: parsed.instructions,
         maxSteps: parsed.maxSteps,
+        contextCharacters: parsed.contextCharacters,
         disabledTools: parsed.disabledTools,
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,

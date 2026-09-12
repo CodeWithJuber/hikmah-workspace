@@ -18,6 +18,7 @@ import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
 import { listModels } from '@/lib/playground/transport';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { defaultProvider } from '@/lib/playground/session';
+import type { ChatSettings } from '@/lib/chat/settings';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -88,12 +89,17 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
 export function ChatPreview({
   conversationId,
   agent,
+  settings,
   onSettled,
 }: {
   conversationId: string;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
+  /** The owner's chat preferences, loaded once by the shell. Folded into every
+   * turn, so a change applies from the next message rather than needing a
+   * reload. */
+  settings: ChatSettings;
   /** Called when a run finishes, so the conversation list can catch up. */
   onSettled?: () => void;
 }) {
@@ -184,6 +190,12 @@ export function ChatPreview({
             // connection: picking an agent should not quietly override a model
             // the owner just selected.
             model: active ?? loaded.config.model,
+            maxSteps: settings.maxSteps,
+            contextCharacters: settings.contextCharacters,
+            // An agent's allowlist and the owner's off-switches are different
+            // decisions: the agent says which tools it works with, the owner
+            // says which they will let run at all.
+            disabledTools: settings.disabledTools,
           }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
@@ -191,6 +203,7 @@ export function ChatPreview({
           models={models.length > 1 ? models : []}
           onModel={pick}
           contextWindow={contextWindow}
+          showActivity={settings.showActivity}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

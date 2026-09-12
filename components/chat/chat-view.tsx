@@ -105,6 +105,8 @@ export type ChatViewProps = {
     apiKeySecret?: string;
     instructions: string;
     maxSteps?: number;
+    /** How much earlier conversation travels with each turn. */
+    contextCharacters?: number;
     disabledTools?: string[];
     /** An agent's allowlist over the built-in tools. */
     enabledTools?: string[];
@@ -127,6 +129,8 @@ export type ChatViewProps = {
   onModel?: (model: string) => void;
   /** The chosen model's context window, when the provider publishes one. */
   contextWindow?: number;
+  /** Whether the transcript shows the run's own working. */
+  showActivity?: boolean;
 };
 
 export function ChatView({
@@ -139,6 +143,7 @@ export function ChatView({
   models,
   onModel,
   contextWindow,
+  showActivity = true,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -300,6 +305,7 @@ export function ChatView({
               message={message}
               status={status}
               onApproval={addToolApprovalResponse}
+              showActivity={showActivity}
               // Offered on every settled answer, not just the last: the server
               // truncates from the message being replayed, so an earlier one
               // rewinds the conversation to that point rather than corrupting

@@ -8,6 +8,8 @@ import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
+import { RunSettings } from './run-settings';
+import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from '@/lib/chat/settings';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
  * conversation with less room than either of them. Matches the breakpoint the
@@ -33,14 +35,53 @@ function useNarrow() {
   );
 }
 
+/** The owner's chat preferences, held here rather than in ChatPreview: that
+ * component is keyed by conversation and remounts whenever the route changes,
+ * which would refetch the settings on every click in the list. */
+function useChatSettings() {
+  const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
+
+  useEffect(() => {
+    let live = true;
+    void fetch('/api/chat-settings', { credentials: 'same-origin' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (live && payload?.settings) setSettings(payload.settings as ChatSettings);
+      })
+      // The defaults are usable settings, so a failed read costs nothing worth
+      // interrupting the owner about.
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const change = useCallback(async (patch: Partial<ChatSettings>) => {
+    const response = await fetch('/api/chat-settings', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) throw new Error('Settings were not saved.');
+    // Taken from the reply rather than assumed: the server clamps, so what was
+    // asked for and what is now stored are not always the same.
+    const payload = (await response.json()) as { settings?: ChatSettings };
+    if (payload.settings) setSettings(payload.settings);
+  }, []);
+
+  return { settings, change };
+}
+
 export function ChatShell({ conversationId }: { conversationId: string }) {
+  const { settings, change } = useChatSettings();
   // Bumped when a run settles. A conversation is created by its first message
   // and titled from it, so without this the list would keep showing the state
   // it had before the owner said anything.
   const [revision, setRevision] = useState(0);
   const settled = useCallback(() => setRevision((value) => value + 1), []);
 
-  const [tab, setTab] = useState<'files' | 'agents'>('files');
+  const [tab, setTab] = useState<'files' | 'agents' | 'settings'>('files');
   // Applies from the next turn on, not retrospectively: an agent chosen now
   // cannot change an answer already written.
   const [agent, setAgent] = useState<Agent | null>(null);
@@ -125,6 +166,7 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           key={conversationId}
           conversationId={conversationId}
           agent={agent}
+          settings={settings}
           onSettled={settled}
         />
 
@@ -147,6 +189,14 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
               >
                 Agents
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'settings'}
+                onClick={() => setTab('settings')}
+              >
+                Settings
+              </button>
               {narrow && (
                 <button type="button" aria-label="Close" onClick={() => setDrawer(null)}>
                   <X size={15} />
@@ -158,8 +208,10 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
                 state from before it is worse than no panel. */}
             {tab === 'files' ? (
               <FilesPanel revision={revision} />
-            ) : (
+            ) : tab === 'agents' ? (
               <AgentsPanel activeId={agent?.id ?? null} onPick={setAgent} />
+            ) : (
+              <RunSettings settings={settings} onChange={change} />
             )}
           </aside>
         </div>

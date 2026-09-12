@@ -9018,6 +9018,64 @@ body {
 .chat-model-select {
   max-width: 210px;
 }
+.chat-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 13px;
+}
+.chat-settings-panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.chat-settings-panel p {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+  margin-bottom: 9px;
+}
+.chat-settings-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-settings-choices button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-settings-choices button[aria-pressed='true'] {
+  background: var(--muted);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.chat-settings-choices button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.chat-settings-toggle {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.chat-settings-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-settings-toggle small {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+.chat-settings-note {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
 .chat-editing {
   display: flex;
   align-items: center;

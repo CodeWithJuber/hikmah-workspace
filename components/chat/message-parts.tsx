@@ -169,10 +169,15 @@ export function MessageParts({
   onApproval,
   onRegenerate,
   onEdit,
+  showActivity = true,
 }: {
   message: UIMessage;
   status: ChatStatus;
   onApproval?: RespondToApproval;
+  /** Whether the run's own working is shown. Off hides the tool cards and the
+   * reasoning; it never hides a tool waiting on the owner, because a question
+   * nobody can see is a run that never finishes. */
+  showActivity?: boolean;
   /** Offered on the answer it would replace. Absent while a run is in flight. */
   onRegenerate?: () => void;
   /** Offered on a question worth asking differently. Absent while a run is in
@@ -198,6 +203,8 @@ export function MessageParts({
               </MessageResponse>
             );
 
+          if (part.type === 'reasoning' && !showActivity) return null;
+
           if (part.type === 'reasoning')
             return (
               <Reasoning key={key} isStreaming={part.state === 'streaming'}>
@@ -210,6 +217,11 @@ export function MessageParts({
           // two share a branch; only the header needs to distinguish them.
           if (isToolUIPart(part)) {
             const media = generatedMedia(part.output);
+            // Generated pictures and audio are the answer, not the working, so
+            // they stay visible however the setting is set. A tool waiting on
+            // the owner stays too: hiding the question would strand the run.
+            const waiting = part.state === 'approval-requested';
+            if (!showActivity && !media.length && !waiting) return null;
             return (
               <Tool key={key}>
                 {part.type === 'dynamic-tool' ? (

@@ -50,3 +50,9 @@ export const workspaceSecrets = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.name] })],
 );
+
+export const chatSettings = sqliteTable('chat_settings', {
+  userId: text('user_id').primaryKey(),
+  body: text('body').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
