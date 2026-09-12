@@ -31,7 +31,7 @@ export default function SignOut() {
           {busy ? 'Signing out…' : 'Sign out'}
         </button>
         <Link href="/" className="auth-back">
-          Back to workspace
+          Back to chat
         </Link>
       </section>
     </main>

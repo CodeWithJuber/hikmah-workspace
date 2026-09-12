@@ -59,8 +59,27 @@ test('the layout paints the saved theme, and the workspace keeps it current', ()
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {
-  assert.match(shell, /<Link href="\/">Workspace<\/Link>/);
+  // /workspace since the swap: the chat is what opens at the root now.
+  assert.match(shell, /<Link href="\/workspace">Workspace<\/Link>/);
   assert.match(shell, /<Link href="\/sign-out">/);
+});
+
+test('the root opens the durable chat and the workspace keeps its own route', async () => {
+  const root = await readFile('app/page.tsx', 'utf8');
+  const workspace = await readFile('app/workspace/page.tsx', 'utf8');
+  // One place decides which conversation opens, so the two cannot disagree.
+  assert.match(root, /redirect\('\/chat'\)/);
+  assert.doesNotMatch(root, /Playground/);
+  assert.match(workspace, /<Playground \/>/);
+  // Both still need it: a redirect page that prerendered would call runService
+  // at build time, and the shell reads the session.
+  for (const source of [root, workspace])
+    assert.match(source, /export const dynamic = 'force-dynamic'/);
+});
+
+test('the workspace shell links to the chat that now opens by default', async () => {
+  const playground = await readFile('components/playground/shell.tsx', 'utf8');
+  assert.match(playground, /<Link className="knowledge-nav" href="\/chat">/);
 });
 
 test('the side panels are drawers on a phone, not permanently open strips', () => {

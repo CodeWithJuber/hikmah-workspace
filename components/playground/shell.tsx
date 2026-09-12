@@ -221,12 +221,12 @@ function ShellContent() {
               </button>
             ))}
           </nav>
-          {/* The rebuilt surface is a route of its own rather than a page of
-              this shell, so it needs a real link: without one it exists and
-              nobody can reach it. */}
+          {/* The durable chat is a route of its own rather than a page of this
+              shell, and it is what opens by default now — so this is the way
+              back to it, not a curiosity. */}
           <Link className="knowledge-nav" href="/chat">
             <HikmahIcon name="conversation" size={20} />
-            Chat (new)
+            Chat
           </Link>
           <button
             className={'knowledge-nav' + (page === 'tools' ? ' selected' : '')}

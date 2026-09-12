@@ -144,9 +144,9 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           <strong>Hikmah</strong>
         </span>
         <nav className="chat-topbar-links" aria-label="Workspace">
-          {/* Without this the only way back to the rest of the workspace —
-              media, compare, agents, the labs, settings — was editing the URL. */}
-          <Link href="/">Workspace</Link>
+          {/* Everything this surface does not carry — compare, the labs,
+              settings, the owner console, the terminal — lives there. */}
+          <Link href="/workspace">Workspace</Link>
           <Link href="/sign-out">Sign out</Link>
         </nav>
         {narrow && (
