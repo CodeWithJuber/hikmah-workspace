@@ -17,7 +17,7 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
-import { Copy, Pencil, RefreshCw } from 'lucide-react';
+import { Check, Copy, LoaderCircle, Pencil, RefreshCw } from 'lucide-react';
 import {
   Message,
   MessageAction,
@@ -36,6 +36,7 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool';
 import { ReadAloud } from './voice-controls';
+import { ChatReceipt } from './chat-receipt';
 import { InlineArtifact } from '@/components/kernel/artifact';
 import { messageArtifact } from '@/lib/chat/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
@@ -112,6 +113,37 @@ function MediaAttachment({ media }: { media: GeneratedMedia }) {
       <img src={media.url} alt={media.prompt ?? 'Generated image'} loading="lazy" />
       {media.prompt && <figcaption dir="auto">{media.prompt}</figcaption>}
     </figure>
+  );
+}
+
+/** A step of the plan the run published through update_plan. */
+type PlanStep = { step: string; status: 'pending' | 'in_progress' | 'completed' };
+
+/** What the run said it was going to do, and how far along it is.
+ *
+ * Rendered as a checklist rather than the tool's JSON result, which is what it
+ * looked like before: the plan is for the reader, which is the whole reason the
+ * tool exists. */
+function TaskPlan({ steps }: { steps: PlanStep[] }) {
+  if (!steps.length) return null;
+  return (
+    <section className="chat-plan" aria-label="Task plan">
+      <h3>Plan</h3>
+      <ol>
+        {steps.map((entry, index) => (
+          <li key={index} className={'chat-plan-' + entry.status}>
+            {entry.status === 'completed' ? (
+              <Check size={15} aria-hidden="true" />
+            ) : entry.status === 'in_progress' ? (
+              <LoaderCircle size={15} className="spin" aria-hidden="true" />
+            ) : (
+              <span className="chat-plan-number">{index + 1}</span>
+            )}
+            <span>{entry.step}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -198,6 +230,7 @@ export function MessageParts({
   // Only once the answer has settled: a page assembled from a half-written file
   // would render as a broken preview and then change under the reader.
   const artifact = answered ? messageArtifact(message) : null;
+  const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
   return (
     <Message from={message.role}>
@@ -231,6 +264,9 @@ export function MessageParts({
             // the owner stays too: hiding the question would strand the run.
             const waiting = part.state === 'approval-requested';
             if (!showActivity && !media.length && !waiting) return null;
+            // The plan is rendered as its own card from the data part, so the
+            // tool's own row would be the same information twice.
+            if (part.type === 'tool-update_plan' && hasPlan) return null;
             return (
               <Tool key={key}>
                 {part.type === 'dynamic-tool' ? (
@@ -302,6 +338,12 @@ export function MessageParts({
               </p>
             );
 
+          if (part.type === 'data-plan') {
+            if (!showActivity) return null;
+            const steps = (part.data as { steps?: PlanStep[] } | undefined)?.steps ?? [];
+            return <TaskPlan key={key} steps={steps} />;
+          }
+
           if (part.type === 'data-compare')
             return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
@@ -336,6 +378,8 @@ export function MessageParts({
         )}
 
         {artifact && onArtifact && <InlineArtifact files={artifact} onOpen={onArtifact} />}
+
+        {answered && showActivity && <ChatReceipt message={message} />}
 
         {answered && (
           <MessageToolbar>

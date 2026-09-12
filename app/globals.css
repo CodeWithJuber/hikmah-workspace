@@ -9036,6 +9036,62 @@ body {
     border-left: 0;
   }
 }
+.chat-plan {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 14px;
+}
+.chat-plan h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.chat-plan ol {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  list-style: none;
+}
+.chat-plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.5;
+}
+.chat-plan li > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.chat-plan-number {
+  flex-shrink: 0;
+  width: 15px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-plan-completed > span:last-child {
+  color: var(--muted-foreground);
+}
+.chat-receipt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-receipt-model {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.chat-receipt-caveat {
+  margin-left: auto;
+}
 .chat-tools-trigger {
   height: 34px;
   gap: 6px;

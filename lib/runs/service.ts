@@ -80,6 +80,11 @@ async function driveWithAgent({
     // buildRunAgent has accepted this since it was written and nothing passed
     // it, so the setting existed with nowhere to land.
     contextCharacters: config.contextCharacters,
+    // Likewise. The plan steps went into the tool's own result and no further,
+    // so a multi-step run showed a JSON payload where a checklist belonged.
+    // Emitted as a chunk, it joins the durable log like any other: it replays
+    // to a reconnecting tab and persists on the finished message.
+    onPlan: (steps) => emit({ type: 'data-plan', id: 'plan', data: { steps } }),
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],

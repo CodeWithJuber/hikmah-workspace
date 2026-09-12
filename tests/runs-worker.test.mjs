@@ -190,3 +190,28 @@ test('an answer with nothing to report stores no metadata rather than null', asy
   await worker.tick();
   assert.equal(worker.store.listMessages('c1')[0].metadata, undefined);
 });
+
+test('a published plan reaches the durable log, so a reconnecting tab sees it', async (t) => {
+  // update_plan used to put its steps in the tool result and nowhere else, so
+  // a multi-step run showed a JSON payload where a checklist belonged, and a
+  // reload showed nothing at all.
+  const steps = [
+    { step: 'Read the source', status: 'completed' },
+    { step: 'Write the fix', status: 'in_progress' },
+  ];
+  const { worker, queue } = await harness(t, async ({ emit }) => {
+    emit({ type: 'data-plan', id: 'plan', data: { steps } });
+    return {
+      message: { id: 'm1', role: 'assistant', parts: [{ type: 'text', text: 'Working.' }] },
+    };
+  });
+  queue('r1');
+
+  const seen = [];
+  worker.bus.subscribe('r1', (event) => seen.push(event.payload));
+  await worker.tick();
+
+  const plan = seen.find((chunk) => chunk.type === 'data-plan');
+  assert.ok(plan, 'the plan is fanned out to anyone watching');
+  assert.deepEqual(plan.data.steps, steps);
+});
