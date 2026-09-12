@@ -6372,11 +6372,21 @@ body {
   margin-left: auto;
 }
 .chat-topbar-links a {
+  white-space: nowrap;
   padding: 7px 11px;
   border-radius: 7px;
   font-size: 13px;
   color: var(--muted-foreground);
   text-decoration: none;
+}
+.chat-topbar-links.is-compact a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 .chat-topbar-links a:hover {
   background: var(--muted);
@@ -6692,24 +6702,47 @@ body {
 /* The scroller sizes itself to its content, so `flex: 1` here had nothing to
    grow into and the openers sat at the top of an empty screen. A minimum height
    is what actually puts them where the eye lands. */
+/* Was 58dvh of forced height with the openers floating in the middle of it,
+   which on a phone is most of a screen of nothing. The column is sized by its
+   content and pushed off the top instead. */
 .chat-welcome {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 58dvh;
+  gap: 18px;
+  align-items: stretch;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: clamp(28px, 9vh, 88px) 0 24px;
+}
+/* One column of equal rows rather than wrapped pills of different heights: the
+   openers are a list of things to say, and a list reads as a list. */
+/* The mark and the question, once, at the top of an empty conversation. The
+   openers below answer it, so nothing else needs saying here. */
+.chat-greeting {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 0;
+  gap: 12px;
+  color: var(--primary);
+  text-align: center;
+}
+.chat-greeting h2 {
+  margin: 0;
+  font-size: clamp(20px, 5vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
 }
 .chat-starters {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 620px;
+  display: grid;
+  gap: 8px;
 }
 .chat-starters button {
-  padding: 11px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
@@ -6717,9 +6750,27 @@ body {
   line-height: 1.5;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
-.chat-starters button:hover {
-  background: var(--muted);
+.chat-starters button::before {
+  content: '';
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.15s ease;
+}
+.chat-starters button:hover,
+.chat-starters button:focus-visible {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+.chat-starters button:hover::before,
+.chat-starters button:focus-visible::before {
+  background: var(--primary);
 }
 .chat-model-select {
   max-width: 210px;
@@ -7128,6 +7179,50 @@ body {
 .chat-attachments button:hover {
   color: var(--foreground);
 }
+/* The shape the transcript is about to take. Two turns each way is enough to
+   read as a conversation without pretending to know how long the real one is. */
+.chat-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+.chat-skeleton-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chat-skeleton-turn > span {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 37%, var(--muted) 63%);
+  background-size: 400% 100%;
+  animation: chat-skeleton-sheen 1.4s ease-in-out infinite;
+}
+/* The owner's own turn sits right and short, the way their messages do. */
+.chat-skeleton-you {
+  align-items: flex-end;
+}
+.chat-skeleton-you > span {
+  height: 34px;
+  border-radius: 12px;
+}
+@keyframes chat-skeleton-sheen {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-skeleton-turn > span {
+    animation: none;
+  }
+}
+
 .chat-preview-empty {
   color: var(--muted-foreground);
   padding: 32px 0;
@@ -7153,6 +7248,7 @@ body {
   cursor: pointer;
 }
 .chat-compare-toggle {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;

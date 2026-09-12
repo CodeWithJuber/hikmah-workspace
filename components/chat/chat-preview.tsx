@@ -20,6 +20,7 @@ import { priceKind } from '@/lib/playground/model-catalog';
 import { defaultProvider } from '@/lib/playground/session';
 import type { ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
+import { HikmahIcon } from '@/components/kernel/icons';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -275,12 +276,37 @@ export function ChatPreview({
           showActivity={settings.showActivity}
           onTools={onTools}
           onArtifact={onArtifact}
-          empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
+          empty={
+            <div className="chat-greeting">
+              <HikmahIcon name="orbit" size={34} />
+              <h2>What are we working on?</h2>
+            </div>
+          }
         />
       ) : (
-        <p className="chat-preview-empty" aria-live="polite">
-          Opening your conversation…
-        </p>
+        // A line of grey text on an empty screen reads as a page that failed,
+        // especially on a phone where it sits alone above a metre of white.
+        // The skeleton is the shape the transcript is about to take, so the
+        // load resolves into the page instead of replacing it.
+        <div className="chat-skeleton" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Opening your conversation</span>
+          <div className="chat-skeleton-turn chat-skeleton-you">
+            <span style={{ width: '58%' }} />
+          </div>
+          <div className="chat-skeleton-turn">
+            <span style={{ width: '92%' }} />
+            <span style={{ width: '80%' }} />
+            <span style={{ width: '86%' }} />
+            <span style={{ width: '44%' }} />
+          </div>
+          <div className="chat-skeleton-turn chat-skeleton-you">
+            <span style={{ width: '38%' }} />
+          </div>
+          <div className="chat-skeleton-turn">
+            <span style={{ width: '88%' }} />
+            <span style={{ width: '62%' }} />
+          </div>
+        </div>
       )}
     </main>
   );

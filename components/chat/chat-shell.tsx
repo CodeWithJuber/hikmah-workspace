@@ -2,7 +2,7 @@
 /** The chat page: conversations on the left, the workspace on the right. */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, PanelLeft, X } from 'lucide-react';
+import { Blocks, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
@@ -105,11 +105,18 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           <HikmahIcon name="orbit" size={24} />
           <strong>Hikmah</strong>
         </span>
-        <nav className="chat-topbar-links" aria-label="Workspace">
-          {/* Everything this surface does not carry — compare, the labs,
-              settings, the owner console, the terminal — lives there. */}
-          <Link href="/workspace">Workspace</Link>
-          <Link href="/sign-out">Sign out</Link>
+        {/* Text links on a phone wrapped "Sign out" onto two lines and left the
+            row crowded, so on a narrow screen they are icons with their names
+            as labels. Everything this surface does not carry — the labs,
+            settings, the owner console, the terminal — lives through the first
+            one. */}
+        <nav className={'chat-topbar-links' + (narrow ? ' is-compact' : '')} aria-label="Workspace">
+          <Link href="/workspace" title="Workspace" aria-label="Workspace">
+            {narrow ? <Blocks size={17} /> : 'Workspace'}
+          </Link>
+          <Link href="/sign-out" title="Sign out" aria-label="Sign out">
+            {narrow ? <LogOut size={17} /> : 'Sign out'}
+          </Link>
         </nav>
         {narrow && (
           <button

@@ -426,13 +426,19 @@ export function ChatView({
                 </PromptInputSelectContent>
               </PromptInputSelect>
             )}
-            <label className="chat-compare-toggle">
+            {/* "Compare without tools" wrapped onto three lines on a phone and
+                crowded the send button off the row. The full meaning is in the
+                tooltip, which costs no width. */}
+            <label
+              className="chat-compare-toggle"
+              title="Answer a second time with no tools, to show what the tools are buying"
+            >
               <input
                 type="checkbox"
                 checked={compare}
                 onChange={(event) => setCompare(event.target.checked)}
               />
-              Compare without tools
+              Compare
             </label>
           </PromptInputTools>
           {spent?.usage && (

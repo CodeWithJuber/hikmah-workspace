@@ -68,9 +68,25 @@ test('the theme has a source that does not depend on the workspace mounting', ()
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {
-  // /workspace since the swap: the chat is what opens at the root now.
-  assert.match(shell, /<Link href="\/workspace">Workspace<\/Link>/);
-  assert.match(shell, /<Link href="\/sign-out">/);
+  // /workspace since the swap: the chat is what opens at the root now. The
+  // destinations are the property; how they are labelled is not.
+  assert.match(shell, /href="\/workspace"/);
+  assert.match(shell, /href="\/sign-out"/);
+});
+
+test('those links keep a name when they shrink to icons', () => {
+  // On a phone they render as icons, because the text wrapped "Sign out" onto
+  // two lines. Swapping a label for a glyph is exactly when a control loses its
+  // accessible name without anything looking wrong.
+  for (const [href, label] of [
+    ['/workspace', 'Workspace'],
+    ['/sign-out', 'Sign out'],
+  ]) {
+    const link = shell.slice(shell.indexOf(`href="${href}"`));
+    const tag = link.slice(0, link.indexOf('>'));
+    assert.match(tag, new RegExp(`aria-label="${label}"`), `${href} needs a name`);
+    assert.match(tag, new RegExp(`title="${label}"`), `${href} needs a tooltip`);
+  }
 });
 
 test('the root opens the durable chat and the workspace keeps its own route', async () => {
