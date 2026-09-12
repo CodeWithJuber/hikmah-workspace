@@ -2,7 +2,7 @@
 /** The chat page: conversations on the left, the workspace on the right. */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Blocks, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
+import { Blocks, CreditCard, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
@@ -113,6 +113,9 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
         <nav className={'chat-topbar-links' + (narrow ? ' is-compact' : '')} aria-label="Workspace">
           <Link href="/workspace" title="Workspace" aria-label="Workspace">
             {narrow ? <Blocks size={17} /> : 'Workspace'}
+          </Link>
+          <Link href="/billing" title="Plan and usage" aria-label="Plan and usage">
+            {narrow ? <CreditCard size={17} /> : 'Plan'}
           </Link>
           <Link href="/sign-out" title="Sign out" aria-label="Sign out">
             {narrow ? <LogOut size={17} /> : 'Sign out'}

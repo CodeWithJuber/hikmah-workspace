@@ -1,19 +1,22 @@
 import { redirect } from 'next/navigation';
-import { requireChatGPTUser } from './chatgpt-auth';
+import { getChatGPTUser } from './chatgpt-auth';
+import { Landing } from '@/components/marketing/landing';
+import { publicAuthConfig } from '@/lib/auth/public-config';
+import { PLANS } from '@/lib/billing/plans';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * The durable chat is what opens by default now.
+ * The front door.
  *
- * A redirect rather than a copy of the /chat entry point: conversations keep
- * their own URLs under /chat/<id>, so every link and bookmark already made
- * still resolves, and there is one place that decides which conversation to
- * open rather than two that can disagree.
+ * Signed in, this is still a redirect to the durable chat: conversations keep
+ * their own URLs under /chat/<id>, so every link already made resolves, and one
+ * place decides which conversation opens rather than two that can disagree.
  *
- * The workspace that used to be here is at /workspace, linked from the header.
+ * Signed out, it used to bounce to the sign-in form, so a visitor was asked for
+ * a password before being told what the thing was. Now they get a page.
  */
 export default async function Home() {
-  await requireChatGPTUser('/');
-  redirect('/chat');
+  if (await getChatGPTUser()) redirect('/chat');
+  return <Landing config={publicAuthConfig()} plans={PLANS} />;
 }

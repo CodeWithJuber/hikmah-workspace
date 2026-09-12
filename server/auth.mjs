@@ -4,7 +4,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { readFile, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
+import { createRequire } from 'node:module';
 import { mailConfigured, resetMessage, sendMail, verifyMessage } from './email.mjs';
+import { billingConfigured, stripePlans } from './plans.mjs';
+import { subscriptionHooks } from './billing-sync.mjs';
 
 export function createAuth({
   directory = process.env.HIKMAH_DATA_DIR || resolve('.data'),
@@ -26,6 +29,7 @@ export function createAuth({
       'Set BETTER_AUTH_URL to your HTTPS origin (HTTP is allowed only on loopback for development)',
     );
   const mail = mailConfigured();
+  const billing = stripePlugin();
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const database = new DatabaseSync(join(directory, 'auth.sqlite'));
   chmodSync(join(directory, 'auth.sqlite'), 0o600);
@@ -102,8 +106,48 @@ export function createAuth({
       ipAddress: { ipAddressHeaders: ['x-real-ip'] },
     },
     logger: { level: 'error' },
+    ...(billing ? { plugins: [billing] } : {}),
   };
   return { auth: betterAuth(options), options, database };
+}
+
+/** The Stripe plugin, or undefined on a deployment that takes no money.
+ *
+ * Loaded with require rather than a top-level import so an install with no
+ * Stripe credentials — which is every development checkout, CI, and both smoke
+ * harnesses — never pays for the module or its transitive tree, and so a
+ * missing dependency can never break sign-in.
+ *
+ * Synchronous because createAuth is, and betterAuth wants its plugin list at
+ * construction.
+ */
+function stripePlugin() {
+  if (!billingConfigured()) return undefined;
+  const plans = stripePlans();
+  if (!plans.length) {
+    console.warn('[hikmah] Stripe is configured but no plan has a price id; billing is off.');
+    return undefined;
+  }
+  try {
+    const require_ = createRequire(import.meta.url);
+    const { stripe } = require_('@better-auth/stripe');
+    const Stripe = require_('stripe').default ?? require_('stripe');
+    return stripe({
+      stripeClient: new Stripe(process.env.STRIPE_SECRET_KEY),
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+      // So a person who signs up today can be charged tomorrow without a
+      // separate "create your billing account" step they would not understand.
+      createCustomerOnSignUp: true,
+      subscription: { enabled: true, plans, ...subscriptionHooks },
+    });
+  } catch (error) {
+    // A deployment that cannot load the plugin should still be able to sign in.
+    console.error(
+      '[hikmah] Stripe plugin not loaded:',
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
 }
 
 /** Whether this deployment keeps registration closed.

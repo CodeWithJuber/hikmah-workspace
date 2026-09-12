@@ -30,8 +30,17 @@ const spoof = {
 };
 assert.equal((await fetch(base + '/api/workspace-state', { headers: spoof })).status, 401);
 assert.equal((await fetch(base + '/api/secrets', { headers: spoof })).status, 401);
-assert.equal((await fetch(base + '/', { redirect: 'manual' })).status, 307);
+// The root used to bounce a signed-out visitor to the sign-in form, so they
+// were asked for a password before being told what this was. It serves the
+// landing page now, and this assertion changes deliberately rather than being
+// quietly dropped.
+const landing = await fetch(base + '/', { redirect: 'manual' });
+assert.equal(landing.status, 200, 'a signed-out visitor gets a page, not a redirect');
+const landingHtml = await landing.text();
+assert.match(landingHtml, /Start free/, 'with a way in');
+assert.match(landingHtml, /bring your own key/i, 'and the free tier explained');
 assert.match(await (await fetch(base + '/sign-in')).text(), /Good to have you here/);
+assert.match(await (await fetch(base + '/sign-up')).text(), /Make a workspace/);
 let cookie;
 if (phase === 'read') cookie = await readFile(cookieFile, 'utf8');
 else {
