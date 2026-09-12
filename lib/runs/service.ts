@@ -100,7 +100,19 @@ async function driveWithAgent({
   });
 
   try {
-    const stream = await createAgentUIStream({ agent, uiMessages: messages, abortSignal: signal });
+    const stream = await createAgentUIStream({
+      agent,
+      uiMessages: messages,
+      abortSignal: signal,
+      // What the answer cost, recorded on the answer itself. Without it the
+      // composer can show a context meter for the conversation it is about to
+      // send and nothing at all for the one already written, and a reload
+      // loses the figures entirely because they were never a row.
+      messageMetadata: ({ part }) =>
+        part.type === 'finish'
+          ? { model: config.model, usage: part.totalUsage, finishedAt: Date.now() }
+          : undefined,
+    });
 
     // Tee the chunks: one copy into the durable log, one into the fold that
     // produces the final message row. Both halves matter — the log is what a

@@ -15,6 +15,28 @@ const fail = (error: string, status: number) => Response.json({ error }, { statu
  * stuck or looping client cannot queue work without bound. */
 const MAX_ACTIVE_RUNS = 3;
 
+/** The composer inlines an attachment as a data URL rather than uploading it,
+ * so a message body is now bounded by what the owner attached. Five files at
+ * 4 MB each, base64-expanded by a third, plus the transcript: 32 MB is
+ * generous for that and still refuses a body that would be read into memory,
+ * parsed, and written to a row before anyone noticed. */
+const MAX_BODY_BYTES = 32 * 1024 * 1024;
+
+/** Read the body without trusting Content-Length, which a client sets. */
+async function readBody(request: Request): Promise<unknown> {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES)
+    throw new ChatRequestError('That message is too large. Attach smaller files.', 413);
+  const body = await request.arrayBuffer();
+  if (body.byteLength > MAX_BODY_BYTES)
+    throw new ChatRequestError('That message is too large. Attach smaller files.', 413);
+  try {
+    return JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    return null;
+  }
+}
+
 /** Does this message carry a decision for a tool that was waiting on one? */
 function hasApprovalResponse(message: UIMessage): boolean {
   return message.parts.some((part) => (part as { state?: string }).state === 'approval-responded');
@@ -61,7 +83,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   let parsed;
   try {
-    parsed = parseChatRequest(await request.json().catch(() => null));
+    parsed = parseChatRequest(await readBody(request));
   } catch (error) {
     if (error instanceof ChatRequestError) return fail(error.message, error.status);
     return fail('Expected a JSON request body.', 400);

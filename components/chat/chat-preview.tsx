@@ -98,7 +98,9 @@ export function ChatPreview({
   onSettled?: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [catalog, setCatalog] = useState<{ id: string; label: string }[]>([]);
+  const [catalog, setCatalog] = useState<{ id: string; label: string; contextWindow?: number }[]>(
+    [],
+  );
   // Chosen for the next turn only. Null means "whatever the workspace is set
   // to", so changing the saved connection still takes effect here.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -133,7 +135,15 @@ export function ChatPreview({
     )
       .then((rows) => {
         const usable = config.freeOnly ? rows.filter((row) => priceKind(row) === 'free') : rows;
-        setCatalog(usable.map((row) => ({ id: row.id, label: row.name || row.id })).slice(0, 200));
+        setCatalog(
+          usable
+            .map((row) => ({
+              id: row.id,
+              label: row.name || row.id,
+              contextWindow: row.context_length,
+            }))
+            .slice(0, 200),
+        );
       })
       .catch(() => setCatalog([]));
     return () => controller.abort();
@@ -149,6 +159,9 @@ export function ChatPreview({
   }, [catalog, config]);
 
   const pick = useCallback((model: string) => setChosen(model), []);
+
+  const active = chosen || agent?.model || loaded?.config.model;
+  const contextWindow = models.find((row) => row.id === active)?.contextWindow;
 
   return (
     <main className="chat-preview">
@@ -170,13 +183,14 @@ export function ChatPreview({
             // The owner's own choice first, then the agent's, then the saved
             // connection: picking an agent should not quietly override a model
             // the owner just selected.
-            model: chosen || agent?.model || loaded.config.model,
+            model: active ?? loaded.config.model,
           }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
           starters={STARTERS}
           models={models.length > 1 ? models : []}
           onModel={pick}
+          contextWindow={contextWindow}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

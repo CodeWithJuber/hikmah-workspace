@@ -142,6 +142,31 @@ if (phase === 'read') {
   );
   assert.equal((await fetch(base + '/api/workspace-state', { headers })).status, 401);
 }
+// The composer inlines an attachment as a data URL, so a message body is now
+// bounded by whatever someone attached. Without a cap the whole thing would be
+// read into memory, parsed and written to a row before anyone noticed; refuse
+// it at the door instead.
+if (phase === 'write') {
+  const oversize = JSON.stringify({
+    messages: [
+      {
+        id: 'big',
+        role: 'user',
+        parts: [{ type: 'text', text: 'x'.repeat(33 * 1024 * 1024) }],
+      },
+    ],
+  });
+  const refused = await fetch(base + '/api/conversations/smoke-big/runs', {
+    method: 'POST',
+    headers,
+    body: oversize,
+  });
+  assert.equal(refused.status, 413, 'an oversize message body is refused');
+  // And the refusal must not have created the conversation on the way in.
+  const after = await fetch(base + '/api/conversations/smoke-big/messages', { headers });
+  assert.deepEqual((await after.json()).messages, []);
+}
+
 // The JavaScript sandbox is a pre-built ES module served as a static asset.
 // It is built during `npm run build` and copied into the image, and if either
 // step is ever dropped the symptom is not a failed build — it is every code run
@@ -156,5 +181,5 @@ assert.ok(
 );
 
 console.info(
-  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets, sandbox worker and large saved workspace passed.`,
+  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets, body caps, sandbox worker and large saved workspace passed.`,
 );

@@ -9012,6 +9012,38 @@ body {
 .chat-model-select {
   max-width: 210px;
 }
+.chat-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px 0;
+}
+.chat-attachments li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  font-size: 12px;
+  max-width: 240px;
+}
+.chat-attachments li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-attachments button {
+  display: flex;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.chat-attachments button:hover {
+  color: var(--foreground);
+}
 .chat-preview-empty {
   color: var(--muted-foreground);
   padding: 32px 0;

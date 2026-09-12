@@ -19,6 +19,10 @@ import {
 } from '@/components/ai-elements/conversation';
 import {
   PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
   PromptInputBody,
   PromptInputFooter,
   PromptInputSelect,
@@ -29,9 +33,65 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
+import type { FileUIPart, LanguageModelUsage } from 'ai';
+import { Paperclip, X } from 'lucide-react';
+import {
+  Context,
+  ContextCacheUsage,
+  ContextContent,
+  ContextContentBody,
+  ContextContentFooter,
+  ContextContentHeader,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextTrigger,
+} from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 import { MessageParts } from './message-parts';
+
+/** What the run recorded about itself when it finished. Written by the worker
+ * onto the answer, so it survives a reload rather than living in this tab. */
+type AnswerMetadata = { model?: string; usage?: LanguageModelUsage };
+
+/** What an attachment may be, and how much of it. The composer inlines a file
+ * as a data URL rather than uploading it, so these caps are what keeps a
+ * message row — and the prompt built from it — a sensible size. */
+const ACCEPT = 'image/*,text/*,.md,.markdown,.json,.csv,.pdf';
+const MAX_FILES = 5;
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+
+/** The files staged for the next message. Rendered here because the library
+ * offers the state and the picker but no list, and a file you cannot see or
+ * remove is worse than no attachments at all. */
+function StagedAttachments() {
+  const attachments = usePromptInputAttachments();
+  if (!attachments.files.length) return null;
+  return (
+    <ul className="chat-attachments">
+      {attachments.files.map((file) => (
+        <li key={file.id}>
+          <Paperclip size={13} aria-hidden="true" />
+          <span>{file.filename || file.mediaType || 'Attachment'}</span>
+          <button
+            type="button"
+            aria-label={`Remove ${file.filename || 'attachment'}`}
+            onClick={() => attachments.remove(file.id)}
+          >
+            <X size={13} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A context window to measure against when the catalogue does not name one.
+ * Deliberately modest: over-stating it would make a full conversation look
+ * roomy right up to the point the provider rejects it. */
+const ASSUMED_CONTEXT = 32_000;
 
 export type ChatViewProps = {
   /** Stable id so a reload re-attaches to the same conversation. */
@@ -64,6 +124,8 @@ export type ChatViewProps = {
   /** Applies from the next turn, which is why it is not part of `run`: an
    * answer already written was written by the model that wrote it. */
   onModel?: (model: string) => void;
+  /** The chosen model's context window, when the provider publishes one. */
+  contextWindow?: number;
 };
 
 export function ChatView({
@@ -75,6 +137,7 @@ export function ChatView({
   starters,
   models,
   onModel,
+  contextWindow,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -109,6 +172,12 @@ export function ChatView({
 
   const busy = status === 'submitted' || status === 'streaming';
 
+  // The most recent answer's own figures. Earlier turns each carry their own,
+  // but the composer is about the next message, so the latest is the one that
+  // says how much room is left.
+  const latest = messages.findLast((message) => message.role === 'assistant');
+  const spent = (latest?.metadata as AnswerMetadata | undefined) ?? undefined;
+
   // Report the edge, not the state: firing on every render while idle would
   // refetch the conversation list forever.
   const wasBusy = useRef(false);
@@ -127,10 +196,11 @@ export function ChatView({
   }, [transport, stop]);
 
   const submit = useCallback(
-    ({ text }: { text?: string }) => {
+    ({ text, files }: { text?: string; files?: FileUIPart[] }) => {
       const trimmed = (text ?? '').trim();
-      if (!trimmed || busy) return;
-      void sendMessage({ text: trimmed });
+      // A file on its own is a message: "look at this" is a complete request.
+      if ((!trimmed && !files?.length) || busy) return;
+      void sendMessage({ text: trimmed, files });
     },
     [busy, sendMessage],
   );
@@ -186,12 +256,26 @@ export function ChatView({
         </div>
       )}
 
-      <PromptInput onSubmit={submit}>
+      <PromptInput
+        onSubmit={submit}
+        accept={ACCEPT}
+        multiple
+        globalDrop
+        maxFiles={MAX_FILES}
+        maxFileSize={MAX_FILE_BYTES}
+      >
         <PromptInputBody>
+          <StagedAttachments />
           <PromptInputTextarea placeholder="Ask anything, or describe what to build." />
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
+            <PromptInputActionMenu>
+              <PromptInputActionMenuTrigger />
+              <PromptInputActionMenuContent>
+                <PromptInputActionAddAttachments />
+              </PromptInputActionMenuContent>
+            </PromptInputActionMenu>
             {!!models?.length && (
               <PromptInputSelect value={run.model} onValueChange={onModel}>
                 <PromptInputSelectTrigger className="chat-model-select">
@@ -215,6 +299,26 @@ export function ChatView({
               Compare without tools
             </label>
           </PromptInputTools>
+          {spent?.usage && (
+            <Context
+              maxTokens={contextWindow || ASSUMED_CONTEXT}
+              modelId={spent.model ?? run.model}
+              usage={spent.usage}
+              usedTokens={spent.usage.totalTokens ?? 0}
+            >
+              <ContextTrigger />
+              <ContextContent>
+                <ContextContentHeader />
+                <ContextContentBody>
+                  <ContextInputUsage />
+                  <ContextOutputUsage />
+                  <ContextReasoningUsage />
+                  <ContextCacheUsage />
+                </ContextContentBody>
+                <ContextContentFooter />
+              </ContextContent>
+            </Context>
+          )}
           {/* Doubles as Stop while a run is in flight. */}
           <PromptInputSubmit status={status} onClick={busy ? halt : undefined} />
         </PromptInputFooter>
