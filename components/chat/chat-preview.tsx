@@ -90,6 +90,7 @@ export function ChatPreview({
   conversationId,
   agent,
   settings,
+  onTools,
   onSettled,
 }: {
   conversationId: string;
@@ -100,6 +101,8 @@ export function ChatPreview({
    * turn, so a change applies from the next message rather than needing a
    * reload. */
   settings: ChatSettings;
+  /** Saves a change to which tools the run may use. */
+  onTools?: (disabledTools: string[]) => Promise<void> | void;
   /** Called when a run finishes, so the conversation list can catch up. */
   onSettled?: () => void;
 }) {
@@ -204,6 +207,7 @@ export function ChatPreview({
           onModel={pick}
           contextWindow={contextWindow}
           showActivity={settings.showActivity}
+          onTools={onTools}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

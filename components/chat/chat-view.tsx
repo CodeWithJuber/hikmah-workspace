@@ -51,6 +51,7 @@ import {
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 import { VoiceInput } from './voice-controls';
+import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
 
 /** What the run recorded about itself when it finished. Written by the worker
@@ -131,6 +132,8 @@ export type ChatViewProps = {
   contextWindow?: number;
   /** Whether the transcript shows the run's own working. */
   showActivity?: boolean;
+  /** Changing which tools the run may use. Absent leaves the menu out. */
+  onTools?: (disabledTools: string[]) => Promise<void> | void;
 };
 
 export function ChatView({
@@ -144,6 +147,7 @@ export function ChatView({
   onModel,
   contextWindow,
   showActivity = true,
+  onTools,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -372,6 +376,9 @@ export function ChatView({
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
             <VoiceInput disabled={busy} onText={dictate} />
+            {onTools && (
+              <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
+            )}
             {!!models?.length && (
               <PromptInputSelect value={run.model} onValueChange={onModel}>
                 <PromptInputSelectTrigger className="chat-model-select">

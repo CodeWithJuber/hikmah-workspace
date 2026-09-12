@@ -75,6 +75,7 @@ function useChatSettings() {
 
 export function ChatShell({ conversationId }: { conversationId: string }) {
   const { settings, change } = useChatSettings();
+  const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
   // Bumped when a run settles. A conversation is created by its first message
   // and titled from it, so without this the list would keep showing the state
   // it had before the owner said anything.
@@ -167,6 +168,7 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           conversationId={conversationId}
           agent={agent}
           settings={settings}
+          onTools={changeTools}
           onSettled={settled}
         />
 
