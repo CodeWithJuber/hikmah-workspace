@@ -3,6 +3,8 @@ import { publicOrigin } from '@/lib/server/origin';
 import { getStorage } from '@/server/storage.mjs';
 import { McpStoreError, createMcpStore, publicServer } from '@/lib/mcp/store';
 import { DEFAULT_SERVERS } from '@/lib/mcp/defaults';
+import { parseServerConfig } from '@/lib/mcp/config';
+import { entitlementsForUser } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +54,14 @@ async function handle(request: Request) {
     if (request.method === 'POST') {
       const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
       if (!body) return fail('Expected a JSON request body.', 400);
+      // A stdio server is a command run in the workbench, which every account
+      // on the deployment shares. Remote servers are the person's own business;
+      // this one would be a process on the operator's machine.
+      if (parseServerConfig(body.config).type === 'stdio' && !entitlementsForUser(user).execution)
+        return fail(
+          'A command-line MCP server runs on the workspace host, so only its operator can add one. A remote server with a URL works on any plan.',
+          403,
+        );
       store.add(userId, String(body.name ?? ''), body.config);
       return listing();
     }
@@ -59,6 +69,20 @@ async function handle(request: Request) {
     if (request.method === 'PATCH') {
       const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
       if (!body) return fail('Expected a JSON request body.', 400);
+      // Two of the seeded servers are stdio and arrive switched off, so the
+      // gate on adding one is not enough on its own: switching one on is the
+      // same act by another route.
+      const target = store.get(String(body.id ?? ''), userId);
+      if (
+        body.enabled === true &&
+        target &&
+        parseServerConfig(JSON.parse(target.config)).type === 'stdio' &&
+        !entitlementsForUser(user).execution
+      )
+        return fail(
+          'A command-line MCP server runs on the workspace host, so only its operator can switch one on.',
+          403,
+        );
       store.update(String(body.id ?? ''), userId, {
         enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
         trusted: typeof body.trusted === 'boolean' ? body.trusted : undefined,

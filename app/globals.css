@@ -6173,6 +6173,80 @@ body {
   font-size: 13px;
   text-decoration: underline;
 }
+/* The brand is a link home now that there is a page to go home to, so it must
+   not inherit the underline every other link in the card has. */
+a.auth-brand {
+  color: inherit;
+  text-decoration: none;
+}
+/* Google, above the password form. Outlined rather than filled: the primary
+   action in this card is the one that submits it. */
+.auth-social {
+  background: #fff !important;
+  color: #20352e !important;
+  border: 1px solid #d6ded7;
+  font-weight: 500;
+}
+.auth-social:hover {
+  background: #f7f8f5 !important;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+  font-size: 11px;
+  color: #96a097;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ecf0eb;
+}
+.auth-hint {
+  font-size: 12px;
+  color: #7d8a80;
+  margin-top: -4px;
+}
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  margin-top: 22px;
+  font-size: 13px;
+  color: #567265;
+  line-height: 1.6;
+}
+.auth-links a {
+  text-decoration: underline;
+}
+.auth-links .auth-note {
+  margin-top: 0;
+}
+/* The one screen in the pair that has no form: what happens after a signup or
+   a reset request, where the only useful thing to say is "go and look". */
+.auth-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #37544a;
+  background: #f2f7f3;
+  border: 1px solid #dde8e0;
+  border-radius: 14px;
+  padding: 22px 20px;
+}
+.auth-sent strong {
+  font-weight: 600;
+  word-break: break-all;
+}
 .auth-card button:focus-visible,
 .auth-card a:focus-visible {
   outline: 3px solid #7fba9c;

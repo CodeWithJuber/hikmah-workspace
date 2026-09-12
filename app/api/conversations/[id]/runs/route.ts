@@ -7,6 +7,8 @@ import { releases } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
 import { needsKey, providerDestination } from '@/lib/ai/endpoint';
+import { billingStore, entitlementsForUser } from '@/lib/billing/server';
+import { refusal, runAccess } from '@/lib/billing/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,30 +178,40 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   // The key is resolved once, here, and stored on the run so the worker can
   // drive it after this request has gone. It is never returned to the browser.
-  let apiKey = '';
+  let savedKey = '';
   if (parsed.apiKeySecret) {
     try {
-      apiKey = await createSecretStore().resolve(
+      savedKey = await createSecretStore().resolve(
         user.userId,
         parsed.apiKeySecret,
         providerDestination(parsed.baseUrl),
       );
     } catch {
-      apiKey = '';
+      savedKey = '';
     }
   }
-  if (!apiKey) apiKey = process.env.HIKMAH_PROVIDER_KEY ?? '';
+  // Who is allowed to spend what. The deployment's own key used to be the
+  // fallback for anyone signed in, which is invisible with one account and an
+  // open bar with two.
+  const entitlements = entitlementsForUser(user);
+  const access = runAccess({
+    entitlements,
+    savedKey,
+    deploymentKey: process.env.HIKMAH_PROVIDER_KEY ?? '',
+  });
 
   // Refuse now, in words, rather than queueing a run that cannot succeed. A
   // hosted provider without a key answers 401, which reached the owner as a
   // bare "An error occurred" — the commonest first-run failure there is, and
   // the one where knowing the cause is the whole fix. A private or loopback
   // endpoint (Ollama, vLLM) legitimately needs no key, so it is not refused.
-  if (needsKey(parsed.baseUrl, apiKey))
-    return fail(
-      'No API key for this provider. Add one under Settings → Connection in the chat, or set HIKMAH_PROVIDER_KEY on the server.',
-      400,
-    );
+  const refused = refusal({
+    access,
+    entitlements,
+    keyless: needsKey(parsed.baseUrl, access.apiKey),
+    meteredThisMonth: access.metered ? billingStore().meteredThisMonth(user.userId) : 0,
+  });
+  if (refused) return fail(refused, 400);
 
   const runId = newRunId();
   try {
@@ -211,7 +223,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         baseUrl: parsed.baseUrl,
         model: parsed.model,
         freeOnly: parsed.freeOnly,
-        apiKey,
+        apiKey: access.apiKey,
+        metered: access.metered,
+        execution: access.execution,
         instructions: parsed.instructions,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,

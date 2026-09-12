@@ -6,6 +6,7 @@ import { hostsRequest } from '@/lib/ssh/api';
 import { credentialDestination, credentialName, type SshHostRow } from '@/lib/ssh/hosts';
 import { sshExecStream } from '@/lib/ssh/client';
 import { foldFrames, type RunFrame } from '@/lib/ssh/frames';
+import { entitlementsForUser } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,17 @@ async function handle(request: Request) {
   // Checked here as well as inside, so the closures below can assume an owner.
   if (!userId)
     return Response.json({ error: 'Sign in to your private workspace.' }, { status: 401 });
+
+  // Connections are made from the workbench, which is one container shared by
+  // every account on the deployment. A host added here would be reached from
+  // the operator's network with the operator's egress, so this stays theirs
+  // until execution is per-tenant — the same rule the terminal and the run
+  // tools follow.
+  if (!entitlementsForUser({ userId, email: user.email }).execution)
+    return Response.json(
+      { error: 'SSH hosts are available to the workspace operator only.' },
+      { status: 403 },
+    );
 
   const storage = getStorage();
   const secrets = createSecretStore();

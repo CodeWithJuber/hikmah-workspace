@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { openStorage } from '../server/storage.mjs';
-import { createAuth, initializeAuth } from '../server/auth.mjs';
+import { createAuth, initializeAuth, privateDeployment } from '../server/auth.mjs';
 import { publicOrigin } from '../lib/server/origin.ts';
 
 test('SQLite and object storage persist across restarts and stale revisions cannot overwrite data', async () => {
@@ -68,7 +68,7 @@ test('changed applied migrations stop startup instead of silently rewriting sche
   }
 });
 
-test('real authentication: private registration, secure sessions, invalid password, CSRF and logout', async () => {
+test('real authentication: open registration, secure sessions, invalid password, CSRF and logout', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-auth-'));
   const previous = Object.fromEntries(
     ['HIKMAH_DATA_DIR', 'HIKMAH_OWNER_EMAIL', 'BETTER_AUTH_SECRET', 'BETTER_AUTH_URL'].map((k) => [
@@ -101,10 +101,18 @@ test('real authentication: private registration, secure sessions, invalid passwo
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
+    // Registration is open now: the app is something people sign up for, and
+    // this assertion used to be the evidence that it was not. It changes
+    // deliberately rather than quietly, and the closed case it replaced is
+    // asserted below under HIKMAH_PRIVATE, which is how a self-hosted install
+    // keeps the old behaviour.
     const signup = await instance.auth.handler(
       request('sign-up/email', { email: 'other@example.test', password, name: 'Other' }),
     );
-    assert.equal(signup.status, 400);
+    assert.equal(signup.status, 200, 'a stranger can create an account');
+    // And the account they get is an ordinary one, not a second owner: the
+    // kernel_owners row already names the bootstrap owner, so resolveTier can
+    // never hand this account the operator's powers.
     const wrong = await instance.auth.handler(
       request('sign-in/email', { email: 'owner@example.test', password: 'wrong-password-value' }),
     );
@@ -152,6 +160,55 @@ test('real authentication: private registration, secure sessions, invalid passwo
       ),
       'https://hikmah.test',
     );
+  } finally {
+    instance?.database.close();
+    for (const [k, v] of Object.entries(previous))
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('HIKMAH_PRIVATE keeps a self-hosted install to one account', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'hikmah-private-'));
+  const previous = Object.fromEntries(
+    [
+      'HIKMAH_DATA_DIR',
+      'HIKMAH_OWNER_EMAIL',
+      'BETTER_AUTH_SECRET',
+      'BETTER_AUTH_URL',
+      'HIKMAH_PRIVATE',
+    ].map((k) => [k, process.env[k]]),
+  );
+  Object.assign(process.env, {
+    HIKMAH_DATA_DIR: dir,
+    HIKMAH_OWNER_EMAIL: 'owner@example.test',
+    BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
+    BETTER_AUTH_URL: 'https://hikmah.test',
+    HIKMAH_PRIVATE: '1',
+  });
+  const password = randomBytes(24).toString('base64url');
+  let instance;
+  try {
+    await writeFile(join(dir, 'bootstrap-owner-password'), password, { mode: 0o600 });
+    // The owner is still created: bootstrap is the one sign-up a private
+    // deployment must allow, or it would have no account at all.
+    await initializeAuth();
+    instance = createAuth();
+    const signup = await instance.auth.handler(
+      new Request('https://hikmah.test/api/auth/sign-up/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://hikmah.test',
+          'X-Real-IP': '127.0.0.1',
+        },
+        body: JSON.stringify({ email: 'other@example.test', password, name: 'Other' }),
+      }),
+    );
+    assert.equal(signup.status, 400, 'and nobody else can join');
+    // The pages must agree with the server, or a form is shown that cannot work.
+    assert.equal(privateDeployment(), true);
   } finally {
     instance?.database.close();
     for (const [k, v] of Object.entries(previous))

@@ -237,6 +237,136 @@ if (phase === 'write') {
   );
 }
 
+// A second account, created the way a stranger would, against the real routes.
+//
+// This is the check that the deployment can be opened to the public: registration
+// works, and the account it produces cannot spend the operator's provider key,
+// cannot reach a machine, and cannot see the operator's conversations. Each of
+// those was true of any signed-in account before tiers existed.
+if (phase === 'write') {
+  const stranger = {
+    email: 'stranger@example.test',
+    password: 'a-long-enough-password',
+    name: 'Stranger',
+  };
+  const created = await fetch(base + '/api/auth/sign-up/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: base },
+    body: JSON.stringify(stranger),
+  });
+  assert.equal(created.status, 200, 'registration is open');
+  const strangerCookie = created.headers
+    .getSetCookie()
+    .map((c) => c.split(';')[0])
+    .join('; ');
+  assert.ok(strangerCookie, 'signing up signs you in when no address needs confirming');
+  const asStranger = { cookie: strangerCookie, Origin: base, 'Content-Type': 'application/json' };
+
+  // Super admin is the pinned owner and nobody else.
+  assert.equal(
+    (await fetch(base + '/api/kernel', { headers: asStranger })).status,
+    403,
+    'a new account is not a super admin',
+  );
+
+  // The deployment key is set in both smoke harnesses, so without this gate the
+  // run below is accepted with 202 and charged to the operator.
+  const keyless = await fetch(base + '/api/conversations/smoke-stranger/runs', {
+    method: 'POST',
+    headers: asStranger,
+    body: JSON.stringify({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'openrouter/free',
+      freeOnly: true,
+      instructions: 'Answer briefly.',
+      messages: [{ id: 'stranger-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+    }),
+  });
+  assert.equal(keyless.status, 400, 'a free account cannot spend the deployment key');
+
+  // The control, and the whole point of the pair: the same request, the same
+  // environment, the same absence of a saved key — only the account differs.
+  // The operator is accepted, so the 400 above is the tier being read and not
+  // some unrelated reason the run could not start.
+  const asOwner = await fetch(base + '/api/conversations/smoke-owner-key/runs', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'openrouter/free',
+      freeOnly: true,
+      instructions: 'Answer briefly.',
+      messages: [{ id: 'owner-key-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
+    }),
+  });
+  assert.equal(asOwner.status, 202, 'the operator still reaches the deployment key');
+
+  const reason = (await keyless.json()).error;
+  assert.match(reason, /own/i, 'and is told to bring its own key');
+  assert.doesNotMatch(reason, /HIKMAH_PROVIDER_KEY/, 'without being shown server internals');
+
+  // The workbench is one shared filesystem, so a shell is the operator's alone.
+  assert.equal(
+    (await fetch(base + '/api/workbench/ticket', { method: 'POST', headers: asStranger })).status,
+    403,
+    'a new account cannot open a terminal',
+  );
+  assert.equal(
+    (await fetch(base + '/api/ssh-hosts', { headers: asStranger })).status,
+    403,
+    'nor add an SSH host',
+  );
+
+  // The operator's conversation reads as empty rather than as forbidden, which
+  // is the route's own choice and the right one: a 403 would confirm the id
+  // exists. What matters is that nothing comes back, and it is asserted against
+  // a conversation that demonstrably has something in it.
+  assert.equal(
+    (await (await fetch(base + '/api/conversations/smoke-regen/messages', { headers })).json())
+      .messages.length,
+    1,
+    'the operator can read their own transcript',
+  );
+  assert.deepEqual(
+    (
+      await (
+        await fetch(base + '/api/conversations/smoke-regen/messages', { headers: asStranger })
+      ).json()
+    ).messages,
+    [],
+    'and a stranger reads none of it',
+  );
+  // That route is DELETE-only, so this is the question worth asking of it.
+  assert.equal(
+    (
+      await fetch(base + '/api/conversations/smoke-regen', {
+        method: 'DELETE',
+        headers: asStranger,
+      })
+    ).status,
+    404,
+    "nor can they delete the operator's conversation",
+  );
+  // Their own list holds their own conversation — the refused run above created
+  // one, which is right — and nothing of the operator's.
+  const strangerList = (
+    await (await fetch(base + '/api/conversations', { headers: asStranger })).json()
+  ).conversations;
+  assert.ok(
+    !strangerList.some((row) => row.id === 'smoke-regen'),
+    "the operator's conversation is not in a stranger's list",
+  );
+  assert.ok(
+    strangerList.every((row) => row.id.startsWith('smoke-stranger')),
+    'and everything in it is their own',
+  );
+
+  // And the operator keeps everything.
+  assert.equal((await fetch(base + '/api/kernel', { headers })).status, 200);
+  const ticket = await fetch(base + '/api/workbench/ticket', { method: 'POST', headers });
+  assert.notEqual(ticket.status, 403, 'the operator can still open a terminal');
+}
+
 // The JavaScript sandbox is a pre-built ES module served as a static asset.
 // It is built during `npm run build` and copied into the image, and if either
 // step is ever dropped the symptom is not a failed build — it is every code run
