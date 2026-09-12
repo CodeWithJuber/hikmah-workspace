@@ -9018,6 +9018,24 @@ body {
 .chat-model-select {
   max-width: 210px;
 }
+/* The preview is a third column beside the conversation. .artifact-panel is
+   layout-neutral on its own, so the width belongs here rather than in the
+   component both surfaces share. */
+.chat-body > .artifact-panel {
+  width: min(46%, 620px);
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  /* No room for a third column: the preview takes the conversation's place
+     until it is closed, which is what someone opening it wanted anyway. */
+  .chat-body > .artifact-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    width: auto;
+    border-left: 0;
+  }
+}
 .chat-tools-trigger {
   height: 34px;
   gap: 6px;

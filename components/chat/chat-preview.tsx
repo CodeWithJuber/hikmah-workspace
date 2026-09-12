@@ -19,6 +19,7 @@ import { listModels } from '@/lib/playground/transport';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { defaultProvider } from '@/lib/playground/session';
 import type { ChatSettings } from '@/lib/chat/settings';
+import type { WorkspaceFiles } from '@/lib/playground/session';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -91,6 +92,7 @@ export function ChatPreview({
   agent,
   settings,
   onTools,
+  onArtifact,
   onSettled,
 }: {
   conversationId: string;
@@ -103,6 +105,8 @@ export function ChatPreview({
   settings: ChatSettings;
   /** Saves a change to which tools the run may use. */
   onTools?: (disabledTools: string[]) => Promise<void> | void;
+  /** Opens a page an answer produced, in the side panel. */
+  onArtifact?: (files: WorkspaceFiles) => void;
   /** Called when a run finishes, so the conversation list can catch up. */
   onSettled?: () => void;
 }) {
@@ -208,6 +212,7 @@ export function ChatPreview({
           contextWindow={contextWindow}
           showActivity={settings.showActivity}
           onTools={onTools}
+          onArtifact={onArtifact}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

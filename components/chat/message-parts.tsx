@@ -36,6 +36,9 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool';
 import { ReadAloud } from './voice-controls';
+import { InlineArtifact } from '@/components/kernel/artifact';
+import { messageArtifact } from '@/lib/chat/artifact';
+import type { WorkspaceFiles } from '@/lib/playground/session';
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -169,6 +172,7 @@ export function MessageParts({
   onApproval,
   onRegenerate,
   onEdit,
+  onArtifact,
   showActivity = true,
 }: {
   message: UIMessage;
@@ -183,12 +187,17 @@ export function MessageParts({
   /** Offered on a question worth asking differently. Absent while a run is in
    * flight, for the same reason regenerate is: both rewrite the transcript. */
   onEdit?: () => void;
+  /** Opens a produced page in the side panel. */
+  onArtifact?: (files: WorkspaceFiles) => void;
 }) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
   const settled = status !== 'streaming' && status !== 'submitted';
   const answered = message.role === 'assistant' && settled;
   const asked = message.role === 'user' && settled;
+  // Only once the answer has settled: a page assembled from a half-written file
+  // would render as a broken preview and then change under the reader.
+  const artifact = answered ? messageArtifact(message) : null;
 
   return (
     <Message from={message.role}>
@@ -325,6 +334,8 @@ export function MessageParts({
             </SourcesContent>
           </Sources>
         )}
+
+        {artifact && onArtifact && <InlineArtifact files={artifact} onOpen={onArtifact} />}
 
         {answered && (
           <MessageToolbar>

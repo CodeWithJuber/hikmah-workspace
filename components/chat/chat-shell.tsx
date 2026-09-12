@@ -9,6 +9,8 @@ import { ConversationList } from './conversation-list';
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
 import { RunSettings } from './run-settings';
+import { ArtifactPanel } from '@/components/kernel/artifact';
+import type { WorkspaceFiles } from '@/lib/playground/session';
 import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from '@/lib/chat/settings';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
@@ -87,6 +89,10 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
   // cannot change an answer already written.
   const [agent, setAgent] = useState<Agent | null>(null);
 
+  // A page an answer produced, opened from its inline card. Its own column on a
+  // wide screen; the same drawer as the panel on a narrow one.
+  const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
+
   // On a narrow screen the two side panels are drawers over the conversation
   // rather than strips above and below it, which is what left the conversation
   // itself about a quarter of the screen.
@@ -101,6 +107,9 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
   if (shownFor !== conversationId) {
     setShownFor(conversationId);
     setDrawer(null);
+    // A preview belongs to the answer that produced it, so it does not follow
+    // the reader into another conversation.
+    setArtifact(null);
   } else if (!narrow && drawer) {
     setDrawer(null);
   }
@@ -168,9 +177,24 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           conversationId={conversationId}
           agent={agent}
           settings={settings}
+          onArtifact={setArtifact}
           onTools={changeTools}
           onSettled={settled}
         />
+
+        {artifact && (
+          <ArtifactPanel
+            files={artifact}
+            onClose={() => setArtifact(null)}
+            onEdit={() => {
+              // The files are rows already, written by the tool that made them,
+              // so editing means opening the panel that reads those rows.
+              setArtifact(null);
+              setTab('files');
+              if (narrow) setDrawer('panel');
+            }}
+          />
+        )}
 
         <div className={'chat-drawer chat-drawer-panel' + (open === 'panel' ? ' is-open' : '')}>
           <aside className="workspace-panel" aria-label="Workspace">

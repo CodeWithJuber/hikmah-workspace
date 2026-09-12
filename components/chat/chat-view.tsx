@@ -53,6 +53,7 @@ import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transp
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
+import type { WorkspaceFiles } from '@/lib/playground/session';
 
 /** What the run recorded about itself when it finished. Written by the worker
  * onto the answer, so it survives a reload rather than living in this tab. */
@@ -134,6 +135,8 @@ export type ChatViewProps = {
   showActivity?: boolean;
   /** Changing which tools the run may use. Absent leaves the menu out. */
   onTools?: (disabledTools: string[]) => Promise<void> | void;
+  /** Opens a page an answer produced, in the side panel. */
+  onArtifact?: (files: WorkspaceFiles) => void;
 };
 
 export function ChatView({
@@ -148,6 +151,7 @@ export function ChatView({
   contextWindow,
   showActivity = true,
   onTools,
+  onArtifact,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -310,6 +314,7 @@ export function ChatView({
               status={status}
               onApproval={addToolApprovalResponse}
               showActivity={showActivity}
+              onArtifact={onArtifact}
               // Offered on every settled answer, not just the last: the server
               // truncates from the message being replayed, so an earlier one
               // rewinds the conversation to that point rather than corrupting
