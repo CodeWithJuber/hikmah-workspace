@@ -6889,13 +6889,16 @@ body {
   line-height: 1.5;
   margin-bottom: 10px;
 }
-.chat-tools-menu ul {
+/* Keyed on the list rather than on the popover around it: the same switches
+   render on the workspace's Tools screen, and scoping them to .chat-tools-menu
+   is what would leave that page unstyled. */
+.chat-tool-switches {
   display: flex;
   flex-direction: column;
   gap: 2px;
   list-style: none;
 }
-.chat-tools-menu label {
+.chat-tool-switches label {
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -6904,29 +6907,42 @@ body {
   font-size: 13px;
   cursor: pointer;
 }
-.chat-tools-menu label:hover {
+.chat-tool-switches label:hover {
   background: var(--muted);
 }
-.chat-tools-menu label:has(input:disabled) {
+.chat-tool-switches label:has(input:disabled) {
   cursor: default;
   opacity: 0.6;
 }
-.chat-tools-menu label span {
+.chat-tool-switches label span {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
-.chat-tools-menu code {
+.chat-tool-switches code {
   font-size: 11px;
   color: var(--muted-foreground);
 }
-.chat-tools-menu small {
+.chat-tool-switches small {
   display: block;
   padding: 0 4px 6px 30px;
   font-size: 11px;
   color: var(--muted-foreground);
   line-height: 1.45;
+}
+/* On its own page the list has room for two columns and no popover to bound
+   it, so it is not squeezed into a 360px menu's shape. */
+.tools-page-switches {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--card);
+}
+.tools-page-switches .chat-tool-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2px 14px;
 }
 .chat-settings-panel {
   display: flex;

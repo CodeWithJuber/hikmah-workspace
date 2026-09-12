@@ -3,47 +3,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Play, Square, ArrowUpRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePlayground } from './context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { runJavascript, warmSandbox } from '@/lib/playground/sandbox-client';
-const defaults = [
-  {
-    id: 'search_web',
-    name: 'Web search',
-    description: 'Search the web through your configured SearXNG or Brave service.',
-    icon: 'search' as const,
-  },
-  {
-    id: 'research_quran',
-    name: 'Qur’anic research index',
-    description:
-      'Find verse-linked research notes and source references, with verification status.',
-    icon: 'search' as const,
-  },
-  {
-    id: 'run_javascript',
-    name: 'JavaScript sandbox',
-    description: 'Run data transforms, algorithms and checks locally. No provider call.',
-    icon: 'artifact' as const,
-  },
-  {
-    id: 'search_reference',
-    name: 'Reference search',
-    description: 'Wikipedia background sources in five languages. No API key.',
-    icon: 'search' as const,
-  },
-  {
-    id: 'read_webpage',
-    name: 'Read a public page',
-    description: 'Retrieve page text through Jina Reader. No login or browser clicks.',
-    icon: 'browser' as const,
-  },
-];
+import { ToolSwitches, useToolAvailability } from '@/components/chat/tool-switches';
+import { useChatSettings } from '@/hooks/use-chat-settings';
 export function RuntimeHome() {
-  const { preferences, setPreferences, workspace, connectorTools, setWorkspacePage } =
-    usePlayground();
+  const { workspace, connectorTools, setWorkspacePage } = usePlayground();
+  // The one store a run actually reads. This page used to toggle
+  // `preferences.enabledTools` in the workspace blob, which nothing had read
+  // since the browser run loop was retired — so the switches looked live and
+  // changed nothing.
+  const tools = useToolAvailability();
+  const { settings, change } = useChatSettings();
   const [code, setCode] = useState(
     'const orders = [120, 80, 240];\nconst total = orders.reduce((a, b) => a + b, 0);\nconsole.log({total, withTax: total * 1.08});',
   );
@@ -96,42 +69,23 @@ export function RuntimeHome() {
           </p>
         </section>
         <h3 className="section-label">
-          Available in chat <span>Service limits may apply</span>
+          Available in chat <span>Switching one off applies from your next message</span>
         </h3>
-        <div className="runtime-grid">
-          {defaults.map((t) => (
-            <section className="runtime-card" key={t.id}>
-              <span className="agent-avatar">
-                <HikmahIcon name={t.icon} size={24} />
-              </span>
-              <h3>{t.name}</h3>
-              <p>{t.description}</p>
-              <label className="agent-switch-row">
-                <span>
-                  {preferences.enabledTools.includes(t.id)
-                    ? 'Enabled in chats'
-                    : 'Disabled in chats'}
-                </span>
-                <Switch
-                  aria-label={'Enable ' + t.name}
-                  checked={preferences.enabledTools.includes(t.id)}
-                  onCheckedChange={(enabled) =>
-                    setPreferences((p) => ({
-                      ...p,
-                      enabledTools: enabled
-                        ? [...new Set([...p.enabledTools, t.id])]
-                        : p.enabledTools.filter((x) => x !== t.id),
-                    }))
-                  }
-                />
-              </label>
-            </section>
-          ))}
+        {/* Every tool the run can offer, not a hand-kept selection of them: the
+            list and its availability come from the server, so this page cannot
+            drift from what a run actually has. The same switches are on the
+            composer's Tools menu, over the same store. */}
+        <div className="tools-page-switches">
+          <ToolSwitches
+            tools={tools}
+            disabled={settings.disabledTools}
+            onChange={(disabledTools) => change({ disabledTools })}
+          />
         </div>
         <p className="small-note">
-          Files, calculator, task plans and reviewed memory are also built in. Web searches use your
-          configured search service; reference searches use Wikimedia and public-page reads use
-          Jina. Availability and service limits are reported in chat.
+          Web searches use your configured search service; reference searches use Wikimedia and
+          public-page reads use Jina. A tool this deployment cannot run says so rather than being
+          offered and failing.
         </p>
         <section className="sandbox-console">
           <header>

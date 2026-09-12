@@ -10,7 +10,6 @@ import {
   mcpSecretDestination,
   validSecretName,
 } from '@/lib/playground/secret-reference';
-import { usePlayground } from './context';
 
 function useSecrets() {
   const [rows, setRows] = useState<SecretMetadata[]>([]),
