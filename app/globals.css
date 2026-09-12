@@ -4879,7 +4879,9 @@ summary:focus-visible {
 }
 .clarification-card {
   padding: 22px;
-  border: 1px solid #cedcf2;
+  /* Was #cedcf2. The card only ever rendered on the light playground; on the
+     chat surface it has to follow the saved theme like everything else. */
+  border: 1px solid var(--border);
   border-radius: 15px;
   margin: 18px 0;
   background: var(--card);
@@ -4933,7 +4935,7 @@ summary:focus-visible {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid #9daabc;
+  border: 1px solid var(--muted-foreground);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -9127,6 +9129,22 @@ body {
 .chat-plan-completed > span:last-child {
   color: var(--muted-foreground);
 }
+/* A question the owner has already answered. Not a card any more — the decision
+   is made, so it reads as a line of the transcript rather than a control. */
+.chat-answered-question {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  margin: 10px 0;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.chat-answered-question strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 .chat-receipt {
   display: flex;
   flex-wrap: wrap;

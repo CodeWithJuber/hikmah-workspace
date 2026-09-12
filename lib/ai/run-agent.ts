@@ -8,6 +8,7 @@ import { ToolLoopAgent, isStepCount, type LanguageModel } from 'ai';
 import { DEFAULT_CONTEXT_CHARACTERS, reduceMessages } from './context.ts';
 import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
+import { askTools } from './tools/ask.ts';
 import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
 import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
@@ -90,6 +91,9 @@ export function buildRunAgent(options: RunAgentOptions) {
     // Always offered: it needs nothing from the deployment. The container-backed
     // sandbox_run below is the one that comes and goes with the workbench.
     ...javascriptTools(),
+    // Likewise, and for a stronger reason: a run with no way to ask does not
+    // wait, it guesses.
+    ...askTools(),
     ...(options.ssh ? sshTools({ ...options.ssh, signal: options.signal }) : {}),
     ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
     ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),

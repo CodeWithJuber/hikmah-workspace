@@ -72,8 +72,10 @@ export type RunDriver = (context: {
   emit: (chunk: unknown) => number;
 }) => Promise<{
   message?: unknown;
-  /** The stream stopped on a tool the owner has to answer, not on an answer. */
+  /** The stream stopped on a tool the owner has to approve, not on an answer. */
   awaitingApproval?: boolean;
+  /** The stream stopped on a question only the owner can answer. */
+  awaitingClient?: boolean;
 } | void>;
 
 export type WorkerOptions = {
@@ -151,8 +153,11 @@ export function createWorker(options: WorkerOptions): Worker {
           store.pruneEvents(run.id);
           // Waiting on a person is not finishing. The run keeps its place so the
           // answer, when it comes, resumes this run rather than starting a new
-          // one over the same conversation.
+          // one over the same conversation. Two ways to be waiting, and they are
+          // not interchangeable: an approval carries yes or no, a question
+          // carries what the person said.
           if (result?.awaitingApproval) store.setStatus(run.id, 'waiting_approval');
+          else if (result?.awaitingClient) store.setStatus(run.id, 'waiting_client');
           else store.finish(run.id, 'done');
         }
       } catch (error) {

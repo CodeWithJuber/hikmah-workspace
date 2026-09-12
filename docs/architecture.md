@@ -165,8 +165,9 @@ The question is persisted, so a reload renders the card after the tab that asked
 is gone. Answering is a _resume_, not a new run — treating it as one would hit
 the "this conversation already has a run" refusal and strand the very run the
 answer was meant to release. `requeueApproved` only moves a run out of
-`waiting_approval`, so a second answer (two tabs, a double click) is absorbed
-rather than starting a duplicate.
+`waiting_approval` (and `requeueAnswered` only out of `waiting_client`), so a
+second answer (two tabs, a double click) is absorbed rather than starting a
+duplicate.
 
 What is gated, and by what rule:
 
@@ -177,6 +178,42 @@ What is gated, and by what rule:
 | `sandbox_run`       | Always asks.                                                      |
 | `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin. |
 | everything else     | Not gated. They read or compute.                                  |
+
+## Questions
+
+An approval and a question look alike and are not the same. An approval carries
+yes or no; a question carries what the person said, and `ToolExecutionOptions`
+gives a tool's `execute` no access to that — only the call. So `ask_user` is not
+a gated tool. It is a tool with **no `execute` at all**: the person is the
+implementation.
+
+```
+model calls ask_user
+  → nothing runs; the SDK leaves the call in input-available and ends the stream
+  → the worker records waiting_client and persists the question as a message
+  → the browser renders the question card
+  → the answer is written as the tool's output and POSTs back, resuming the run
+```
+
+The same shape as an approval, and it reuses the same route and the same
+"resume, never a new run" rule, with one guard added: a run stopped on a
+question is released only by an answer, and one stopped on an approval only by a
+decision. `lib/runs/resume.ts` holds that rule, and both the route and the
+browser's auto-send read it from there — two copies that disagreed would send a
+turn the server then refused, leaving the run paused with the answer already
+given.
+
+`waiting_client` needed no migration: `runs.status` is plain `TEXT` with no
+`CHECK`. The status list in the comment at the top of `drizzle/0004_runs.sql`
+therefore predates it and is one short — that file is SHA-pinned by
+`server/storage.mjs` and must never be edited after shipping, so this page is
+where the lifecycle is kept current.
+
+Why the check is narrow rather than "the last tool call has an output":
+`ask_user` is the only tool with no server-side `execute`, so it is the only one
+whose result may legitimately arrive from a browser. Accepting any completed
+tool call would let a client hand the run a result the server was supposed to
+produce.
 
 Two mistakes these rules exist to avoid. Matching a command by **prefix** would
 let `df; rm -rf /` through on a pattern of `df`, so matching is anchored and any

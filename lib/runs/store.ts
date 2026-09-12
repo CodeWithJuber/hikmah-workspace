@@ -13,7 +13,15 @@
  * the worker can be tested without a server.
  */
 
-export type RunStatus = 'queued' | 'running' | 'waiting_approval' | 'done' | 'failed' | 'cancelled';
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  | 'waiting_approval'
+  /** Stopped on a question only the owner can answer. */
+  | 'waiting_client'
+  | 'done'
+  | 'failed'
+  | 'cancelled';
 
 export type RunRow = {
   id: string;
@@ -135,6 +143,13 @@ export function createRunStore(
     requeueApproved: db.prepare(
       "UPDATE runs SET status = 'queued' WHERE id = ? AND status = 'waiting_approval'",
     ),
+    // The same guard for a question. Kept as its own statement rather than
+    // widening the one above: an approval arriving for a run that is waiting on
+    // an answer, or the reverse, is a client that has lost track of the run, and
+    // it should release nothing.
+    requeueAnswered: db.prepare(
+      "UPDATE runs SET status = 'queued' WHERE id = ? AND status = 'waiting_client'",
+    ),
     replaceMessage: db.prepare(
       'UPDATE messages SET parts = ?, metadata = ? WHERE id = ? AND conversation_id = ?',
     ),
@@ -153,11 +168,11 @@ export function createRunStore(
     countQueued: db.prepare("SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'"),
     countActive: db.prepare(
       `SELECT COUNT(*) AS n FROM runs
-       WHERE user_id = ? AND status IN ('queued', 'running', 'waiting_approval')`,
+       WHERE user_id = ? AND status IN ('queued', 'running', 'waiting_approval', 'waiting_client')`,
     ),
     activeForConversation: db.prepare(
       `SELECT id FROM runs
-       WHERE conversation_id = ? AND status IN ('queued', 'running', 'waiting_approval')
+       WHERE conversation_id = ? AND status IN ('queued', 'running', 'waiting_approval', 'waiting_client')
        LIMIT 1`,
     ),
     eventsAfter: db.prepare(
@@ -296,6 +311,11 @@ export function createRunStore(
      * Returns false when the run was not waiting, which is how a duplicate
      * answer to the same approval is absorbed rather than starting a second run.
      */
+    requeueAnswered(id: string): boolean {
+      const result = statements.requeueAnswered.run(id) as { changes?: number };
+      return (result.changes ?? 0) > 0;
+    },
+
     requeueApproved(id: string): boolean {
       const result = statements.requeueApproved.run(id) as { changes?: number };
       return Number(result?.changes ?? 0) > 0;

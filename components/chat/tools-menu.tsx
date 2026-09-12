@@ -18,6 +18,7 @@ type Availability = { name: string; available: boolean; reason?: string };
  * falls back to its identifier with the underscores taken out, which is worse
  * but never wrong. */
 const LABELS: Record<string, string> = {
+  ask_user: 'Ask you a question',
   bash: 'Run shell commands',
   calculate: 'Arithmetic',
   delete_file: 'Delete a workspace file',

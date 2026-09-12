@@ -15,6 +15,7 @@ import { runComparison } from '../ai/compare.ts';
 import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
+import { ASK_USER_PART } from './resume.ts';
 import { createWorker, type Worker } from './worker.ts';
 
 declare global {
@@ -165,9 +166,16 @@ async function driveWithAgent({
     // 'approval-requested'. The run is not finished, it is waiting for a person,
     // and the worker has to tell those apart or the answer arrives too late to
     // matter.
-    const parts = (message as { parts?: { state?: string }[] } | undefined)?.parts ?? [];
+    const parts =
+      (message as { parts?: { type?: string; state?: string }[] } | undefined)?.parts ?? [];
     const awaitingApproval = parts.some((part) => part?.state === 'approval-requested');
-    return { message, awaitingApproval };
+    // ask_user has no execute, so the SDK leaves its call in input-available and
+    // ends the stream there. That is not a finished answer either: the person is
+    // the implementation, and the run resumes when they supply the output.
+    const awaitingClient =
+      !awaitingApproval &&
+      parts.some((part) => part?.type === ASK_USER_PART && part?.state === 'input-available');
+    return { message, awaitingApproval, awaitingClient };
   } finally {
     await mcp?.close();
   }

@@ -12,7 +12,7 @@ export type ConversationSummary = {
   title: string;
   running: boolean;
   /** Stopped mid-answer on a tool that needs the owner's say-so. */
-  awaitingApproval: boolean;
+  waiting: 'approval' | 'answer' | null;
   updatedAt: string;
 };
 
@@ -103,12 +103,19 @@ export function ConversationList({
               <span className="conversation-title">{conversation.title || 'Untitled'}</span>
               {/* A paused run needs the owner, not patience, so it is not shown
                   as if it were working. */}
-              {conversation.awaitingApproval && (
-                <span className="conversation-waiting" title="Waiting for your approval">
+              {conversation.waiting && (
+                <span
+                  className="conversation-waiting"
+                  title={
+                    conversation.waiting === 'approval'
+                      ? 'Waiting for your approval'
+                      : 'Waiting for your answer'
+                  }
+                >
                   Waiting for you
                 </span>
               )}
-              {conversation.running && !conversation.awaitingApproval && (
+              {conversation.running && !conversation.waiting && (
                 <span className="conversation-running" title="Still answering">
                   ●
                 </span>
