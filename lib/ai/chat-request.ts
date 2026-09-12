@@ -18,6 +18,12 @@ export type ChatRequestBody = {
   enabledTools: string[];
   /** Compare mode: answer a second time with no tools, for contrast. */
   compare?: { model?: string };
+  /**
+   * Why this turn is being sent. `regenerate-message` means the last message is
+   * already stored and is being replayed, so the conversation has to be
+   * truncated back to it rather than appended to. Anything else is a new turn.
+   */
+  regenerate: boolean;
   messages: unknown;
 };
 
@@ -109,6 +115,10 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     // the endpoint and the free-only rule come from the run's own
     // configuration, so the comparison cannot be pointed somewhere else.
     compare,
+    // Anything other than the one value that means "replay" is treated as a new
+    // turn, so an unrecognised or absent trigger can only ever append — never
+    // delete.
+    regenerate: body.trigger === 'regenerate-message',
     messages: body.messages,
   };
 }

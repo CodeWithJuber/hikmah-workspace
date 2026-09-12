@@ -167,6 +167,57 @@ if (phase === 'write') {
   assert.deepEqual((await after.json()).messages, []);
 }
 
+// Answering again replays a message that is already a row. Appending it a
+// second time hit the messages primary key, so the route failed outside any
+// handler and the owner was told only "The run could not be started". The turn
+// has to be truncated back to that message instead.
+if (phase === 'write') {
+  const conversation = 'smoke-regen';
+  const turn = (id, text, trigger) => ({
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openrouter/free',
+    freeOnly: true,
+    instructions: 'Answer briefly.',
+    trigger,
+    messages: [{ id, role: 'user', parts: [{ type: 'text', text }] }],
+  });
+  const post = (body) =>
+    fetch(base + `/api/conversations/${conversation}/runs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+  const stored = async () =>
+    (await (await fetch(base + `/api/conversations/${conversation}/messages`, { headers })).json())
+      .messages;
+
+  // 202: the reply is the run id, not the answer.
+  assert.equal((await post(turn('regen-1', 'First question'))).status, 202);
+
+  // One run per conversation, so the first has to settle before the replay is
+  // anything but a 409. There is no provider reachable here, so it fails within
+  // a moment; the point of the wait is determinism, not patience.
+  for (let i = 0; i < 60; i += 1) {
+    const active = await (
+      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+    ).json();
+    if (!active.runId) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  const replayed = await post(turn('regen-1', 'First question', 'regenerate-message'));
+  assert.equal(replayed.status, 202, 'answering again is accepted, not a primary-key failure');
+  const messages = await stored();
+  assert.equal(messages.length, 1, 'the replayed turn replaces its old self rather than doubling');
+  assert.equal(messages[0].id, 'regen-1');
+
+  // Without the trigger the same message is a duplicate, and that is a refusal
+  // the transport can read rather than an empty 500.
+  const duplicate = await post(turn('regen-1', 'First question'));
+  assert.equal(duplicate.status, 409, 'a repeated message id is refused, not crashed on');
+  assert.equal((await stored()).length, 1);
+}
+
 // The JavaScript sandbox is a pre-built ES module served as a static asset.
 // It is built during `npm run build` and copied into the image, and if either
 // step is ever dropped the symptom is not a failed build — it is every code run
