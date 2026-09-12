@@ -39,6 +39,7 @@ import { prepareConnectors } from '@/lib/playground/run-preparation';
 import type { McpConnection } from '@/lib/playground/workspace-config';
 import { connectMcp, type McpTool } from '@/lib/playground/mcp-client';
 import { readWorkspaceSession, saveWorkspaceSession } from '@/lib/playground/storage';
+import { themeCookie } from '@/lib/theme';
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type AppContext = {
   prepareRunConnections: (
@@ -368,6 +369,10 @@ export function PlaygroundProvider({
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
+    // Mirrored into a cookie so the server can stamp the same theme on the next
+    // page load, before anything paints, and so /chat picks it up without
+    // mounting this provider.
+    document.cookie = themeCookie(preferences.theme);
   }, [preferences.theme]);
   useEffect(() => {
     catalogAbort.current?.abort();

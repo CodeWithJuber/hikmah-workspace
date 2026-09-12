@@ -8630,7 +8630,63 @@ body {
    components carry their own Tailwind styling. */
 .chat-shell {
   display: flex;
+  flex-direction: column;
   height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+}
+.chat-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.chat-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.chat-topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.chat-topbar-links a {
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+.chat-topbar-links a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.chat-topbar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  width: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.chat-drawer {
+  display: flex;
+  min-height: 0;
 }
 .conversation-list {
   width: 240px;
@@ -8711,23 +8767,48 @@ body {
   padding: 12px 8px;
 }
 
-/* The list becomes a strip across the top on a phone: 240px of sidebar would
-   leave no room for the conversation itself. */
-@media (max-width: 640px) {
-  .chat-shell {
-    flex-direction: column;
+/* Below this width the two side panels slide over the conversation instead of
+   sitting beside it. They used to be permanently open strips capped at 33dvh
+   and 40dvh, which left the conversation itself barely a quarter of a phone
+   screen. */
+@media (max-width: 900px) {
+  .chat-drawer {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 3;
+    background: var(--background);
+    box-shadow: 0 0 0 1px var(--border);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 180ms ease,
+      visibility 180ms;
   }
-  .conversation-list {
-    width: auto;
-    max-height: 33dvh;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+  .chat-drawer-panel {
+    inset: 0 0 0 auto;
+    transform: translateX(100%);
   }
-  .workspace-panel {
-    width: auto;
-    max-height: 40dvh;
-    border-left: none;
-    border-top: 1px solid var(--border);
+  .chat-drawer.is-open {
+    transform: none;
+    visibility: visible;
+  }
+  .chat-drawer .conversation-list,
+  .chat-drawer .workspace-panel {
+    width: min(84vw, 320px);
+    border: 0;
+  }
+  .chat-drawer-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: color-mix(in oklab, var(--foreground) 38%, transparent);
+    border: 0;
+    cursor: pointer;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-drawer {
+    transition: none;
   }
 }
 
@@ -8899,17 +8980,37 @@ body {
   margin: 0 auto;
   padding: 0 16px env(safe-area-inset-bottom);
 }
-.chat-preview-header {
-  padding: 20px 0 8px;
+.chat-welcome {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
 }
-.chat-preview-header h1 {
-  font-size: 22px;
-  font-weight: 600;
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 620px;
 }
-.chat-preview-header p {
-  color: var(--muted-foreground);
-  font-size: 13px;
-  margin-top: 4px;
+.chat-starters button {
+  padding: 11px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+.chat-starters button:hover {
+  background: var(--muted);
+}
+.chat-model-select {
+  max-width: 210px;
 }
 .chat-preview-empty {
   color: var(--muted-foreground);

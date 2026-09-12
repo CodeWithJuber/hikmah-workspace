@@ -10,11 +10,22 @@
  * The provider key is deliberately absent: the server resolves it from a saved
  * secret name, so the browser never holds it.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UIMessage } from 'ai';
 import { ChatView } from './chat-view';
 import type { Agent } from './agents-panel';
 import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
+import { listModels } from '@/lib/playground/transport';
+import { priceKind } from '@/lib/playground/model-catalog';
+import { defaultProvider } from '@/lib/playground/session';
+
+/** The same openers the workspace offers, so the two surfaces do not disagree
+ * about what this assistant is for. */
+const STARTERS = [
+  'Turn my client brief into a clear proposal.',
+  'Help me write and adapt content for my audience.',
+  'Review code or notes from an attached file.',
+];
 
 type RunConfig = {
   baseUrl: string;
@@ -87,6 +98,10 @@ export function ChatPreview({
   onSettled?: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [catalog, setCatalog] = useState<{ id: string; label: string }[]>([]);
+  // Chosen for the next turn only. Null means "whatever the workspace is set
+  // to", so changing the saved connection still takes effect here.
+  const [chosen, setChosen] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -98,15 +113,48 @@ export function ChatPreview({
     };
   }, [conversationId]);
 
+  // The catalog is a convenience, not a precondition: a provider that publishes
+  // no model list still works, the composer just does not offer a picker. The
+  // request carries a secret reference rather than a key, and goes through the
+  // relay, so this stays as key-free as the rest of the surface.
+  const config = loaded?.config;
+  useEffect(() => {
+    if (!config) return;
+    const controller = new AbortController();
+    void listModels(
+      {
+        ...defaultProvider,
+        baseUrl: config.baseUrl,
+        model: config.model,
+        apiKeySecret: config.apiKeySecret,
+        freeOnly: config.freeOnly,
+      },
+      controller.signal,
+    )
+      .then((rows) => {
+        const usable = config.freeOnly ? rows.filter((row) => priceKind(row) === 'free') : rows;
+        setCatalog(usable.map((row) => ({ id: row.id, label: row.name || row.id })).slice(0, 200));
+      })
+      .catch(() => setCatalog([]));
+    return () => controller.abort();
+  }, [config]);
+
+  const models = useMemo(() => {
+    if (!config) return [];
+    // The connection's own model belongs in the list even when the catalog does
+    // not name it, or the picker would show a value it cannot select back to.
+    return catalog.some((row) => row.id === config.model)
+      ? catalog
+      : [{ id: config.model, label: config.model }, ...catalog];
+  }, [catalog, config]);
+
+  const pick = useCallback((model: string) => setChosen(model), []);
+
   return (
     <main className="chat-preview">
-      <header className="chat-preview-header">
-        <h1>Chat</h1>
-        <p>
-          Runs on the server: the answer continues even while this tab is busy, and the provider key
-          never reaches the browser.
-        </p>
-      </header>
+      {/* No page heading here: the topbar already names the app, and a
+          paragraph explaining that runs are server-side was repeating an
+          implementation detail above every conversation. */}
       {loaded ? (
         <ChatView
           id={conversationId}
@@ -119,12 +167,16 @@ export function ChatPreview({
               ? `${loaded.config.instructions}\n\n${agent.instructions}`
               : loaded.config.instructions,
             enabledTools: agent?.tools?.length ? agent.tools : undefined,
-            // Only when the agent names one, so picking an agent cannot quietly
-            // move the conversation to a different provider.
-            model: agent?.model || loaded.config.model,
+            // The owner's own choice first, then the agent's, then the saved
+            // connection: picking an agent should not quietly override a model
+            // the owner just selected.
+            model: chosen || agent?.model || loaded.config.model,
           }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
+          starters={STARTERS}
+          models={models.length > 1 ? models : []}
+          onModel={pick}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

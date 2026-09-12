@@ -17,7 +17,15 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
-import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
+import { Copy, RefreshCw } from 'lucide-react';
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+  MessageResponse,
+  MessageToolbar,
+} from '@/components/ai-elements/message';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
@@ -158,13 +166,18 @@ export function MessageParts({
   message,
   status,
   onApproval,
+  onRegenerate,
 }: {
   message: UIMessage;
   status: ChatStatus;
   onApproval?: RespondToApproval;
+  /** Offered on the answer this would replace; absent while a run is in
+   * flight, and on anything but the last answer. */
+  onRegenerate?: () => void;
 }) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
+  const answered = message.role === 'assistant' && status !== 'streaming' && status !== 'submitted';
 
   return (
     <Message from={message.role}>
@@ -294,7 +307,47 @@ export function MessageParts({
             </SourcesContent>
           </Sources>
         )}
+
+        {answered && (
+          <MessageToolbar>
+            <MessageActions>
+              <MessageAction
+                tooltip="Copy answer"
+                onClick={() => void copyMessage(message)}
+                disabled={!messageText(message)}
+              >
+                <Copy size={15} />
+              </MessageAction>
+              {onRegenerate && (
+                <MessageAction tooltip="Answer again" onClick={onRegenerate}>
+                  <RefreshCw size={15} />
+                </MessageAction>
+              )}
+            </MessageActions>
+          </MessageToolbar>
+        )}
       </MessageContent>
     </Message>
   );
+}
+
+/** The answer as text, which is what someone copying it wants — not the tool
+ * receipts and reasoning that sit between the text parts. */
+function messageText(message: UIMessage): string {
+  return message.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => (part as { text: string }).text)
+    .join('\n\n')
+    .trim();
+}
+
+async function copyMessage(message: UIMessage): Promise<void> {
+  const text = messageText(message);
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Denied clipboard permission is the owner's decision, not an error to
+    // interrupt them with.
+  }
 }

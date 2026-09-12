@@ -21,6 +21,11 @@ import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -50,9 +55,27 @@ export type ChatViewProps = {
   onSettled?: () => void;
   /** Shown when the conversation is empty. */
   empty?: React.ReactNode;
+  /** Offered on an empty conversation. Sent as written rather than dropped in
+   * the composer: a starter is a question someone already decided to ask. */
+  starters?: string[];
+  /** The models the provider offers. Empty while the catalog is loading, or
+   * when the provider does not publish one. */
+  models?: { id: string; label: string }[];
+  /** Applies from the next turn, which is why it is not part of `run`: an
+   * answer already written was written by the model that wrote it. */
+  onModel?: (model: string) => void;
 };
 
-export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatViewProps) {
+export function ChatView({
+  id,
+  run,
+  initialMessages,
+  onSettled,
+  empty,
+  starters,
+  models,
+  onModel,
+}: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
   //
@@ -116,13 +139,33 @@ export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatVie
     <div className="chat-view">
       <Conversation>
         <ConversationContent>
-          {messages.length === 0 && empty}
-          {messages.map((message) => (
+          {messages.length === 0 && (
+            <div className="chat-welcome">
+              {empty}
+              {!!starters?.length && (
+                <div className="chat-starters">
+                  {starters.map((prompt) => (
+                    <button key={prompt} type="button" onClick={() => submit({ text: prompt })}>
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {messages.map((message, index) => (
             <MessageParts
               key={message.id}
               message={message}
               status={status}
               onApproval={addToolApprovalResponse}
+              // Only the last answer, and only once the run has settled:
+              // regenerating anything earlier would discard what came after it.
+              onRegenerate={
+                !busy && message.role === 'assistant' && index === messages.length - 1
+                  ? () => void regenerate()
+                  : undefined
+              }
             />
           ))}
           {/* The answer region is announced while a run is in progress, so a
@@ -149,6 +192,20 @@ export function ChatView({ id, run, initialMessages, onSettled, empty }: ChatVie
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
+            {!!models?.length && (
+              <PromptInputSelect value={run.model} onValueChange={onModel}>
+                <PromptInputSelectTrigger className="chat-model-select">
+                  <PromptInputSelectValue placeholder={run.model} />
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent>
+                  {models.map((model) => (
+                    <PromptInputSelectItem key={model.id} value={model.id}>
+                      {model.label}
+                    </PromptInputSelectItem>
+                  ))}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+            )}
             <label className="chat-compare-toggle">
               <input
                 type="checkbox"
