@@ -215,6 +215,13 @@ whose result may legitimately arrive from a browser. Accepting any completed
 tool call would let a client hand the run a result the server was supposed to
 produce.
 
+A third, found by a test written while deleting something else: these policies
+are only rules if they are actually handed to the agent. `bash` and
+`sandbox_run` had their policies computed on every run and then left out of the
+object that carries them, so both ran unprompted from the day the workbench
+shipped — nothing failed, the tools simply worked without the card. The table
+above now describes the code rather than the intention.
+
 Two mistakes these rules exist to avoid. Matching a command by **prefix** would
 let `df; rm -rf /` through on a pattern of `df`, so matching is anchored and any
 command containing `;`, `|`, `&`, a backtick or a redirect is excluded before the
