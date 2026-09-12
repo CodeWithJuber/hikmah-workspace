@@ -6,7 +6,6 @@ import {
   ProviderTransportError,
 } from '../lib/playground/transport.ts';
 import { CompletionFramer, FramingError } from '../lib/playground/completion-framing.ts';
-import { parseCheckpoint } from '../lib/playground/checkpoint.ts';
 import { setImmediate as immediate } from 'node:timers/promises';
 const config = {
   baseUrl: 'https://api.experientiallabs.ai/v1',
@@ -84,7 +83,7 @@ test('idle stream still stops after five minutes with preserved text', async (t)
   assert.equal(cancelled, true);
 });
 
-test('signed tool-call IDs round-trip through completion, request history, and checkpoint', async (t) => {
+test('signed tool-call IDs round-trip through completion and request history', async (t) => {
   const id = 'call_' + 'signed/opaque+data='.repeat(3000);
   assert.ok(id.length > 256 && id.length <= 65536);
   const tool = {
@@ -112,21 +111,10 @@ test('signed tool-call IDs round-trip through completion, request history, and c
   const body = JSON.parse(createCompletionBody(config, history));
   assert.equal(body.messages[1].tool_calls[0].id, id);
   assert.equal(body.messages[2].tool_call_id, id);
-  const cp = parseCheckpoint({
-    version: 1,
-    messages: history,
-    goal: messages[0],
-    output: '',
-    requests: 1,
-    toolCount: 1,
-    compactions: 0,
-    pendingCalls: result.toolCalls,
-    pendingIndex: 1,
-    recentSignatures: [],
-    phase: 'ready',
-  });
-  assert.equal(cp.messages[1].tool_calls[0].id, id);
-  assert.equal(cp.pendingCalls[0].id, id);
+  // The third leg of this round trip used to be the run checkpoint, which
+  // carried an interrupted browser run across a reload. Runs belong to the
+  // server now and their messages are rows, so there is no checkpoint to
+  // normalise the id through.
 });
 
 test('malformed choices entries are protocol errors rather than CORS/network diagnosis', async (t) => {

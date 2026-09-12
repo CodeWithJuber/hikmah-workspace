@@ -35,13 +35,12 @@ const labels: Record<string, string> = {
   transition_estimate: 'Transition experiment',
 };
 export function AgentSelector() {
-  const { workspace, setWorkspace, isRunning, setWorkspacePage } = usePlayground();
+  const { workspace, setWorkspace, setWorkspacePage } = usePlayground();
   return (
     <div className="agent-selector">
       <HikmahIcon name="agent" size={17} />
       <select
         aria-label="Active agent"
-        disabled={isRunning}
         value={workspace.activeAgentId}
         onChange={(e) => setWorkspace((w) => ({ ...w, activeAgentId: e.target.value }))}
       >
@@ -52,11 +51,7 @@ export function AgentSelector() {
           </option>
         ))}
       </select>
-      <button
-        disabled={isRunning}
-        onClick={() => setWorkspacePage('agents')}
-        aria-label="Manage agents"
-      >
+      <button onClick={() => setWorkspacePage('agents')} aria-label="Manage agents">
         <Plus size={15} />
       </button>
     </div>
@@ -67,7 +62,6 @@ export function AgentsHome() {
     workspace,
     setWorkspace,
     connectorTools,
-    isRunning,
     setWorkspacePage,
     setMode,
     setConversations,
@@ -110,7 +104,7 @@ export function AgentsHome() {
       <header className="workspace-header">
         <SidebarTrigger />
         <h1>Agents</h1>
-        <Button disabled={isRunning || workspace.agents.length >= 40} onClick={() => make()}>
+        <Button disabled={workspace.agents.length >= 40} onClick={() => make()}>
           <Plus size={16} />
           Create agent
         </Button>
@@ -177,21 +171,17 @@ export function AgentsHome() {
                     </span>
                   </div>
                   <div className="agent-card-actions">
-                    <Button onClick={() => use(a)} disabled={isRunning}>
+                    <Button onClick={() => use(a)}>
                       Start chat <ArrowUpRight size={15} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={isRunning}
-                      onClick={() => setDraft(structuredClone(a))}
-                    >
+                    <Button variant="ghost" onClick={() => setDraft(structuredClone(a))}>
                       Edit
                     </Button>
                     <Button
                       variant="ghost"
                       className="icon-button"
                       aria-label={'Duplicate ' + a.name}
-                      disabled={isRunning || workspace.agents.length >= 40}
+                      disabled={workspace.agents.length >= 40}
                       onClick={() =>
                         setDraft({
                           ...structuredClone(a),
@@ -206,7 +196,6 @@ export function AgentsHome() {
                       variant="ghost"
                       className="icon-button"
                       aria-label={'Delete ' + a.name}
-                      disabled={isRunning}
                       onClick={() => setRemove(a.id)}
                     >
                       <Trash2 size={15} />
@@ -220,11 +209,7 @@ export function AgentsHome() {
         <h3 className="section-label">Start from a template</h3>
         <div className="template-list">
           {agentTemplates.map((t) => (
-            <button
-              key={t.id}
-              disabled={isRunning || workspace.agents.length >= 40}
-              onClick={() => make(t)}
-            >
+            <button key={t.id} disabled={workspace.agents.length >= 40} onClick={() => make(t)}>
               <span className={'agent-avatar ' + t.kind}>
                 <HikmahIcon
                   name={
@@ -360,7 +345,7 @@ export function AgentsHome() {
             </div>
           )}
           <Button
-            disabled={isRunning || !draft?.name.trim() || !draft?.instructions.trim()}
+            disabled={!draft?.name.trim() || !draft?.instructions.trim()}
             onClick={() => {
               if (!draft) return;
               setWorkspace((w) => ({

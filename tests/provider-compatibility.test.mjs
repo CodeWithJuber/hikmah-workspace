@@ -6,7 +6,6 @@ import {
   ProviderTransportError,
 } from '../lib/playground/transport.ts';
 import { diagnoseProviderError } from '../lib/playground/provider-diagnostics.ts';
-import { contextMessages, entryText } from '../lib/playground/chat-context.ts';
 const config = {
   baseUrl: 'https://api.experientiallabs.ai/v1',
   apiKey: 'secret-key-for-test',
@@ -82,33 +81,7 @@ test('false and empty error metadata do not reject valid successful responses', 
     m.mock.restore();
   }
 });
-test('failed answer text does not contaminate later context; completed receipts survive', () => {
-  const history = [
-    { role: 'user', id: 'u', text: 'do work' },
-    {
-      role: 'assistant',
-      id: 'a',
-      text: 'raw failed output',
-      status: 'error',
-      error: { message: 'provider failure' },
-      trace: [
-        { id: 't', name: 'write_file', status: 'success', input: '{}', output: 'saved notes.md' },
-      ],
-    },
-  ];
-  const m = contextMessages(history, 1000);
-  assert.ok(!JSON.stringify(m).includes('raw failed output'));
-  assert.ok(JSON.stringify(m).includes('saved notes.md'));
-  assert.ok(!JSON.stringify(m).includes('provider failure'));
-});
-test('attachments are included as reference data in the request context', () => {
-  assert.match(
-    entryText({
-      id: 'u',
-      role: 'user',
-      text: 'Review',
-      attachments: [{ name: 'test.ts', content: 'const n=1;' }],
-    }),
-    /FILE test.ts\nconst n=1;/,
-  );
-});
+// Two tests lived here about how a browser-held transcript was folded into a
+// request: contextMessages and entryText, from lib/playground/chat-context. The
+// transcript is rows on the server now and the folding is lib/ai/context, which
+// tests/ai-context covers — so they went with the module.

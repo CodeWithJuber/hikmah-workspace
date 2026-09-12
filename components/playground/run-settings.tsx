@@ -42,7 +42,7 @@ export function RunSettings({
   contextNote: string;
   localResult: string;
 }) {
-  const { preferences, setPreferences, isRunning, provider, setProvider, models, mode, setMode } =
+  const { preferences, setPreferences, provider, setProvider, models, mode, setMode } =
     usePlayground();
   const selected = models.find((m) => m.id === provider.model);
   const efforts = selected?.reasoning_efforts ?? [];
@@ -75,7 +75,6 @@ export function RunSettings({
               </h3>
               <Choice
                 label="Continue working"
-                disabled={isRunning}
                 value={preferences.execution}
                 onChange={(v) =>
                   setPreferences((p) => ({ ...p, execution: v as 'continuous' | 'stepwise' }))
@@ -93,7 +92,6 @@ export function RunSettings({
                     type="number"
                     min={1}
                     max={100}
-                    disabled={isRunning}
                     value={preferences.maxRounds}
                     onChange={(e) =>
                       setPreferences((p) => ({
@@ -115,7 +113,6 @@ export function RunSettings({
                 </div>
                 <Switch
                   checked={preferences.autoContinue}
-                  disabled={isRunning}
                   onCheckedChange={(v) => setPreferences((p) => ({ ...p, autoContinue: v }))}
                 />
               </label>
@@ -127,7 +124,7 @@ export function RunSettings({
               </h3>
               <Choice
                 label="Reasoning effort"
-                disabled={isRunning || !efforts.length}
+                disabled={!efforts.length}
                 value={provider.reasoningEffort ?? 'default'}
                 onChange={(v) =>
                   setProvider((p) => ({ ...p, reasoningEffort: v as ReasoningEffort }))
@@ -165,7 +162,6 @@ export function RunSettings({
                 </div>
                 <Switch
                   checked={preferences.explainDecisions}
-                  disabled={isRunning}
                   onCheckedChange={(v) => setPreferences((p) => ({ ...p, explainDecisions: v }))}
                 />
               </label>
@@ -189,7 +185,6 @@ export function RunSettings({
             {(mode === 'agent' || mode === 'compare') && (
               <Choice
                 label="Agent approach"
-                disabled={isRunning}
                 value={mode}
                 onChange={(v) => setMode(v as 'agent' | 'compare')}
                 options={[
@@ -214,7 +209,6 @@ export function RunSettings({
               </div>
               <Switch
                 checked={preferences.allowEdits}
-                disabled={isRunning}
                 onCheckedChange={(v) => setPreferences((p) => ({ ...p, allowEdits: v }))}
               />
             </label>
@@ -226,7 +220,7 @@ export function RunSettings({
                     <span>{name}</span>
                     <Switch
                       aria-label={name}
-                      disabled={isRunning || (id === 'write_file' && !preferences.allowEdits)}
+                      disabled={id === 'write_file' && !preferences.allowEdits}
                       checked={preferences.enabledTools.includes(id)}
                       onCheckedChange={(v) =>
                         setPreferences((p) => ({
@@ -260,7 +254,6 @@ export function RunSettings({
                 min={128}
                 max={maxOutput}
                 step={128}
-                disabled={isRunning}
                 value={provider.maxTokens}
                 onChange={(e) =>
                   setProvider((p) => ({

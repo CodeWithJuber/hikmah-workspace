@@ -61,7 +61,9 @@ async function finalMessage(stream) {
 test('a program is never run before the owner has seen it', async () => {
   // sandbox_run is documented as always asking: a program is not something
   // anyone can skim the way they can skim `ls -la`.
-  const { agent, ran } = agentOver([call('sandbox_run', { language: 'python', code: 'print(1)', description: 'Print one' })]);
+  const { agent, ran } = agentOver([
+    call('sandbox_run', { language: 'python', code: 'print(1)', description: 'Print one' }),
+  ]);
   const message = await finalMessage(
     await createAgentUIStream({ agent, uiMessages: [userTurn('run this')] }),
   );

@@ -99,7 +99,6 @@ export function SavedSecretSelect({
   );
 }
 export function SecretsSettings() {
-  const { isRunning } = usePlayground();
   const { rows, error, loading } = useSecrets();
   const [name, setName] = useState(''),
     [value, setValue] = useState(''),
@@ -117,7 +116,7 @@ export function SecretsSettings() {
     setEndpoint('');
   };
   const mutate = async (method: 'PUT' | 'DELETE', variable = name) => {
-    if (busy || isRunning) return;
+    if (busy) return;
     setBusy(true);
     setFailure('');
     setMessage('');
@@ -182,7 +181,7 @@ export function SecretsSettings() {
             id="secret-name"
             value={name}
             maxLength={64}
-            disabled={editing || busy || isRunning}
+            disabled={editing || busy}
             onChange={(e) => setName(e.target.value.toUpperCase())}
             placeholder="OPENROUTER_API_KEY"
             autoComplete="off"
@@ -195,7 +194,7 @@ export function SecretsSettings() {
             id="secret-service"
             className="secret-select"
             value={service}
-            disabled={busy || isRunning}
+            disabled={busy}
             onChange={(e) => setService(e.target.value)}
           >
             {SECRET_SERVICES.map((s) => (
@@ -212,7 +211,7 @@ export function SecretsSettings() {
               id="secret-endpoint"
               type="url"
               value={endpoint}
-              disabled={busy || isRunning}
+              disabled={busy}
               onChange={(e) => setEndpoint(e.target.value)}
               placeholder="https://tools.example.com/mcp"
             />
@@ -227,7 +226,7 @@ export function SecretsSettings() {
               maxLength={8192}
               autoComplete="off"
               spellCheck={false}
-              disabled={busy || isRunning}
+              disabled={busy}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Value available to your generated runtime code"
             />
@@ -239,7 +238,7 @@ export function SecretsSettings() {
               maxLength={8192}
               autoComplete="new-password"
               spellCheck={false}
-              disabled={busy || isRunning}
+              disabled={busy}
               onChange={(e) => setValue(e.target.value)}
               placeholder={
                 editing
@@ -272,13 +271,7 @@ export function SecretsSettings() {
         <div className="secret-actions">
           <Button
             type="submit"
-            disabled={
-              !validSecretName(name) ||
-              !value ||
-              busy ||
-              isRunning ||
-              (service === 'mcp' && !endpoint)
-            }
+            disabled={!validSecretName(name) || !value || busy || (service === 'mcp' && !endpoint)}
           >
             {busy ? <LoaderCircle size={16} className="spin" /> : <KeyRound size={16} />}{' '}
             {editing ? 'Replace secret' : 'Save secret'}
@@ -322,7 +315,7 @@ export function SecretsSettings() {
                     <span>Delete this variable?</span>
                     <Button
                       variant="destructive"
-                      disabled={busy || isRunning}
+                      disabled={busy}
                       onClick={() => void mutate('DELETE', row.name)}
                     >
                       Delete
@@ -335,7 +328,7 @@ export function SecretsSettings() {
                   <>
                     <Button
                       variant="outline"
-                      disabled={busy || isRunning}
+                      disabled={busy}
                       onClick={() => {
                         setName(row.name);
                         setValue('');
@@ -353,7 +346,7 @@ export function SecretsSettings() {
                       variant="ghost"
                       className="icon-button"
                       aria-label={'Delete ' + row.name}
-                      disabled={busy || isRunning}
+                      disabled={busy}
                       onClick={() => setDeleting(row.name)}
                     >
                       <Trash2 size={16} />

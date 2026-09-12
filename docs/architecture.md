@@ -124,12 +124,15 @@ the most recently active, or a fresh id — and redirects, so a reload lands whe
 the owner was. `/` redirects to `/chat` rather than duplicating that choice, so
 there is one place that decides which conversation opens.
 
-The workspace — the chat that runs in the tab, and the screens around it:
-coding, agents, compare, tools, connections, the terminal, memory, learning, the
-research labs, settings, the owner console and the model connection — is at
-`/workspace`. Its sub-page lives in the URL hash (`/workspace#/admin/media`),
-which `workspaceDestination` reads without regard to the pathname, so those
-addresses survived the move from the root unchanged. A row is not created by opening a conversation: the first message
+The workspace at `/workspace` is the console around the chat: agents, tools,
+connections, the terminal, memory, learning, the research labs, settings, the
+owner console and the model connection. It used to hold a chat of its own — one
+that ran the whole agent loop in the browser tab — and that is gone. There is
+one run loop now, and it belongs to the server. Its sub-page lives in the URL
+hash (`/workspace#/admin/media`), which `workspaceDestination` reads without
+regard to the pathname, so those addresses survived the move from the root
+unchanged; `#/workspace` is no longer one of them and falls back to the first
+real screen. A row is not created by opening a conversation: the first message
 creates it, so an abandoned "New chat" leaves nothing in the list. It is titled
 from that message rather than by asking a model, which would cost a request and
 a wait before the answer actually asked for, and on the free models this
@@ -408,6 +411,15 @@ Stated so nobody goes looking:
 - **No OAuth for remote MCP.** Credentials are `${NAME}` references into the
   encrypted store.
 - **No second app replica.** See the worker limit above.
-- **The old browser-driven surface still exists** at the workspace page, and
-  still exclusively owns media generation, Compare, artifacts, agents and the
-  labs. Nothing legacy can be deleted until those move.
+- **The workspace blob is still there.** `workspace_states` no longer holds
+  conversations, but two things live only in it: the provider connection, which
+  `components/chat/chat-preview.tsx` reads to know which model to talk to, and
+  personal knowledge, which has no table of its own. Retiring the blob means
+  giving those two a home first.
+- **Some of the browser MCP client survives.** `lib/playground/mcp-client.ts` is
+  still reached from the workspace provider and the admin screen, and it is the
+  only caller of `/api/mcp` and `lib/server/mcp-relay.ts`. Runs use
+  `lib/mcp/*` instead; the two paths are unrelated and only one is legacy.
+- **`lib/playground/transport.ts` is not legacy.** It reads as browser code and
+  is partly that, but `lib/server/provider-relay.ts` and the chat surface's
+  model picker both depend on it.

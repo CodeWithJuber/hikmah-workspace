@@ -1,8 +1,13 @@
+// What survived the browser run loop.
+//
+// This file used to drive `runAgent` through cancellation, checkpoint resume
+// and tool continuation. That loop is gone. What remains is the streaming layer
+// under it, which is still live on the server: how reasoning blocks merge, and
+// what the transport reports as an answer arrives.
+// Run: node --test tests/execution-streaming.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { complete, createCompletionBody } from '../lib/playground/transport.ts';
-import { runAgent } from '../lib/playground/agent-runner.ts';
-import { parseCheckpoint } from '../lib/playground/checkpoint.ts';
+import { complete } from '../lib/playground/transport.ts';
 import { mergeReasoningDetails, publicExplanation } from '../lib/playground/reasoning.ts';
 const config = {
   baseUrl: 'https://openrouter.ai/api/v1',
@@ -11,63 +16,7 @@ const config = {
   maxTokens: 1024,
   temperature: 0,
 };
-const response = (content) => ({
-  content,
-  toolCalls: [],
-  model: 'returned',
-  usage: { total_tokens: 12 },
-  finishReason: 'stop',
-});
-const options = (extra) => ({
-  config,
-  messages: [{ role: 'user', content: 'Finish the task.' }],
-  execute: () => ({ output: 'ok', status: 'success' }),
-  execution: 'continuous',
-  reviewEvery: 10,
-  autoContinue: true,
-  contextCharacters: 170000,
-  signal: new AbortController().signal,
-  onText: () => {},
-  onProgress: () => {},
-  onReceipt: () => {},
-  onCheckpoint: () => {},
-  onUsage: () => {},
-  ...extra,
-});
-test('partial answer survives cancellation, JSON checkpoint and subsequent continuation', async () => {
-  let checkpoint;
-  const controller = new AbortController();
-  await assert.rejects(
-    runAgent(
-      options({
-        signal: controller.signal,
-        onCheckpoint: (c) => (checkpoint = c),
-        request: async (_, __, o) => {
-          o.onText('Completed first paragraph. ');
-          controller.abort();
-          throw new DOMException('Stopped', 'AbortError');
-        },
-      }),
-    ),
-    { name: 'AbortError' },
-  );
-  assert.equal(checkpoint.output, 'Completed first paragraph. ');
-  const restored = parseCheckpoint(JSON.parse(JSON.stringify(checkpoint)));
-  let history;
-  const result = await runAgent(
-    options({
-      checkpoint: restored,
-      request: async (_, messages) => {
-        history = messages;
-        return response('Second paragraph.');
-      },
-    }),
-  );
-  assert.ok(
-    history.some((m) => m.role === 'assistant' && m.content === 'Completed first paragraph. '),
-  );
-  assert.equal(result.checkpoint.output, 'Completed first paragraph. Second paragraph.');
-});
+
 test('reasoning details merge by index while opaque content is retained but never displayed', () => {
   let blocks = mergeReasoningDetails(
     [],
@@ -85,41 +34,6 @@ test('reasoning details merge by index while opaque content is retained but neve
   assert.throws(() =>
     mergeReasoningDetails(blocks, [{ index: 1, type: 'reasoning.text', text: 'changed' }]),
   );
-});
-test('tool continuation preserves the provider explanation and opaque signature across checkpoint normalization', async () => {
-  let count = 0,
-    history,
-    checkpoint;
-  const detail = {
-    type: 'reasoning.encrypted',
-    id: 'r1',
-    data: 'opaque-signed-data',
-    format: 'anthropic-claude-v1',
-    index: 0,
-  };
-  await runAgent(
-    options({
-      tools: [{ type: 'function', function: { name: 'read', parameters: { type: 'object' } } }],
-      onCheckpoint: (c) => (checkpoint = c),
-      request: async (_, messages) => {
-        history = messages;
-        return ++count === 1
-          ? {
-              ...response(''),
-              reasoning: 'Provider text',
-              reasoningDetails: [detail],
-              toolCalls: [{ id: 't1', name: 'read', arguments: '{}' }],
-            }
-          : response('Done');
-      },
-    }),
-  );
-  const normalized = parseCheckpoint(JSON.parse(JSON.stringify(checkpoint)));
-  const body = JSON.parse(createCompletionBody(config, normalized.messages));
-  const assistant = body.messages.find((m) => m.tool_calls);
-  assert.deepEqual(assistant.reasoning_details, [detail]);
-  assert.equal(assistant.reasoning, 'Provider text');
-  assert.ok(history.some((m) => m.reasoning_details));
 });
 test('SSE returns model identity and explanation before final answer; duplicate compatibility fields do not duplicate display', async (t) => {
   const events = [
@@ -168,32 +82,4 @@ test('SSE returns model identity and explanation before final answer; duplicate 
   assert.ok(!seen.includes('explanation:Checking units.\nChecking units.'));
   assert.equal(result.model, 'actual-model');
   assert.equal(result.usage.total_tokens, 20);
-});
-
-test('empty final replies pause instead of reporting successful completion', async () => {
-  const out = await runAgent(options({ request: async () => response('') }));
-  assert.equal(out.status, 'paused');
-  assert.equal(out.checkpoint.phase, 'ready');
-  assert.match(out.reason, /no answer text/);
-});
-test('tool preambles remain in history while the final deliverable stays clean', async () => {
-  let n = 0,
-    history;
-  const out = await runAgent(
-    options({
-      tools: [{ type: 'function', function: { name: 'read', parameters: { type: 'object' } } }],
-      request: async (_, messages) => {
-        history = messages;
-        return ++n === 1
-          ? {
-              ...response('I will inspect it.'),
-              toolCalls: [{ id: 't', name: 'read', arguments: '{}' }],
-            }
-          : response('The checked result is 42.');
-      },
-    }),
-  );
-  assert.equal(out.checkpoint.output, 'The checked result is 42.');
-  assert.ok(history.some((m) => m.content === 'I will inspect it.'));
-  assert.equal(out.status, 'complete');
 });

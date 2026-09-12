@@ -1,8 +1,8 @@
 /** The markdown renderer is wired through CSS and package side effects that no
  * other test touches, and each failure here is silent or subtle in a browser:
  * a missing stylesheet renders every formula twice, a missing @source line
- * strips the answer's styling, and a diverging plugin set makes the two chat
- * surfaces render the same answer differently. */
+ * strips the answer's styling, and a diverging plugin set makes two places
+ * render the same answer differently. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -35,7 +35,7 @@ test('every streamdown package Tailwind must scan is declared as a source', () =
   }
 });
 
-test('both chat surfaces render markdown through the same renderer and plugins', () => {
+test('every place that renders markdown uses the same renderer and plugins', () => {
   for (const source of [playground, elements]) {
     assert.match(source, /from 'streamdown'|from "streamdown"/);
     assert.match(source, /\{ cjk, code, math, mermaid \}/);
@@ -55,14 +55,8 @@ test('the hand-rolled code block and table wrapper leave no dead CSS behind', ()
   }
 });
 
-test('tool activity and run stages are rows, not a second disclosure', async () => {
-  const chat = await readFile('components/playground/chat.tsx', 'utf8');
-  const view = await readFile('components/playground/execution-view.tsx', 'utf8');
-  assert.match(chat, /<div className="activity-group">/);
-  assert.doesNotMatch(chat, /<details className="activity-group">/);
-  assert.match(view, /<div className="execution-progress">/);
-  assert.doesNotMatch(view, /execution-details/);
-  // The payload and the model's explanation stay one click away, not two.
-  assert.match(chat, /<details key=\{t\.id \+ '-' \+ i\} className="activity-item">/);
-  assert.match(view, /<details\n\s+className="provider-explanation"/);
-});
+// A test lived here asserting that the playground chat's tool activity and run
+// stages were readable rows rather than a second disclosure. Both files it read
+// — components/playground/{chat,execution-view}.tsx — are gone with the browser
+// run loop; components/chat/message-parts.tsx renders tool activity now, and
+// tests/chat-surface covers it.

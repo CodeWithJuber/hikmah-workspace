@@ -1,9 +1,16 @@
+/** The first real screen, and where anything unrecognised lands.
+ *
+ * It used to be 'workspace', which was the browser-run chat. That chat is gone
+ * — conversations belong to /chat and to the server — so 'workspace' is not a
+ * page of this shell any more, and a fallback pointing at it would render an
+ * empty panel. */
+export const DEFAULT_PAGE = 'agents';
+
 const pages = new Set([
   'agents',
   'tools',
   'terminal',
   'connections',
-  'workspace',
   'knowledge',
   'learning',
   'kernel',
@@ -27,5 +34,5 @@ const pages = new Set([
 ]);
 export function workspaceDestination(hash: string): string {
   const page = hash.replace(/^#\/?/, '');
-  return pages.has(page) ? page : 'workspace';
+  return pages.has(page) ? page : DEFAULT_PAGE;
 }

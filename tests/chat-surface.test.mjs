@@ -53,9 +53,18 @@ test('the theme cookie outlives the session and never leaves this site', () => {
 });
 
 test('the layout paints the saved theme, and the workspace keeps it current', () => {
-  assert.match(layout, /data-theme=\{isTheme\(saved\) \? saved : 'light'\}/);
+  assert.match(layout, /data-theme=\{theme\}/);
   assert.match(layout, /THEME_COOKIE/);
   assert.match(context, /document\.cookie = themeCookie\(preferences\.theme\);/);
+});
+
+test('the theme has a source that does not depend on the workspace mounting', () => {
+  // The cookie is written in the browser by the workspace provider. Since the
+  // chat became the default surface, an owner can sign in, land on /chat and
+  // never mount it — so a saved dark theme painted light until they happened to
+  // open /workspace. The cookie is the fast path, not the only one.
+  assert.match(layout, /savedTheme\(\)/);
+  assert.match(layout, /isTheme\(cookie\) \? cookie : await savedTheme\(\)/);
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {

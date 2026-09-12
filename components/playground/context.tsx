@@ -84,8 +84,6 @@ type AppContext = {
   setActiveId: Setter<string>;
   mode: ChatMode;
   setMode: Setter<ChatMode>;
-  isRunning: boolean;
-  setIsRunning: Setter<boolean>;
   models: ModelInfo[];
   setModels: Setter<ModelInfo[]>;
   modelsLoading: boolean;
@@ -284,7 +282,6 @@ export function PlaygroundProvider({
   }, [loaded]);
   const [activeId, setActiveId] = useState('');
   const [mode, setMode] = useState<ChatMode>('chat');
-  const [isRunning, setIsRunning] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState('');
@@ -544,8 +541,6 @@ export function PlaygroundProvider({
         setActiveId,
         mode,
         setMode,
-        isRunning,
-        setIsRunning,
         models,
         setModels,
         modelsLoading,

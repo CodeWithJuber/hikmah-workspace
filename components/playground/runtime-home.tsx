@@ -42,7 +42,7 @@ const defaults = [
   },
 ];
 export function RuntimeHome() {
-  const { preferences, setPreferences, workspace, connectorTools, setWorkspacePage, isRunning } =
+  const { preferences, setPreferences, workspace, connectorTools, setWorkspacePage } =
     usePlayground();
   const [code, setCode] = useState(
     'const orders = [120, 80, 240];\nconst total = orders.reduce((a, b) => a + b, 0);\nconsole.log({total, withTax: total * 1.08});',
@@ -114,7 +114,6 @@ export function RuntimeHome() {
                 </span>
                 <Switch
                   aria-label={'Enable ' + t.name}
-                  disabled={isRunning}
                   checked={preferences.enabledTools.includes(t.id)}
                   onCheckedChange={(enabled) =>
                     setPreferences((p) => ({

@@ -21,8 +21,6 @@ export const baseRows = validateRows(corpus.base_train, 'train') as TrainingRow[
 export const initialModel = train(baseRows);
 export type { ProviderConfig } from './transport';
 import type { ProviderConfig, Usage } from './transport';
-import type { RunCheckpoint } from './agent-runner';
-import { parseCheckpoint } from './checkpoint';
 import { parseWorkspaceConfig, type WorkspaceConfig } from './workspace-config';
 import type { MediaAsset } from './media-client';
 export type ChatMode = 'chat' | 'coding' | 'agent' | 'compare';
@@ -153,7 +151,6 @@ export type ChatEntry = {
   };
   mediaOperation?: 'image' | 'speech' | 'video' | 'transcription';
   media?: MediaAsset[];
-  checkpoint?: RunCheckpoint;
   pauseReason?: string;
   plan?: { step: string; status: 'pending' | 'in_progress' | 'completed' }[];
   rating?: 'up' | 'down';
@@ -324,7 +321,6 @@ export function validateConversations(value: unknown): Conversation[] {
                   status: a.status === 'pending' ? 'pending' : 'ready',
                 }))
             : undefined,
-          checkpoint: parseCheckpoint(m.checkpoint),
           pauseReason: typeof m.pauseReason === 'string' ? m.pauseReason.slice(0, 1000) : undefined,
           plan: Array.isArray(m.plan)
             ? m.plan
