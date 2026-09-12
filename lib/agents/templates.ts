@@ -27,6 +27,7 @@ export const BUILT_IN_TOOLS = [
   'read_file',
   'read_webpage',
   'research_quran',
+  'run_javascript',
   'sandbox_run',
   'search_reference',
   'search_web',
