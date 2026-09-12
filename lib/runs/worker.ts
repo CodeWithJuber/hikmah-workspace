@@ -133,12 +133,19 @@ export function createWorker(options: WorkerOptions): Worker {
           // Persist the finished answer, then drop the resume buffer: once the
           // message is a row, replaying chunks would duplicate it.
           if (result?.message) {
-            const message = result.message as { id?: string; role?: string; parts?: unknown };
+            const message = result.message as {
+              id?: string;
+              role?: string;
+              parts?: unknown;
+              metadata?: unknown;
+            };
             store.appendMessage(run.conversation_id, {
               id: message.id ?? run.id + '-answer',
               role: message.role ?? 'assistant',
               parts: message.parts ?? [],
-              metadata: undefined,
+              // Model and token usage, so a reload can still say what the
+              // answer cost.
+              metadata: message.metadata,
             });
           }
           store.pruneEvents(run.id);

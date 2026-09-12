@@ -10,11 +10,49 @@
  * The provider key is deliberately absent: the server resolves it from a saved
  * secret name, so the browser never holds it.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { UIMessage } from 'ai';
 import { ChatView } from './chat-view';
 import type { Agent } from './agents-panel';
 import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
+import { listModels } from '@/lib/playground/transport';
+import { priceKind } from '@/lib/playground/model-catalog';
+import { defaultProvider } from '@/lib/playground/session';
+import type { ChatSettings } from '@/lib/chat/settings';
+import type { WorkspaceFiles } from '@/lib/playground/session';
+
+/** The same openers the workspace offers, so the two surfaces do not disagree
+ * about what this assistant is for. */
+const STARTERS = [
+  'Turn my client brief into a clear proposal.',
+  'Help me write and adapt content for my audience.',
+  'Review code or notes from an attached file.',
+];
+
+/** Openers for an agent that has its own kind of work.
+ *
+ * This is what the workspace's four modes were mostly for: `coding` differed
+ * from `chat` by three starter prompts and one sentence appended to the
+ * instructions, which is precisely what an agent already is here. Keyed by name
+ * rather than id, because the built-in templates are seeded per owner and get a
+ * fresh id each time. An agent with nothing listed falls back to the general
+ * three, so a custom one is never left with an empty screen. */
+const AGENT_STARTERS: Record<string, string[]> = {
+  'Code partner': [
+    'Build a clean calculator with HTML, CSS and JavaScript.',
+    'Create a responsive support request form.',
+    'Review my workspace files and suggest improvements.',
+  ],
+  'Research partner': [
+    'Compare two approaches to a reliable support workflow.',
+    'Find and cite the primary sources on this question.',
+    'Summarise what is settled here and what is still open.',
+  ],
+  Operations: [
+    'Check what is running on my server and report back.',
+    'Walk through this deployment and tell me what would break first.',
+  ],
+};
 
 type RunConfig = {
   baseUrl: string;
@@ -77,16 +115,33 @@ async function loadMessages(conversationId: string): Promise<UIMessage[]> {
 export function ChatPreview({
   conversationId,
   agent,
+  settings,
+  onTools,
+  onArtifact,
   onSettled,
 }: {
   conversationId: string;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
+  /** The owner's chat preferences, loaded once by the shell. Folded into every
+   * turn, so a change applies from the next message rather than needing a
+   * reload. */
+  settings: ChatSettings;
+  /** Saves a change to which tools the run may use. */
+  onTools?: (disabledTools: string[]) => Promise<void> | void;
+  /** Opens a page an answer produced, in the side panel. */
+  onArtifact?: (files: WorkspaceFiles) => void;
   /** Called when a run finishes, so the conversation list can catch up. */
   onSettled?: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [catalog, setCatalog] = useState<{ id: string; label: string; contextWindow?: number }[]>(
+    [],
+  );
+  // Chosen for the next turn only. Null means "whatever the workspace is set
+  // to", so changing the saved connection still takes effect here.
+  const [chosen, setChosen] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -98,15 +153,59 @@ export function ChatPreview({
     };
   }, [conversationId]);
 
+  // The catalog is a convenience, not a precondition: a provider that publishes
+  // no model list still works, the composer just does not offer a picker. The
+  // request carries a secret reference rather than a key, and goes through the
+  // relay, so this stays as key-free as the rest of the surface.
+  const config = loaded?.config;
+  useEffect(() => {
+    if (!config) return;
+    const controller = new AbortController();
+    void listModels(
+      {
+        ...defaultProvider,
+        baseUrl: config.baseUrl,
+        model: config.model,
+        apiKeySecret: config.apiKeySecret,
+        freeOnly: config.freeOnly,
+      },
+      controller.signal,
+    )
+      .then((rows) => {
+        const usable = config.freeOnly ? rows.filter((row) => priceKind(row) === 'free') : rows;
+        setCatalog(
+          usable
+            .map((row) => ({
+              id: row.id,
+              label: row.name || row.id,
+              contextWindow: row.context_length,
+            }))
+            .slice(0, 200),
+        );
+      })
+      .catch(() => setCatalog([]));
+    return () => controller.abort();
+  }, [config]);
+
+  const models = useMemo(() => {
+    if (!config) return [];
+    // The connection's own model belongs in the list even when the catalog does
+    // not name it, or the picker would show a value it cannot select back to.
+    return catalog.some((row) => row.id === config.model)
+      ? catalog
+      : [{ id: config.model, label: config.model }, ...catalog];
+  }, [catalog, config]);
+
+  const pick = useCallback((model: string) => setChosen(model), []);
+
+  const active = chosen || agent?.model || loaded?.config.model;
+  const contextWindow = models.find((row) => row.id === active)?.contextWindow;
+
   return (
     <main className="chat-preview">
-      <header className="chat-preview-header">
-        <h1>Chat</h1>
-        <p>
-          Runs on the server: the answer continues even while this tab is busy, and the provider key
-          never reaches the browser.
-        </p>
-      </header>
+      {/* No page heading here: the topbar already names the app, and a
+          paragraph explaining that runs are server-side was repeating an
+          implementation detail above every conversation. */}
       {loaded ? (
         <ChatView
           id={conversationId}
@@ -119,12 +218,26 @@ export function ChatPreview({
               ? `${loaded.config.instructions}\n\n${agent.instructions}`
               : loaded.config.instructions,
             enabledTools: agent?.tools?.length ? agent.tools : undefined,
-            // Only when the agent names one, so picking an agent cannot quietly
-            // move the conversation to a different provider.
-            model: agent?.model || loaded.config.model,
+            // The owner's own choice first, then the agent's, then the saved
+            // connection: picking an agent should not quietly override a model
+            // the owner just selected.
+            model: active ?? loaded.config.model,
+            maxSteps: settings.maxSteps,
+            contextCharacters: settings.contextCharacters,
+            // An agent's allowlist and the owner's off-switches are different
+            // decisions: the agent says which tools it works with, the owner
+            // says which they will let run at all.
+            disabledTools: settings.disabledTools,
           }}
           initialMessages={loaded.messages}
           onSettled={onSettled}
+          starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
+          models={models.length > 1 ? models : []}
+          onModel={pick}
+          contextWindow={contextWindow}
+          showActivity={settings.showActivity}
+          onTools={onTools}
+          onArtifact={onArtifact}
           empty={<p className="chat-preview-empty">Ask a question to begin.</p>}
         />
       ) : (

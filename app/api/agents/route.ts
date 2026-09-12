@@ -2,6 +2,8 @@ import { getChatGPTUser } from '../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { AgentError, createAgentStore } from '@/lib/agents/store';
 import { BUILT_IN_TOOLS } from '@/lib/agents/templates';
+import { toolAvailability } from '@/lib/agents/availability';
+import { workbenchReady } from '@/lib/ssh/run-context';
 import { getStorage } from '@/server/storage.mjs';
 
 export const dynamic = 'force-dynamic';
@@ -20,8 +22,17 @@ export async function GET(request: Request) {
     return fail('Use this from your signed-in workspace.', 403);
 
   // The tool names travel with the list so an editor can offer exactly what an
-  // agent may name, rather than keeping its own copy that drifts.
-  return Response.json({ agents: store().list(user.userId), tools: BUILT_IN_TOOLS }, { headers });
+  // agent may name, rather than keeping its own copy that drifts. Their
+  // availability travels too: a menu offering bash on a box with no workbench
+  // is a switch that changes nothing.
+  return Response.json(
+    {
+      agents: store().list(user.userId),
+      tools: BUILT_IN_TOOLS,
+      availability: toolAvailability({ workbench: workbenchReady() }),
+    },
+    { headers },
+  );
 }
 
 /** Create an agent, or replace one by id. */

@@ -29,6 +29,8 @@ export type RunConfig = {
   apiKey: string;
   instructions: string;
   maxSteps?: number;
+  /** How much earlier conversation the run may carry, in characters. */
+  contextCharacters?: number;
   disabledTools?: string[];
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
@@ -75,6 +77,14 @@ async function driveWithAgent({
     },
     instructions: config.instructions,
     maxSteps: config.maxSteps,
+    // buildRunAgent has accepted this since it was written and nothing passed
+    // it, so the setting existed with nowhere to land.
+    contextCharacters: config.contextCharacters,
+    // Likewise. The plan steps went into the tool's own result and no further,
+    // so a multi-step run showed a JSON payload where a checklist belonged.
+    // Emitted as a chunk, it joins the durable log like any other: it replays
+    // to a reconnecting tab and persists on the finished message.
+    onPlan: (steps) => emit({ type: 'data-plan', id: 'plan', data: { steps } }),
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],
@@ -100,7 +110,19 @@ async function driveWithAgent({
   });
 
   try {
-    const stream = await createAgentUIStream({ agent, uiMessages: messages, abortSignal: signal });
+    const stream = await createAgentUIStream({
+      agent,
+      uiMessages: messages,
+      abortSignal: signal,
+      // What the answer cost, recorded on the answer itself. Without it the
+      // composer can show a context meter for the conversation it is about to
+      // send and nothing at all for the one already written, and a reload
+      // loses the figures entirely because they were never a row.
+      messageMetadata: ({ part }) =>
+        part.type === 'finish'
+          ? { model: config.model, usage: part.totalUsage, finishedAt: Date.now() }
+          : undefined,
+    });
 
     // Tee the chunks: one copy into the durable log, one into the fold that
     // produces the final message row. Both halves matter — the log is what a

@@ -17,7 +17,15 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
-import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
+import { Check, Copy, LoaderCircle, Pencil, RefreshCw } from 'lucide-react';
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+  MessageResponse,
+  MessageToolbar,
+} from '@/components/ai-elements/message';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
@@ -27,6 +35,11 @@ import {
   ToolInput,
   ToolOutput,
 } from '@/components/ai-elements/tool';
+import { ReadAloud } from './voice-controls';
+import { ChatReceipt } from './chat-receipt';
+import { InlineArtifact } from '@/components/kernel/artifact';
+import { messageArtifact } from '@/lib/chat/artifact';
+import type { WorkspaceFiles } from '@/lib/playground/session';
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -103,6 +116,37 @@ function MediaAttachment({ media }: { media: GeneratedMedia }) {
   );
 }
 
+/** A step of the plan the run published through update_plan. */
+type PlanStep = { step: string; status: 'pending' | 'in_progress' | 'completed' };
+
+/** What the run said it was going to do, and how far along it is.
+ *
+ * Rendered as a checklist rather than the tool's JSON result, which is what it
+ * looked like before: the plan is for the reader, which is the whole reason the
+ * tool exists. */
+function TaskPlan({ steps }: { steps: PlanStep[] }) {
+  if (!steps.length) return null;
+  return (
+    <section className="chat-plan" aria-label="Task plan">
+      <h3>Plan</h3>
+      <ol>
+        {steps.map((entry, index) => (
+          <li key={index} className={'chat-plan-' + entry.status}>
+            {entry.status === 'completed' ? (
+              <Check size={15} aria-hidden="true" />
+            ) : entry.status === 'in_progress' ? (
+              <LoaderCircle size={15} className="spin" aria-hidden="true" />
+            ) : (
+              <span className="chat-plan-number">{index + 1}</span>
+            )}
+            <span>{entry.step}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 /** The comparison lane's state, as the run writes it. */
 type CompareView = {
   status?: string;
@@ -158,13 +202,35 @@ export function MessageParts({
   message,
   status,
   onApproval,
+  onRegenerate,
+  onEdit,
+  onArtifact,
+  showActivity = true,
 }: {
   message: UIMessage;
   status: ChatStatus;
   onApproval?: RespondToApproval;
+  /** Whether the run's own working is shown. Off hides the tool cards and the
+   * reasoning; it never hides a tool waiting on the owner, because a question
+   * nobody can see is a run that never finishes. */
+  showActivity?: boolean;
+  /** Offered on the answer it would replace. Absent while a run is in flight. */
+  onRegenerate?: () => void;
+  /** Offered on a question worth asking differently. Absent while a run is in
+   * flight, for the same reason regenerate is: both rewrite the transcript. */
+  onEdit?: () => void;
+  /** Opens a produced page in the side panel. */
+  onArtifact?: (files: WorkspaceFiles) => void;
 }) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
+  const settled = status !== 'streaming' && status !== 'submitted';
+  const answered = message.role === 'assistant' && settled;
+  const asked = message.role === 'user' && settled;
+  // Only once the answer has settled: a page assembled from a half-written file
+  // would render as a broken preview and then change under the reader.
+  const artifact = answered ? messageArtifact(message) : null;
+  const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
   return (
     <Message from={message.role}>
@@ -179,6 +245,8 @@ export function MessageParts({
               </MessageResponse>
             );
 
+          if (part.type === 'reasoning' && !showActivity) return null;
+
           if (part.type === 'reasoning')
             return (
               <Reasoning key={key} isStreaming={part.state === 'streaming'}>
@@ -191,6 +259,14 @@ export function MessageParts({
           // two share a branch; only the header needs to distinguish them.
           if (isToolUIPart(part)) {
             const media = generatedMedia(part.output);
+            // Generated pictures and audio are the answer, not the working, so
+            // they stay visible however the setting is set. A tool waiting on
+            // the owner stays too: hiding the question would strand the run.
+            const waiting = part.state === 'approval-requested';
+            if (!showActivity && !media.length && !waiting) return null;
+            // The plan is rendered as its own card from the data part, so the
+            // tool's own row would be the same information twice.
+            if (part.type === 'tool-update_plan' && hasPlan) return null;
             return (
               <Tool key={key}>
                 {part.type === 'dynamic-tool' ? (
@@ -262,6 +338,12 @@ export function MessageParts({
               </p>
             );
 
+          if (part.type === 'data-plan') {
+            if (!showActivity) return null;
+            const steps = (part.data as { steps?: PlanStep[] } | undefined)?.steps ?? [];
+            return <TaskPlan key={key} steps={steps} />;
+          }
+
           if (part.type === 'data-compare')
             return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
@@ -294,7 +376,71 @@ export function MessageParts({
             </SourcesContent>
           </Sources>
         )}
+
+        {artifact && onArtifact && <InlineArtifact files={artifact} onOpen={onArtifact} />}
+
+        {answered && showActivity && <ChatReceipt message={message} />}
+
+        {answered && (
+          <MessageToolbar>
+            <MessageActions>
+              <MessageAction
+                tooltip="Copy answer"
+                onClick={() => void copyMessage(message)}
+                disabled={!messageText(message)}
+              >
+                <Copy size={15} />
+              </MessageAction>
+              {/* Reads the text parts only, so the tool receipts and reasoning
+                  between them are not spoken. Silent about code, which the
+                  component replaces with a spoken note rather than reciting. */}
+              <ReadAloud text={messageText(message)} />
+              {onRegenerate && (
+                <MessageAction
+                  tooltip="Answer again, replacing everything after this"
+                  onClick={onRegenerate}
+                >
+                  <RefreshCw size={15} />
+                </MessageAction>
+              )}
+            </MessageActions>
+          </MessageToolbar>
+        )}
+
+        {asked && onEdit && (
+          <MessageToolbar>
+            <MessageActions>
+              <MessageAction
+                tooltip="Edit and ask again, replacing everything after this"
+                onClick={onEdit}
+              >
+                <Pencil size={15} />
+              </MessageAction>
+            </MessageActions>
+          </MessageToolbar>
+        )}
       </MessageContent>
     </Message>
   );
+}
+
+/** The answer as text, which is what someone copying it wants — not the tool
+ * receipts and reasoning that sit between the text parts. */
+export function messageText(message: UIMessage): string {
+  return message.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => (part as { text: string }).text)
+    .join('\n\n')
+    .trim();
+}
+
+async function copyMessage(message: UIMessage): Promise<void> {
+  const text = messageText(message);
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Denied clipboard permission is the owner's decision, not an error to
+    // interrupt them with.
+  }
 }

@@ -4,7 +4,7 @@ import { randomId } from '../../lib/id.ts';
 
 import { AgentSelector } from './agents-home';
 import { HikmahReceipt } from './hikmah-receipt';
-import { VoiceInput, ReadAloud } from './voice-controls';
+import { VoiceInput, ReadAloud } from '@/components/chat/voice-controls';
 import { agentScope, agentInstructions } from '@/lib/playground/agents';
 import { builtInTools, executeBuiltin } from '@/lib/playground/builtin-tools';
 import { ToolsMenu } from './tools-menu';
@@ -228,6 +228,7 @@ export function Chat() {
     isRunning,
     setIsRunning,
     preferences,
+    restoreFailed,
     runSettingsOpen,
     setRunSettingsOpen,
   } = usePlayground();
@@ -1367,6 +1368,23 @@ export function Chat() {
         )}
         <div className={'workspace-body unified-workspace' + (hasPanel ? ' has-artifact' : '')}>
           <section className="conversation-pane">
+            {/* A failed restore used to look exactly like a workspace with
+                nothing in it, while saving was quietly switched off — so the
+                obvious next move, typing, produced work that was never kept.
+                Said here rather than in the footer, because it changes what
+                this screen means. */}
+            {restoreFailed && (
+              <div className="restore-failed" role="alert">
+                <strong>Your saved workspace could not be loaded.</strong>
+                <p>
+                  This is not an empty workspace — nothing here is being saved, so that whatever is
+                  stored is not overwritten. Reload to try again.
+                </p>
+                <button type="button" onClick={() => window.location.reload()}>
+                  Reload
+                </button>
+              </div>
+            )}
             {/* Keyed per conversation so opening one starts at its live edge and
                 the previous conversation's escape state does not carry over. */}
             <StickToBottom
@@ -1627,17 +1645,14 @@ export function Chat() {
                               </div>
                             ) : null}
                             {preferences.showActivity && !!m.trace?.length && (
-                              <details className="activity-group">
-                                <summary>
-                                  <Bot size={18} />
-                                  <span>
-                                    Activity{' '}
-                                    <span className="muted">
-                                      · {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
-                                    </span>
-                                  </span>
-                                  <ChevronDown size={16} />
-                                </summary>
+                              /* One disclosure, not two: every call's name and
+                                 status is a row you can read without clicking,
+                                 so only the payload is behind a disclosure. */
+                              <div className="activity-group">
+                                <p className="activity-head">
+                                  <Bot size={16} />
+                                  {m.trace.length} action{m.trace.length === 1 ? '' : 's'}
+                                </p>
                                 <div className="activity-list">
                                   {m.trace.map((t, i) => (
                                     <details key={t.id + '-' + i} className="activity-item">
@@ -1649,6 +1664,11 @@ export function Chat() {
                                         )}
                                         <span>{t.name.replace(/_/g, ' ')}</span>
                                         <small>{t.status}</small>
+                                        <ChevronDown
+                                          size={14}
+                                          className="activity-caret"
+                                          aria-hidden="true"
+                                        />
                                       </summary>
                                       <pre>
                                         Input: {t.input}
@@ -1657,7 +1677,7 @@ export function Chat() {
                                     </details>
                                   ))}
                                 </div>
-                              </details>
+                              </div>
                             )}
                             {m.role === 'assistant' && m.status !== 'running' && (
                               <HikmahReceipt message={m} />

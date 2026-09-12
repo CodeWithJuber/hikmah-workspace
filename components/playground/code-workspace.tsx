@@ -43,7 +43,7 @@ const Editor = dynamic(() => import('./editor'), {
   loading: () => <div className="editor-loading">Loading editor…</div>,
 });
 export function CodeWorkspace() {
-  const { files, setFiles, isRunning } = usePlayground();
+  const { files, setFiles, isRunning, preferences } = usePlayground();
   const [selected, setSelected] = useState('index.html');
   const [newName, setNewName] = useState('notes.md');
   const [adding, setAdding] = useState(false);
@@ -167,6 +167,7 @@ export function CodeWorkspace() {
           {active ? (
             <Editor
               readOnly={isRunning}
+              theme={preferences.theme}
               filename={active}
               value={files[active] ?? ''}
               onChange={(value) => {

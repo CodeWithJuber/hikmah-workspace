@@ -185,12 +185,28 @@ export function createDurableChatTransport(options: DurableTransportOptions): Du
   let config = options.config;
   let activeRun: string | null = null;
 
-  async function queue(chatId: string, messages: UIMessage[], signal?: AbortSignal) {
+  async function queue(
+    chatId: string,
+    messages: UIMessage[],
+    signal?: AbortSignal,
+    trigger?: string,
+  ) {
     const response = await doFetch(`/api/conversations/${encodeURIComponent(chatId)}/runs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // Only the last message is new; the rest are already rows on the server.
-      body: JSON.stringify({ ...config, messages: messages.slice(-1) }),
+      //
+      // Except when answering again. useChat drops its own answer and re-sends
+      // the message before it — which is already a row — so without the trigger
+      // the server inserts it a second time against a primary key and the whole
+      // turn fails with "The run could not be started." The trigger tells it to
+      // truncate that message and everything after it first.
+      //
+      // The id to truncate from is always the re-sent message's own, whatever
+      // useChat put in `messageId`: it slices its list to end at the message
+      // being replayed, so that message is both the one to remove and the one
+      // to write back.
+      body: JSON.stringify({ ...config, messages: messages.slice(-1), trigger }),
       signal,
     });
     const payload = (await response.json().catch(() => ({}))) as {
@@ -211,8 +227,8 @@ export function createDurableChatTransport(options: DurableTransportOptions): Du
     },
     activeRun: () => activeRun,
 
-    async sendMessages({ chatId, messages, abortSignal }) {
-      const runId = await queue(chatId, messages, abortSignal);
+    async sendMessages({ chatId, messages, abortSignal, trigger }) {
+      const runId = await queue(chatId, messages, abortSignal, trigger);
       activeRun = runId;
       return runStream({ runId, signal: abortSignal, fetch: doFetch });
     },

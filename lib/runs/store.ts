@@ -77,6 +77,9 @@ export function createRunStore(
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ),
     getConversation: db.prepare('SELECT id, user_id FROM conversations WHERE id = ?'),
+    messageSeq: db.prepare('SELECT seq FROM messages WHERE conversation_id = ? AND id = ?'),
+    countMessages: db.prepare('SELECT COUNT(*) AS total FROM messages WHERE conversation_id = ?'),
+    deleteFromSeq: db.prepare('DELETE FROM messages WHERE conversation_id = ? AND seq >= ?'),
     // Joined to the active run because "in flight" and "stopped to ask you
     // something" look identical from the conversation row alone, and a run
     // paused on an approval nobody can see is a conversation that never
@@ -225,6 +228,29 @@ export function createRunStore(
         now(),
       );
       return seq;
+    },
+
+    /**
+     * Drop this message and everything after it, and say how many went.
+     *
+     * Answering again re-sends the user message that is already a row, so the
+     * turn has to be removed before it can be written a second time. Scoped to
+     * one conversation and returning the count, because the failure mode of
+     * getting this wrong is deleting somebody's transcript: an unknown id, or
+     * one belonging to another conversation, removes nothing.
+     *
+     * Reusing the freed seq numbers is safe — appendMessage derives the next
+     * one from MAX(seq), so the sequence simply resumes where the truncation
+     * left it.
+     */
+    truncateFrom(conversationId: string, messageId: string): number {
+      const found = statements.messageSeq.get(conversationId, messageId) as
+        { seq: number } | undefined;
+      if (!found) return 0;
+      const before = statements.countMessages.get(conversationId) as { total: number };
+      statements.deleteFromSeq.run(conversationId, found.seq);
+      const after = statements.countMessages.get(conversationId) as { total: number };
+      return before.total - after.total;
     },
 
     listMessages(conversationId: string): StoredMessage[] {

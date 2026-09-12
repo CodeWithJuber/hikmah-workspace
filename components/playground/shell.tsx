@@ -144,6 +144,7 @@ function ShellContent() {
     preferences,
     knowledge,
     storageMessage,
+    restoreFailed,
     workspacePage: page,
     setWorkspacePage: setPage,
   } = usePlayground();
@@ -220,12 +221,12 @@ function ShellContent() {
               </button>
             ))}
           </nav>
-          {/* The rebuilt surface is a route of its own rather than a page of
-              this shell, so it needs a real link: without one it exists and
-              nobody can reach it. */}
+          {/* The durable chat is a route of its own rather than a page of this
+              shell, and it is what opens by default now — so this is the way
+              back to it, not a curiosity. */}
           <Link className="knowledge-nav" href="/chat">
             <HikmahIcon name="conversation" size={20} />
-            Chat (new)
+            Chat
           </Link>
           <button
             className={'knowledge-nav' + (page === 'tools' ? ' selected' : '')}
@@ -431,9 +432,11 @@ function ShellContent() {
           <span
             className={
               'local-save' +
-              (storageMessage.includes('full') || storageMessage.includes('could not')
-                ? ' storage-warning'
-                : '')
+              // Keyed on the actual condition rather than on words in the
+              // message: the restore-failure text contained neither "full" nor
+              // "could not", so the one state that most needed the warning
+              // styling never got it.
+              (restoreFailed || storageMessage.includes('full') ? ' storage-warning' : '')
             }
             role="status"
           >

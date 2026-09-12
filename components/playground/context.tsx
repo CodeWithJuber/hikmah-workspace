@@ -39,6 +39,7 @@ import { prepareConnectors } from '@/lib/playground/run-preparation';
 import type { McpConnection } from '@/lib/playground/workspace-config';
 import { connectMcp, type McpTool } from '@/lib/playground/mcp-client';
 import { readWorkspaceSession, saveWorkspaceSession } from '@/lib/playground/storage';
+import { themeCookie } from '@/lib/theme';
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type AppContext = {
   prepareRunConnections: (
@@ -74,6 +75,8 @@ type AppContext = {
   session: () => SavedSession;
   importSession: (text: string) => void;
   storageMessage: string;
+  /** The stored workspace could not be read, so nothing is being saved. */
+  restoreFailed: boolean;
   openSettings: () => void;
   preferences: Preferences;
   setPreferences: Setter<Preferences>;
@@ -124,6 +127,10 @@ export function PlaygroundProvider({
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [loaded, setLoaded] = useState(false);
   const restoreFailed = useRef(false);
+  // Mirrored into state because a ref cannot re-render, and this has to be
+  // visible: the ref alone left the screen looking like an ordinary empty
+  // workspace while saving was silently switched off.
+  const [restoreError, setRestoreError] = useState(false);
   const [storageMessage, setStorageMessage] = useState('Loading your workspace…');
   const [workspace, setWorkspace] = useState<WorkspaceConfig>(() =>
     structuredClone(defaultWorkspaceConfig),
@@ -350,9 +357,8 @@ export function PlaygroundProvider({
     })()
       .catch(() => {
         restoreFailed.current = true;
-        setStorageMessage(
-          'Cloud restore unavailable. Export work before reloading; retry by reopening the app.',
-        );
+        setRestoreError(true);
+        setStorageMessage('Workspace not loaded — saving is off');
       })
       .finally(() => {
         if (mounted) setLoaded(true);
@@ -363,6 +369,10 @@ export function PlaygroundProvider({
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
+    // Mirrored into a cookie so the server can stamp the same theme on the next
+    // page load, before anything paints, and so /chat picks it up without
+    // mounting this provider.
+    document.cookie = themeCookie(preferences.theme);
   }, [preferences.theme]);
   useEffect(() => {
     catalogAbort.current?.abort();
@@ -454,7 +464,13 @@ export function PlaygroundProvider({
           error?: string;
         };
         if (!response.ok) {
-          if (response.status === 409) restoreFailed.current = true;
+          // A conflict means another tab holds a newer workspace. Saving stays
+          // off so this tab cannot overwrite it — and that has to be visible,
+          // because from here on nothing typed is being kept.
+          if (response.status === 409) {
+            restoreFailed.current = true;
+            setRestoreError(true);
+          }
           throw Error(data.error || 'Cloud sync unavailable');
         }
         cloudRevision.current = data.revision;
@@ -516,9 +532,11 @@ export function PlaygroundProvider({
         importSession: (t) => {
           restore(parseSession(t));
           restoreFailed.current = false;
+          setRestoreError(false);
           revision.current++;
         },
         storageMessage,
+        restoreFailed: restoreError,
         openSettings: onSettings,
         preferences,
         setPreferences,

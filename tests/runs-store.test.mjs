@@ -310,3 +310,45 @@ test('a conversation is only deletable by its owner', async (t) => {
   assert.equal(store.deleteConversation('nope', 'u1'), false);
   assert.equal(store.getConversation('c1').user_id, 'u1', 'and it is still there');
 });
+
+test('answering again truncates the turn instead of colliding with it', async (t) => {
+  // Regenerating re-sends the user message that is already a row. Appending it
+  // again violates the primary key, which surfaced as a 500 and the useless
+  // message "The run could not be started." The turn has to be truncated back
+  // to that message first.
+  const { store } = await freshStore(t);
+  store.appendMessage('c1', { id: 'u-1', role: 'user', parts: [{ type: 'text', text: 'Ask' }] });
+  store.appendMessage('c1', {
+    id: 'a-1',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'First answer' }],
+  });
+  store.appendMessage('c1', { id: 'u-2', role: 'user', parts: [{ type: 'text', text: 'More' }] });
+
+  assert.throws(
+    () => store.appendMessage('c1', { id: 'u-1', role: 'user', parts: [] }),
+    /UNIQUE|constraint/i,
+    'the collision this fix exists to avoid',
+  );
+
+  assert.equal(store.truncateFrom('c1', 'u-1'), 3);
+  assert.deepEqual(store.listMessages('c1'), []);
+
+  // And the seq numbers are free again, so the same turn can be re-sent.
+  store.appendMessage('c1', { id: 'u-1', role: 'user', parts: [{ type: 'text', text: 'Ask' }] });
+  assert.equal(store.listMessages('c1').length, 1);
+});
+
+test('truncating from a message of another conversation removes nothing', async (t) => {
+  const { store } = await freshStore(t);
+  store.createConversation({ id: 'c2', userId: 'u1' });
+  store.appendMessage('c1', { id: 'm-1', role: 'user', parts: [] });
+  store.appendMessage('c2', { id: 'm-2', role: 'user', parts: [] });
+
+  assert.equal(store.truncateFrom('c2', 'm-1'), 0);
+  assert.equal(store.listMessages('c1').length, 1);
+  assert.equal(store.listMessages('c2').length, 1);
+  // An unknown id is a no-op, not a wipe.
+  assert.equal(store.truncateFrom('c1', 'nope'), 0);
+  assert.equal(store.listMessages('c1').length, 1);
+});

@@ -6,8 +6,10 @@
  */
 import { ToolLoopAgent, isStepCount, type LanguageModel } from 'ai';
 import { DEFAULT_CONTEXT_CHARACTERS, reduceMessages } from './context.ts';
+import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
 import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
+import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
 import { mcpToolApproval, type McpRunTools } from '../mcp/run-context.ts';
@@ -15,9 +17,6 @@ import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
 import type { Model } from '../engines/meaning-engine.ts';
-
-/** Ceiling on tool-calling rounds, so a loop cannot run forever unattended. */
-export const DEFAULT_MAX_STEPS = 12;
 
 export type RunAgentOptions = {
   provider: ModelRequest;
@@ -88,6 +87,9 @@ export function buildRunAgent(options: RunAgentOptions) {
   const all = {
     ...researchTools({ savedSearchKey: options.savedSearchKey, signal: options.signal }),
     ...deterministicTools({ model: options.meaningModel, onPlan: options.onPlan }),
+    // Always offered: it needs nothing from the deployment. The container-backed
+    // sandbox_run below is the one that comes and goes with the workbench.
+    ...javascriptTools(),
     ...(options.ssh ? sshTools({ ...options.ssh, signal: options.signal }) : {}),
     ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
     ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),

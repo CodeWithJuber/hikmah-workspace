@@ -15,6 +15,28 @@ const fail = (error: string, status: number) => Response.json({ error }, { statu
  * stuck or looping client cannot queue work without bound. */
 const MAX_ACTIVE_RUNS = 3;
 
+/** The composer inlines an attachment as a data URL rather than uploading it,
+ * so a message body is now bounded by what the owner attached. Five files at
+ * 4 MB each, base64-expanded by a third, plus the transcript: 32 MB is
+ * generous for that and still refuses a body that would be read into memory,
+ * parsed, and written to a row before anyone noticed. */
+const MAX_BODY_BYTES = 32 * 1024 * 1024;
+
+/** Read the body without trusting Content-Length, which a client sets. */
+async function readBody(request: Request): Promise<unknown> {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES)
+    throw new ChatRequestError('That message is too large. Attach smaller files.', 413);
+  const body = await request.arrayBuffer();
+  if (body.byteLength > MAX_BODY_BYTES)
+    throw new ChatRequestError('That message is too large. Attach smaller files.', 413);
+  try {
+    return JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    return null;
+  }
+}
+
 /** Does this message carry a decision for a tool that was waiting on one? */
 function hasApprovalResponse(message: UIMessage): boolean {
   return message.parts.some((part) => (part as { state?: string }).state === 'approval-responded');
@@ -61,7 +83,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   let parsed;
   try {
-    parsed = parseChatRequest(await request.json().catch(() => null));
+    parsed = parseChatRequest(await readBody(request));
   } catch (error) {
     if (error instanceof ChatRequestError) return fail(error.message, error.status);
     return fail('Expected a JSON request body.', 400);
@@ -123,12 +145,29 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const incoming = incomingMessage;
   if (!incoming) return fail('Send a message to start the run.', 400);
-  store.appendMessage(conversationId, {
-    id: incoming.id ?? newMessageId(),
-    role: incoming.role,
-    parts: incoming.parts,
-    metadata: undefined,
-  });
+
+  // Answering again replays a message that is already a row, so the turn it
+  // started has to go before it can be written back. Without this the insert
+  // below hits the messages primary key, the route fails outside any handler,
+  // and the owner is told only that the run could not be started.
+  //
+  // Scoped to the trigger and to this conversation: a plain new turn never
+  // deletes anything, and truncateFrom is a no-op for an id it cannot find.
+  if (parsed.regenerate && incoming.id) store.truncateFrom(conversationId, incoming.id);
+
+  try {
+    store.appendMessage(conversationId, {
+      id: incoming.id ?? newMessageId(),
+      role: incoming.role,
+      parts: incoming.parts,
+      metadata: undefined,
+    });
+  } catch {
+    // The only way here is a message id that already exists, which means this
+    // turn has already been recorded. Say so rather than returning a 500 with
+    // no body for the transport to make sense of.
+    return fail('That message was already sent. Reload to see the conversation.', 409);
+  }
   // Name it from the message that started it. setTitle only writes when the
   // title is still empty, so a later message cannot rename a conversation the
   // owner has been finding in the list by that name.
@@ -166,6 +205,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         apiKey,
         instructions: parsed.instructions,
         maxSteps: parsed.maxSteps,
+        contextCharacters: parsed.contextCharacters,
         disabledTools: parsed.disabledTools,
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,

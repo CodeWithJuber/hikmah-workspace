@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '../vendor/shadcn-tailwind-4.13.0.css';
+/* KaTeX ships the rule that hides its MathML twin; without it every formula
+   renders twice, once as MathML and once as HTML. @streamdown/math names this
+   exact path from its getStyles() and leaves the import to the app. */
+@import 'katex/dist/katex.min.css';
+
+/* The workspace stamps its theme on the root element, and Tailwind's `dark:`
+   variant otherwise means `prefers-color-scheme`. Without this the two
+   disagree: Shiki's dark palette and every `dark:` class in components/ui and
+   components/ai-elements follow the operating system while the page follows
+   the saved preference, which is how a dark answer ended up wearing the light
+   code theme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* Streamdown renders assistant markdown. Tailwind 4 only scans the project, so
    the classes inside these packages have to be declared as sources or the
@@ -1330,6 +1342,26 @@ summary:focus-visible {
    box the library's own scroller fills, and the positioning context for the
    overlaid jump button. `overflow: hidden` is what keeps a failure here from
    becoming a page-level scroll. */
+.restore-failed {
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--destructive);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--destructive) 8%, var(--background));
+  font-size: 13px;
+}
+.restore-failed p {
+  color: var(--muted-foreground);
+  margin: 4px 0 8px;
+}
+.restore-failed button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  cursor: pointer;
+}
+
 .conversation-scroll {
   position: relative;
   flex: 1;
@@ -1451,10 +1483,15 @@ summary:focus-visible {
   font-weight: 400;
   margin-left: auto;
 }
+/* Assistant body text aligns with its own rail, not with the label icon. This
+   was 37px, to sit under the orbit mark, and three later copies of this exact
+   selector list reset it to 0 — so the indent had been gone for a while, while
+   .thinking-indicator and .stopped-note kept offsetting themselves by 37px
+   against text that no longer moved. One definition now, and it is this one. */
 .chat-message.assistant .markdown-content,
 .activity-group,
 .chat-message.assistant .message-actions {
-  margin-left: 37px;
+  margin-left: 0;
 }
 .markdown-content {
   font-size: 16px;
@@ -1466,7 +1503,8 @@ summary:focus-visible {
   line-height: 1.8;
   margin: 0 0 16px;
 }
-.markdown-content > p:last-child {
+.markdown-content > :last-child,
+.markdown-content > :last-child > p:last-child {
   margin-bottom: 0;
 }
 .markdown-content h1 {
@@ -1511,68 +1549,17 @@ summary:focus-visible {
 .markdown-content hr {
   margin: 20px 0;
 }
-.markdown-content :not(pre) > code {
-  font-size: 0.88em;
-  background: var(--secondary);
-  color: var(--foreground);
-  padding: 2px 5px;
-  border-radius: 4px;
+/* Streamdown owns the code block; this only hangs the workspace's own action
+   off the bottom of it. */
+.code-host {
+  position: relative;
 }
-.markdown-table {
-  overflow: auto;
-  margin: 18px 0;
-  max-width: 100%;
-}
-.markdown-table table {
-  width: 100%;
-  font-size: 14px;
-  border-collapse: collapse;
-}
-.markdown-table td,
-.markdown-table th {
-  border: 1px solid var(--border);
-  padding: 9px 12px;
-  text-align: left;
-  white-space: normal;
-}
-.markdown-table th {
-  background: var(--secondary);
-}
-.code-block {
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  overflow: hidden;
-  margin: 16px 0;
-  background: #172033;
-  color: #e2e9f7;
-}
-.code-block-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  background: #212d42;
-  color: #bfcbe0;
-  padding: 5px 9px 5px 14px;
-  font-size: 12px;
-}
-.code-block-toolbar > div {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.code-block-toolbar [data-slot='button'] {
+.code-host .code-host-save {
   height: 30px;
+  margin-top: 6px;
   font-size: 12px;
-  padding: 0 8px;
-}
-.code-block pre {
-  margin: 0;
-  padding: 17px;
-  white-space: pre;
-  overflow: auto;
-  font-size: 13px;
-  line-height: 1.7;
+  padding: 0 9px;
+  color: var(--muted-foreground);
 }
 .message-actions {
   display: flex;
@@ -1636,6 +1623,10 @@ summary:focus-visible {
   background: var(--secondary);
   padding: 12px;
 }
+/* The tool calls are no longer hidden behind a disclosure of their own, so
+   this card is what separates them from the answer above. A later duplicate
+   used to strip the border and background; that block is gone and this is the
+   only definition. */
 .activity-group {
   margin-top: 22px;
   border: 1px solid var(--border);
@@ -1643,32 +1634,45 @@ summary:focus-visible {
   background: var(--card);
   font-size: 14px;
 }
-.activity-group > summary {
-  list-style: none;
+.activity-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px 17px;
-  cursor: pointer;
-}
-.activity-group > summary span {
-  flex: 1;
-}
-.activity-group > summary::-webkit-details-marker {
-  display: none;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--muted-foreground);
 }
 .activity-list {
   border-top: 1px solid var(--border);
   padding: 6px 14px;
 }
 .activity-item {
-  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.activity-item:last-child {
+  border-bottom: 0;
 }
 .activity-item > summary {
   display: flex;
   align-items: center;
   gap: 9px;
   cursor: pointer;
+}
+.activity-caret {
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: var(--muted-foreground);
+  transition: transform 130ms ease;
+}
+.activity-item[open] .activity-caret {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-caret {
+    transition: none;
+  }
 }
 .activity-item small {
   margin-left: auto;
@@ -1685,14 +1689,14 @@ summary:focus-visible {
   margin-top: 8px;
 }
 .stopped-note {
-  margin: 12px 0 0 37px;
+  margin: 12px 0 0;
   font-size: 13px;
   color: var(--muted-foreground);
 }
 .thinking-indicator {
   display: flex;
   gap: 5px;
-  padding: 2px 0 22px 37px;
+  padding: 2px 0 22px;
 }
 .thinking-indicator span {
   height: 7px;
@@ -2849,14 +2853,6 @@ summary:focus-visible {
   .lab-switcher {
     gap: 15px;
   }
-  .code-block-toolbar [data-slot='button'] {
-    font-size: 11px;
-    gap: 4px;
-    padding: 0 6px;
-  }
-  .code-block-toolbar {
-    padding-inline: 9px;
-  }
   .message-actions .icon-button {
     height: 36px;
     width: 35px;
@@ -3068,11 +3064,6 @@ summary:focus-visible {
 }
 .chat-message {
   margin-bottom: 35px;
-}
-.chat-message.assistant .markdown-content,
-.activity-group,
-.chat-message.assistant .message-actions {
-  margin-left: 0;
 }
 .assistant-label {
   font-size: 14px;
@@ -3512,13 +3503,6 @@ summary:focus-visible {
   text-align: center;
   font-size: 12px;
   color: var(--muted-foreground);
-}
-.activity-item {
-  border-bottom: 1px solid var(--border);
-  padding: 12px 0;
-}
-.activity-item:last-child {
-  border-bottom: 0;
 }
 @media (max-width: 767px) {
   .workspace-header {
@@ -4546,11 +4530,6 @@ summary:focus-visible {
   color: var(--muted-foreground);
   max-width: 70%;
 }
-.chat-message.assistant .markdown-content,
-.activity-group,
-.chat-message.assistant .message-actions {
-  margin-left: 0;
-}
 .markdown-content {
   font-size: 16px;
   line-height: 1.8;
@@ -4597,27 +4576,6 @@ summary:focus-visible {
 .message-actions .message-model {
   max-width: 30%;
   font-size: 11px;
-}
-.code-block {
-  background: var(--secondary);
-  color: var(--foreground);
-  border-radius: 11px;
-}
-.code-block-toolbar {
-  background: var(--sidebar);
-  color: var(--muted-foreground);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-.code-block pre {
-  font-size: 13px;
-  max-height: 380px;
-}
-.code-block details > summary {
-  cursor: pointer;
-  padding: 10px 14px;
-  font-size: 14px;
-  color: var(--muted-foreground);
 }
 .composer-dock {
   width: 100%;
@@ -6247,21 +6205,28 @@ summary:focus-visible {
   width: 100%;
   justify-content: space-between;
 }
+/* Was defined twice; the later copy stripped the frame with !important, so
+   the stages carry their own and this stays a plain block. */
 .execution-progress {
-  margin: 23px 0 9px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--card);
+  margin: 20px 0 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .execution-provider {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 11px 14px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
   background: var(--muted);
   font-size: 12px;
   color: var(--muted-foreground);
+}
+.execution-provider > svg {
+  flex-shrink: 0;
 }
 .execution-provider > span:last-child {
   margin-left: auto;
@@ -6953,6 +6918,10 @@ summary:focus-visible {
 }
 .chat-message.assistant .chat-message-inner {
   min-width: 0;
+  /* A rail marks where one answer ends and the next turn begins; --border on
+     its own is too faint against the page to read as a boundary. */
+  border-left: 2px solid color-mix(in oklab, var(--border) 55%, var(--muted-foreground));
+  padding-left: 16px;
 }
 .chat-message.user .chat-message-inner {
   background: #f0f3fb;
@@ -6961,25 +6930,6 @@ summary:focus-visible {
 .message-content {
   font-size: 16px;
   line-height: 1.8;
-}
-.execution-progress {
-  margin-top: 20px !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-}
-.execution-details > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--hk-muted);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 8px 0;
-}
-.execution-details > summary span {
-  margin-left: auto;
-  font-size: 12px;
 }
 .execution-stage {
   background: #f8f9fc !important;
@@ -7022,14 +6972,6 @@ summary:focus-visible {
 .memory-receipt p {
   padding-left: 20px;
   margin: 5px 0;
-}
-.activity-group {
-  border: 0 !important;
-  background: transparent !important;
-}
-.activity-group > summary {
-  font-size: 14px !important;
-  padding-left: 0 !important;
 }
 .comparison-toolbar {
   display: grid !important;
@@ -7093,9 +7035,6 @@ summary:focus-visible {
   font-size: 13px;
   color: var(--hk-muted);
   margin-top: 16px;
-}
-.direct-metrics summary {
-  cursor: pointer;
 }
 .knowledge-page {
   display: flex;
@@ -8293,9 +8232,12 @@ body {
 .provider-explanation .markdown {
   font-size: 13px;
 }
+/* Recording is worth being unmistakable, so it keeps the destructive accent
+   rather than the muted grey of the other composer buttons. Tokens, not the
+   literal pink it used to hardcode, which was invisible against a dark page. */
 .voice-control.active {
-  color: #af364b;
-  background: #fcecf0 !important;
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 14%, transparent) !important;
 }
 .composer-controls .composer-remember,
 .composer-controls .composer-run-mode {
@@ -8549,11 +8491,8 @@ body {
   width: 100%;
   min-width: 0;
 }
-.studio-shell .chat-message.assistant .markdown-content {
-  margin-left: 0;
-}
-.studio-shell .execution-details {
-  margin-top: 16px !important;
+.studio-shell .execution-progress {
+  margin-top: 16px;
   max-width: 100%;
 }
 .studio-shell .working-label {
@@ -8694,7 +8633,63 @@ body {
    components carry their own Tailwind styling. */
 .chat-shell {
   display: flex;
+  flex-direction: column;
   height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+}
+.chat-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.chat-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.chat-topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.chat-topbar-links a {
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+.chat-topbar-links a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.chat-topbar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  width: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.chat-drawer {
+  display: flex;
+  min-height: 0;
 }
 .conversation-list {
   width: 240px;
@@ -8775,23 +8770,48 @@ body {
   padding: 12px 8px;
 }
 
-/* The list becomes a strip across the top on a phone: 240px of sidebar would
-   leave no room for the conversation itself. */
-@media (max-width: 640px) {
-  .chat-shell {
-    flex-direction: column;
+/* Below this width the two side panels slide over the conversation instead of
+   sitting beside it. They used to be permanently open strips capped at 33dvh
+   and 40dvh, which left the conversation itself barely a quarter of a phone
+   screen. */
+@media (max-width: 900px) {
+  .chat-drawer {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 3;
+    background: var(--background);
+    box-shadow: 0 0 0 1px var(--border);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 180ms ease,
+      visibility 180ms;
   }
-  .conversation-list {
-    width: auto;
-    max-height: 33dvh;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+  .chat-drawer-panel {
+    inset: 0 0 0 auto;
+    transform: translateX(100%);
   }
-  .workspace-panel {
-    width: auto;
-    max-height: 40dvh;
-    border-left: none;
-    border-top: 1px solid var(--border);
+  .chat-drawer.is-open {
+    transform: none;
+    visibility: visible;
+  }
+  .chat-drawer .conversation-list,
+  .chat-drawer .workspace-panel {
+    width: min(84vw, 320px);
+    border: 0;
+  }
+  .chat-drawer-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: color-mix(in oklab, var(--foreground) 38%, transparent);
+    border: 0;
+    cursor: pointer;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-drawer {
+    transition: none;
   }
 }
 
@@ -8963,17 +8983,338 @@ body {
   margin: 0 auto;
   padding: 0 16px env(safe-area-inset-bottom);
 }
-.chat-preview-header {
-  padding: 20px 0 8px;
+/* The scroller sizes itself to its content, so `flex: 1` here had nothing to
+   grow into and the openers sat at the top of an empty screen. A minimum height
+   is what actually puts them where the eye lands. */
+.chat-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 58dvh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
 }
-.chat-preview-header h1 {
-  font-size: 22px;
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 620px;
+}
+.chat-starters button {
+  padding: 11px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+.chat-starters button:hover {
+  background: var(--muted);
+}
+.chat-model-select {
+  max-width: 210px;
+}
+/* The preview is a third column beside the conversation. .artifact-panel is
+   layout-neutral on its own, so the width belongs here rather than in the
+   component both surfaces share. */
+.chat-body > .artifact-panel {
+  width: min(46%, 620px);
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  /* No room for a third column: the preview takes the conversation's place
+     until it is closed, which is what someone opening it wanted anyway. */
+  .chat-body > .artifact-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    width: auto;
+    border-left: 0;
+  }
+}
+.files-run {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+}
+.files-run button {
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.files-run button:hover {
+  background: var(--muted);
+}
+.files-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.files-preview iframe {
+  width: 100%;
+  height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+}
+.files-console {
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.files-console p {
+  overflow-wrap: anywhere;
+}
+.files-editor-surface {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  /* CodeMirror sizes to its content; without a ceiling a long file pushes the
+     save button off the panel. */
+  max-height: 420px;
+}
+.chat-plan {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 14px;
+}
+.chat-plan h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.chat-plan ol {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  list-style: none;
+}
+.chat-plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.5;
+}
+.chat-plan li > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.chat-plan-number {
+  flex-shrink: 0;
+  width: 15px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-plan-completed > span:last-child {
+  color: var(--muted-foreground);
+}
+.chat-receipt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-receipt-model {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.chat-receipt-caveat {
+  margin-left: auto;
+}
+.chat-tools-trigger {
+  height: 34px;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.chat-tools-trigger span {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--muted);
+  font-size: 11px;
+}
+.chat-tools-menu {
+  width: min(360px, 90vw);
+  max-height: 60dvh;
+  overflow-y: auto;
+  padding: 12px;
+}
+.chat-tools-note {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.chat-tools-menu ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+}
+.chat-tools-menu label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 6px 4px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chat-tools-menu label:hover {
+  background: var(--muted);
+}
+.chat-tools-menu label:has(input:disabled) {
+  cursor: default;
+  opacity: 0.6;
+}
+.chat-tools-menu label span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.chat-tools-menu code {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.chat-tools-menu small {
+  display: block;
+  padding: 0 4px 6px 30px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+.chat-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 13px;
+}
+.chat-settings-panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.chat-settings-panel p {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+  margin-bottom: 9px;
+}
+.chat-settings-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-settings-choices button {
+  min-width: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-settings-choices button[aria-pressed='true'] {
+  background: var(--muted);
+  border-color: var(--primary);
   font-weight: 600;
 }
-.chat-preview-header p {
+.chat-settings-choices button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.chat-settings-toggle {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.chat-settings-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-settings-toggle small {
   color: var(--muted-foreground);
-  font-size: 13px;
-  margin-top: 4px;
+  line-height: 1.5;
+}
+.chat-settings-note {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-editing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 10px 12px 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-editing button {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chat-editing button:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.chat-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px 0;
+}
+.chat-attachments li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  font-size: 12px;
+  max-width: 240px;
+}
+.chat-attachments li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-attachments button {
+  display: flex;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.chat-attachments button:hover {
+  color: var(--foreground);
 }
 .chat-preview-empty {
   color: var(--muted-foreground);

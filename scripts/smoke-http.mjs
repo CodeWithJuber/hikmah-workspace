@@ -142,6 +142,101 @@ if (phase === 'read') {
   );
   assert.equal((await fetch(base + '/api/workspace-state', { headers })).status, 401);
 }
+// The composer inlines an attachment as a data URL, so a message body is now
+// bounded by whatever someone attached. Without a cap the whole thing would be
+// read into memory, parsed and written to a row before anyone noticed; refuse
+// it at the door instead.
+if (phase === 'write') {
+  const oversize = JSON.stringify({
+    messages: [
+      {
+        id: 'big',
+        role: 'user',
+        parts: [{ type: 'text', text: 'x'.repeat(33 * 1024 * 1024) }],
+      },
+    ],
+  });
+  const refused = await fetch(base + '/api/conversations/smoke-big/runs', {
+    method: 'POST',
+    headers,
+    body: oversize,
+  });
+  assert.equal(refused.status, 413, 'an oversize message body is refused');
+  // And the refusal must not have created the conversation on the way in.
+  const after = await fetch(base + '/api/conversations/smoke-big/messages', { headers });
+  assert.deepEqual((await after.json()).messages, []);
+}
+
+// Answering again replays a message that is already a row. Appending it a
+// second time hit the messages primary key, so the route failed outside any
+// handler and the owner was told only "The run could not be started". The turn
+// has to be truncated back to that message instead.
+if (phase === 'write') {
+  const conversation = 'smoke-regen';
+  const turn = (id, text, trigger) => ({
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openrouter/free',
+    freeOnly: true,
+    instructions: 'Answer briefly.',
+    trigger,
+    messages: [{ id, role: 'user', parts: [{ type: 'text', text }] }],
+  });
+  const post = (body) =>
+    fetch(base + `/api/conversations/${conversation}/runs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+  const stored = async () =>
+    (await (await fetch(base + `/api/conversations/${conversation}/messages`, { headers })).json())
+      .messages;
+
+  // 202: the reply is the run id, not the answer.
+  assert.equal((await post(turn('regen-1', 'First question'))).status, 202);
+
+  // One run per conversation, so the first has to settle before the replay is
+  // anything but a 409. There is no provider reachable here, so it fails within
+  // a moment; the point of the wait is determinism, not patience.
+  for (let i = 0; i < 60; i += 1) {
+    const active = await (
+      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+    ).json();
+    if (!active.runId) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  const replayed = await post(turn('regen-1', 'First question', 'regenerate-message'));
+  assert.equal(replayed.status, 202, 'answering again is accepted, not a primary-key failure');
+  const messages = await stored();
+  assert.equal(messages.length, 1, 'the replayed turn replaces its old self rather than doubling');
+  assert.equal(messages[0].id, 'regen-1');
+
+  // Without the trigger the same message is a duplicate, and that is a refusal
+  // the transport can read rather than an empty 500.
+  const duplicate = await post(turn('regen-1', 'First question'));
+  assert.equal(duplicate.status, 409, 'a repeated message id is refused, not crashed on');
+  assert.equal((await stored()).length, 1);
+
+  // Editing is the same replay carrying different words, so the stored question
+  // has to end up as the edited one rather than the original.
+  for (let i = 0; i < 60; i += 1) {
+    const active = await (
+      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+    ).json();
+    if (!active.runId) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  const edited = await post(turn('regen-1', 'A better question', 'regenerate-message'));
+  assert.equal(edited.status, 202);
+  const after = await stored();
+  assert.equal(after.length, 1);
+  assert.equal(
+    after[0].parts[0].text,
+    'A better question',
+    'the edited words replace the original rather than being ignored',
+  );
+}
+
 // The JavaScript sandbox is a pre-built ES module served as a static asset.
 // It is built during `npm run build` and copied into the image, and if either
 // step is ever dropped the symptom is not a failed build — it is every code run
@@ -156,5 +251,5 @@ assert.ok(
 );
 
 console.info(
-  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets, sandbox worker and large saved workspace passed.`,
+  `HTTP smoke ${phase}: login, role, origin checks, release, saved secrets, body caps, sandbox worker and large saved workspace passed.`,
 );

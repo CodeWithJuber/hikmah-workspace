@@ -121,7 +121,15 @@ confirm that someone else's conversation exists.
 
 Each conversation has its own URL (`/chat/[id]`), and `/chat` only picks one —
 the most recently active, or a fresh id — and redirects, so a reload lands where
-the owner was. A row is not created by opening a conversation: the first message
+the owner was. `/` redirects to `/chat` rather than duplicating that choice, so
+there is one place that decides which conversation opens.
+
+The workspace — the chat that runs in the tab, and the screens around it:
+coding, agents, compare, tools, connections, the terminal, memory, learning, the
+research labs, settings, the owner console and the model connection — is at
+`/workspace`. Its sub-page lives in the URL hash (`/workspace#/admin/media`),
+which `workspaceDestination` reads without regard to the pathname, so those
+addresses survived the move from the root unchanged. A row is not created by opening a conversation: the first message
 creates it, so an abandoned "New chat" leaves nothing in the list. It is titled
 from that message rather than by asking a model, which would cost a request and
 a wait before the answer actually asked for, and on the free models this

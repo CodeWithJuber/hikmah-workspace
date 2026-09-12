@@ -13,11 +13,19 @@ export type ChatRequestBody = {
   apiKeySecret?: string;
   instructions: string;
   maxSteps?: number;
+  /** How much earlier conversation the run may carry, in characters. */
+  contextCharacters?: number;
   disabledTools: string[];
   /** An agent's allowlist over the built-in tools; empty means all of them. */
   enabledTools: string[];
   /** Compare mode: answer a second time with no tools, for contrast. */
   compare?: { model?: string };
+  /**
+   * Why this turn is being sent. `regenerate-message` means the last message is
+   * already stored and is being replayed, so the conversation has to be
+   * truncated back to it rather than appended to. Anything else is a new turn.
+   */
+  regenerate: boolean;
   messages: unknown;
 };
 
@@ -45,6 +53,13 @@ export function assertSameOrigin(request: Request, expected: string): void {
 /** Upper bound on the tool-calling rounds a single request may ask for. */
 export const MAX_ALLOWED_STEPS = 32;
 
+/** Rounds a run gets when nobody says otherwise.
+ *
+ * Here beside its ceiling rather than in run-agent, because the chat surface's
+ * settings need it and importing run-agent from the browser drags the whole
+ * server tool tree — node:path included — into the client bundle. */
+export const DEFAULT_MAX_STEPS = 12;
+
 /** Validate and normalise the run configuration sent with a turn. */
 export function parseChatRequest(raw: unknown): ChatRequestBody {
   if (!raw || typeof raw !== 'object') throw new ChatRequestError('Expected a JSON request body.');
@@ -58,6 +73,21 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     throw new ChatRequestError('Missing system instructions for this run.');
   if (!Array.isArray(body.messages) || body.messages.length === 0)
     throw new ChatRequestError('Send a message to start the run.');
+
+  // Bounded here as well as in the settings parser: this arrives from the
+  // client, and a run that carries a megabyte of history is a bill, not a
+  // preference.
+  let contextCharacters: number | undefined;
+  if (body.contextCharacters !== undefined) {
+    if (
+      typeof body.contextCharacters !== 'number' ||
+      !Number.isInteger(body.contextCharacters) ||
+      body.contextCharacters < 2_000 ||
+      body.contextCharacters > 400_000
+    )
+      throw new ChatRequestError('Earlier conversation must be 2,000 to 400,000 characters.');
+    contextCharacters = body.contextCharacters;
+  }
 
   let maxSteps: number | undefined;
   if (body.maxSteps !== undefined) {
@@ -99,6 +129,7 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     apiKeySecret,
     instructions: body.instructions,
     maxSteps,
+    contextCharacters,
     disabledTools: Array.isArray(body.disabledTools)
       ? body.disabledTools.filter((tool): tool is string => typeof tool === 'string')
       : [],
@@ -109,6 +140,10 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     // the endpoint and the free-only rule come from the run's own
     // configuration, so the comparison cannot be pointed somewhere else.
     compare,
+    // Anything other than the one value that means "replay" is treated as a new
+    // turn, so an unrecognised or absent trigger can only ever append — never
+    // delete.
+    regenerate: body.trigger === 'regenerate-message',
     messages: body.messages,
   };
 }

@@ -161,3 +161,57 @@ test('a restart requeues work the previous process was running', async (t) => {
   assert.equal(worker.store.getRun('r1').status, 'queued', 'stranded work must come back');
   await worker.stop();
 });
+
+test('the answer keeps what it cost, so a reload can still say so', async (t) => {
+  // Model and token usage arrive as the message's metadata. The worker used to
+  // write null there, so a reloaded conversation had a transcript and no
+  // figures — the composer's context meter had nothing to measure.
+  const usage = { inputTokens: 812, outputTokens: 240, totalTokens: 1052 };
+  const { worker, queue } = await harness(t, async () => ({
+    message: {
+      id: 'm1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Answer' }],
+      metadata: { model: 'vendor/model', usage },
+    },
+  }));
+  queue('r1');
+  await worker.tick();
+
+  const [stored] = worker.store.listMessages('c1');
+  assert.deepEqual(stored.metadata, { model: 'vendor/model', usage });
+});
+
+test('an answer with nothing to report stores no metadata rather than null', async (t) => {
+  const { worker, queue } = await harness(t, async () => ({
+    message: { id: 'm1', role: 'assistant', parts: [{ type: 'text', text: 'Answer' }] },
+  }));
+  queue('r1');
+  await worker.tick();
+  assert.equal(worker.store.listMessages('c1')[0].metadata, undefined);
+});
+
+test('a published plan reaches the durable log, so a reconnecting tab sees it', async (t) => {
+  // update_plan used to put its steps in the tool result and nowhere else, so
+  // a multi-step run showed a JSON payload where a checklist belonged, and a
+  // reload showed nothing at all.
+  const steps = [
+    { step: 'Read the source', status: 'completed' },
+    { step: 'Write the fix', status: 'in_progress' },
+  ];
+  const { worker, queue } = await harness(t, async ({ emit }) => {
+    emit({ type: 'data-plan', id: 'plan', data: { steps } });
+    return {
+      message: { id: 'm1', role: 'assistant', parts: [{ type: 'text', text: 'Working.' }] },
+    };
+  });
+  queue('r1');
+
+  const seen = [];
+  worker.bus.subscribe('r1', (event) => seen.push(event.payload));
+  await worker.tick();
+
+  const plan = seen.find((chunk) => chunk.type === 'data-plan');
+  assert.ok(plan, 'the plan is fanned out to anyone watching');
+  assert.deepEqual(plan.data.steps, steps);
+});
