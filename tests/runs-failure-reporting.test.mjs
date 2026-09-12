@@ -91,3 +91,37 @@ test('an endpoint that is not a known relay has no shared destination', () => {
   assert.equal(providerDestination('http://127.0.0.1:11434/v1'), '');
   assert.equal(providerDestination('not a url'), '');
 });
+
+// --- Refusing a run that cannot possibly succeed -------------------------
+
+const { needsKey } = await import('../lib/ai/endpoint.ts');
+
+test('a hosted provider with no key is refused before the run is queued', () => {
+  // Otherwise it queues, dies on a 401, and the owner sees a failure whose
+  // cause is a round trip away.
+  assert.equal(needsKey('https://openrouter.ai/api/v1', ''), true);
+  assert.equal(needsKey('https://api.experientiallabs.ai/v1', ''), true);
+});
+
+test('a key of any kind is enough to let it through', () => {
+  // Whether the key works is the provider's answer to give, not ours.
+  assert.equal(needsKey('https://openrouter.ai/api/v1', 'sk-or-x'), false);
+});
+
+test('a local or private endpoint is never refused for having no key', () => {
+  // Ollama and vLLM never had a key to give, and refusing them would break the
+  // one setup that is correct without one.
+  for (const url of [
+    'http://127.0.0.1:11434/v1',
+    'http://localhost:8000/v1',
+    'http://192.168.1.20:11434/v1',
+    'http://workbench:3001/v1',
+  ])
+    assert.equal(needsKey(url, ''), false, url);
+});
+
+test('something that is not a URL is treated as needing a key', () => {
+  // The request fails either way; "no API key" is the more useful of the two
+  // messages, and the alternative is silently letting it through.
+  assert.equal(needsKey('not a url', ''), true);
+});

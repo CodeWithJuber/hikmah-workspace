@@ -105,3 +105,26 @@ export function providerDestination(baseUrl: string): string {
   const provider = relayProviderFor(baseUrl);
   return provider ? 'provider:' + provider.id : '';
 }
+
+/**
+ * Would this run reach a provider with no credentials?
+ *
+ * A hosted endpoint answers 401 and the run dies for a reason the owner cannot
+ * see, so it is refused up front instead. A private or loopback endpoint —
+ * Ollama, vLLM, an OpenAI-compatible server on the same box — legitimately
+ * needs no key, and refusing those would break the one setup that never had a
+ * key to give.
+ */
+export function needsKey(baseUrl: string, apiKey: string): boolean {
+  if (apiKey) return false;
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    // Not a URL at all. The request fails either way, and "no API key" is the
+    // more useful of the two messages. Falling through to the host check would
+    // read the empty host as private and let it queue.
+    return true;
+  }
+  return !isNonPublic(host);
+}
