@@ -17,7 +17,7 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
-import { Copy, RefreshCw } from 'lucide-react';
+import { Copy, Pencil, RefreshCw } from 'lucide-react';
 import {
   Message,
   MessageAction,
@@ -168,17 +168,22 @@ export function MessageParts({
   status,
   onApproval,
   onRegenerate,
+  onEdit,
 }: {
   message: UIMessage;
   status: ChatStatus;
   onApproval?: RespondToApproval;
-  /** Offered on the answer this would replace; absent while a run is in
-   * flight, and on anything but the last answer. */
+  /** Offered on the answer it would replace. Absent while a run is in flight. */
   onRegenerate?: () => void;
+  /** Offered on a question worth asking differently. Absent while a run is in
+   * flight, for the same reason regenerate is: both rewrite the transcript. */
+  onEdit?: () => void;
 }) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
-  const answered = message.role === 'assistant' && status !== 'streaming' && status !== 'submitted';
+  const settled = status !== 'streaming' && status !== 'submitted';
+  const answered = message.role === 'assistant' && settled;
+  const asked = message.role === 'user' && settled;
 
   return (
     <Message from={message.role}>
@@ -324,10 +329,26 @@ export function MessageParts({
                   component replaces with a spoken note rather than reciting. */}
               <ReadAloud text={messageText(message)} />
               {onRegenerate && (
-                <MessageAction tooltip="Answer again" onClick={onRegenerate}>
+                <MessageAction
+                  tooltip="Answer again, replacing everything after this"
+                  onClick={onRegenerate}
+                >
                   <RefreshCw size={15} />
                 </MessageAction>
               )}
+            </MessageActions>
+          </MessageToolbar>
+        )}
+
+        {asked && onEdit && (
+          <MessageToolbar>
+            <MessageActions>
+              <MessageAction
+                tooltip="Edit and ask again, replacing everything after this"
+                onClick={onEdit}
+              >
+                <Pencil size={15} />
+              </MessageAction>
             </MessageActions>
           </MessageToolbar>
         )}
@@ -338,7 +359,7 @@ export function MessageParts({
 
 /** The answer as text, which is what someone copying it wants — not the tool
  * receipts and reasoning that sit between the text parts. */
-function messageText(message: UIMessage): string {
+export function messageText(message: UIMessage): string {
   return message.parts
     .filter((part) => part.type === 'text')
     .map((part) => (part as { text: string }).text)

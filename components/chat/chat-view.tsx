@@ -51,7 +51,7 @@ import {
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 import { VoiceInput } from './voice-controls';
-import { MessageParts } from './message-parts';
+import { MessageParts, messageText } from './message-parts';
 
 /** What the run recorded about itself when it finished. Written by the worker
  * onto the answer, so it survives a reload rather than living in this tab. */
@@ -149,19 +149,27 @@ export function ChatView({
   // changes, so anything the view kept would never reach the instance actually
   // sending the requests.
   const [transport] = useState(() => createDurableChatTransport({ config: run }));
-  const { messages, sendMessage, status, stop, error, regenerate, addToolApprovalResponse } =
-    useChat({
-      id,
-      transport,
-      messages: initialMessages,
-      // Rejoin an answer that was still being written when this tab last left.
-      resume: true,
-      // A tool that needs the owner's say-so pauses the run mid-step. Once every
-      // pending request on the last message has an answer, the turn is sent back
-      // automatically; without this the owner would answer the card and then
-      // have to nudge the conversation by hand for anything to happen.
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    });
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    stop,
+    error,
+    regenerate,
+    addToolApprovalResponse,
+  } = useChat({
+    id,
+    transport,
+    messages: initialMessages,
+    // Rejoin an answer that was still being written when this tab last left.
+    resume: true,
+    // A tool that needs the owner's say-so pauses the run mid-step. Once every
+    // pending request on the last message has an answer, the turn is sent back
+    // automatically; without this the owner would answer the card and then
+    // have to nudge the conversation by hand for anything to happen.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
 
   // Compare answers the same question a second time with no tools, to show what
   // the agent's machinery is actually buying. Held here rather than in the run
@@ -210,14 +218,62 @@ export function ChatView({
     field.focus();
   }, []);
 
+  // The question being rewritten, if any. Sending while this is set replaces
+  // that message rather than adding one, and the server truncates the turns it
+  // started — so the conversation reads as though it had been asked that way.
+  const [editing, setEditing] = useState<string | null>(null);
+  const beginEdit = useCallback((message: UIMessage) => {
+    const field = composer.current;
+    if (!field) return;
+    field.value = messageText(message);
+    field.focus();
+    // The caret goes to the end, because the common edit is adding to a
+    // question rather than replacing it.
+    field.setSelectionRange(field.value.length, field.value.length);
+    setEditing(message.id);
+  }, []);
+  const cancelEdit = useCallback(() => {
+    setEditing(null);
+    if (composer.current) composer.current.value = '';
+  }, []);
+
   const submit = useCallback(
     ({ text, files }: { text?: string; files?: FileUIPart[] }) => {
       const trimmed = (text ?? '').trim();
       // A file on its own is a message: "look at this" is a complete request.
       if ((!trimmed && !files?.length) || busy) return;
+
+      if (editing) {
+        setEditing(null);
+        // Rewrite the stored message, then replay it. setMessages assigns
+        // straight onto the chat instance that regenerate reads, so the edit is
+        // in place by the time the request is built — no waiting for a render.
+        //
+        // Only the text is replaced. Attachments on the original are file parts
+        // carrying data URLs, and re-staging them into the composer would mean
+        // rebuilding files nobody re-picked; leaving them attached is what the
+        // owner meant by editing the words.
+        setMessages(
+          messages.map((message) =>
+            message.id === editing
+              ? {
+                  ...message,
+                  parts: [
+                    { type: 'text' as const, text: trimmed },
+                    ...message.parts.filter((part) => part.type !== 'text'),
+                  ],
+                }
+              : message,
+          ),
+        );
+        void regenerate({ messageId: editing });
+        if (composer.current) composer.current.value = '';
+        return;
+      }
+
       void sendMessage({ text: trimmed, files });
     },
-    [busy, sendMessage],
+    [busy, editing, messages, regenerate, sendMessage, setMessages],
   );
 
   return (
@@ -244,12 +300,17 @@ export function ChatView({
               message={message}
               status={status}
               onApproval={addToolApprovalResponse}
-              // Only the last answer, and only once the run has settled:
-              // regenerating anything earlier would discard what came after it.
+              // Offered on every settled answer, not just the last: the server
+              // truncates from the message being replayed, so an earlier one
+              // rewinds the conversation to that point rather than corrupting
+              // it. The tooltip says so, because it is not reversible.
               onRegenerate={
-                !busy && message.role === 'assistant' && index === messages.length - 1
-                  ? () => void regenerate()
+                !busy && !editing && message.role === 'assistant'
+                  ? () => void regenerate({ messageId: message.id })
                   : undefined
+              }
+              onEdit={
+                !busy && !editing && message.role === 'user' ? () => beginEdit(message) : undefined
               }
             />
           ))}
@@ -280,10 +341,20 @@ export function ChatView({
         maxFileSize={MAX_FILE_BYTES}
       >
         <PromptInputBody>
+          {editing && (
+            <p className="chat-editing" role="status">
+              Editing an earlier question. Sending replaces it, and every reply after it.
+              <button type="button" onClick={cancelEdit}>
+                Cancel
+              </button>
+            </p>
+          )}
           <StagedAttachments />
           <PromptInputTextarea
             ref={composer}
-            placeholder="Ask anything, or describe what to build."
+            placeholder={
+              editing ? 'Rewrite your question…' : 'Ask anything, or describe what to build.'
+            }
           />
         </PromptInputBody>
         <PromptInputFooter>

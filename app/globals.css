@@ -9018,6 +9018,26 @@ body {
 .chat-model-select {
   max-width: 210px;
 }
+.chat-editing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 10px 12px 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-editing button {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chat-editing button:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
 .chat-attachments {
   display: flex;
   flex-wrap: wrap;

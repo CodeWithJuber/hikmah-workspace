@@ -216,6 +216,25 @@ if (phase === 'write') {
   const duplicate = await post(turn('regen-1', 'First question'));
   assert.equal(duplicate.status, 409, 'a repeated message id is refused, not crashed on');
   assert.equal((await stored()).length, 1);
+
+  // Editing is the same replay carrying different words, so the stored question
+  // has to end up as the edited one rather than the original.
+  for (let i = 0; i < 60; i += 1) {
+    const active = await (
+      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+    ).json();
+    if (!active.runId) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  const edited = await post(turn('regen-1', 'A better question', 'regenerate-message'));
+  assert.equal(edited.status, 202);
+  const after = await stored();
+  assert.equal(after.length, 1);
+  assert.equal(
+    after[0].parts[0].text,
+    'A better question',
+    'the edited words replace the original rather than being ignored',
+  );
 }
 
 // The JavaScript sandbox is a pre-built ES module served as a static asset.
