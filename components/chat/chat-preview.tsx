@@ -74,6 +74,29 @@ type Loaded = { config: RunConfig; messages: UIMessage[] };
 /** The connection the workspace already has, so this surface talks to the same
  * provider as the rest of the app. */
 async function loadConfig(): Promise<RunConfig> {
+  // The chat's own settings first. This used to read the workspace blob only,
+  // which meant the connection could be set in one place and used in another —
+  // and an owner who never opened the workspace got the keyless fallback and a
+  // run that failed against the provider.
+  try {
+    const response = await fetch('/api/chat-settings', { credentials: 'same-origin' });
+    if (response.ok) {
+      const saved = ((await response.json()) as { settings?: { connection?: SavedConnection } })
+        .settings?.connection;
+      if (saved?.baseUrl && saved.model)
+        return {
+          baseUrl: saved.baseUrl,
+          model: saved.model,
+          freeOnly: saved.freeOnly !== false,
+          apiKeySecret: saved.apiKeySecret || undefined,
+          instructions: HIKMAH_CORE,
+        };
+    }
+  } catch {
+    /* fall through to the workspace's own connection */
+  }
+  // Then the workspace, so an owner who configured it there before this panel
+  // existed is not asked to do it again.
   try {
     const response = await fetch('/api/workspace-state', { credentials: 'same-origin' });
     if (!response.ok) return FALLBACK;
@@ -89,10 +112,17 @@ async function loadConfig(): Promise<RunConfig> {
       instructions: HIKMAH_CORE,
     };
   } catch {
-    // Keep the free-only default; the run route reports a real error.
+    // Keep the free-only default; the run route now reports a real error.
     return FALLBACK;
   }
 }
+
+type SavedConnection = {
+  baseUrl?: string;
+  model?: string;
+  freeOnly?: boolean;
+  apiKeySecret?: string;
+};
 
 async function loadMessages(conversationId: string): Promise<UIMessage[]> {
   try {
@@ -221,7 +251,14 @@ export function ChatPreview({
             // The owner's own choice first, then the agent's, then the saved
             // connection: picking an agent should not quietly override a model
             // the owner just selected.
-            model: active ?? loaded.config.model,
+            model: active ?? settings.connection.model ?? loaded.config.model,
+            // From the live settings, not the copy read when this mounted:
+            // saving a key and sending a message in the same visit has to work,
+            // and reading it once meant the run still went out keyless until
+            // the owner happened to reload.
+            baseUrl: settings.connection.baseUrl || loaded.config.baseUrl,
+            freeOnly: settings.connection.freeOnly,
+            apiKeySecret: settings.connection.apiKeySecret || loaded.config.apiKeySecret,
             maxSteps: settings.maxSteps,
             contextCharacters: settings.contextCharacters,
             // An agent's allowlist and the owner's off-switches are different

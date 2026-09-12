@@ -90,6 +90,17 @@ export function runEventStream(options: {
 
       function finish() {
         if (closed) return;
+        // Why the run stopped, if it stopped badly. The worker records the
+        // reason on the row and nothing used to forward it, so every failure
+        // reached the owner as the SDK's own "An error occurred." — no key, a
+        // rejected model and a provider outage all looked identical, and the
+        // one thing that would have told them apart was already written down.
+        //
+        // Sent as a UI-message error chunk because that is the shape useChat
+        // surfaces as `error`, and it is the last thing on the wire.
+        const ended = store.getRun(runId);
+        if (ended?.status === 'failed' && ended.error)
+          send(`data: ${JSON.stringify({ type: 'error', errorText: ended.error })}\n\n`);
         closed = true;
         unsubscribe();
         clearInterval(keepalive);

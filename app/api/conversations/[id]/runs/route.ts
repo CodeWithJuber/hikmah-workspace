@@ -4,8 +4,10 @@ import { publicOrigin } from '@/lib/server/origin';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { conversationTitle } from '@/lib/chat/title';
 import { releases } from '@/lib/runs/resume';
+import { isNonPublic } from '@/lib/ai/host-policy';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
+import { providerDestination } from '@/lib/ai/endpoint';
 
 export const dynamic = 'force-dynamic';
 
@@ -181,13 +183,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       apiKey = await createSecretStore().resolve(
         user.userId,
         parsed.apiKeySecret,
-        'provider:' + parsed.model,
+        providerDestination(parsed.baseUrl),
       );
     } catch {
       apiKey = '';
     }
   }
   if (!apiKey) apiKey = process.env.HIKMAH_PROVIDER_KEY ?? '';
+
+  // Refuse now, in words, rather than queueing a run that cannot succeed. A
+  // hosted provider without a key answers 401, which reached the owner as a
+  // bare "An error occurred" — the commonest first-run failure there is, and
+  // the one where knowing the cause is the whole fix. A private or loopback
+  // endpoint (Ollama, vLLM) legitimately needs no key, so it is not refused.
+  if (!apiKey && !isNonPublic(hostname(parsed.baseUrl)))
+    return fail(
+      'No API key for this provider. Add one under Settings → Connection in the chat, or set HIKMAH_PROVIDER_KEY on the server.',
+      400,
+    );
 
   const runId = newRunId();
   try {
@@ -217,4 +230,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   void worker.tick();
 
   return Response.json({ runId, conversationId }, { headers, status: 202 });
+}
+
+/** The host of a base URL, or '' when it is not a URL at all. */
+function hostname(baseUrl: string): string {
+  try {
+    return new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
 }

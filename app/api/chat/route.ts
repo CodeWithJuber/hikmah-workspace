@@ -9,6 +9,7 @@ import { mcpForUser } from '@/lib/mcp/app-context';
 import { workbenchReady } from '@/lib/ssh/run-context';
 import { initialModel } from '@/lib/playground/session';
 import { createSecretStore } from '@/server/workspace-secrets.mjs';
+import { providerDestination } from '@/lib/ai/endpoint';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       apiKey = await createSecretStore().resolve(
         user.userId,
         parsed.apiKeySecret,
-        'provider:' + parsed.model,
+        providerDestination(parsed.baseUrl),
       );
     } catch {
       apiKey = '';

@@ -71,3 +71,22 @@ export function isPausedOnPerson(status: RunStatus | undefined): boolean {
 export function streamIsFinished(status: RunStatus | undefined, terminal: boolean): boolean {
   return terminal || isPausedOnPerson(status);
 }
+
+/**
+ * Is there genuinely nothing left for a tailing client to receive?
+ *
+ * A failed run is the case this exists for. Its reason is a column, and a run
+ * that failed before emitting a single chunk — a provider rejecting the key, say
+ * — has no events at all. Answering "nothing to send" there returns 204, the
+ * browser sees a stream that merely stopped, and the owner is told only "An
+ * error occurred" while the actual reason sits in the database.
+ */
+export function nothingToSend(
+  run: { status?: RunStatus; error?: string | null } | null | undefined,
+  pendingEvents: number,
+  terminal: boolean,
+): boolean {
+  if (pendingEvents > 0) return false;
+  if (run?.status === 'failed' && run.error) return false;
+  return streamIsFinished(run?.status, terminal);
+}

@@ -15,6 +15,24 @@
 import { DEFAULT_MAX_STEPS, MAX_ALLOWED_STEPS } from '../ai/chat-request.ts';
 import { DEFAULT_CONTEXT_CHARACTERS } from '../ai/context.ts';
 
+/** Which provider a run talks to. The key itself is never here — it lives in
+ * the encrypted vault and this only names the secret. */
+export type ChatConnection = {
+  baseUrl: string;
+  model: string;
+  /** Refuse anything the catalogue does not price at zero. */
+  freeOnly: boolean;
+  /** Name of the saved secret holding the key, or '' for none. */
+  apiKeySecret: string;
+};
+
+export const DEFAULT_CONNECTION: ChatConnection = {
+  baseUrl: 'https://openrouter.ai/api/v1',
+  model: 'openrouter/free',
+  freeOnly: true,
+  apiKeySecret: '',
+};
+
 export type ChatSettings = {
   /** Tools the owner has switched off. Names, not indices, so the list
    * survives a tool being added or removed. */
@@ -25,6 +43,9 @@ export type ChatSettings = {
   contextCharacters: number;
   /** Whether the transcript shows the run's own working. */
   showActivity: boolean;
+  /** The provider this owner's runs use. Kept here rather than in the
+   * workspace blob so the chat works without ever opening the workspace. */
+  connection: ChatConnection;
 };
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -32,6 +53,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   maxSteps: DEFAULT_MAX_STEPS,
   contextCharacters: DEFAULT_CONTEXT_CHARACTERS,
   showActivity: true,
+  connection: DEFAULT_CONNECTION,
 };
 
 /** Below this a conversation cannot carry its own previous turn, which makes
@@ -72,6 +94,24 @@ export function parseChatSettings(raw: unknown): ChatSettings {
     // Absent means on: the default is to show the working, and a row written
     // before this field existed should not silently hide it.
     showActivity: value.showActivity !== false,
+    connection: parseConnection(value.connection),
+  };
+}
+
+/** A stored connection, bounded. Every field is owner-supplied text that ends
+ * up in a request URL or a vault lookup, so none of it is trusted by length. */
+function parseConnection(raw: unknown): ChatConnection {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONNECTION };
+  const value = raw as Record<string, unknown>;
+  const text = (input: unknown, max: number, fallback: string) =>
+    typeof input === 'string' && input.trim() && input.length <= max ? input.trim() : fallback;
+  return {
+    baseUrl: text(value.baseUrl, 400, DEFAULT_CONNECTION.baseUrl),
+    model: text(value.model, 200, DEFAULT_CONNECTION.model),
+    // Absent means on. Free-only is the safe default: it cannot spend money by
+    // accident on a deployment whose owner has not thought about it.
+    freeOnly: value.freeOnly !== false,
+    apiKeySecret: text(value.apiKeySecret, 64, ''),
   };
 }
 

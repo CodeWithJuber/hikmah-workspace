@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ChatSettings } from '@/lib/chat/settings';
+import { ConnectionSettings } from './connection-settings';
 
 const STEP_CHOICES = [2, 4, 8, 12, 20, 32];
 const CONTEXT_CHOICES = [
@@ -56,6 +57,16 @@ export function RunSettings({
 
   return (
     <div className="chat-settings-panel">
+      {/* First, because nothing else in this panel matters until a run can
+          reach a provider at all. */}
+      <section>
+        <h3>Connection</h3>
+        <p>Which model answers, and the key that pays for it.</p>
+        <ConnectionSettings
+          connection={settings.connection}
+          onChange={(connection) => apply({ connection })}
+        />
+      </section>
       <section>
         <h3>Tool rounds</h3>
         <p>
