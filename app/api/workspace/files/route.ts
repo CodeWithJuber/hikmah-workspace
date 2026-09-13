@@ -1,6 +1,7 @@
 import { getChatGPTUser } from '../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { FileError, createFileStore } from '@/lib/files/store';
+import { PREVIEW_TTL_MS, previewPath, signPreviewToken } from '@/lib/files/preview-link';
 import { getStorage } from '@/server/storage.mjs';
 
 export const dynamic = 'force-dynamic';
@@ -25,11 +26,21 @@ export async function GET(request: Request) {
 
   const files = store();
   const path = new URL(request.url).searchParams.get('path');
-  if (!path)
+  if (!path) {
+    // Where this workspace's pages are served, for a week: the Files panel's
+    // full-page preview and its private link. Minted per read, so the link is
+    // never older than the listing it came with.
+    const secret = process.env.BETTER_AUTH_SECRET ?? '';
+    const preview = secret
+      ? previewPath(
+          signPreviewToken({ userId: user.userId, expiresAt: Date.now() + PREVIEW_TTL_MS }, secret),
+        )
+      : undefined;
     return Response.json(
-      { ...files.usage(user.userId), files: files.list(user.userId) },
+      { ...files.usage(user.userId), files: files.list(user.userId), preview },
       { headers },
     );
+  }
 
   try {
     const file = files.read(user.userId, path);

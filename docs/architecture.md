@@ -409,6 +409,30 @@ workspace, which nothing else reads and no program runs; a file written here has
 no effect until someone asks for one. `bash` and `ssh_exec` are gated because
 they act on a machine.
 
+### Pages, served as pages
+
+A page in the workspace is served at `/preview/<token>/<path>`
+(`app/preview/[token]/[[...path]]/route.ts`), the way the artifact products
+people know serve theirs: a real URL, so `css/style.css` and `js/script.js`
+resolve, and one that opens full screen or in its own tab. The preview used to
+inline three named files into one `srcdoc`; a page that linked a stylesheet by
+path rendered bare, inside a 320px box in the drawer.
+
+The token (`lib/files/preview-link.ts`) is a signed, expiring reference to one
+workspace — an HMAC over the workspace id and the expiry, keyed from the
+session secret — and it is the whole credential: no cookie is read. That is
+what makes the sandbox possible. Every response carries a `sandbox`
+Content-Security-Policy without `allow-same-origin`, so the page runs in an
+opaque origin that cannot read the owner's cookies or call the owner's APIs,
+and because nothing about the request depends on the signed-in person, that
+opaque page can still fetch its own stylesheet. A served HTML page gets the
+console bridge added ahead of its scripts, so the full-page viewer
+(`components/chat/page-preview.tsx`) can show its console. The link the Files
+panel copies lasts a week; a leaked one stops working on its own. When DNS for
+a `preview.` subdomain exists, the same route can be served from that host
+alone by a second Caddy site block — a separate origin on top of the sandbox,
+which is how the larger products do it.
+
 ## Memory
 
 What a person has saved, what the model has suggested, and what an answer drew

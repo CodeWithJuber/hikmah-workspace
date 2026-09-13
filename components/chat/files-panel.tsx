@@ -13,8 +13,8 @@
  * the console bridge that forwards the preview's own console back out.
  */
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { previewDocument } from '@/lib/playground/workspace-tools';
+import { useCallback, useEffect, useState } from 'react';
+import { PagePreview } from './page-preview';
 
 // Dynamic, and without SSR: CodeMirror is a large chunk and has no business in
 // the first paint of a conversation.
@@ -25,14 +25,13 @@ const Editor = dynamic(() => import('@/components/playground/editor'), {
 
 type Entry = { path: string; size: number; updated_at: string };
 
-/** Forwards the preview's console and its uncaught errors to the panel. The
- * preview is sandboxed and same-origin-less, so a postMessage is the only way
- * back, and the listener checks the source frame before believing any of it. */
-const BRIDGE =
-  "<script>const send=(level,args)=>{try{parent.postMessage({source:'hikmah-preview',level,text:args.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' ')},'*')}catch{}};const oldLog=console.log;console.log=(...a)=>{send('log',a);oldLog(...a)};window.addEventListener('error',e=>send('error',[e.message]));window.addEventListener('unhandledrejection',e=>send('error',[String(e.reason)]));<\/script>";
-
-/** A page can be previewed once there is something to open. */
-const isPreviewable = (paths: string[]) => paths.includes('index.html');
+/** The page a preview opens: the file being edited when it is a page,
+ * otherwise the site's front page, otherwise the first page there is. */
+function pageToPreview(open: string | null, paths: string[]): string | null {
+  if (open && /\.html?$/i.test(open)) return open;
+  if (paths.includes('index.html')) return 'index.html';
+  return paths.find((path) => /\.html?$/i.test(path)) ?? null;
+}
 
 function currentTheme(): 'light' | 'dark' {
   if (typeof document === 'undefined') return 'light';
@@ -45,34 +44,13 @@ export function FilesPanel({ revision }: { revision: number }) {
   const [body, setBody] = useState('');
   const [dirty, setDirty] = useState(false);
   const [note, setNote] = useState('');
-  const [tab, setTab] = useState<'code' | 'preview'>('code');
-  const [preview, setPreview] = useState('');
-  const [logs, setLogs] = useState<string[]>([]);
-  const frame = useRef<HTMLIFrameElement>(null);
+  // Where this workspace's pages are served (see lib/files/preview-link.ts),
+  // and which page is open full screen.
+  const [previewBase, setPreviewBase] = useState('');
+  const [showing, setShowing] = useState<string | null>(null);
   // Bumped after a write or a delete, so the listing reloads without the effect
   // depending on the values it sets.
   const [changed, setChanged] = useState(0);
-
-  useEffect(() => {
-    const receive = (event: MessageEvent) => {
-      const data = event.data as { source?: string; level?: string; text?: string } | null;
-      if (
-        event.source !== frame.current?.contentWindow ||
-        !data ||
-        data.source !== 'hikmah-preview' ||
-        typeof data.text !== 'string'
-      )
-        return;
-      setLogs((lines) =>
-        [
-          ...lines,
-          `${data.level === 'error' ? 'error' : 'log'}: ${data.text!.slice(0, 1500)}`,
-        ].slice(-50),
-      );
-    };
-    window.addEventListener('message', receive);
-    return () => window.removeEventListener('message', receive);
-  }, []);
 
   // A run finishing reloads the listing and nothing else — not the open file,
   // not what has been typed into it — so an edit in progress survives the agent
@@ -81,8 +59,10 @@ export function FilesPanel({ revision }: { revision: number }) {
     let live = true;
     void fetch('/api/workspace/files', { credentials: 'same-origin' })
       .then((response) => (response.ok ? response.json() : { files: [] }))
-      .then((payload: { files?: Entry[] }) => {
-        if (live) setEntries(payload.files ?? []);
+      .then((payload: { files?: Entry[]; preview?: string }) => {
+        if (!live) return;
+        setEntries(payload.files ?? []);
+        setPreviewBase(payload.preview ?? '');
       })
       .catch(() => {
         if (live) setEntries([]);
@@ -102,7 +82,6 @@ export function FilesPanel({ revision }: { revision: number }) {
     setBody(file?.body ?? '');
     setDirty(false);
     setNote('');
-    setTab('code');
   }, []);
 
   const save = useCallback(async () => {
@@ -139,35 +118,16 @@ export function FilesPanel({ revision }: { revision: number }) {
     [open],
   );
 
-  /** Read the three files a page is made of and render them together.
-   *
-   * Three requests rather than one: the route reads a file at a time, and a
-   * bulk endpoint for something pressed by hand would be machinery for no gain.
-   * The file being edited is taken from the editor, not the server, so Run
-   * previews what is on screen.
-   */
-  const run = useCallback(async () => {
-    const names = (entries ?? []).map((entry) => entry.path);
-    const wanted = ['index.html', 'style.css', 'script.js'].filter((name) => names.includes(name));
-    const files: Record<string, string> = {};
-    for (const name of wanted) {
-      if (name === open) {
-        files[name] = body;
-        continue;
-      }
-      const response = await fetch(`/api/workspace/files?path=${encodeURIComponent(name)}`, {
-        credentials: 'same-origin',
-      });
-      if (!response.ok) continue;
-      const { file } = (await response.json()) as { file?: { body?: string } };
-      files[name] = file?.body ?? '';
-    }
-    setLogs([]);
-    setPreview(previewDocument(files).replace('</head>', BRIDGE + '</head>'));
-    setTab('preview');
-  }, [body, entries, open]);
-
   const paths = (entries ?? []).map((entry) => entry.path);
+  const page = pageToPreview(open, paths);
+
+  /** Open the page full screen, served with every file it links to. An edit
+   * in progress is saved first: the server serves rows, not the editor. */
+  const run = useCallback(async () => {
+    if (!page) return;
+    if (dirty) await save();
+    setShowing(page);
+  }, [dirty, page, save]);
 
   return (
     // A plain div: the panel around this is the landmark, and nesting a second
@@ -197,42 +157,26 @@ export function FilesPanel({ revision }: { revision: number }) {
         ))}
       </ul>
 
-      {isPreviewable(paths) && (
+      {page && previewBase && (
         <div className="files-run">
           <button type="button" onClick={() => void run()}>
-            Run preview
+            Open {page}
           </button>
-          {tab === 'preview' && (
-            <button type="button" onClick={() => setTab('code')}>
-              Back to code
-            </button>
-          )}
+          <a href={previewBase + page} target="_blank" rel="noopener noreferrer">
+            New tab
+          </a>
         </div>
       )}
 
-      {tab === 'preview' && (
-        <div className="files-preview">
-          <iframe
-            ref={frame}
-            title="Workspace preview"
-            // allow-scripts and nothing else: the page is the owner's, but it
-            // was written by a model, so it gets no same-origin access and no
-            // way back into this document except the bridge above.
-            sandbox="allow-scripts"
-            referrerPolicy="no-referrer"
-            srcDoc={preview}
-          />
-          <div className="files-console" aria-label="Preview console">
-            {logs.length === 0 ? (
-              <p>Nothing logged.</p>
-            ) : (
-              logs.map((line, index) => <p key={index}>{line}</p>)
-            )}
-          </div>
-        </div>
+      {showing && previewBase && (
+        <PagePreview
+          href={previewBase + showing}
+          title={showing}
+          onClose={() => setShowing(null)}
+        />
       )}
 
-      {tab === 'code' && open && (
+      {open && (
         <div className="files-editor">
           <label htmlFor="files-body">{open}</label>
           <div className="files-editor-surface">
