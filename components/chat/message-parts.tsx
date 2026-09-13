@@ -27,6 +27,7 @@ import {
   MessageToolbar,
 } from '@/components/ai-elements/message';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
+import { describeWorking, groupParts } from '@/lib/chat/working';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
   Tool,
@@ -255,159 +256,180 @@ export function MessageParts({
   const artifact = answered ? messageArtifact(message) : null;
   const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
-  return (
-    <Message from={message.role}>
-      <MessageContent>
-        {message.parts.map((part, index) => {
-          const key = message.id + '-' + index;
+  // Sorted before it is rendered, so the answer, the working and anything
+  // still asking the reader are three things instead of one interleaved
+  // column. See lib/chat/working.ts for why.
+  const { working } = groupParts(message.parts);
+  const summary = describeWorking(working);
+  // Original order for everything that is not the working: a plan card
+  // belongs where the model put it, before the answer it introduces.
+  const rest = message.parts.filter((part) => !working.includes(part));
+  const renderPart = (part: (typeof message.parts)[number], index: number) => {
+    const key = message.id + '-' + index;
 
-          if (part.type === 'text')
-            return (
-              <MessageResponse key={key} isAnimating={streaming} dir="auto">
-                {part.text}
-              </MessageResponse>
-            );
+    if (part.type === 'text')
+      return (
+        <MessageResponse key={key} isAnimating={streaming} dir="auto">
+          {part.text}
+        </MessageResponse>
+      );
 
-          if (part.type === 'reasoning' && !showActivity) return null;
+    if (part.type === 'reasoning' && !showActivity) return null;
 
-          if (part.type === 'reasoning')
-            return (
-              <Reasoning key={key} isStreaming={part.state === 'streaming'}>
-                <ReasoningTrigger />
-                <ReasoningContent>{part.text}</ReasoningContent>
-              </Reasoning>
-            );
+    if (part.type === 'reasoning')
+      return (
+        <Reasoning key={key} isStreaming={part.state === 'streaming'}>
+          <ReasoningTrigger />
+          <ReasoningContent>{part.text}</ReasoningContent>
+        </Reasoning>
+      );
 
-          // isToolUIPart covers both declared tools and dynamic ones, so the
-          // two share a branch; only the header needs to distinguish them.
-          if (isToolUIPart(part)) {
-            // A question is not a tool call the reader needs to audit, it is the
-            // run talking to them. Rendered as itself rather than as a row in
-            // the activity list, and shown whatever the activity setting says:
-            // hiding it would leave the run waiting for an answer to a question
-            // nobody could see.
-            if (part.type === 'tool-ask_user') {
-              const asked = questionFrom(part.input);
-              if (asked && part.state === 'input-available')
-                return (
-                  <ClarificationCard
-                    key={key}
-                    value={{
-                      ...asked,
-                      resolve: (answer) => onQuestion?.({ toolCallId: part.toolCallId, answer }),
-                    }}
-                  />
-                );
-              if (asked && part.state === 'output-available')
-                return (
-                  <p className="chat-answered-question" key={key}>
-                    <span>{asked.question}</span>
-                    <strong>{String(part.output ?? '')}</strong>
-                  </p>
-                );
-              // Anything else — an unreadable question, a denied or errored call
-              // — falls through to the generic row, which says what happened.
-            }
-            const media = generatedMedia(part.output);
-            // Generated pictures and audio are the answer, not the working, so
-            // they stay visible however the setting is set. A tool waiting on
-            // the owner stays too: hiding the question would strand the run.
-            const waiting = part.state === 'approval-requested';
-            if (!showActivity && !media.length && !waiting) return null;
-            // The plan is rendered as its own card from the data part, so the
-            // tool's own row would be the same information twice.
-            if (part.type === 'tool-update_plan' && hasPlan) return null;
-            return (
-              <Tool key={key}>
-                {part.type === 'dynamic-tool' ? (
-                  <ToolHeader type="dynamic-tool" state={part.state} toolName={part.toolName} />
-                ) : (
-                  <ToolHeader type={part.type} state={part.state} />
-                )}
-                <ToolContent>
-                  <ToolInput input={part.input} />
-                  {/* The run is paused here waiting for an answer. Without this
+    // isToolUIPart covers both declared tools and dynamic ones, so the
+    // two share a branch; only the header needs to distinguish them.
+    if (isToolUIPart(part)) {
+      // A question is not a tool call the reader needs to audit, it is the
+      // run talking to them. Rendered as itself rather than as a row in
+      // the activity list, and shown whatever the activity setting says:
+      // hiding it would leave the run waiting for an answer to a question
+      // nobody could see.
+      if (part.type === 'tool-ask_user') {
+        const asked = questionFrom(part.input);
+        if (asked && part.state === 'input-available')
+          return (
+            <ClarificationCard
+              key={key}
+              value={{
+                ...asked,
+                resolve: (answer) => onQuestion?.({ toolCallId: part.toolCallId, answer }),
+              }}
+            />
+          );
+        if (asked && part.state === 'output-available')
+          return (
+            <p className="chat-answered-question" key={key}>
+              <span>{asked.question}</span>
+              <strong>{String(part.output ?? '')}</strong>
+            </p>
+          );
+        // Anything else — an unreadable question, a denied or errored call
+        // — falls through to the generic row, which says what happened.
+      }
+      const media = generatedMedia(part.output);
+      // Generated pictures and audio are the answer, not the working, so
+      // they stay visible however the setting is set. A tool waiting on
+      // the owner stays too: hiding the question would strand the run.
+      const waiting = part.state === 'approval-requested';
+      if (!showActivity && !media.length && !waiting) return null;
+      // The plan is rendered as its own card from the data part, so the
+      // tool's own row would be the same information twice.
+      if (part.type === 'tool-update_plan' && hasPlan) return null;
+      return (
+        <Tool key={key}>
+          {part.type === 'dynamic-tool' ? (
+            <ToolHeader type="dynamic-tool" state={part.state} toolName={part.toolName} />
+          ) : (
+            <ToolHeader type={part.type} state={part.state} />
+          )}
+          <ToolContent>
+            <ToolInput input={part.input} />
+            {/* The run is paused here waiting for an answer. Without this
                       card the tool sits on "Awaiting Approval" forever, because
                       nothing else can send the response. */}
-                  <Confirmation approval={part.approval} state={part.state}>
-                    <ConfirmationRequest>
-                      <ConfirmationTitle>{approvalSummary(part)}</ConfirmationTitle>
-                    </ConfirmationRequest>
-                    <ConfirmationAccepted>
-                      <ConfirmationTitle>You allowed this.</ConfirmationTitle>
-                    </ConfirmationAccepted>
-                    <ConfirmationRejected>
-                      <ConfirmationTitle>You declined this.</ConfirmationTitle>
-                    </ConfirmationRejected>
-                    <ConfirmationActions>
-                      <ConfirmationAction
-                        variant="outline"
-                        onClick={() =>
-                          part.approval && onApproval?.({ id: part.approval.id, approved: false })
-                        }
-                      >
-                        Don&rsquo;t allow
-                      </ConfirmationAction>
-                      <ConfirmationAction
-                        onClick={() =>
-                          part.approval && onApproval?.({ id: part.approval.id, approved: true })
-                        }
-                      >
-                        Allow
-                      </ConfirmationAction>
-                    </ConfirmationActions>
-                  </Confirmation>
-                  {/* A generated picture is the answer, not a description of
+            <Confirmation approval={part.approval} state={part.state}>
+              <ConfirmationRequest>
+                <ConfirmationTitle>{approvalSummary(part)}</ConfirmationTitle>
+              </ConfirmationRequest>
+              <ConfirmationAccepted>
+                <ConfirmationTitle>You allowed this.</ConfirmationTitle>
+              </ConfirmationAccepted>
+              <ConfirmationRejected>
+                <ConfirmationTitle>You declined this.</ConfirmationTitle>
+              </ConfirmationRejected>
+              <ConfirmationActions>
+                <ConfirmationAction
+                  variant="outline"
+                  onClick={() =>
+                    part.approval && onApproval?.({ id: part.approval.id, approved: false })
+                  }
+                >
+                  Don&rsquo;t allow
+                </ConfirmationAction>
+                <ConfirmationAction
+                  onClick={() =>
+                    part.approval && onApproval?.({ id: part.approval.id, approved: true })
+                  }
+                >
+                  Allow
+                </ConfirmationAction>
+              </ConfirmationActions>
+            </Confirmation>
+            {/* A generated picture is the answer, not a description of
                       one, so it is shown rather than printed as the JSON
                       reference the model received. A call that failed produced
                       no media and falls through to the card below, which says
                       what went wrong. */}
-                  {media.length > 0 ? (
-                    media.map((entry, position) => (
-                      <MediaAttachment key={key + '-media-' + position} media={entry} />
-                    ))
-                  ) : (
-                    /* errorText and output are mutually exclusive; the component
+            {media.length > 0 ? (
+              media.map((entry, position) => (
+                <MediaAttachment key={key + '-media-' + position} media={entry} />
+              ))
+            ) : (
+              /* errorText and output are mutually exclusive; the component
                        shows whichever is present, so a failed tool stays visible
                        in the transcript rather than silently missing. */
-                    <ToolOutput output={part.output} errorText={part.errorText} />
-                  )}
-                </ToolContent>
-              </Tool>
-            );
-          }
+              <ToolOutput output={part.output} errorText={part.errorText} />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
 
-          // Rendered once, after the parts loop, so repeated citations of the
-          // same source do not each open their own list.
-          if (part.type === 'source-url' || part.type === 'source-document') return null;
+    // Rendered once, after the parts loop, so repeated citations of the
+    // same source do not each open their own list.
+    if (part.type === 'source-url' || part.type === 'source-document') return null;
 
-          if (part.type === 'file')
-            return (
-              <p key={key} className="chat-attachment-note">
-                Attached: {part.filename ?? part.mediaType}
-              </p>
-            );
+    if (part.type === 'file')
+      return (
+        <p key={key} className="chat-attachment-note">
+          Attached: {part.filename ?? part.mediaType}
+        </p>
+      );
 
-          if (part.type === 'data-plan') {
-            if (!showActivity) return null;
-            const steps = (part.data as { steps?: PlanStep[] } | undefined)?.steps ?? [];
-            return <TaskPlan key={key} steps={steps} />;
-          }
+    if (part.type === 'data-plan') {
+      if (!showActivity) return null;
+      const steps = (part.data as { steps?: PlanStep[] } | undefined)?.steps ?? [];
+      return <TaskPlan key={key} steps={steps} />;
+    }
 
-          if (part.type === 'data-compare')
-            return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
+    if (part.type === 'data-compare')
+      return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
-          // A step boundary in a multi-step run. It carries no content of its
-          // own; the tool cards around it already show what happened.
-          if (part.type === 'step-start') return null;
+    // A step boundary in a multi-step run. It carries no content of its
+    // own; the tool cards around it already show what happened.
+    if (part.type === 'step-start') return null;
 
-          return (
-            <details key={key} className="chat-unknown-part">
-              <summary>Unrecognised content ({part.type})</summary>
-              <pre>{JSON.stringify(part, null, 2)}</pre>
-            </details>
-          );
-        })}
+    return (
+      <details key={key} className="chat-unknown-part">
+        <summary>Unrecognised content ({part.type})</summary>
+        <pre>{JSON.stringify(part, null, 2)}</pre>
+      </details>
+    );
+  };
+
+  return (
+    <Message from={message.role}>
+      <MessageContent>
+        {showActivity && working.length > 0 && (
+          /* The working, as one thing rather than scattered through the
+             answer. The header names which sources answered and how many
+             steps it took — the question a reader is actually asking when
+             they cannot tell where the MCP call happened. Closed by
+             default: the answer is what they came for. */
+          <details className="chat-working">
+            <summary>{summary || 'How this was worked out'}</summary>
+            <div className="chat-working-body">{working.map(renderPart)}</div>
+          </details>
+        )}
+        {rest.map(renderPart)}
 
         {sources.length > 0 && (
           <Sources>
