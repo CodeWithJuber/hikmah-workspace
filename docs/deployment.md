@@ -102,6 +102,18 @@ Treat schema changes as reviewed migrations. Never edit an applied migration: it
 
 Pre-deploy snapshots are local, not an off-site disaster-recovery solution. Configure an encrypted off-site backup destination, retention, an actual restore drill and uptime/error monitoring before relying on the service commercially. Backups contain private chats and authentication records; protect them accordingly. Do not remove shared Docker images/volumes or run an unrestricted system prune.
 
+Each release tidies the host before it loads anything: Hikmah image tags other than the running release's and the new one are removed, along with packages under `incoming/` from earlier releases, snapshots beyond the five newest, and `data-failed-*` / `workbench-data-failed-*` copies beyond the three newest. Nothing else on the host is touched. A release that fails prints the app container's last lines, its exit code, and the host's disk and memory into the Actions log before restoring the previous release, and again if that restore fails too, so the cause is visible without an SSH session.
+
+**If both the new release and the restore fail**, the cause is on the host rather than in the image; the two usual ones are a full disk and exhausted memory. On the server:
+
+```
+cd /opt/hikmah
+df -h /opt/hikmah /var/lib/docker && free -m
+docker compose --env-file .env --env-file release.env -f compose.yml logs --tail 100 app
+```
+
+Free space if needed (`docker image ls hikmah-workspace` and remove old tags, delete old `backups/pre-*.tar.gz` and `data-failed-*` copies), then `docker compose --env-file .env --env-file release.env -f compose.yml up -d --wait` starts the release named in `release.env` again.
+
 ## Runtime workers and remaining services
 
 `public/runtime/server.py`, its tests, setup guide and ZIP contain the Python/Node/SSH worker starter. Use a dedicated host for untrusted execution, with only the intended app origin, a strong bearer token and explicit SSH aliases. That service is not automatically installed by this app workflow. Browser search/reference retrieval is built into the authenticated app routes; external MCP services still need their own access configuration.

@@ -9,6 +9,39 @@ flock -w 300 8
 package="incoming/$revision"
 [[ -f "$package/image.tar.gz" && -f "$package/workbench.tar.gz" && -f "$package/image.sha256" ]] || { echo 'Release artifact missing.' >&2; exit 1; }
 (cd "$package" && sha256sum --check image.sha256)
+# Old releases pile up: every deploy loads two images and leaves a snapshot, and
+# a failed one also leaves its package and a copy of the data directory. Nothing
+# removed any of it, and a host that runs out of disk stops the app at boot with
+# the same symptom as a broken release. Kept: the images of the release that is
+# running (a rollback needs them) and of this one, the five newest snapshots and
+# the three newest failed-data copies. Only Hikmah's own image tags are touched;
+# shared images and volumes are not.
+tidy() {
+  local keep=("$revision") tag kept value
+  if [[ -f DEPLOYED_REVISION ]]; then keep+=("$(cat DEPLOYED_REVISION)"); fi
+  if [[ -f release.env ]]; then
+    while IFS='=' read -r _ value; do keep+=("${value##*:}"); done < release.env
+  fi
+  for tag in $(docker image ls --format '{{.Repository}}:{{.Tag}}' --filter reference=hikmah-workspace --filter reference=hikmah-workbench); do
+    kept=false
+    for value in "${keep[@]}"; do [[ $tag == *":$value" ]] && kept=true; done
+    if ! $kept; then docker image rm "$tag" >/dev/null || true; fi
+  done
+  find incoming -mindepth 1 -maxdepth 1 -type d ! -name "$revision" -exec rm -rf {} + 2>/dev/null || true
+  local spec count path paths
+  for spec in '5 backups/pre-*.tar.gz' '3 data-failed-*' '3 workbench-data-failed-*'; do
+    set -- $spec
+    count=$1
+    shift
+    paths=()
+    for path in "$@"; do
+      if [[ -e $path ]]; then paths+=("$path"); fi
+    done
+    if [[ ${#paths[@]} -gt $count ]]; then ls -dt "${paths[@]}" | tail -n +"$((count + 1))" | xargs -r rm -rf; fi
+  done
+}
+tidy || true
+df -h /opt/hikmah /var/lib/docker 2>/dev/null | uniq || true
 gzip -dc "$package/image.tar.gz" | docker load
 gzip -dc "$package/workbench.tar.gz" | docker load
 image="hikmah-workspace:$revision"
@@ -48,15 +81,30 @@ if [[ -f release.env && -f compose.yml ]]; then
     exit 1
   fi
 fi
+# What the operator would otherwise have to SSH in for: the app's own last
+# lines, how its process ended, and whether the host has run out of disk or
+# memory. Printed before the containers are recreated, which discards them.
+diagnose() {
+  echo "--- $1 ---" >&2
+  "${compose[@]}" ps -a >&2 || true
+  docker inspect --format 'app: exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{.State.Error}}' hikmah-app-1 >&2 || true
+  "${compose[@]}" logs --no-color --tail 60 app >&2 || true
+  df -h /opt/hikmah /var/lib/docker 2>/dev/null | uniq >&2 || true
+  free -m >&2 || true
+}
 rollback() {
   trap - ERR
   echo 'Deployment failed. Restoring the previous release when available.' >&2
+  diagnose 'the release that failed'
   if [[ -f release.env && -f compose.yml ]]; then stop_present 15 caddy app workbench || true; fi
   if $previous && [[ -f "$backup" ]]; then
     mv data "data-failed-$stamp"
     if [[ -d workbench-data ]]; then mv workbench-data "workbench-data-failed-$stamp"; fi
     tar -xzf "$backup"
-    "${compose[@]}" up -d --wait --wait-timeout 120 || true
+    if ! "${compose[@]}" up -d --wait --wait-timeout 120; then
+      diagnose 'the previous release, which failed to restart'
+      echo 'Both releases fail to start, so the cause is on the host rather than in the image. See the app log above.' >&2
+    fi
   fi
   exit 1
 }
