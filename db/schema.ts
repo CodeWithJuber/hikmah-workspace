@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
 export const kernelOwners = sqliteTable('kernel_owners', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull(),
@@ -73,3 +73,19 @@ export const usageEvents = sqliteTable('usage_events', {
   outputTokens: integer('output_tokens').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
+
+export const contextCandidates = sqliteTable(
+  'context_candidates',
+  {
+    userId: text('user_id').notNull(),
+    language: text('language').notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    text: text('text').notNull(),
+    annotation: text('annotation').notNull(),
+    uncertainty: real('uncertainty').notNull(),
+    tokens: integer('tokens').notNull(),
+    createdAt: text('created_at').notNull(),
+    reviewedAt: text('reviewed_at'),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.language, table.fingerprint] })],
+);

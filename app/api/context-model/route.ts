@@ -4,6 +4,8 @@ import { validateField, type Sentence } from '@/lib/context-model/field-model';
 import { validateTeaching } from '@/lib/context-model/training';
 import { checkContextGate, type Metrics } from '@/lib/context-model/gate';
 import frozen from '@/lib/context-model/frozen-gates.json';
+import { createCandidateStore } from '@/lib/context-model/candidate-store';
+import { getStorage } from '@/server/storage.mjs';
 export const dynamic = 'force-dynamic';
 function bucket() {
   if (!env.BUCKET)
@@ -14,6 +16,9 @@ function bucket() {
   return env.BUCKET;
 }
 const headers = { 'Cache-Control': 'no-store' };
+/** The raw handle, not the D1-shaped shim: the candidate store is built on
+ * node:sqlite for the same reasons the run store is. */
+const rawDatabase = () => getStorage().raw;
 async function boundedBody(request: Request) {
   if (!request.body) throw new KernelHttpError(400, 'A JSON request body is required.');
   const reader = request.body.getReader(),
@@ -48,6 +53,25 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams,
       id = params.get('id'),
       language = params.get('language');
+    // The sentences the owner's own chats found hardest, for review.
+    //
+    // Its own parameter rather than a field on the checkpoint read below: that
+    // one returns the model's bytes, which can be megabytes, and a screen
+    // asking "how many are waiting" should not download a checkpoint to find
+    // out.
+    const wanted = params.get('candidates');
+    if (wanted !== null) {
+      const store = createCandidateStore(rawDatabase());
+      return Response.json(
+        {
+          candidates: wanted
+            ? store.queue(user.userId, wanted, Number(params.get('limit')) || 20)
+            : [],
+          waiting: store.waiting(user.userId),
+        },
+        { headers },
+      );
+    }
     if (id || language) {
       let selected = id;
       if (!selected) {
@@ -97,6 +121,22 @@ export async function POST(request: Request) {
     if (Number(request.headers.get('content-length')) > 4000000)
       throw new KernelHttpError(413, 'Use a checkpoint smaller than 4 MB.');
     const body = await boundedBody(request);
+    // A sentence dealt with is offered once. Marked separately from training,
+    // because the owner may decide a sentence is not worth annotating — that is
+    // a real answer, and the queue should not keep asking.
+    if (body.action === 'reviewed') {
+      if (!['en', 'ar', 'hi', 'es', 'tr'].includes(body.language))
+        throw new KernelHttpError(400, 'Unsupported language.');
+      const fingerprints = Array.isArray(body.fingerprints)
+        ? body.fingerprints.filter((f: unknown): f is string => typeof f === 'string').slice(0, 500)
+        : [];
+      const marked = createCandidateStore(rawDatabase()).reviewed(
+        user.userId,
+        body.language,
+        fingerprints,
+      );
+      return Response.json({ marked }, { headers });
+    }
     if (body.action === 'activate' || body.action === 'reset') {
       if (!['en', 'ar', 'hi', 'es', 'tr'].includes(body.language))
         throw new KernelHttpError(400, 'Choose a supported language.');

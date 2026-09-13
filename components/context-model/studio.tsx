@@ -13,6 +13,7 @@ import {
   Network,
   Play,
   RotateCcw,
+  Sparkles,
   Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -283,7 +284,13 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
     // How many sentences this owner has already saved for this language. The
     // corpus is cumulative and capped, and until now the only way to discover
     // that was to hit the cap.
-    [counted, setCounted] = useState<number | null>(null);
+    [counted, setCounted] = useState<number | null>(null),
+    // How many sentences the owner's own chats have queued for review, per
+    // language. Every turn is parsed already; this is what that parse measured.
+    [waiting, setWaiting] = useState<Record<string, number>>({}),
+    // The fingerprints currently loaded into the box, so training can mark them
+    // dealt with and the queue stops offering them.
+    [loaded, setLoaded] = useState<string[]>([]);
   const [pivotWord, setPivotWord] = useState('knowledge'),
     [pivotLanguage, setPivotLanguage] = useState('en'),
     [pivot, setPivot] = useState<Awaited<ReturnType<typeof arabicCandidates>> | null>(null),
@@ -363,6 +370,18 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
   // into.
   useEffect(() => {
     let live = true;
+    void jsonRequest('/api/context-model?candidates=')
+      .then((data) => {
+        if (live) setWaiting((data.waiting as Record<string, number>) ?? {});
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [trainLanguage, saved]);
+
+  useEffect(() => {
+    let live = true;
     void jsonRequest('/api/context-model?language=' + trainLanguage)
       .then((previous) => {
         if (live) setCounted(((previous.reviewedRows as unknown[] | undefined) ?? []).length);
@@ -374,6 +393,48 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
       live = false;
     };
   }, [trainLanguage, saved]);
+
+  /** Whatever is already in the box, as rows, so an upload or a queue load
+   *  adds to a review in progress instead of discarding it. */
+  const boxRows = (): unknown[] => {
+    const current = rows.trim();
+    if (!current) return [];
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(current);
+    } catch {
+      throw Error('The box does not hold valid JSON, so nothing can be added to it.');
+    }
+    return Array.isArray(parsed) ? parsed : [];
+  };
+
+  /**
+   * Put the sentences your own chats found hardest into the box.
+   *
+   * They arrive already parsed by the active checkpoint, so this is a
+   * correction rather than an annotation from nothing — which is the whole
+   * reason the queue is worth having. Appended, like an upload, so a review
+   * session can mix chat sentences with a file.
+   */
+  const loadFromChats = async () => {
+    setError('');
+    setProblems([]);
+    try {
+      const data = await jsonRequest(
+        '/api/context-model?candidates=' + trainLanguage + '&limit=20',
+      );
+      const rows = (data.candidates as { fingerprint: string; annotation: unknown }[]) ?? [];
+      if (!rows.length) throw Error('Nothing from your chats is waiting in this language yet.');
+      const current = boxRows();
+      setRows(JSON.stringify([...current, ...rows.map((r) => r.annotation)], null, 2));
+      setLoaded(rows.map((r) => r.fingerprint));
+      setMessage(
+        `Loaded ${rows.length} sentence${rows.length === 1 ? '' : 's'} your chats found hardest. Correct them, then train.`,
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   /**
    * Read a dropped file into the box, alongside whatever is already there.
@@ -403,16 +464,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
         throw Error(
           `That file has ${parsed.rows.length} sentences; ${MAX_SUBMISSION} is the most that can be added at once.`,
         );
-      const current = rows.trim();
-      let existing: unknown[] = [];
-      if (current)
-        try {
-          existing = JSON.parse(current);
-        } catch {
-          throw Error('The box does not hold valid JSON, so nothing can be added to it.');
-        }
-      if (!Array.isArray(existing)) existing = [];
-      setRows(JSON.stringify([...existing, ...parsed.rows], null, 2));
+      setRows(JSON.stringify([...boxRows(), ...parsed.rows], null, 2));
       setProblems(parsed.problems);
       setMessage(
         `Added ${parsed.rows.length} sentence${parsed.rows.length === 1 ? '' : 's'} from ${file.name}.`,
@@ -465,6 +517,16 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
       );
       setCandidate(value);
       await saveCandidate(value);
+      // Dealt with, so the queue stops offering them. After the save, not
+      // before: a training run that failed leaves them waiting, which is right.
+      if (loaded.length) {
+        await jsonRequest('/api/context-model', {
+          action: 'reviewed',
+          language: trainLanguage,
+          fingerprints: loaded,
+        }).catch(() => {});
+        setLoaded([]);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -721,6 +783,22 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                 <Upload size={15} aria-hidden="true" />
                 Add a file
               </label>
+              {/* Every chat is parsed already to build its context notes, and
+                  that parse measures how sure the model was. These are the
+                  sentences it was least sure of — correcting them is the one
+                  thing a conversation can honestly teach a parser fitted on
+                  gold annotations. */}
+              <button
+                type="button"
+                className="context-upload-button"
+                disabled={busy || !waiting[trainLanguage]}
+                onClick={() => void loadFromChats()}
+              >
+                <Sparkles size={15} aria-hidden="true" />
+                {waiting[trainLanguage]
+                  ? `From your chats (${waiting[trainLanguage]})`
+                  : 'Nothing from your chats yet'}
+              </button>
               <span>{counted === null ? '\u00a0' : countLabel}</span>
             </div>
             {!!problems.length && (

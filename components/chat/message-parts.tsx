@@ -448,9 +448,33 @@ export function MessageParts({
     );
   };
 
+  // A turn that renders to literally nothing.
+  //
+  // A model can end a turn having only thought — reasoning parts and no text —
+  // and reasoning is filed under the working, which is hidden entirely when the
+  // owner has activity switched off. The result was a blank space where an
+  // answer belongs: no words, no card, nothing to press, reported as "thinking
+  // is in a loop, no response". The run records the reason now and streams it,
+  // but the transcript still has to account for the turn rather than leave a
+  // hole where it was.
+  const blank =
+    message.role === 'assistant' &&
+    settled &&
+    !hasText &&
+    rest.length === 0 &&
+    !(showActivity && working.length > 0);
+
   return (
     <Message from={message.role}>
       <MessageContent>
+        {blank && (
+          <p className="chat-blank-turn">
+            {working.length
+              ? 'This turn thought it through and stopped without writing an answer.'
+              : 'This turn produced nothing.'}{' '}
+            Answer again, or choose a different model.
+          </p>
+        )}
         {showActivity && working.length > 0 && (
           /* The working, as one thing rather than scattered through the
              answer. The header names which sources answered and how many

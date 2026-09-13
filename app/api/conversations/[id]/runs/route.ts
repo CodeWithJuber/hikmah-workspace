@@ -14,6 +14,8 @@ import { createChatSettingsStore } from '@/lib/chat/settings-store';
 import { createActiveCheckpointStore } from '@/lib/context-model/active-store';
 import { loadFieldForUser } from '@/lib/context-model/server';
 import { buildContextBrief, recentUserText } from '@/lib/context-model/run-brief';
+import { candidatesFrom } from '@/lib/context-model/candidates';
+import { createCandidateStore } from '@/lib/context-model/candidate-store';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
 import { composePrompt } from '@/lib/ai/compose-prompt';
@@ -300,10 +302,18 @@ async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<s
     const storage = getStorage();
     if (!createChatSettingsStore(storage.raw).read(userId).contextModel) return '';
     const active = createActiveCheckpointStore(storage.raw, storage.BUCKET);
-    const { block } = await buildContextBrief({
+    const { block, graph } = await buildContextBrief({
       messages,
       loadField: (language) => loadFieldForUser(userId, language, active),
     });
+    // The turn has just been parsed to build the block above, and the parse
+    // measured how sure it was of each sentence. That measurement is the only
+    // thing a chat can honestly give a parser fitted on gold annotations — the
+    // reply itself carries no grammar to learn from — so the hardest sentences
+    // are kept for the owner to correct rather than discarded with the parse.
+    // Inside this try, and after the block is computed, so a queue that cannot
+    // be written costs the queue and never the notes or the message.
+    if (graph) createCandidateStore(storage.raw).record(userId, candidatesFrom(graph));
     return block ? '\n\n' + block : '';
   } catch (error) {
     console.error(

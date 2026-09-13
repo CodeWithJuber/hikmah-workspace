@@ -8155,3 +8155,14 @@ a.auth-brand {
     overflow: hidden;
   }
 }
+
+/* A turn that produced nothing at all.
+   Quiet rather than alarming — the model stopping without writing is a
+   disappointment, not a fault in the workspace — but present, because a blank
+   space where an answer belongs reads as the app being broken. */
+.chat-blank-turn {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-style: italic;
+  margin: 4px 0;
+}

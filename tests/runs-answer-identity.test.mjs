@@ -166,3 +166,30 @@ test('an answer with words is not mistaken for silence', async (t) => {
   await worker.tick();
   assert.equal(store.getRun('run-1')?.status, 'done');
 });
+
+// And the person watching has to be told, not just the row.
+//
+// The worker records the reason after the stream has closed, so a tab that
+// watched the whole run live saw a clean ending and showed nothing at all —
+// the reason appeared only on a reload, which is not where anyone is looking.
+// Reported as "thinking is in a loop, no response".
+test('a silent run streams its reason to whoever is watching', async (t) => {
+  const seen = [];
+  const worker = setup(t, async ({ emit }) => {
+    emit({ type: 'text-start', id: '0' });
+    // What the driver does when it finds no answer in the folded message.
+    emit({ type: 'error', errorText: 'The model stopped without writing an answer.' });
+    return { message: { id: '', role: 'assistant', parts: [] }, silent: true };
+  });
+  const { store } = worker;
+  worker.bus.subscribe('run-1', (event) => seen.push(event.payload));
+
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+
+  const errors = seen.filter((chunk) => chunk?.type === 'error');
+  assert.equal(errors.length, 1, 'the tailing client is told, in the stream');
+  assert.match(errors[0].errorText, /without writing an answer/i);
+  // And the row still carries it for a reload.
+  assert.equal(store.getRun('run-1')?.status, 'failed');
+});
