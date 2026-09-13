@@ -402,7 +402,9 @@ test('a custom endpoint is listed under the run’s own endpoint policy, never a
   // Loopback: Ollama on the box, no key, plain HTTP.
   const local = await list('http://127.0.0.1:11434/v1/');
   assert.equal(local.status, 200);
-  assert.deepEqual(seen, ['http://127.0.0.1:11434/v1/models']);
+  // The list, then Ollama's own /api/show for each model's details — on the
+  // same loopback origin, and nowhere else (see ollama-details.ts).
+  assert.deepEqual(seen, ['http://127.0.0.1:11434/v1/models', 'http://127.0.0.1:11434/api/show']);
   // The cloud metadata service, a compose neighbour, a plain-HTTP public host:
   // every one is the same refusal the run itself would give.
   for (const baseUrl of [
@@ -416,7 +418,7 @@ test('a custom endpoint is listed under the run’s own endpoint policy, never a
     assert.equal(refused.status, 400, baseUrl);
     assert.equal(refused.headers.get('X-Hikmah-Relay-Error'), 'destination', baseUrl);
   }
-  assert.equal(fetchMock.mock.callCount(), 1, 'nothing refused was fetched');
+  assert.equal(fetchMock.mock.callCount(), 2, 'nothing refused was fetched');
   // A chat can never name its own destination this way.
   const chat = await relayProviderRequest(
     new Request(

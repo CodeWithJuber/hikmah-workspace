@@ -13,7 +13,7 @@
  * the composer and the settings screen share it over different catalogues.
  */
 import { useMemo, useState } from 'react';
-import { BrainCircuit, Check, ChevronDown, LoaderCircle, Wrench } from 'lucide-react';
+import { BrainCircuit, Check, ChevronDown, Eye, LoaderCircle, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   CommandDialog,
@@ -213,6 +213,11 @@ export function ModelPicker({
                       {model.reasoning && (
                         <span className="model-chip">
                           <BrainCircuit size={11} aria-hidden="true" /> reasoning
+                        </span>
+                      )}
+                      {model.vision && (
+                        <span className="model-chip">
+                          <Eye size={11} aria-hidden="true" /> images
                         </span>
                       )}
                     </span>

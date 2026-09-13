@@ -343,6 +343,16 @@ loopback as is, a private host only when `HIKMAH_PROVIDER_ALLOW_PRIVATE`
 names it, and then over HTTP, since nothing there has a certificate). The
 compose file maps `host.docker.internal` for Ollama on the Docker host.
 
+Ollama — local or ollama.com — answers `GET /v1/models` with ids and nothing
+else, so its models showed without a context length or their tools and
+thinking chips and vanished under the picker's Tools filter. The relay asks
+Ollama's own `POST /api/show` for each listed model (`lib/server/ollama-details.ts`):
+capabilities become the tools, reasoning and images chips, and
+`model_info["<architecture>.context_length"]` the context. A few requests at
+a time, a deadline on the whole, kept for an hour, and best effort — a model
+whose details did not arrive keeps its bare row. A custom server is
+recognised as Ollama by the `owned_by` its listing carries.
+
 Each provider keeps its own key in the vault under its own name
 (`secretNameFor`), so switching providers switches keys rather than
 overwriting one; OpenRouter keeps the name it always had. **A model list
