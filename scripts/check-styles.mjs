@@ -56,7 +56,7 @@ for (const [, preludeRaw, brace] of bare.matchAll(/([^{}]*)([{}])/g)) {
 const repeated = [...seen].filter(([, n]) => n > 1);
 const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
 
-const BASELINE = { colours: 143, repeated: 103, extra: 143 };
+const BASELINE = { colours: 135, repeated: 100, extra: 138 };
 const actual = { colours: colours.size, repeated: repeated.length, extra };
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
