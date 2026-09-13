@@ -106,3 +106,15 @@ test('deep research is a per-turn switch, off unless the body says exactly true'
   assert.equal(parseChatRequest({ ...body, deepResearch: true }).deepResearch, true);
   assert.equal(parseChatRequest({ ...body, deepResearch: 'yes' }).deepResearch, false);
 });
+
+test('web search is a per-turn switch, off unless the body says exactly true', () => {
+  const body = {
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'a/b',
+    instructions: 'x',
+    messages: [{ role: 'user', parts: [{ type: 'text', text: 'q' }] }],
+  };
+  assert.equal(parseChatRequest(body).webSearch, false);
+  assert.equal(parseChatRequest({ ...body, webSearch: true }).webSearch, true);
+  assert.equal(parseChatRequest({ ...body, webSearch: 1 }).webSearch, false);
+});

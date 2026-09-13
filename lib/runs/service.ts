@@ -73,6 +73,8 @@ export type RunConfig = {
   compare?: { model?: string };
   /** Offer `deep_research` this turn. */
   deepResearch?: boolean;
+  /** Search the web this turn: the composer's Search switch. */
+  webSearch?: boolean;
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
    * as a `data-memories` part so the answer can say what it used. */
   memories?: UsedMemory[];
@@ -156,6 +158,7 @@ async function driveWithAgent({
     // the one thing the run did that nobody was charged for.
     onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
     deepResearch: config.deepResearch === true,
+    webSearch: config.webSearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],
@@ -293,8 +296,19 @@ async function driveWithAgent({
       },
     });
 
-    let message: unknown;
-    for await (const value of readUIMessageStream({ stream: replay as never })) message = value;
+    // A resumed run continues the assistant turn that paused, and the fold has
+    // to start from that turn: the chunks that follow are a tool output for a
+    // call that lives on it and then the words. Folded from nothing, the
+    // first of those names a call the fold has never seen, the SDK throws
+    // "tool invocation not found", and the run that the person just allowed
+    // ended with no parts and the "stopped without writing an answer" card.
+    // A fresh turn's transcript ends with the person's message, so nothing is
+    // handed in and the fold opens a new turn as before.
+    const last = messages[messages.length - 1] as UIMessage | undefined;
+    const paused = last?.role === 'assistant' ? structuredClone(last) : undefined;
+    let message: unknown = paused;
+    for await (const value of readUIMessageStream({ stream: replay as never, message: paused }))
+      message = value;
     // What the answer cost, as a row rather than only as JSON on the message.
     // A cap has to be a SUM over an index, and the spend survives the person
     // deleting the conversation that caused it.

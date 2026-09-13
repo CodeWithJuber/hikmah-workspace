@@ -7831,6 +7831,42 @@ a.auth-brand {
   list-style: none;
   margin: 0;
   padding: 10px 12px 0;
+  /* The input group is a centred column, so the chip row floated to the
+     middle of the box with nothing tying it to the text below. It is a row of
+     the field, and it starts where the text starts. */
+  width: 100%;
+  align-self: stretch;
+}
+/* One border for the composer.
+ *
+ * The textarea inside the input group took the global focus outline as well
+ * as the group's own border and ring, so focusing it drew two green boxes, one
+ * inside the other. The group is the field; the textarea is its text. (The
+ * slot is `input-group-control`, which the group's textarea sets in place of
+ * the plain textarea's own.) */
+[data-slot='input-group'] [data-slot='input-group-control'] {
+  border: 0;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+  min-height: 56px;
+}
+/* The per-turn switches on the composer row: Search and Research. A pill that
+   shows its own state, because a checkbox inside a menu cannot. */
+.chat-turn-toggle {
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+.chat-turn-toggle[data-state='on'] {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, var(--card));
+  color: var(--primary);
 }
 .chat-attachments li {
   display: flex;
