@@ -273,6 +273,7 @@ export function ChatPreview({
             // the owner happened to reload.
             baseUrl: settings.connection.baseUrl || loaded.config.baseUrl,
             freeOnly: settings.connection.freeOnly,
+            contextWindow,
             apiKeySecret: settings.connection.apiKeySecret || loaded.config.apiKeySecret,
             maxSteps: settings.maxSteps,
             contextCharacters: settings.contextCharacters,
@@ -287,7 +288,6 @@ export function ChatPreview({
           starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
           models={models.length > 1 ? models : []}
           onModel={pick}
-          contextWindow={contextWindow}
           showActivity={settings.showActivity}
           onTools={onTools}
           onArtifact={onArtifact}

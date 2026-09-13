@@ -51,6 +51,8 @@ import {
   ContextTrigger,
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
+// One number for the meter and the run budget; see lib/ai/context.ts.
+import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
@@ -115,8 +117,6 @@ function pausedTurnIsAnswered({ messages }: { messages: UIMessage[] }): boolean 
   return last?.role === 'assistant' && hasAnsweredQuestion(last);
 }
 
-const ASSUMED_CONTEXT = 32_000;
-
 export type ChatViewProps = {
   /** Stable id so a reload re-attaches to the same conversation. */
   id: string;
@@ -130,6 +130,12 @@ export type ChatViewProps = {
     maxSteps?: number;
     /** How much earlier conversation travels with each turn. */
     contextCharacters?: number;
+    /** The chosen model's window in tokens, when the provider publishes one.
+     *
+     * Part of the run rather than a prop of its own: the server budgets history
+     * against it, and the meter below reads the same value, so the figure shown
+     * and the figure enforced are one number. */
+    contextWindow?: number;
     disabledTools?: string[];
     /** An agent's allowlist over the built-in tools. */
     enabledTools?: string[];
@@ -157,8 +163,6 @@ export type ChatViewProps = {
   /** Applies from the next turn, which is why it is not part of `run`: an
    * answer already written was written by the model that wrote it. */
   onModel?: (model: string) => void;
-  /** The chosen model's context window, when the provider publishes one. */
-  contextWindow?: number;
   /** Whether the transcript shows the run's own working. */
   showActivity?: boolean;
   /** Changing which tools the run may use. Absent leaves the menu out. */
@@ -177,7 +181,6 @@ export function ChatView({
   starters,
   models,
   onModel,
-  contextWindow,
   showActivity = true,
   onTools,
   onArtifact,
@@ -471,7 +474,7 @@ export function ChatView({
           </PromptInputTools>
           {spent?.usage && (
             <Context
-              maxTokens={contextWindow || ASSUMED_CONTEXT}
+              maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
               modelId={spent.model ?? run.model}
               usage={spent.usage}
               usedTokens={spent.usage.totalTokens ?? 0}

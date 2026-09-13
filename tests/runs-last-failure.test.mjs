@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { applySchema } from './schema.mjs';
 import { createRunStore } from '../lib/runs/store.ts';
+import { INTERNAL_FAILURE, describeFailure, operatorRun } from '../lib/runs/failure.ts';
 
 function setup() {
   const db = new DatabaseSync(':memory:');
@@ -101,4 +102,35 @@ test('failures do not cross between conversations', () => {
   store.finish('r1', 'failed', 'Only c1 failed.');
   assert.equal(store.lastFailure('c2'), null);
   db.close();
+});
+
+// The operator is the one person who could read the server log, so telling them
+// to go and read it is a dead end: the failure card on the deployed site said
+// "the details are in the server log" to someone with no way to open one from
+// the interface. They get the sentence that was thrown; everyone else still
+// gets the summary, because our table names and stack frames are not theirs.
+test('the operator is shown the real fault, and nobody else is', () => {
+  const fault = new TypeError("cannot read properties of undefined (reading 'parts')");
+  assert.equal(describeFailure(fault), INTERNAL_FAILURE);
+  assert.match(describeFailure(fault, { operator: true }), /cannot read properties/);
+
+  const sqlite = Error('SQLITE_CONSTRAINT: UNIQUE constraint failed: messages.id');
+  assert.equal(describeFailure(sqlite), INTERNAL_FAILURE);
+  assert.match(describeFailure(sqlite, { operator: true }), /messages\.id/);
+});
+
+test('the operator’s view is still bounded and still one line', () => {
+  const long = Error('first line\n' + 'x'.repeat(5000));
+  const shown = describeFailure(long, { operator: true });
+  assert.equal(shown, 'first line');
+  assert.ok(describeFailure(Error('y'.repeat(5000)), { operator: true }).length <= 300);
+});
+
+test('a run row written before this existed is not treated as the operator’s', () => {
+  assert.equal(operatorRun(''), false);
+  assert.equal(operatorRun('not json'), false);
+  assert.equal(operatorRun('{}'), false);
+  assert.equal(operatorRun('{"operator":true}'), true);
+  // Not a boolean true is not true: a stray string must not promote a stranger.
+  assert.equal(operatorRun('{"operator":"true"}'), false);
 });

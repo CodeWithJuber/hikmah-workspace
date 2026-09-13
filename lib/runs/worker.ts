@@ -10,7 +10,7 @@
  * its output is replayable from the store.
  */
 import { readUIMessageStream } from 'ai';
-import { describeFailure } from './failure.ts';
+import { describeFailure, operatorRun } from './failure.ts';
 import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
 
@@ -170,7 +170,15 @@ export function createWorker(options: WorkerOptions): Worker {
           // The provider's own words where there are any, and a sentence the
           // person can act on where the fault is ours. Either way the raw
           // exception has already gone to the log through onError above.
-          store.finish(run.id, 'failed', describeFailure(error));
+          //
+          // The operator sees the real text: they are the one who could read
+          // that log, and "the details are in the server log" is a dead end
+          // offered to someone with no way to open one from the interface.
+          store.finish(
+            run.id,
+            'failed',
+            describeFailure(error, { operator: operatorRun(run.config) }),
+          );
       } finally {
         running.delete(run.id);
         // Whatever the outcome, tailing responses must be told to close.

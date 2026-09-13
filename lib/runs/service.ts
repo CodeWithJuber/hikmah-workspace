@@ -33,6 +33,12 @@ export type RunConfig = {
    * creation from the person's tier. Recorded so usage can be charged against
    * an allowance without re-deriving who was entitled to what. */
   metered?: boolean;
+  /** Whether this run belongs to the operator.
+   *
+   * Only used to decide how much of a failure they are shown: the person who
+   * can read the server log should not be told to go and read it. Decided at
+   * creation like the other two, so it cannot change under a run in flight. */
+  operator?: boolean;
   /** Whether this run may reach a machine: the workbench shell and SSH.
    *
    * Decided at creation rather than per step, so a plan change mid-run cannot
@@ -44,6 +50,10 @@ export type RunConfig = {
   maxSteps?: number;
   /** How much earlier conversation the run may carry, in characters. */
   contextCharacters?: number;
+  /** The model's window in tokens. The run budgets history against this rather
+   * than against a flat number, so the system prompt and the tool schemas
+   * cannot be squeezed out by the transcript. */
+  contextWindow?: number;
   disabledTools?: string[];
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
@@ -97,6 +107,7 @@ async function driveWithAgent({
     // buildRunAgent has accepted this since it was written and nothing passed
     // it, so the setting existed with nowhere to land.
     contextCharacters: config.contextCharacters,
+    contextWindow: config.contextWindow,
     // Likewise. The plan steps went into the tool's own result and no further,
     // so a multi-step run showed a JSON payload where a checklist belonged.
     // Emitted as a chunk, it joins the durable log like any other: it replays

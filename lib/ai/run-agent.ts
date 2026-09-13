@@ -5,7 +5,7 @@
  * whether it is driven by an open tab or resumed by the server.
  */
 import { ToolLoopAgent, isStepCount, type LanguageModel } from 'ai';
-import { DEFAULT_CONTEXT_CHARACTERS, reduceMessages } from './context.ts';
+import { historyBudget, reduceMessages } from './context.ts';
 import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
 import { askTools } from './tools/ask.ts';
@@ -25,6 +25,8 @@ export type RunAgentOptions = {
   instructions: string;
   maxSteps?: number;
   contextCharacters?: number;
+  /** The model's window in tokens, when the provider publishes one. */
+  contextWindow?: number;
   /** Local symbolic model backing interpret_meaning. */
   meaningModel: Model;
   savedSearchKey?: () => Promise<string>;
@@ -112,7 +114,16 @@ export function buildRunAgent(options: RunAgentOptions) {
         (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')),
     ),
   );
-  const limit = options.contextCharacters ?? DEFAULT_CONTEXT_CHARACTERS;
+  // What actually fits, from this model's own window, minus the system prompt
+  // and the tool schemas this run is about to send. Computed after `tools` so
+  // the count is the real one — an owner with the Qur'an server enabled offers
+  // fifteen more than one without it.
+  const limit = historyBudget({
+    contextWindow: options.contextWindow,
+    instructions: options.instructions.length,
+    tools: Object.keys(tools).length,
+    ceiling: options.contextCharacters,
+  });
 
   // Only tools that reach outside this process are gated. Everything else in the
   // set reads or computes; ssh_exec runs a command on a machine the owner cares
