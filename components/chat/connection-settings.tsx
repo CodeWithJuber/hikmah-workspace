@@ -16,6 +16,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DEFAULT_CONNECTION, type ChatConnection } from '@/lib/chat/settings';
 import { allModelsFree, isLocalEndpoint, providerDestination } from '@/lib/ai/endpoint';
 import {
@@ -192,18 +199,25 @@ export function ConnectionSettings({
     <section className="chat-connection">
       <div className="chat-setting">
         <label htmlFor="chat-provider">Provider</label>
-        <select
-          id="chat-provider"
+        {/* The same select as every other one in the product, not the
+            browser's own: this was the one native control on the screen, and
+            it looked like it belonged to a different app. */}
+        <Select
           value={preset ? preset.baseUrl : 'custom'}
-          onChange={(event) => choose(event.target.value === 'custom' ? '' : event.target.value)}
+          onValueChange={(next) => choose(next === 'custom' ? '' : next)}
         >
-          {PROVIDERS.map((entry) => (
-            <option key={entry.id} value={entry.baseUrl}>
-              {entry.name}
-            </option>
-          ))}
-          <option value="custom">Something else (OpenAI-compatible)</option>
-        </select>
+          <SelectTrigger id="chat-provider" aria-label="Provider">
+            <SelectValue placeholder="Choose a provider" />
+          </SelectTrigger>
+          <SelectContent>
+            {PROVIDERS.map((entry) => (
+              <SelectItem key={entry.id} value={entry.baseUrl}>
+                {entry.name}
+              </SelectItem>
+            ))}
+            <SelectItem value="custom">Something else (OpenAI-compatible)</SelectItem>
+          </SelectContent>
+        </Select>
         {preset?.note && <small>{preset.note}</small>}
       </div>
 

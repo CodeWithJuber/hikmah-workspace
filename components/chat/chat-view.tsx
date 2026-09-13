@@ -32,7 +32,7 @@ import {
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
 import type { FileUIPart, LanguageModelUsage } from 'ai';
-import { Globe, Paperclip, Telescope, X } from 'lucide-react';
+import { Columns2, Globe, GraduationCap, Paperclip, Telescope, X } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import {
   Context,
@@ -577,11 +577,13 @@ export function ChatView({
                     onCheckedChange={setCompare}
                     onSelect={(event) => event.preventDefault()}
                   >
+                    <Columns2 className="mr-2 size-4" aria-hidden="true" />
                     Also answer without tools
                   </DropdownMenuCheckboxItem>
                   {/* A task is handed off, not sent: it becomes its own
                     conversation and this one stays free to type in. */}
                   <DropdownMenuItem onSelect={() => setLearning(true)}>
+                    <GraduationCap className="mr-2 size-4" aria-hidden="true" />
                     Learn this in the background…
                   </DropdownMenuItem>
                 </PromptInputActionMenuContent>
@@ -614,9 +616,9 @@ export function ChatView({
                 <Telescope size={16} aria-hidden="true" />
                 <span className="chat-turn-label">Research</span>
               </Toggle>
-              {onTools && (
-                <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
-              )}
+              {/* The model before the tools: on a phone the row wraps after
+                Research, and the second line then reads model first, which is
+                the thing people change; the tool count is the detail. */}
               {onModel && (
                 <ModelPicker
                   models={models ?? []}
@@ -627,6 +629,9 @@ export function ChatView({
                   className="chat-model-select"
                   local={allModelsFree(run.baseUrl)}
                 />
+              )}
+              {onTools && (
+                <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
               )}
             </PromptInputTools>
             {/* The meter is a diagnostic, and it was on screen permanently: a bare

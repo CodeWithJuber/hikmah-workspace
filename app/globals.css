@@ -6831,22 +6831,40 @@ a.auth-brand {
   padding: 12px 10px env(safe-area-inset-bottom);
   overflow-y: auto;
 }
+/* One segmented control, not four small boxed buttons: the tabs sit in a
+   single muted track and the chosen one lifts out of it, the way the model
+   picker's filters and the tool-rounds control already read. */
 .workspace-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--muted);
 }
 .workspace-tabs button {
   flex: 1;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  min-width: 0;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
 .workspace-tabs button[aria-selected='true'] {
-  background: var(--muted);
+  background: var(--card);
+  color: var(--foreground);
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.workspace-tabs .workspace-tabs-close {
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .files-panel h2 {
   font-size: 13px;
@@ -7851,6 +7869,33 @@ a.auth-brand {
   box-shadow: none;
   min-height: 56px;
 }
+/* One focus treatment for a text field.
+ *
+ * A field already shows focus with its border and a soft ring; the global
+ * focus outline drew a second ring 3px outside it, so every focused field
+ * (the model picker's search box most visibly) sat inside two green boxes.
+ * Buttons and links keep the outline; fields show focus with their border. */
+[data-slot='input']:focus-visible,
+[data-slot='textarea']:focus-visible,
+[data-slot='select-trigger']:focus-visible,
+[data-slot='command-input']:focus-visible {
+  outline: none;
+}
+[data-slot='command-input'] {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+[data-slot='command-input-wrapper']:focus-within {
+  border-bottom-color: var(--ring);
+}
+/* The note under a workspace screen's list ("Open the chat to use one"), which
+   had no rule at all and so rendered at body size, flush against the list. */
+.destination-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
 /* The per-turn switches on the composer row: Search and Research. A pill that
    shows its own state, because a checkbox inside a menu cannot. */
 .chat-turn-toggle {
@@ -7960,9 +8005,18 @@ a.auth-brand {
      of the message that said what went wrong was the part that disappeared. */
   overflow-wrap: anywhere;
 }
+/* A button, not an underlined word: every other card on the surface offers
+   its action as a pill (Allow, Don't allow, Remember something), and the one
+   card that most needs a clear next step offered a link. */
 .chat-error button {
-  margin-top: 6px;
-  text-decoration: underline;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border: 1px solid var(--destructive);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--destructive);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
 }
 
