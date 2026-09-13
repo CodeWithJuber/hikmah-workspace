@@ -1,6 +1,5 @@
 'use client';
 import { SecretsSettings } from './secrets-settings';
-import { useState } from 'react';
 import Link from 'next/link';
 import {
   Plug,
@@ -24,13 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {} from '@/components/ui/command';
-import { complete, listModels, ProviderTransportError } from '@/lib/playground/transport';
-import { RELAY_PROVIDERS, relayProviderFor } from '@/lib/playground/provider-routes';
 import { usePlayground } from './context';
 import { Choice, errorMessage, downloadJson } from './common';
-import { ModelPicker, ModelDetails } from './model-picker';
-import { ErrorCard, type DisplayError } from './error-card';
 import { toast } from 'sonner';
 export function Settings({
   open,
@@ -39,17 +33,7 @@ export function Settings({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const {
-    provider,
-    setProvider,
-    models,
-    setModels,
-    session,
-    importSession,
-    storageMessage,
-    preferences,
-    setPreferences,
-  } = usePlayground();
+  const { session, importSession, storageMessage, preferences, setPreferences } = usePlayground();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

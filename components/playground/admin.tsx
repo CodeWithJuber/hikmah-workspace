@@ -1,6 +1,7 @@
 'use client';
 import { randomId } from '../../lib/id.ts';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   Settings2,
@@ -135,9 +136,15 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
       <header className="workspace-header">
         <SidebarTrigger />
         <h1>Workspace settings</h1>
-        <Button variant="outline" onClick={() => setWorkspacePage('workspace')}>
-          <ArrowRight size={16} />
-          Back to chat
+        {/* This navigated to 'workspace', the browser-run chat, which was
+            deleted — so it landed the owner back on the first screen of this
+            shell. The chat is a route of its own; the sidebar links to it the
+            same way. */}
+        <Button variant="outline" asChild>
+          <Link href="/chat">
+            <ArrowRight size={16} />
+            Back to chat
+          </Link>
         </Button>
       </header>
       <div className="admin-scroll">

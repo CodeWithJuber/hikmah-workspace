@@ -1,5 +1,5 @@
 'use client';
-import { workspaceDestination } from '@/lib/playground/navigation';
+import { DEFAULT_PAGE, workspaceDestination } from '@/lib/playground/navigation';
 import { parseKnowledge, type KnowledgeItem } from '@/lib/playground/knowledge';
 import {
   createContext,
@@ -133,7 +133,10 @@ export function PlaygroundProvider({
   const [workspace, setWorkspace] = useState<WorkspaceConfig>(() =>
     structuredClone(defaultWorkspaceConfig),
   );
-  const [workspacePage, setWorkspacePage] = useState('workspace');
+  // 'workspace' was the browser-run chat, which is gone. The hash effect below
+  // corrects this on the first paint, but a default naming a page that does
+  // not exist is how it stayed wrong in three other places.
+  const [workspacePage, setWorkspacePage] = useState(DEFAULT_PAGE);
   const [mediaKey, setMediaKey] = useState('');
   const [connectorKeys, setConnectorKeys] = useState<Record<string, string>>({});
   const [connectorTools, setConnectorTools] = useState<Record<string, McpTool[]>>({});

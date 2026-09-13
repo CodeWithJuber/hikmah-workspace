@@ -6,11 +6,8 @@
  */
 import { getStorage } from '../../server/storage.mjs';
 import { createSecretStore } from '../../server/workspace-secrets.mjs';
-import { referencedVariables } from './config.ts';
+import { MCP_SECRET_DESTINATION, referencedVariables } from './config.ts';
 import { workbenchConfig } from '../ssh/client.ts';
-
-/** Where an MCP credential lives in the encrypted store. */
-export const MCP_SECRET_DESTINATION = 'mcp-env';
 
 import { createMcpStore } from './store.ts';
 import { EMPTY_MCP_TOOLS, mcpRunTools, type McpRunTools } from './run-context.ts';
