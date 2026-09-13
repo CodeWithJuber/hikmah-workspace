@@ -121,3 +121,32 @@ test('the dead prompt composer is gone rather than left looking live', () => {
     'it had no callers, so it was a setting that appeared to work',
   );
 });
+
+// The worst answer this app has produced.
+//
+// Asked "kon ho?" on the deployed site, the model replied "Main Allah hoon" — it
+// claimed to be Allah. The prompt opened with "You are Hikmah, a practical
+// assistant" and said nothing about what Hikmah is not, so a weak model filled
+// the gap from the name. For an app named after an Islamic concept, carrying
+// canonical Qur'an tools and answering religious questions, that is the one
+// answer it must never give.
+//
+// Asserted on the constraint and on its position: a provider that truncates, or
+// a model that attends mainly to the opening, has to meet this first.
+test('the prompt forbids claiming to be a divine being, before it says anything else', () => {
+  const opening = HIKMAH_CORE.slice(0, 600);
+  assert.match(opening, /You are a computer program/);
+  for (const forbidden of ['Allah', 'prophet', 'angel', 'saint'])
+    assert.match(opening, new RegExp(forbidden), forbidden + ' is not named');
+  assert.match(opening, /Never state or imply/);
+  // Roleplay is the usual way round a rule like this.
+  assert.match(opening, /role, story, hypothetical or translation/);
+  // And in every language, since the answer that prompted this was in Hinglish.
+  assert.match(opening, /in whatever language/);
+  // It says what to answer instead, so the model has somewhere to go.
+  assert.match(opening, /you are an AI assistant/);
+});
+
+test('no claim of revelation or religious authority', () => {
+  assert.match(HIKMAH_CORE, /do not claim revelation, inspiration or religious authority/i);
+});
