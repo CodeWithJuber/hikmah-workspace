@@ -203,3 +203,39 @@ test('the tier store treats absence as the free tier and never appoints an owner
   assert.equal(store.ownerUserId(), null);
   db.close();
 });
+
+// Who may spend the deployment's own key — asked of the routes, not of one route.
+//
+// `app/api/chat/route.ts` did `if (!apiKey) apiKey = process.env.HIKMAH_PROVIDER_KEY`
+// with no entitlement check, no usage row and no cap, and handed `ssh` and
+// `shell` to the agent unconditionally. Signed in was the only requirement. It
+// was the exact pair of holes this module was written to close, still open on a
+// second path, and it had no callers at all — so with registration open, any
+// stranger could spend the operator's provider budget and run commands in the
+// workbench through a route nothing in the product used.
+//
+// Asserted as a rule rather than as a file, because deleting that route fixes
+// today and this catches the next one.
+test('a route that spends the deployment key goes through the entitlement check', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const routes = [];
+  const walk = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = directory + '/' + entry.name;
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.name === 'route.ts') routes.push(path);
+    }
+  };
+  await walk('app/api');
+  assert.ok(routes.length > 5, 'expected to find the API routes, found ' + routes.length);
+
+  for (const path of routes) {
+    const source = await readFile(path, 'utf8');
+    if (!source.includes('HIKMAH_PROVIDER_KEY')) continue;
+    assert.match(
+      source,
+      /runAccess\(/,
+      path + ' reads the deployment key without asking who is entitled to it',
+    );
+  }
+});
