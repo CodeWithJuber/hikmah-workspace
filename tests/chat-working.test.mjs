@@ -41,6 +41,32 @@ test('a tool waiting for approval stays in front of the reader', () => {
   assert.equal(grouped.working.length, 0);
 });
 
+test('an MCP tool waiting for approval is not filed under the working', () => {
+  // How an MCP tool actually arrives: the SDK knows nothing about it at build
+  // time, so it is a dynamic-tool part with the name in toolName.
+  const grouped = groupParts([
+    {
+      type: 'dynamic-tool',
+      toolName: 'mcp__quran__fetch_grounding_rules',
+      state: 'approval-requested',
+    },
+  ]);
+  assert.equal(grouped.live.length, 1);
+  assert.equal(grouped.working.length, 0);
+});
+
+test('the working names the MCP server rather than calling it Dynamic-tool', () => {
+  const line = describeWorking([
+    {
+      type: 'dynamic-tool',
+      toolName: 'mcp__quran__fetch_grounding_rules',
+      state: 'output-available',
+    },
+  ]);
+  assert.match(line, /quran/i);
+  assert.doesNotMatch(line, /dynamic/i);
+});
+
 test('an MCP tool says which server answered', () => {
   assert.deepEqual(toolProvenance('tool-mcp__quran__fetch_tafsir'), {
     server: 'quran',

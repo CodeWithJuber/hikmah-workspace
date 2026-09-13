@@ -27,7 +27,7 @@ import {
   MessageToolbar,
 } from '@/components/ai-elements/message';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
-import { describeWorking, groupParts } from '@/lib/chat/working';
+import { describeWorking, groupParts, toolLabel } from '@/lib/chat/working';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
   Tool,
@@ -187,7 +187,10 @@ function ComparisonLane({ view }: { view: CompareView }) {
   return (
     <section className="chat-compare" aria-label="Comparison: the same question without tools">
       <header>
-        <strong>Without tools</strong>
+        {/* "Without tools" alone read as a category nobody had asked for. It is
+            a control: the same question, answered with the tools taken away, so
+            the two answers side by side show what the tools were worth. */}
+        <strong>Same question, no tools</strong>
         <span className="chat-compare-model">{view.model}</span>
         {/* Time to the first token is the number a person actually feels; the
             total is what the workflows cost. Both, once they exist. */}
@@ -202,7 +205,16 @@ function ComparisonLane({ view }: { view: CompareView }) {
           written something, and hiding a partial answer is the defect this
           surface was rebuilt to fix. */}
       {view.text && <div dir="auto">{view.text}</div>}
-      {running && <p className="chat-compare-note">Answering…</p>}
+      {running ? (
+        <p className="chat-compare-note">Answering…</p>
+      ) : (
+        view.status === 'done' && (
+          <p className="chat-compare-note">
+            The answer above used the tools; this one had none, so the difference between them is
+            what they added.
+          </p>
+        )
+      )}
       {view.status === 'failed' && (
         <p className="chat-compare-note" role="alert">
           {view.error ?? 'The comparison did not finish.'}
@@ -250,6 +262,13 @@ export function MessageParts({
   const sources = sourceParts(message);
   const settled = status !== 'streaming' && status !== 'submitted';
   const answered = message.role === 'assistant' && settled;
+  // Copy, read aloud and answer again all act on the text of an answer. A turn
+  // that stopped to ask permission has no text yet, so the row was three
+  // controls that would each do nothing, under a card asking a question — and a
+  // band of empty space where an answer was expected.
+  const hasText = message.parts.some(
+    (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
+  );
   const asked = message.role === 'user' && settled;
   // Only once the answer has settled: a page assembled from a half-written file
   // would render as a broken preview and then change under the reader.
@@ -324,14 +343,28 @@ export function MessageParts({
       // tool's own row would be the same information twice.
       if (part.type === 'tool-update_plan' && hasPlan) return null;
       return (
-        <Tool key={key}>
+        // A tool card is a Collapsible and it starts closed, so the Allow and
+        // Don't allow buttons — which live in its content — were two taps away
+        // from a run that had stopped and was waiting for them. A control the
+        // run is blocked on is never behind a disclosure.
+        <Tool key={key} defaultOpen={waiting}>
           {part.type === 'dynamic-tool' ? (
-            <ToolHeader type="dynamic-tool" state={part.state} toolName={part.toolName} />
+            <ToolHeader
+              type="dynamic-tool"
+              state={part.state}
+              toolName={part.toolName}
+              title={toolLabel(part)}
+            />
           ) : (
-            <ToolHeader type={part.type} state={part.state} />
+            <ToolHeader type={part.type} state={part.state} title={toolLabel(part)} />
           )}
           <ToolContent>
-            <ToolInput input={part.input} />
+            {/* The approval card below states the request in the words the tool
+                wrote for a person. Printing the same thing again as JSON above
+                it — "PARAMETERS { "description": "Read tafsir for 2:255" }" —
+                is the same sentence twice, the second time in a language the
+                reader did not ask for. */}
+            {!waiting && <ToolInput input={part.input} />}
             {/* The run is paused here waiting for an answer. Without this
                       card the tool sits on "Awaiting Approval" forever, because
                       nothing else can send the response. */}
@@ -453,7 +486,7 @@ export function MessageParts({
 
         {answered && showActivity && <ChatReceipt message={message} />}
 
-        {answered && (
+        {answered && hasText && (
           <MessageToolbar>
             <MessageActions>
               <MessageAction
