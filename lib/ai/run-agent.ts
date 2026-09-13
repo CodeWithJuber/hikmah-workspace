@@ -89,6 +89,17 @@ export type RunAgentOptions = {
    * per run, while this function is synchronous and may be called per step.
    */
   mcp?: Pick<McpRunTools, 'tools' | 'approval' | 'guidance'>;
+  /**
+   * Nobody is watching this run: a background task, or a research lane.
+   *
+   * It is built without `ask_user` and without every tool whose gate could
+   * resolve to the owner's approval — the shell, SSH, and any server tool not
+   * auto-approved. Such a run that paused on a card would pause forever, and
+   * keep one of the owner's run slots while it did. Withheld rather than
+   * auto-approved: an unattended run is not a reason to run a command nobody
+   * agreed to.
+   */
+  unattended?: boolean;
   model?: LanguageModel;
 };
 
@@ -114,11 +125,20 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...(options.mcp?.tools ?? {}),
   };
   const allowed = new Set(options.enabledTools ?? []);
+  // What would stop on a person. Withheld entirely from an unattended run, so
+  // the approval maps below have nothing to gate and the run cannot pause.
+  const wouldWait = (name: string) =>
+    name === 'ask_user' ||
+    name === 'ssh_exec' ||
+    name === 'bash' ||
+    name === 'sandbox_run' ||
+    (name.startsWith('mcp__') && options.mcp?.approval.get(name) !== 'auto');
   const tools = Object.fromEntries(
     Object.entries(all).filter(
       ([name]) =>
         !disabled.has(name) &&
-        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')),
+        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')) &&
+        !(options.unattended && wouldWait(name)),
     ),
   );
   // What actually fits, from this model's own window, minus the system prompt
@@ -166,7 +186,16 @@ export function buildRunAgent(options: RunAgentOptions) {
     // asking — never asked. Nothing failed: the tools worked, they just worked
     // without the card.
     ...(sshApproval || mcpApproval || shellApproval
-      ? { toolApproval: { ...mcpApproval, ...shellApproval, ...sshApproval } }
+      ? {
+          toolApproval: Object.fromEntries(
+            // Only for tools actually offered: an unattended run withheld every
+            // gated one above, and a policy for a tool that is not there is a
+            // promise the run cannot keep.
+            Object.entries({ ...mcpApproval, ...shellApproval, ...sshApproval }).filter(
+              ([name]) => name in tools,
+            ),
+          ),
+        }
       : {}),
   });
 }

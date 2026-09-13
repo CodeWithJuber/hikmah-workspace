@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createWorker } from '../lib/runs/worker.ts';
 
-async function harness(t, drive) {
+async function harness(t, drive, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-worker-'));
   const db = new DatabaseSync(join(dir, 'test.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;');
@@ -20,10 +20,10 @@ async function harness(t, drive) {
     db.close();
     await rm(dir, { recursive: true, force: true });
   });
-  const worker = createWorker({ db, drive, onError: () => {} });
+  const worker = createWorker({ db, drive, onError: () => {}, ...options });
   worker.store.createConversation({ id: 'c1', userId: 'u1' });
-  const queue = (id) =>
-    worker.store.createRun({ id, conversationId: 'c1', userId: 'u1', config: {} });
+  const queue = (id, config = {}, priority = 0) =>
+    worker.store.createRun({ id, conversationId: 'c1', userId: 'u1', config, priority });
   return { worker, db, queue };
 }
 
@@ -136,19 +136,93 @@ test('cancelling a run that has not started keeps the worker from ever running i
   assert.equal(worker.store.getRun('r1').status, 'cancelled');
 });
 
-test('one run at a time: a second tick during a run does nothing', async (t) => {
+test('at most `concurrency` runs at once, and one by default', async (t) => {
+  // One `busy` flag meant one run process-wide: a long background task would
+  // have frozen every live chat for its whole duration. The worker now runs up
+  // to a count, and a tick past it does nothing.
   let active = 0;
-  let overlap = false;
+  let peak = 0;
   const { worker, queue } = await harness(t, async () => {
     active += 1;
-    if (active > 1) overlap = true;
-    await new Promise((r) => setTimeout(r, 10));
+    peak = Math.max(peak, active);
+    await new Promise((r) => setTimeout(r, 20));
     active -= 1;
   });
   queue('r1');
   queue('r2');
-  await Promise.all([worker.tick(), worker.tick()]);
-  assert.equal(overlap, false, 'the single worker must not run two at once');
+  queue('r3');
+  await Promise.all([worker.tick(), worker.tick(), worker.tick()]);
+  assert.equal(peak, 1, 'the default is still one at a time');
+});
+
+test('two chats overlap at concurrency 2, and a third waits', async (t) => {
+  let active = 0;
+  let peak = 0;
+  const { worker, queue } = await harness(
+    t,
+    async () => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((r) => setTimeout(r, 20));
+      active -= 1;
+    },
+    { concurrency: 2 },
+  );
+  queue('r1');
+  queue('r2');
+  queue('r3');
+  const handled = await Promise.all([worker.tick(), worker.tick(), worker.tick()]);
+  assert.equal(peak, 2, 'two ran together');
+  assert.equal(handled.filter(Boolean).length, 2, 'the third tick found no free slot');
+  assert.equal(worker.store.getRun('r3').status, 'queued', 'and left the third for later');
+});
+
+test('the last free slot is kept for a chat: a second task waits while a task runs', async (t) => {
+  // Tasks are unattended and long. Two of them at concurrency 2 would fill the
+  // worker and every chat would queue behind them — the freeze the count was
+  // meant to end, back through another door.
+  const driven = [];
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const { worker, queue } = await harness(
+    t,
+    async ({ run }) => {
+      driven.push(run.id);
+      await gate;
+    },
+    { concurrency: 2 },
+  );
+  queue('task1', { task: { kind: 'learn', brief: 'x' } });
+  queue('task2', { task: { kind: 'learn', brief: 'y' } });
+  const first = worker.tick();
+  const second = worker.tick();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(driven, ['task1'], 'one task runs; the second is not claimed');
+  assert.equal(worker.store.getRun('task2').status, 'queued');
+  assert.equal(worker.active, 1);
+
+  // A chat arriving now takes the reserved slot straight away.
+  queue('chat1');
+  const third = worker.tick();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(driven, ['task1', 'chat1'], 'the chat did not wait behind the task');
+  release();
+  await Promise.all([first, second, third]);
+  // With the task finished, the second task is claimable on the next tick.
+  await worker.tick();
+  assert.deepEqual(driven, ['task1', 'chat1', 'task2']);
+});
+
+test('a task is claimed after every chat, whatever their priority', async (t) => {
+  const driven = [];
+  const { worker, queue } = await harness(t, async ({ run }) => {
+    driven.push(run.id);
+  });
+  queue('task1', { task: { kind: 'learn', brief: 'x' } }, -1);
+  queue('chat1', {}, 0);
+  await worker.tick();
+  await worker.tick();
+  assert.deepEqual(driven, ['chat1', 'task1']);
 });
 
 test('a restart requeues work the previous process was running', async (t) => {

@@ -146,7 +146,14 @@ opposite things from the owner. A run paused on an approval that the list cannot
 show is a conversation that never finishes.
 
 **Documented limit:** one worker per process, and the resume buffer is a
-process-local `EventEmitter`. A second replica would break the tail.
+process-local `EventEmitter`. A second replica would break the tail. Within
+the process the worker drives up to `HIKMAH_RUN_CONCURRENCY` runs at once
+(default 2) — it used to be one `busy` flag, one run process-wide, so a long
+background task would have frozen every live chat for its whole duration. The
+last slot is never given to a task: a task is claimed only while no other task
+is running (`claimNext({ chatOnly })` passes over rows whose config carries
+`task`), so a chat always has somewhere to run. `/api/health` reports `active`
+beside `queued`.
 
 **A silent turn gets one more chance.** Small free models often call a tool,
 read its result and then emit nothing, so the loop ends with the working on
@@ -400,6 +407,35 @@ that waits.
 chat's workspace panel and the body of the `/workspace` Memory screen, over
 `/api/memory` (`getChatGPTUser` on reads, `Origin` on writes). To review,
 saved, and recently used, each with its provenance chip.
+
+## Background tasks
+
+_Learn this in the background…_ in the composer's `+` menu hands the model a
+brief and leaves the person in their chat. The task is **its own conversation**
+with `mode = 'task'` (`POST /api/conversations/tasks`), never a run inside the
+chat it was started from: that would refuse the person's next message for the
+task's whole duration, attach a reload to the task's stream, and land `/chat`
+on the task. The list groups tasks under _Background tasks_ with _Working…_,
+_Done_, _Stopped_ or _N to review_; `/chat` opens on the latest chat, never a
+task; a task opened shows its report under a banner with _Review what it
+learned_, which opens the Memory tab.
+
+A task's run is **unattended**: `buildRunAgent({ unattended: true })` offers no
+`ask_user` and no tool whose gate could resolve to the person's approval — the
+shell, SSH, and any server tool not auto-approved. Withheld, not auto-approved:
+a run nobody is watching that paused on a card would pause forever and keep one
+of the person's run slots while it did, and an unattended run is not a reason
+to run a command nobody agreed to. It is queued at priority −1, below every
+chat on every tier, and the worker keeps a slot for chat besides (see _Runs_).
+
+What a task keeps goes through `remember` in its unattended form: the brief's
+own words are still a `quote`, and anything else — a finding from a page, a
+conclusion — is filed as the model's `inference`, suggested, sourced to the
+task, and never saved without review. `to_review` on the list is the count of
+those still waiting. The task is told (`lib/runs/learner.ts`) to end with a
+written report — what it learned, the exact sources it read, what it could
+not verify — because a run that ends with tool calls and no words is recorded
+as no answer, and a learner that only filed memories is exactly that.
 
 ## Compare
 

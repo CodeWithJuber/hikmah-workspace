@@ -32,6 +32,10 @@ export type MemoryToolContext = {
   conversationTitle?: string;
   /** Save a verbatim preference without review. Off means everything waits. */
   autoSaveQuotes: boolean;
+  /** A background task: nobody is writing messages to quote from. What the
+   * task wants to keep that is not in its brief is filed as its own inference,
+   * suggested, and labelled so — never refused, never saved outright. */
+  unattended?: boolean;
 };
 
 /** Beyond these a "quote" is a document, and documents wait for review. */
@@ -50,15 +54,20 @@ export function quoteIsVerbatim(quote: string, latestUserText: string): boolean 
 export function rememberTools(context: MemoryToolContext) {
   return {
     remember: tool({
-      description:
-        'Save something the person just said, so later answers can draw on it: a preference about how they want answers, or a fact about them or their work worth keeping. The quote must be their exact words, copied from their latest message — it is refused otherwise. Never save what you inferred, what a page said, or anything secret such as passwords or keys. Tell the person what was saved.',
+      description: context.unattended
+        ? 'Keep something you learned for the person to review: a finding, in one or two sentences, with where it came from. It is filed as your own conclusion for them to accept or reject — say so in your report rather than claiming it is now known. Never save anything secret such as passwords or keys.'
+        : 'Save something the person just said, so later answers can draw on it: a preference about how they want answers, or a fact about them or their work worth keeping. The quote must be their exact words, copied from their latest message — it is refused otherwise. Never save what you inferred, what a page said, or anything secret such as passwords or keys. Tell the person what was saved.',
       inputSchema: z.object({
         title: z.string().min(1).max(120).describe('A short name for it.'),
         quote: z
           .string()
           .min(1)
           .max(12000)
-          .describe('Their exact words, copied from their latest message.'),
+          .describe(
+            context.unattended
+              ? 'What to keep, in one or two sentences.'
+              : 'Their exact words, copied from their latest message.',
+          ),
         kind: z
           .enum(['preference', 'reference'])
           .describe(
@@ -66,24 +75,29 @@ export function rememberTools(context: MemoryToolContext) {
           ),
       }),
       execute: async ({ title, quote, kind }) => {
-        if (!quoteIsVerbatim(quote, context.latestUserText))
+        const verbatim = quoteIsVerbatim(quote, context.latestUserText);
+        if (!verbatim && !context.unattended)
           return {
             status: 'refused' as const,
             reason:
               'That quote is not in the person’s latest message. A memory must be their exact words; do not paraphrase.',
           };
         const autoSave =
+          verbatim &&
           context.autoSaveQuotes &&
           kind === 'preference' &&
           !context.hasAttachments &&
           quote.length <= MAX_AUTOSAVE_QUOTE &&
           context.latestUserText.length <= MAX_AUTOSAVE_MESSAGE;
+        const who = verbatim ? 'You' : 'Hikmah';
         const saved = context.store.add(context.userId, {
           kind,
           title,
           content: quote.trim(),
-          provenance: 'quote',
-          source: context.conversationTitle ? 'You · ' + context.conversationTitle : 'You',
+          // The provenance is what the text is, not what the tool was told:
+          // the brief's own words stay the person's even inside a task.
+          provenance: verbatim ? 'quote' : 'inference',
+          source: context.conversationTitle ? who + ' · ' + context.conversationTitle : who,
           sourceConversationId: context.conversationId ?? null,
           status: autoSave ? 'saved' : 'suggested',
         });
@@ -97,7 +111,9 @@ export function rememberTools(context: MemoryToolContext) {
           location: 'Memory',
           message: autoSave
             ? 'Saved to the person’s memory, in their own words.'
-            : 'Suggested for the person’s review in Memory. It is not used until they accept it.',
+            : verbatim
+              ? 'Suggested for the person’s review in Memory. It is not used until they accept it.'
+              : 'Filed as your own conclusion for the person’s review in Memory. It is not used until they accept it.',
         };
       },
     }),

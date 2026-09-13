@@ -55,11 +55,13 @@ import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transp
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import {
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { LearnTaskDialog } from './learn-task';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
@@ -176,6 +178,8 @@ export type ChatViewProps = {
   onTools?: (disabledTools: string[]) => Promise<void> | void;
   /** Opens a page an answer produced, in the side panel. */
   onArtifact?: (files: WorkspaceFiles) => void;
+  /** Shown above the transcript: a background task says what it is. */
+  banner?: React.ReactNode;
 };
 
 export function ChatView({
@@ -191,6 +195,7 @@ export function ChatView({
   showActivity = true,
   onTools,
   onArtifact,
+  banner,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -228,6 +233,9 @@ export function ChatView({
   // the agent's machinery is actually buying. Held here rather than in the run
   // configuration because it is a per-turn choice, not a setting.
   const [compare, setCompare] = useState(false);
+  // The "learn this in the background" dialog. Opened from the `+` menu and
+  // rendered outside it, because a menu unmounts its content when it closes.
+  const [learning, setLearning] = useState(false);
   // The stored failure is shown until this conversation does something else.
   // Reset during render rather than in an effect, because an effect would show
   // the previous conversation's failure for one frame after switching.
@@ -390,6 +398,7 @@ export function ChatView({
 
   return (
     <div className="chat-view">
+      {banner}
       <Conversation>
         <ConversationContent>
           {messages.length === 0 && (
@@ -527,6 +536,11 @@ export function ChatView({
                 >
                   Also answer without tools
                 </DropdownMenuCheckboxItem>
+                {/* A task is handed off, not sent: it becomes its own
+                    conversation and this one stays free to type in. */}
+                <DropdownMenuItem onSelect={() => setLearning(true)}>
+                  Learn this in the background…
+                </DropdownMenuItem>
                 {/* The model, on a phone.
                     At 360px the composer row has about 320px and the four
                     controls beside it take 166 — so a name like "Free Models
@@ -607,6 +621,12 @@ export function ChatView({
           />
         </PromptInputFooter>
       </PromptInput>
+      <LearnTaskDialog
+        open={learning}
+        onOpenChange={setLearning}
+        run={run as unknown as Record<string, unknown>}
+        onStarted={onSettled}
+      />
     </div>
   );
 }

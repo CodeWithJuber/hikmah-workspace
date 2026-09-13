@@ -127,3 +127,45 @@ test('the same words remembered twice are one memory', async (t) => {
   assert.equal(store.count('u1'), 1);
   assert.equal(store.list('u1')[0].uses, 1, 'counted, not copied');
 });
+
+test('a background task may note what it learned, and it is filed as the model’s inference', async (t) => {
+  // Unattended, there is no person's message to quote from — the brief is all
+  // there is. The verbatim rule still holds for that brief; anything else the
+  // task wants to keep is saved as its own inference, suggested, never used
+  // until the person accepts it. That is what "Review what it learned" shows.
+  const { remember, store } = setup(t, {
+    latestUserText: 'Learn what the Hanafi school says about combining prayers when travelling.',
+    unattended: true,
+    autoSaveQuotes: false,
+    conversationTitle: 'Learn: combining prayers',
+  });
+  const out = await remember.execute({
+    title: 'Combining prayers (Hanafi)',
+    quote:
+      'The Hanafi position is that prayers are not combined in time while travelling, only in appearance.',
+    kind: 'reference',
+  });
+  assert.equal(out.status, 'suggested');
+  const [row] = store.list('u1', { status: 'suggested' });
+  assert.equal(row.provenance, 'inference', 'not the person’s words, and not claimed to be');
+  assert.equal(row.source, 'Hikmah · Learn: combining prayers');
+  assert.equal(row.sourceConversationId, 'conv_1', 'so the task can count what it left to review');
+
+  // The brief itself is still the person's words.
+  const quoted = await remember.execute({
+    title: 'Topic',
+    quote: 'combining prayers when travelling',
+    kind: 'reference',
+  });
+  assert.equal(quoted.status, 'suggested');
+  assert.equal(
+    store.list('u1', { status: 'suggested' }).find((m) => m.title === 'Topic').provenance,
+    'quote',
+  );
+});
+
+test('in a chat, a paraphrase is still refused', async (t) => {
+  const { remember } = setup(t, { unattended: false });
+  const out = await remember.execute({ title: 'x', quote: 'not their words', kind: 'reference' });
+  assert.equal(out.status, 'refused');
+});
