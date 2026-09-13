@@ -6,6 +6,7 @@
  */
 import type { ToolSet } from 'ai';
 import {
+  MCP_CALL_TIMEOUT_MS,
   MCP_CONNECT_TIMEOUT_MS,
   approvalFor,
   connectServer,
@@ -53,6 +54,8 @@ export type McpRunOptions = {
   /** Injected by the tests, so a suite does not pay the real deadline to prove
    * the deadline exists. */
   connectTimeoutMs?: number;
+  /** Likewise, for the per-call deadline. */
+  callTimeoutMs?: number;
 };
 
 /**
@@ -130,7 +133,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
         pinned === fingerprint ? decided : decided === 'deny' ? 'deny' : 'ask';
 
       if (gate === 'deny') continue;
-      tools[id] = tool;
+      tools[id] = bounded(tool, id, options.callTimeoutMs ?? MCP_CALL_TIMEOUT_MS);
       approval.set(id, gate);
       if (!pinned) options.store.pin(row.id, name, fingerprint);
     }
@@ -157,6 +160,43 @@ export function mcpToolApproval(approval: Map<string, ApprovalMode>) {
   return Object.fromEntries(
     [...approval].map(([id, mode]) => [id, mode === 'auto' ? 'approved' : 'user-approval']),
   );
+}
+
+/**
+ * The same tool, but its calls cannot run forever.
+ *
+ * Connecting is bounded a few lines above; calling was not. A server that
+ * completes its handshake and then never answers a `tools/call` holds the run
+ * open exactly as a dead one did — and it is the likelier failure, because a
+ * server has to be reachable to be used at all.
+ *
+ * The rejection becomes an ordinary tool error, so the model sees "this tool
+ * did not answer" and can say so or do something else. Failing the whole run
+ * would throw away every step that had already succeeded.
+ */
+function bounded<T>(tool: T, id: string, limit: number): T {
+  const execute = (tool as { execute?: unknown }).execute;
+  if (typeof execute !== 'function') return tool;
+  return {
+    ...(tool as object),
+    execute: async (...args: unknown[]) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          (execute as (...a: unknown[]) => Promise<unknown>)(...args),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(
+              () =>
+                reject(Error(`"${id}" did not answer within ${Math.round(limit / 1000)} seconds.`)),
+              limit,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  } as T;
 }
 
 /**

@@ -111,6 +111,19 @@ export type ConnectedServer = {
  */
 export const MCP_CONNECT_TIMEOUT_MS = 10_000;
 
+/**
+ * How long one `tools/call` may take before the run gives up on it.
+ *
+ * Bounding the connect only closed half the hole: a server that answers the
+ * handshake and then hangs on a call stalls the run just as completely, and the
+ * catch around the call never fires because a hang does not throw. A minute,
+ * because a real tool may fetch a page, run a search or read a large document,
+ * and cutting those off would break working servers to guard against broken
+ * ones. On expiry the *tool* fails, not the run: the model is told and can say
+ * so or try something else, which is what a person watching would want.
+ */
+export const MCP_CALL_TIMEOUT_MS = 60_000;
+
 export type ConnectOptions = {
   /** Resolves `${NAME}` from the encrypted secret store. */
   secret: (name: string) => string | undefined;

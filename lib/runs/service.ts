@@ -16,6 +16,7 @@ import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
+import { answered } from './failure.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 
@@ -222,7 +223,11 @@ async function driveWithAgent({
     const awaitingClient =
       !awaitingApproval &&
       parts.some((part) => part?.type === ASK_USER_PART && part?.state === 'input-available');
-    return { message, awaitingApproval, awaitingClient };
+    // Neither waiting nor answering: the loop ended with tool calls and no
+    // words. Reported rather than recorded as success, because success with
+    // nothing to show is indistinguishable from the app being broken.
+    const silent = !awaitingApproval && !awaitingClient && !answered(parts);
+    return { message, awaitingApproval, awaitingClient, silent };
   } finally {
     await mcp?.close();
   }

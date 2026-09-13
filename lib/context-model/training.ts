@@ -18,9 +18,29 @@ const tags = new Set([
   'VERB',
   'X',
 ]);
+/**
+ * How many reviewed sentences one owner may accumulate, per language.
+ *
+ * This is a *cumulative* limit, not a per-submission one, and that is not new —
+ * the studio concatenates everything previously saved onto each submission
+ * before validating, so the old 100 was a lifetime cap on the whole corpus. A
+ * bulk upload under it would have been a bulk upload that stopped at 100
+ * sentences for all time, which is not the feature that was asked for.
+ *
+ * 5,000 because the licensed base corpus this is fitted against, UD PUD, is
+ * 1,000 sentences: five times that keeps the owner's own annotations the
+ * dominant signal while staying the same order of work for a fit that already
+ * runs in a Web Worker.
+ */
+export const MAX_CORPUS = 5000;
+
+/** How many may arrive at once, so one paste or upload cannot fill the corpus
+ * in a single unreviewable step. */
+export const MAX_SUBMISSION = 500;
+
 export function validateTeaching(value: unknown, forbiddenGroups: Set<string>): Sentence[] {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 100)
-    throw Error('Submit 1–100 reviewed sentences.');
+  if (!Array.isArray(value) || value.length < 1 || value.length > MAX_CORPUS)
+    throw Error(`Submit 1–${MAX_CORPUS} reviewed sentences.`);
   const ids = new Set<string>();
   return value.map((raw) => {
     if (
