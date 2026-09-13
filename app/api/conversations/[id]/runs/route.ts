@@ -153,8 +153,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (release(already)) void worker.tick();
       return Response.json({ runId: already, conversationId, resumed: true }, { headers });
     }
+    // The status matters to the client, not just the fact of a run.
+    //
+    // A run that is queued or streaming will answer this conversation shortly,
+    // and tailing it is the honest response to a double submit. A run *paused
+    // on a person* will not: it is waiting for an approval or an answer above,
+    // and a new message is neither. Told apart here, the browser can say so
+    // instead of attaching to a stream that will never produce another token —
+    // which is how three questions in a row got no reply and no error.
     return Response.json(
-      { runId: already, conversationId, alreadyRunning: true },
+      { runId: already, conversationId, alreadyRunning: true, status: paused?.status ?? null },
       { headers, status: 409 },
     );
   }

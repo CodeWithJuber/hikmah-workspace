@@ -6951,8 +6951,14 @@ a.auth-brand {
   gap: 18px;
   align-items: stretch;
   max-width: 620px;
-  margin: 0 auto;
-  padding: clamp(28px, 9vh, 88px) 0 24px;
+  /* Centred in the space it has, not pinned to the top of it.
+     `clamp(28px, 9vh, 88px)` of top padding pushed the openers down and left
+     the rest of the screen — 217px of it at 360x760 — as a void between them
+     and the composer, which reads as the page having failed to load rather
+     than as an empty conversation. `auto` on the block axis divides that space
+     instead of stacking it underneath. */
+  margin: auto;
+  padding: 24px 0;
 }
 /* One column of equal rows rather than wrapped pills of different heights: the
    openers are a list of things to say, and a list reads as a list. */
@@ -8134,11 +8140,17 @@ a.auth-brand {
   .chat-preview .is-assistant {
     max-width: 100%;
   }
-  /* The model name is the widest thing in the row and the least useful when
-     truncated to three words. Given its own line it is readable at last. */
-  .chat-composer-tools > .chat-model-select {
-    flex: 1 1 100%;
-    max-width: 100%;
+  /* The word "Tools" gives up its room: the icon and the count still say what
+     that button is. */
+  .chat-tools-label {
+    display: none;
+  }
+  /* And the model picker leaves the row altogether, for the + menu, where a
+     name has the width to be read. Two attempts came before this one and both
+     were worse: on the row it truncated to "Free Models Ro…", and on a row of
+     its own it was a second line of chrome under the composer. */
+  .chat-composer-row .chat-model-select {
+    display: none;
   }
   /* Five icon buttons in a 360px bar with about 7px to spare, and they were
      `width: 38px` rather than `min-width`, with no `flex-shrink: 0` — so they
@@ -8156,6 +8168,19 @@ a.auth-brand {
   }
 }
 
+/* The model list inside the + menu is the phone's picker; above that width the
+   select in the composer row is, and this is hidden instead. Exactly one of the
+   two is ever shown. Long lists scroll rather than running off the screen. */
+.chat-model-menu {
+  max-height: 45vh;
+  overflow-y: auto;
+}
+@media (min-width: 601px) {
+  .chat-model-menu {
+    display: none;
+  }
+}
+
 /* A turn that produced nothing at all.
    Quiet rather than alarming — the model stopping without writing is a
    disappointment, not a fault in the workspace — but present, because a blank
@@ -8165,4 +8190,54 @@ a.auth-brand {
   font-size: 13px;
   font-style: italic;
   margin: 4px 0;
+}
+
+/* Something is happening.
+   A spinner inside the send button told the person their click registered and
+   nothing told them the work was still going, so a slow turn — or a tool that
+   runs a while before writing a word — read as the app having stopped. Three
+   dots in the transcript, where the answer will appear, and gone the moment it
+   does. */
+.chat-thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.chat-thinking-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.chat-thinking-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.35;
+  animation: chat-thinking-pulse 1.2s ease-in-out infinite;
+}
+.chat-thinking-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.chat-thinking-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes chat-thinking-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+/* Someone who has asked for less motion gets the label and no animation; the
+   information is in the words, not the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-thinking-dots i {
+    animation: none;
+    opacity: 0.5;
+  }
 }
