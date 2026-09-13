@@ -8241,3 +8241,71 @@ a.auth-brand {
     opacity: 0.5;
   }
 }
+
+/* A run stopped and is asking.
+   Never inside a disclosure: this is the one control the run is blocked on,
+   so it is a block in the transcript with the request in plain words, the
+   literal command, and two buttons — reachable without a tap to reveal it.
+   The left rule and the tint pick it out from the working around it without
+   shouting; an approval is a question, not an alarm. */
+.chat-approval {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+  border-inline-start-width: 4px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.chat-approval-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.chat-approval-head svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.chat-approval-source {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.chat-approval-why {
+  margin: 0;
+  line-height: 1.5;
+}
+.chat-approval-command {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 40vh;
+  overflow: auto;
+}
+.chat-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.chat-approval-actions [data-slot='button'] {
+  min-height: 40px;
+}
+@media (max-width: 600px) {
+  /* Two full-width targets, thumb-sized, rather than two small buttons in a
+     corner of the card. */
+  .chat-approval-actions [data-slot='button'] {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+}
