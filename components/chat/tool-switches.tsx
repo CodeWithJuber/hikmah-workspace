@@ -29,6 +29,7 @@ const LABELS: Record<string, string> = {
   list_files: 'List workspace files',
   list_ssh_hosts: 'List saved SSH hosts',
   read_file: 'Read a workspace file',
+  read_principle: 'Look up an operating principle',
   read_webpage: 'Read a web page',
   research_quran: "Look up Qur'an references",
   run_javascript: 'Run JavaScript, isolated',

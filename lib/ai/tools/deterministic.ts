@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { createPreset, executePlan, plan, transitionEstimate } from '../../engines/agent-math.ts';
 import { predict, type Model } from '../../engines/meaning-engine.ts';
 import { arithmetic } from '../../engines/arithmetic.ts';
+import { PRINCIPLES, findPrinciple } from '../../kernel/principles.ts';
 
 export type PlanStep = { step: string; status: 'pending' | 'in_progress' | 'completed' };
 
@@ -18,6 +19,35 @@ export function deterministicTools(options: {
   onPlan?: (steps: PlanStep[]) => void;
 }) {
   return {
+    read_principle: tool({
+      description:
+        "Read the full text of one of this workspace's operating principles. " +
+        'The system prompt lists every id and name; this returns the instruction, ' +
+        'the situation it applies to and how it is checked. They are engineering ' +
+        'principles, not religious rulings, and none has been formally evaluated.',
+      inputSchema: z.object({
+        id: z.string().min(1).max(120).describe('A principle id such as P07, or part of its name.'),
+      }),
+      execute: async ({ id }) => {
+        const found = findPrinciple(id);
+        // Named rather than silently empty: a model told "not found" will try
+        // another id, and one handed `{}` will invent the contents.
+        if (!found)
+          return {
+            error: `No principle matches "${id}".`,
+            available: PRINCIPLES.map((principle) => `${principle.id} ${principle.name}`),
+          };
+        return {
+          id: found.id,
+          name: found.name,
+          instruction: found.instruction,
+          applies_when: found.trigger,
+          checked_by: found.enforcement,
+          status: found.status,
+        };
+      },
+    }),
+
     calculate: tool({
       description:
         'Evaluate an arithmetic expression exactly. Use this instead of doing arithmetic in your head whenever a number matters.',

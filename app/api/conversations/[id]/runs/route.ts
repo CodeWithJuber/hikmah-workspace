@@ -16,6 +16,8 @@ import { loadFieldForUser } from '@/lib/context-model/server';
 import { buildContextBrief, recentUserText } from '@/lib/context-model/run-brief';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
+import { composePrompt } from '@/lib/ai/compose-prompt';
+import { principleDigest } from '@/lib/kernel/principles';
 
 export const dynamic = 'force-dynamic';
 
@@ -258,7 +260,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         metered: access.metered,
         execution: access.execution,
         operator: entitlements.tier === 'owner',
-        instructions: parsed.instructions + saved + contextNotes,
+        // Named parts in one stated order, rather than whichever order the
+        // features were added in. See lib/ai/compose-prompt.ts.
+        instructions: composePrompt({
+          base: parsed.instructions,
+          principles: principleDigest(),
+          knowledge: saved,
+          contextNotes,
+        }),
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,

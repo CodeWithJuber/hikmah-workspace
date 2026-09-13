@@ -26,6 +26,7 @@ export const BUILT_IN_TOOLS = [
   'list_files',
   'list_ssh_hosts',
   'read_file',
+  'read_principle',
   'read_webpage',
   'research_quran',
   'run_javascript',
