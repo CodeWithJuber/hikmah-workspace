@@ -428,8 +428,8 @@ export function ChatView({
             }
           />
         </PromptInputBody>
-        <PromptInputFooter>
-          <PromptInputTools>
+        <PromptInputFooter className="chat-composer-row">
+          <PromptInputTools className="chat-composer-tools">
             <PromptInputActionMenu>
               <PromptInputActionMenuTrigger />
               <PromptInputActionMenuContent>

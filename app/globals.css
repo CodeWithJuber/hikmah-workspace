@@ -205,11 +205,10 @@ pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* One rule for buttons, further down with the rest of the control styles. This
+   block used to set a second, taller size that the later one silently
+   overrode. */
 [data-slot='button'] {
-  height: 44px;
-  border-radius: 6px;
-  font-size: 16px;
-  padding-inline: 18px;
   box-shadow: none;
 }
 [data-slot='input'],
@@ -220,9 +219,18 @@ pre {
   font-size: 16px;
   line-height: 1.5;
 }
+/* Full width is a property of a field in a form, not of the element type: the
+   chat's model picker is a select in a toolbar row, and this rule made it claim
+   the whole row and paint over the send button. Anything that wants the old
+   behaviour asks for it with .field. */
 [data-slot='input'],
 [data-slot='select-trigger'] {
   min-height: 44px;
+}
+[data-slot='input'],
+.field [data-slot='select-trigger'],
+.settings-scroll [data-slot='select-trigger'],
+.chat-setting [data-slot='select-trigger'] {
   width: 100%;
 }
 [data-slot='textarea'] {
@@ -807,6 +815,30 @@ summary:focus-visible {
   border-radius: 9px;
   padding-inline: 15px;
   gap: 8px;
+}
+/* An icon button is square. Without this the padding above re-inflates a
+   32px control to 46px, and buttons do not shrink, so a toolbar row that
+   should fit a phone overflows and paints on top of whatever follows it. */
+[data-slot='button'][data-size='icon'],
+[data-slot='button'][data-size='icon-sm'],
+[data-slot='button'][data-size='icon-xs'] {
+  padding-inline: 0;
+  gap: 0;
+}
+/* Matching the variants in components/ui/button.tsx: size-9, size-8, size-6.
+   Restated because the height above is unlayered and would otherwise beat
+   them. */
+[data-slot='button'][data-size='icon'] {
+  height: 36px;
+  width: 36px;
+}
+[data-slot='button'][data-size='icon-sm'] {
+  height: 32px;
+  width: 32px;
+}
+[data-slot='button'][data-size='icon-xs'] {
+  height: 24px;
+  width: 24px;
 }
 [data-slot='button'][data-variant='outline'] {
   border-color: var(--input);
@@ -6581,17 +6613,31 @@ a.auth-brand {
    and 40dvh, which left the conversation itself barely a quarter of a phone
    screen. */
 @media (max-width: 900px) {
+  .chat-body {
+    /* See the drawer rules below. */
+    overflow-x: clip;
+  }
   .chat-drawer {
     position: absolute;
-    inset: 0 auto 0 0;
     z-index: 3;
     background: var(--background);
     box-shadow: 0 0 0 1px var(--border);
-    transform: translateX(-100%);
     visibility: hidden;
     transition:
       transform 180ms ease,
       visibility 180ms;
+  }
+  /* A closed drawer sits one full width outside the body, and something has
+     to absorb that. It used to be nothing: an off-canvas box still counts
+     towards scrollable overflow even while visibility:hidden, so about 300px
+     of empty page hung off the right edge and the whole layout could be
+     scrolled sideways with the header running off the screen.
+     `.chat-body { overflow-x: clip }` below is what absorbs it — clip rather
+     than hidden, because hidden would make the body a scroll container and
+     break the transcript's own scrolling. */
+  .chat-drawer-list {
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
   }
   .chat-drawer-panel {
     inset: 0 0 0 auto;
@@ -6862,8 +6908,59 @@ a.auth-brand {
 .chat-starters button:focus-visible::before {
   background: var(--primary);
 }
+/* The composer's bottom row.
+ *
+ * It was a single non-wrapping flex line holding five controls, a token meter
+ * and the send button. The tools group had min-w-0 so its box shrank while its
+ * contents — all shrink-0 buttons and nowrap labels — did not, and the surplus
+ * painted straight over the meter and the send button. On a phone that read as
+ * "Free Models" written across the send button with the last letters cut off.
+ *
+ * Wrapping is the honest answer: a row that does not fit becomes two rows
+ * rather than one row of overlapping text. */
+/* The edit control under a question. Present but quiet: a question you asked
+   rarely needs changing, and a control that shouts on every turn is what makes
+   a transcript feel cluttered. */
+.chat-ask-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -2px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.group:hover > .chat-ask-actions,
+.chat-ask-actions:focus-within {
+  opacity: 1;
+}
+/* Nothing hovers on a touch screen, so there it is simply always visible. */
+@media (hover: none) {
+  .chat-ask-actions {
+    opacity: 0.55;
+  }
+}
+
+.chat-composer-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.chat-composer-tools {
+  flex-wrap: wrap;
+  row-gap: 8px;
+  /* It may take the whole width when it wraps, but it must not force the meter
+     and the send button off the line before it does. */
+  flex: 1 1 auto;
+}
 .chat-model-select {
-  max-width: 210px;
+  /* Auto, not the 100% every select gets: this one shares a row. It gives up
+     width before the buttons do, and truncates rather than pushing. */
+  width: auto;
+  min-width: 0;
+  max-width: min(210px, 42vw);
+}
+.chat-model-select > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* The preview is a third column beside the conversation. .artifact-panel is
    layout-neutral on its own, so the width belongs here rather than in the
@@ -7001,9 +7098,6 @@ a.auth-brand {
 .chat-receipt-model {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   overflow-wrap: anywhere;
-}
-.chat-receipt-caveat {
-  margin-left: auto;
 }
 .chat-tools-trigger {
   height: 34px;
