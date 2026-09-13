@@ -6,7 +6,7 @@ import { previewDocument } from '@/lib/playground/workspace-tools';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from './icons';
 import { copyText } from '@/components/playground/error-card';
-import { Maximize2 } from 'lucide-react';
+import { Maximize2, PencilLine, Play, Square } from 'lucide-react';
 import { PagePreview } from '@/components/chat/page-preview';
 export function InlineArtifact({
   files,
@@ -86,15 +86,43 @@ export function ArtifactPanel({
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="code">Source</TabsTrigger>
           </TabsList>
+          {/* One row of equal buttons, each an icon with its word. On a phone
+              the row wraps under the tabs whole, rather than the buttons
+              stacking at whatever width their words happened to need. */}
           <div className="artifact-panel-actions">
+            <Button
+              variant="outline"
+              aria-pressed={run}
+              aria-label={run ? 'Stop interactions' : 'Run interactions'}
+              title={run ? 'Stop interactions' : 'Run the page’s scripts'}
+              onClick={() => setRun(!run)}
+            >
+              {run ? (
+                <Square size={15} aria-hidden="true" />
+              ) : (
+                <Play size={15} aria-hidden="true" />
+              )}
+              <span>{run ? 'Stop' : 'Run'}</span>
+            </Button>
             {href && (
-              <Button variant="outline" onClick={() => setFull(true)}>
+              <Button
+                variant="outline"
+                aria-label="Open full page"
+                title="Open full page"
+                onClick={() => setFull(true)}
+              >
                 <Maximize2 size={15} aria-hidden="true" />
-                Full page
+                <span>Full page</span>
               </Button>
             )}
-            <Button variant="outline" onClick={onEdit}>
-              Edit in workspace
+            <Button
+              variant="outline"
+              aria-label="Edit in workspace"
+              title="Edit in workspace"
+              onClick={onEdit}
+            >
+              <PencilLine size={15} aria-hidden="true" />
+              <span>Edit</span>
             </Button>
           </div>
         </div>
@@ -118,9 +146,6 @@ export function ArtifactPanel({
               srcDoc={doc}
             />
           )}
-          <Button variant="outline" onClick={() => setRun(!run)}>
-            {run ? 'Stop interactions' : 'Run interactions'}
-          </Button>
         </TabsContent>
         <TabsContent value="code" className="artifact-panel-source">
           {Object.entries(files).map(([name, code]) => (

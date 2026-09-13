@@ -3291,10 +3291,29 @@ select {
 .artifact-panel-toolbar {
   padding: 10px 14px;
   display: flex;
+  /* The tabs and the actions share a row when there is room and stack as two
+     rows when there is not, the actions staying one row of their own. On a
+     phone the two action buttons stacked on top of each other at whatever
+     width their words needed, beside the tabs. */
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
   gap: 8px;
+}
+.artifact-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.artifact-panel-actions > button {
+  height: 36px;
+  gap: 6px;
+  padding: 0 12px;
+}
+.artifact-panel-actions > button[aria-pressed='true'] {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 .artifact-panel-preview {
   display: flex;
@@ -3313,9 +3332,6 @@ select {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: white;
-}
-.artifact-panel-preview > button {
-  align-self: flex-start;
 }
 .artifact-panel-source {
   overflow: auto;
