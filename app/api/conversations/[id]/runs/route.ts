@@ -262,6 +262,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       id: runId,
       conversationId,
       userId: user.userId,
+      priority: entitlements.queuePriority,
       config: {
         baseUrl: parsed.baseUrl,
         model: parsed.model,
@@ -269,6 +270,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         apiKey: access.apiKey,
         metered: access.metered,
         execution: access.execution,
+        // Both decided at creation and stored on the run, like execution: a
+        // plan that changes while a run is queued or paused must not widen or
+        // narrow work already in flight.
+        media: entitlements.media,
         operator: entitlements.tier === 'owner',
         // Named parts in one stated order, rather than whichever order the
         // features were added in. See lib/ai/compose-prompt.ts.

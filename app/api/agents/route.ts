@@ -5,6 +5,7 @@ import { BUILT_IN_TOOLS } from '@/lib/agents/templates';
 import { toolAvailability } from '@/lib/agents/availability';
 import { workbenchReady } from '@/lib/ssh/run-context';
 import { getStorage } from '@/server/storage.mjs';
+import { entitlementsForUser } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +26,19 @@ export async function GET(request: Request) {
   // agent may name, rather than keeping its own copy that drifts. Their
   // availability travels too: a menu offering bash on a box with no workbench
   // is a switch that changes nothing.
+  const entitlements = entitlementsForUser(user);
   return Response.json(
     {
       agents: store().list(user.userId),
       tools: BUILT_IN_TOOLS,
-      availability: toolAvailability({ workbench: workbenchReady() }),
+      // The person's plan as well as the deployment's shape: a switch greyed
+      // out with no reason reads as a fault, and one that names the plan reads
+      // as a price.
+      availability: toolAvailability({
+        workbench: workbenchReady(),
+        media: entitlements.media,
+        execution: entitlements.execution,
+      }),
     },
     { headers },
   );

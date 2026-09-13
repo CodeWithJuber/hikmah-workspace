@@ -31,6 +31,26 @@ export type Entitlements = {
   monthlyTokenCap: number | null;
   /** May a run reach a machine. */
   execution: boolean;
+  /** May a run generate pictures and speech.
+   *
+   * A paid feature because the plan says so, and because the deployment pays
+   * for it: media goes through the same OpenRouter account as a managed run.
+   * This *removes* something a free bring-your-own-key user had — the media key
+   * was derived from their own provider key, so both tools were quietly theirs
+   * — and the Free plan's feature list never promised them, so no copy has to
+   * change. The change is real though, and the PR says so rather than letting
+   * it be discovered. */
+  media: boolean;
+  /**
+   * Where this person's runs sit in the queue. Higher is claimed first.
+   *
+   * The plan sells "priority on the run queue" and `claim()` was strict FIFO
+   * with no such column, so the sentence was untrue from the day it was
+   * written. What it can honestly mean here is bounded and stated on the
+   * pricing page: there is one worker and it is busy-gated, so this decides who
+   * is claimed *next* and never interrupts a run already streaming.
+   */
+  queuePriority: number;
 };
 
 const OWNER: Entitlements = {
@@ -38,6 +58,10 @@ const OWNER: Entitlements = {
   managedKey: true,
   monthlyTokenCap: null,
   execution: true,
+  media: true,
+  // Above the paid tier: the operator's own work should not queue behind a
+  // customer's on a deployment with one worker.
+  queuePriority: 20,
 };
 
 export function entitlementsFor(tier: Tier): Entitlements {
@@ -50,8 +74,17 @@ export function entitlementsFor(tier: Tier): Entitlements {
       // on the pricing page raises the one the route enforces.
       monthlyTokenCap: planById('pro')?.monthlyTokenCap ?? null,
       execution: false,
+      media: true,
+      queuePriority: 10,
     };
-  return { tier: 'byok', managedKey: false, monthlyTokenCap: null, execution: false };
+  return {
+    tier: 'byok',
+    managedKey: false,
+    monthlyTokenCap: null,
+    execution: false,
+    media: false,
+    queuePriority: 0,
+  };
 }
 
 /** Which tier a person is on.
