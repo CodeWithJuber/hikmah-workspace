@@ -6,7 +6,7 @@
  * racing for the same queue.
  */
 import { randomUUID } from 'node:crypto';
-import { createAgentUIStream, readUIMessageStream, type UIMessage } from 'ai';
+import { createAgentUIStream, readUIMessageStream, type UIMessage, type UIMessageChunk } from 'ai';
 import { getStorage } from '@/server/storage.mjs';
 import { createMediaAssets } from '../server/media-assets.ts';
 import { createFileStore } from '../files/store.ts';
@@ -18,6 +18,8 @@ import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
 import { answered, NO_ANSWER } from './failure.ts';
 import { mediaKeyFor } from './media.ts';
+import { withClosingStep } from '../ai/closing-step.ts';
+import { createLanguageModel } from '../ai/models.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 
@@ -95,14 +97,19 @@ async function driveWithAgent({
   // connections per run it has ever driven.
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
   const mediaKey = mediaKeyFor(config);
+  // Built once here rather than inside buildRunAgent, because the closing step
+  // below talks to the same model after the agent loop has finished with it.
+  const provider = {
+    baseUrl: config.baseUrl,
+    model: config.model,
+    apiKey: config.apiKey,
+    freeOnly: config.freeOnly,
+  };
+  const model = createLanguageModel(provider);
 
   const agent = buildRunAgent({
-    provider: {
-      baseUrl: config.baseUrl,
-      model: config.model,
-      apiKey: config.apiKey,
-      freeOnly: config.freeOnly,
-    },
+    provider,
+    model,
     instructions: config.instructions,
     maxSteps: config.maxSteps,
     // buildRunAgent has accepted this since it was written and nothing passed
@@ -183,7 +190,24 @@ async function driveWithAgent({
         // sequence would double the wait for no gain.
         await Promise.all([
           (async () => {
-            for await (const chunk of stream as AsyncIterable<unknown>) push(chunk);
+            // With one forced answering step appended when the loop ends on a
+            // tool result and no words — the small free models' habit that
+            // reached the owner as "stopped without writing an answer". See
+            // lib/ai/closing-step.ts.
+            for await (const chunk of withClosingStep(stream as AsyncIterable<UIMessageChunk>, {
+              model,
+              tools: agent.tools,
+              instructions: config.instructions,
+              messages: messages as UIMessage[],
+              signal,
+              contextCharacters: config.contextCharacters,
+              onError: (error) =>
+                console.error(
+                  '[hikmah] closing step failed:',
+                  error instanceof Error ? error.message : error,
+                ),
+            }))
+              push(chunk);
           })(),
           config.compare
             ? runComparison({

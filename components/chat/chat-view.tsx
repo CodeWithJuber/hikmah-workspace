@@ -558,8 +558,16 @@ export function ChatView({
               </ContextContent>
             </Context>
           )}
-          {/* Doubles as Stop while a run is in flight. */}
-          <PromptInputSubmit status={status} onClick={busy ? halt : undefined} />
+          {/* Doubles as Stop while a run is in flight.
+              After a failure the button is passed 'ready', not 'error': the
+              component renders an ✕ for an errored chat, and on a phone that
+              read as "stop" or "blocked" on a button that in fact sends —
+              reported as "beech me stuck". The card above already says what
+              went wrong; a button you can press should look like one. */}
+          <PromptInputSubmit
+            status={status === 'error' ? 'ready' : status}
+            onClick={busy ? halt : undefined}
+          />
         </PromptInputFooter>
       </PromptInput>
     </div>
