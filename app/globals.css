@@ -6975,12 +6975,26 @@ a.auth-brand {
 /* The edit control under a question. Present but quiet: a question you asked
    rarely needs changing, and a control that shouts on every turn is what makes
    a transcript feel cluttered. */
+/* The edit control for a question.
+ *
+ * It sits outside the bubble so it cannot make a one-word question three lines
+ * tall — but it was adding a whole button row of height between every pair of
+ * messages, on top of the list's own gap, which is why the transcript read as
+ * mostly empty space with a pencil floating in it. It is pulled up into the
+ * gap and given the height of the icon rather than of a button. */
 .chat-ask-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: -2px;
+  align-items: center;
+  height: 20px;
+  margin-top: -6px;
   opacity: 0;
   transition: opacity 140ms ease;
+}
+.chat-ask-actions > * {
+  height: 20px;
+  min-height: 0;
+  padding-block: 0;
 }
 .group:hover > .chat-ask-actions,
 .chat-ask-actions:focus-within {

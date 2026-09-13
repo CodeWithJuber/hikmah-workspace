@@ -350,7 +350,10 @@ export const MessageToolbar = ({
 }: MessageToolbarProps) => (
   <div
     className={cn(
-      "mt-4 flex w-full items-center justify-between gap-4",
+      // mt-4 plus 34px controls plus the list gap put roughly 74px between the
+      // last line of an answer and the next question, which on a phone reads as
+      // a page of nothing between every pair of messages.
+      "mt-2 flex w-full items-center justify-between gap-4",
       className
     )}
     {...props}

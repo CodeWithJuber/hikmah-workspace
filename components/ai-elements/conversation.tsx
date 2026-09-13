@@ -36,7 +36,7 @@ export const ConversationContent = ({
   <StickToBottom.Content
     // Room at the bottom so the last turn is not sitting against the composer,
     // and so an error card mounting between them does not take its space.
-    className={cn("flex flex-col gap-8 p-4 pb-8", className)}
+    className={cn("flex flex-col gap-6 p-4 pb-10", className)}
     {...props}
   />
 );
@@ -92,7 +92,11 @@ export const ConversationScrollButton = ({
     !isAtBottom && (
       <Button
         className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+          // Was centred at bottom-4, which put a solid-background button in the
+          // middle of the last visible line — on a phone it covered the words.
+          // Anchored to the right gutter and given a shadow so it reads as
+          // floating above the transcript rather than sitting inside it.
+          "absolute right-3 bottom-3 rounded-full shadow-md dark:bg-background dark:hover:bg-muted",
           className
         )}
         onClick={handleScrollToBottom}
