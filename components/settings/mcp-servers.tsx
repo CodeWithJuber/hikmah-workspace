@@ -165,7 +165,8 @@ export function McpServers() {
             <span className="text-xs text-muted-foreground">
               The same entry shape Claude Code, Cursor and VS Code read, so a snippet from any
               server&rsquo;s README works. Credentials go in as <code>{'${NAME}'}</code> and are
-              read from your saved secrets, never stored here.
+              read from a secret saved under <strong>Secrets</strong> with &ldquo;Use with&rdquo;
+              set to <strong>MCP server environment</strong> &mdash; never stored here.
             </span>
           </label>
           <div className="flex gap-2">

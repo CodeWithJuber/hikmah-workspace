@@ -6,6 +6,18 @@
  * take their configuration elsewhere.
  */
 
+/**
+ * Where a credential a server config refers to as `${NAME}` is stored.
+ *
+ * Here rather than beside its only reader, because the Secrets screen has to
+ * offer this exact string in its "Use with" menu and a copy of it there would
+ * be a second source of truth for the one value that has to match. It did not
+ * even have a first: the menu had no entry at all, so nothing could write this
+ * destination and every ${NAME} resolved to an empty string while the interface
+ * told the owner to save it in Settings.
+ */
+export const MCP_SECRET_DESTINATION = 'mcp-env';
+
 export type McpTransport = 'http' | 'sse' | 'stdio';
 
 export type McpServerConfig =
@@ -40,7 +52,10 @@ export function expandVariables(
     const resolved = lookup(name);
     if (resolved !== undefined && resolved !== '') return resolved;
     if (fallback !== undefined) return fallback;
-    throw new McpConfigError(`This server needs the secret ${name}. Save it in Settings first.`);
+    throw new McpConfigError(
+      `This server needs the secret ${name}. Save it under Secrets, with "Use with" set to` +
+        ' MCP server environment.',
+    );
   });
 }
 

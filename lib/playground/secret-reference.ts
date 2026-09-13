@@ -13,7 +13,11 @@ export const SECRET_SERVICES = [
   { value: 'search:brave', label: 'Brave web search' },
   { value: 'runtime', label: 'Server runtime connection' },
   { value: 'runtime:env', label: 'Code runtime environment' },
-  { value: 'mcp', label: 'MCP tool server' },
+  // What a server config's ${NAME} resolves to. Listed before the per-endpoint
+  // form below because it is the one the current MCP screen asks for; the two
+  // read alike and only one of them was ever offered here.
+  { value: 'mcp-env', label: 'MCP server environment' },
+  { value: 'mcp', label: 'MCP tool server · one endpoint' },
 ];
 export function mcpSecretDestination(url: string) {
   try {
