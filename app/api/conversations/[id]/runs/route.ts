@@ -13,7 +13,9 @@ import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
 import { createActiveCheckpointStore } from '@/lib/context-model/active-store';
 import { loadFieldForUser } from '@/lib/context-model/server';
-import { buildContextBrief } from '@/lib/context-model/run-brief';
+import { buildContextBrief, recentUserText } from '@/lib/context-model/run-brief';
+import { createKnowledgeSources } from '@/lib/knowledge/store';
+import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -237,6 +239,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // to ask. Written onto the run row with the rest of the instructions, so a
   // run paused on an approval resumes with the notes it started with.
   const contextNotes = await contextBriefFor(user.userId, messages);
+  // What this person has saved, and what the operator has published. Both were
+  // written, tested and then called by nothing after the browser run loop was
+  // deleted — the Memory screen has been saving items no answer could read.
+  const saved = await knowledgeFor(user.userId, messages);
 
   const runId = newRunId();
   try {
@@ -252,7 +258,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         metered: access.metered,
         execution: access.execution,
         operator: entitlements.tier === 'owner',
-        instructions: parsed.instructions + contextNotes,
+        instructions: parsed.instructions + saved + contextNotes,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,
@@ -295,6 +301,31 @@ async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<s
       '[hikmah] context notes skipped:',
       error instanceof Error ? error.message : error,
     );
+    return '';
+  }
+}
+
+/**
+ * The owner's saved knowledge for this turn, or ''.
+ *
+ * Read here rather than sent by the page for the same reason the context notes
+ * are: it needs the workspace blob and the published rows, and a run resumed
+ * after the tab closed has no page to ask. Never throws — a lookup that fails
+ * costs the aid, not the answer.
+ */
+async function knowledgeFor(userId: string, messages: UIMessage[]): Promise<string> {
+  try {
+    const storage = getStorage();
+    const query = recentUserText(messages, 1);
+    if (!query.trim()) return '';
+    const block = await knowledgeForRun({
+      sources: createKnowledgeSources(storage.raw, storage.BUCKET),
+      userId,
+      query,
+    });
+    return block ? '\n' + block : '';
+  } catch (error) {
+    console.error('[hikmah] knowledge skipped:', error instanceof Error ? error.message : error);
     return '';
   }
 }
