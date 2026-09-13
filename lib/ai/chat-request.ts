@@ -24,6 +24,8 @@ export type ChatRequestBody = {
   compare?: { model?: string };
   /** Offer `deep_research` this turn: sub-agents fanned out over the question. */
   deepResearch: boolean;
+  /** Search the web this turn, whatever the conversation's tool switches say. */
+  webSearch: boolean;
   /**
    * Why this turn is being sent. `regenerate-message` means the last message is
    * already stored and is being replayed, so the conversation has to be
@@ -164,6 +166,8 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     // Per turn, like compare: a fan-out is a choice made for a question, not a
     // setting that follows every one.
     deepResearch: body.deepResearch === true,
+    // The composer's Search switch, per turn for the same reason.
+    webSearch: body.webSearch === true,
     // Anything other than the one value that means "replay" is treated as a new
     // turn, so an unrecognised or absent trigger can only ever append — never
     // delete.

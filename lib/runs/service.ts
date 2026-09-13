@@ -73,6 +73,8 @@ export type RunConfig = {
   compare?: { model?: string };
   /** Offer `deep_research` this turn. */
   deepResearch?: boolean;
+  /** Search the web this turn: the composer's Search switch. */
+  webSearch?: boolean;
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
    * as a `data-memories` part so the answer can say what it used. */
   memories?: UsedMemory[];
@@ -156,6 +158,7 @@ async function driveWithAgent({
     // the one thing the run did that nobody was charged for.
     onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
     deepResearch: config.deepResearch === true,
+    webSearch: config.webSearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],

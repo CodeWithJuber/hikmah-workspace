@@ -32,7 +32,8 @@ import {
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
 import type { FileUIPart, LanguageModelUsage } from 'ai';
-import { Paperclip, X } from 'lucide-react';
+import { Globe, Paperclip, Telescope, X } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 import {
   Context,
   ContextCacheUsage,
@@ -241,6 +242,10 @@ export function ChatView({
   // Deep research, per turn for the same reason — and because on a free key a
   // fan-out of lanes can be most of the day's request allowance in one go.
   const [deepResearch, setDeepResearch] = useState(false);
+  // Search the web for this message, whatever the conversation's tool switches
+  // say. Per turn: a person asks for a search about one question, not about
+  // every question after it.
+  const [webSearch, setWebSearch] = useState(false);
   // The "learn this in the background" dialog. Opened from the `+` menu and
   // rendered outside it, because a menu unmounts its content when it closes.
   const [learning, setLearning] = useState(false);
@@ -254,8 +259,8 @@ export function ChatView({
     setRetried(false);
   }
   useEffect(() => {
-    transport.setConfig({ ...run, compare: compare ? {} : undefined, deepResearch });
-  }, [transport, run, compare, deepResearch]);
+    transport.setConfig({ ...run, compare: compare ? {} : undefined, deepResearch, webSearch });
+  }, [transport, run, compare, deepResearch, webSearch]);
 
   // Remember, by hand: your own message is saved as your words; an answer is
   // filed as the model's inference and waits for review. The route names the
@@ -574,15 +579,6 @@ export function ChatView({
                   >
                     Also answer without tools
                   </DropdownMenuCheckboxItem>
-                  {/* Sub-agents fanned out over the question, each reading its
-                    own sources. A choice for a question, not a setting. */}
-                  <DropdownMenuCheckboxItem
-                    checked={deepResearch}
-                    onCheckedChange={setDeepResearch}
-                    onSelect={(event) => event.preventDefault()}
-                  >
-                    Research deeply
-                  </DropdownMenuCheckboxItem>
                   {/* A task is handed off, not sent: it becomes its own
                     conversation and this one stays free to type in. */}
                   <DropdownMenuItem onSelect={() => setLearning(true)}>
@@ -591,6 +587,33 @@ export function ChatView({
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
               <VoiceInput disabled={busy} onText={dictate} />
+              {/* The two ways a question changes shape, on the row where it is
+                typed. "Research deeply" was a checkbox inside the `+` menu,
+                which is where nobody looking for "search the web" looks, and
+                there was no plain search switch at all: the model searched when
+                it felt like it. Both are per turn and show their state here. */}
+              <Toggle
+                pressed={webSearch}
+                onPressedChange={setWebSearch}
+                className="chat-turn-toggle"
+                aria-label="Search the web for this message"
+                title="Search the web for this message"
+              >
+                <Globe size={16} aria-hidden="true" />
+                <span className="chat-turn-label">Search</span>
+              </Toggle>
+              {/* Sub-agents fanned out over the question, each reading its own
+                sources. A choice for a question, not a setting. */}
+              <Toggle
+                pressed={deepResearch}
+                onPressedChange={setDeepResearch}
+                className="chat-turn-toggle"
+                aria-label="Research deeply: sub-agents read sources in parallel"
+                title="Research deeply: sub-agents read sources in parallel"
+              >
+                <Telescope size={16} aria-hidden="true" />
+                <span className="chat-turn-label">Research</span>
+              </Toggle>
               {onTools && (
                 <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
               )}

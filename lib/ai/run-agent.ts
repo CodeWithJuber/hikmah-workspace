@@ -49,6 +49,13 @@ export type RunAgentOptions = {
    * request allowance in one message.
    */
   deepResearch?: boolean;
+  /**
+   * Search the web this turn: the composer's Search switch. `search_web` and
+   * `read_webpage` are offered whatever the conversation's switches say, and
+   * the instructions tell the model to search before it answers — a person
+   * who asked for the web should not get an answer from memory instead.
+   */
+  webSearch?: boolean;
   signal: AbortSignal;
   /** Tool names the owner has switched off for this run. */
   disabledTools?: readonly string[];
@@ -123,6 +130,10 @@ export type RunAgentOptions = {
 /** The built-in tools a research lane may use: what reads, nothing that
  * writes to the workspace or reaches a machine. */
 const LANE_TOOLS = new Set(['search_web', 'search_reference', 'read_webpage', 'research_quran']);
+/** What the composer's Search switch asks for by name. */
+const SEARCH_TOOLS = new Set(['search_web', 'read_webpage']);
+const SEARCH_GUIDANCE =
+  'For this message the person switched Search on. Search the web before answering, read the pages that matter, and say which pages the answer rests on. If the search finds nothing useful, say so rather than answering from memory as if it had.';
 
 export function buildRunAgent(options: RunAgentOptions) {
   const disabled = new Set(options.disabledTools ?? []);
@@ -154,11 +165,16 @@ export function buildRunAgent(options: RunAgentOptions) {
     name === 'bash' ||
     name === 'sandbox_run' ||
     (name.startsWith('mcp__') && options.mcp?.approval.get(name) !== 'auto');
+  // What this message asked for by name, over the conversation's switches and
+  // an agent's allowlist alike. Only the two search tools: the switch adds
+  // them, it does not undo every other choice.
+  const asked = options.webSearch ? SEARCH_TOOLS : new Set<string>();
   const tools = Object.fromEntries(
     Object.entries(all).filter(
       ([name]) =>
-        !disabled.has(name) &&
-        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')) &&
+        (asked.has(name) ||
+          (!disabled.has(name) &&
+            (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')))) &&
         !(options.unattended && wouldWait(name)),
     ),
   );
@@ -220,9 +236,18 @@ export function buildRunAgent(options: RunAgentOptions) {
       }
     : undefined;
 
+  // Asked for in words, not forced with `toolChoice`. A forced tool choice is
+  // enforced by the SDK: a model that answers in prose anyway — most free
+  // models do — fails the whole turn with "did not contain a call to the
+  // required tool", measured in the browser. A person who switched Search on
+  // wants the web, not an error card.
+  const mustSearch = options.webSearch === true && 'search_web' in tools;
   return new ToolLoopAgent({
     model: options.model ?? createLanguageModel(options.provider),
-    instructions: withServerGuidance(options.instructions, options.mcp?.guidance),
+    instructions: withServerGuidance(
+      mustSearch ? options.instructions + '\n\n' + SEARCH_GUIDANCE : options.instructions,
+      options.mcp?.guidance,
+    ),
     tools,
     stopWhen: isStepCount(options.maxSteps ?? DEFAULT_MAX_STEPS),
     prepareStep: ({ messages }) => ({ messages: reduceMessages(messages, limit) }),

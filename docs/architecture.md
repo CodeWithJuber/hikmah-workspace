@@ -503,10 +503,26 @@ written report — what it learned, the exact sources it read, what it could
 not verify — because a run that ends with tool calls and no words is recorded
 as no answer, and a learner that only filed memories is exactly that.
 
+## Search and research, per turn
+
+Two toggles sit on the composer row, beside the microphone, and both are
+decisions about one message rather than settings: they travel with the turn
+(`webSearch` and `deepResearch` in `parseChatRequest`, stored on the run's
+config) and reset with the conversation.
+
+_Search_ means this message gets the web whatever the conversation's tool
+switches say. `buildRunAgent` offers `search_web` and `read_webpage` even if
+they were switched off, and appends one paragraph to the instructions telling
+the model to search before it answers — so a person who asked for the web does
+not get an answer from memory. Told, not forced: a forced `toolChoice` is
+enforced by the SDK, which fails the turn when the model answers in prose
+anyway, and most free models do. `tests/run-agent-web-search.test.mjs`
+measures both on the real agent over a mock model.
+
 ## Deep research
 
-_Research deeply_ in the composer's `+` menu offers the run one more tool for
-that turn: `deep_research` (`lib/ai/tools/deep-research.ts`). It is the AI
+_Research_, the second toggle, offers the run one more tool for that turn:
+`deep_research` (`lib/ai/tools/deep-research.ts`). It is the AI
 SDK's own multi-agent shape — a sub-agent as a tool — fanned out: one
 `generateText` plans sub-questions (a numbered list, not a JSON schema, because
 most free models write the first and not the second), one `ToolLoopAgent` per

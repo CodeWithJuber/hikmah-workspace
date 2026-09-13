@@ -272,6 +272,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,
         deepResearch: parsed.deepResearch,
+        webSearch: parsed.webSearch,
       },
     });
   } catch {
