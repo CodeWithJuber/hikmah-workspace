@@ -19,6 +19,8 @@ export const dynamic = 'force-dynamic';
  */
 export default async function ChatPage() {
   const user = await requireChatGPTUser('/chat');
-  const [latest] = runService().store.listConversations(user.userId, 1);
+  // The most recent chat, never a background task: a task finishing is not a
+  // reason for the next visit to open on its report instead of the chat.
+  const latest = runService().store.latestChat(user.userId);
   redirect(`/chat/${latest?.id ?? newConversationId()}`);
 }

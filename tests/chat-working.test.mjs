@@ -118,3 +118,17 @@ test('a long list is trimmed with a count rather than run on', () => {
   );
   assert.match(line, /and 2 more/);
 });
+
+test('the research card stays in front of the reader, and the tool has a plain label', () => {
+  const grouped = groupParts([
+    { type: 'data-research', data: {} },
+    { type: 'tool-deep_research', state: 'output-available', output: {} },
+    { type: 'text', text: 'Answer.' },
+  ]);
+  assert.deepEqual(
+    grouped.live.map((p) => p.type),
+    ['data-research'],
+  );
+  assert.equal(grouped.working.length, 1);
+  assert.match(describeWorking(grouped.working), /Researched in parallel/);
+});

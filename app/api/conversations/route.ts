@@ -35,6 +35,16 @@ export async function GET(request: Request) {
       id: row.id,
       title: row.title,
       model: row.model,
+      // A background task is listed apart from the chats, with how it ended
+      // and how many suggestions it left for the person to look at.
+      mode: row.mode === 'task' ? 'task' : 'chat',
+      ended:
+        row.run_status === 'done'
+          ? 'done'
+          : row.run_status === 'failed' || row.run_status === 'cancelled'
+            ? 'stopped'
+            : null,
+      toReview: row.to_review,
       // Reported separately because they need different answers from the
       // owner: one is working, the other has stopped and is waiting on them.
       // Which kind of stop matters too — permission and a question ask for

@@ -19,6 +19,12 @@ import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
 import { rememberTools, type MemoryToolContext } from './tools/memory.ts';
+import {
+  deepResearchTools,
+  RESEARCH_PART_ID,
+  type LaneUsage,
+  type ResearchView,
+} from './tools/deep-research.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 
 export type RunAgentOptions = {
@@ -32,6 +38,17 @@ export type RunAgentOptions = {
   meaningModel: Model;
   savedSearchKey?: () => Promise<string>;
   onPlan?: (steps: PlanStep[]) => void;
+  /** Writes a data part into the run's stream: the research progress card. */
+  onData?: (chunk: { type: string; id: string; data: unknown }) => void;
+  /** A research lane finished, and this is what it cost. */
+  onLaneUsage?: (lane: string, usage: LaneUsage) => void;
+  /**
+   * Offer `deep_research` this turn. Off by default and switched on per turn
+   * from the composer, because a fan-out of sub-agents is not a tool every
+   * question should have within reach — on a free key it can be the day's
+   * request allowance in one message.
+   */
+  deepResearch?: boolean;
   signal: AbortSignal;
   /** Tool names the owner has switched off for this run. */
   disabledTools?: readonly string[];
@@ -89,8 +106,23 @@ export type RunAgentOptions = {
    * per run, while this function is synchronous and may be called per step.
    */
   mcp?: Pick<McpRunTools, 'tools' | 'approval' | 'guidance'>;
+  /**
+   * Nobody is watching this run: a background task, or a research lane.
+   *
+   * It is built without `ask_user` and without every tool whose gate could
+   * resolve to the owner's approval — the shell, SSH, and any server tool not
+   * auto-approved. Such a run that paused on a card would pause forever, and
+   * keep one of the owner's run slots while it did. Withheld rather than
+   * auto-approved: an unattended run is not a reason to run a command nobody
+   * agreed to.
+   */
+  unattended?: boolean;
   model?: LanguageModel;
 };
+
+/** The built-in tools a research lane may use: what reads, nothing that
+ * writes to the workspace or reaches a machine. */
+const LANE_TOOLS = new Set(['search_web', 'search_reference', 'read_webpage', 'research_quran']);
 
 export function buildRunAgent(options: RunAgentOptions) {
   const disabled = new Set(options.disabledTools ?? []);
@@ -114,13 +146,50 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...(options.mcp?.tools ?? {}),
   };
   const allowed = new Set(options.enabledTools ?? []);
+  // What would stop on a person. Withheld entirely from an unattended run, so
+  // the approval maps below have nothing to gate and the run cannot pause.
+  const wouldWait = (name: string) =>
+    name === 'ask_user' ||
+    name === 'ssh_exec' ||
+    name === 'bash' ||
+    name === 'sandbox_run' ||
+    (name.startsWith('mcp__') && options.mcp?.approval.get(name) !== 'auto');
   const tools = Object.fromEntries(
     Object.entries(all).filter(
       ([name]) =>
         !disabled.has(name) &&
-        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')),
+        (allowed.size === 0 || allowed.has(name) || name.startsWith('mcp__')) &&
+        !(options.unattended && wouldWait(name)),
     ),
   );
+  // The fan-out, over the run's own model. Its lanes get the research tools
+  // and the auto-approved server tools from the set above — never a tool that
+  // would wait on a person, and never itself — so a lane is an unattended run
+  // by construction, sharing the parent's connections rather than opening its
+  // own.
+  if (options.deepResearch && !disabled.has('deep_research')) {
+    const model = options.model ?? createLanguageModel(options.provider);
+    const laneTools = Object.fromEntries(
+      Object.entries(tools).filter(
+        ([name]) =>
+          LANE_TOOLS.has(name) ||
+          (name.startsWith('mcp__') && options.mcp?.approval.get(name) === 'auto'),
+      ),
+    );
+    Object.assign(
+      tools,
+      deepResearchTools({
+        model,
+        tools: laneTools,
+        instructions: options.instructions,
+        signal: options.signal,
+        freeOnly: options.provider.freeOnly === true,
+        publish: (view: ResearchView) =>
+          options.onData?.({ type: 'data-' + RESEARCH_PART_ID, id: RESEARCH_PART_ID, data: view }),
+        onLaneUsage: options.onLaneUsage,
+      }),
+    );
+  }
   // What actually fits, from this model's own window, minus the system prompt
   // and the tool schemas this run is about to send. Computed after `tools` so
   // the count is the real one — an owner with the Qur'an server enabled offers
@@ -166,7 +235,16 @@ export function buildRunAgent(options: RunAgentOptions) {
     // asking — never asked. Nothing failed: the tools worked, they just worked
     // without the card.
     ...(sshApproval || mcpApproval || shellApproval
-      ? { toolApproval: { ...mcpApproval, ...shellApproval, ...sshApproval } }
+      ? {
+          toolApproval: Object.fromEntries(
+            // Only for tools actually offered: an unattended run withheld every
+            // gated one above, and a policy for a tool that is not there is a
+            // promise the run cannot keep.
+            Object.entries({ ...mcpApproval, ...shellApproval, ...sshApproval }).filter(
+              ([name]) => name in tools,
+            ),
+          ),
+        }
       : {}),
   });
 }

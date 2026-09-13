@@ -16,5 +16,5 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const conversation = runService().store.getConversation(id);
   if (conversation && conversation.user_id !== user.userId) notFound();
 
-  return <ChatShell conversationId={id} />;
+  return <ChatShell conversationId={id} task={conversation?.mode === 'task'} />;
 }

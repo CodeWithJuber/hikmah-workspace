@@ -264,6 +264,108 @@ function ComparisonLane({ view }: { view: CompareView }) {
   );
 }
 
+/** The research fan-out's state, as the tool publishes it. */
+type ResearchView = {
+  status?: string;
+  question?: string;
+  lanes?: {
+    question: string;
+    status: string;
+    summary?: string;
+    sources?: string[];
+    error?: string;
+  }[];
+  gaps?: string[];
+  note?: string;
+};
+
+const LANE_WORDS: Record<string, string> = {
+  queued: 'Waiting',
+  running: 'Reading…',
+  done: 'Done',
+  failed: 'Failed',
+  skipped: 'Skipped',
+};
+
+/** One row per lane, so the reader can watch the fan-out arrive and, when it
+ * is done, open each finding with the pages it actually read. Closed rows on
+ * a phone, like the working: the answer below is what they came for. */
+function ResearchCard({ view }: { view: ResearchView }) {
+  const lanes = view.lanes ?? [];
+  const done = lanes.filter((lane) => lane.status === 'done').length;
+  const running = view.status === 'planning' || view.status === 'running';
+  return (
+    <section className="chat-research" aria-label="Deep research">
+      <header>
+        <strong>
+          {view.status === 'planning'
+            ? 'Planning the research…'
+            : `Deep research · ${lanes.length === 1 ? '1 lane' : `${lanes.length} lanes`}`}
+        </strong>
+        {lanes.length > 0 && (
+          <span className="chat-research-count">
+            {running ? `${done} of ${lanes.length} done` : `${done} of ${lanes.length} answered`}
+          </span>
+        )}
+      </header>
+      {lanes.length > 0 && (
+        <ol>
+          {lanes.map((lane, index) => (
+            <li key={index} className={'chat-research-' + lane.status}>
+              {lane.status === 'running' ? (
+                <LoaderCircle size={15} className="spin" aria-hidden="true" />
+              ) : lane.status === 'done' ? (
+                <Check size={15} aria-hidden="true" />
+              ) : (
+                <span className="chat-plan-number">{index + 1}</span>
+              )}
+              {lane.status === 'done' && lane.summary ? (
+                <details>
+                  <summary>
+                    <span dir="auto">{lane.question}</span>
+                    <span className="chat-research-state">
+                      {lane.sources?.length
+                        ? `${lane.sources.length} ${lane.sources.length === 1 ? 'page' : 'pages'} read`
+                        : 'no page read'}
+                    </span>
+                  </summary>
+                  <p dir="auto">{lane.summary}</p>
+                  {!!lane.sources?.length && (
+                    <ul className="chat-research-sources">
+                      {lane.sources.map((url) => (
+                        <li key={url}>
+                          <a href={url} target="_blank" rel="noreferrer noopener">
+                            {url}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </details>
+              ) : (
+                <span className="chat-research-row">
+                  <span dir="auto">{lane.question}</span>
+                  <span className="chat-research-state">
+                    {lane.error ?? LANE_WORDS[lane.status] ?? lane.status}
+                  </span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      {view.note && <p className="chat-research-note">{view.note}</p>}
+      {!running && !!view.gaps?.length && (
+        <p className="chat-research-note">
+          Not answered:{' '}
+          {view.gaps.length === 1 ? '1 sub-question' : `${view.gaps.length} sub-questions`}. The
+          answer says so rather than filling them in.
+        </p>
+      )}
+    </section>
+  );
+}
+
 /** Sources are collected across the message so citations render as one list. */
 function sourceParts(message: UIMessage) {
   return message.parts.filter(
@@ -455,6 +557,9 @@ export function MessageParts({
 
     if (part.type === 'data-compare')
       return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
+
+    if (part.type === 'data-research')
+      return <ResearchCard key={key} view={(part.data ?? {}) as ResearchView} />;
 
     // Which saved memories the prompt carried. The receipt below the answer
     // reads it; here it would be a line above the answer saying the same.

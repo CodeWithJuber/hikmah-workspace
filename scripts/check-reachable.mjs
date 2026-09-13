@@ -76,7 +76,12 @@ const ALLOW = [
 // tests: MIN_TOKENS and toAnnotation in lib/context-model/candidates.ts, and
 // MAX_QUEUED in its store. Each is used inside its own module and exported so a
 // test can assert against the constant rather than restate the number.
-const BASELINE = { orphanFiles: 0, testedOnly: 74, dead: 45 };
+// 74 → 76 for two named on purpose by the deep-research tests:
+// parseSubQuestions and isRateLimit in lib/ai/tools/deep-research.ts, the two
+// pure rules the fan-out depends on (how a numbered plan is read, and what
+// counts as the provider refusing on rate), each asserted directly rather than
+// through a scripted model.
+const BASELINE = { orphanFiles: 0, testedOnly: 76, dead: 45 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

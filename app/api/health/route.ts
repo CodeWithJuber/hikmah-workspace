@@ -6,13 +6,14 @@ export async function GET() {
     getStorage().raw.prepare('SELECT 1').get();
     // Reported, never fatal: a stalled worker is worth seeing, but it must not
     // take the container out of rotation while the app still serves chat.
-    let worker: { started: boolean; queued: number } | undefined;
+    let worker: { started: boolean; queued: number; active: number } | undefined;
     try {
       const { runService } = await import('@/lib/runs/service');
       const service = runService();
       worker = {
         started: service.started,
         queued: service.store.countQueued(),
+        active: service.active,
       };
     } catch {
       worker = undefined;

@@ -2,7 +2,7 @@
 /** The chat page: conversations on the left, the workspace on the right. */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Blocks, CreditCard, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
+import { Blocks, BookOpenCheck, CreditCard, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
@@ -13,6 +13,7 @@ import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { useChatSettings } from '@/hooks/use-chat-settings';
+import { Toaster } from 'sonner';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
  * conversation with less room than either of them. Matches the breakpoint the
@@ -38,7 +39,15 @@ function useNarrow() {
   );
 }
 
-export function ChatShell({ conversationId }: { conversationId: string }) {
+export function ChatShell({
+  conversationId,
+  task = false,
+}: {
+  conversationId: string;
+  /** This conversation is a background task: its report is shown with a way
+   * into what it left to review. */
+  task?: boolean;
+}) {
   const { settings, change } = useChatSettings();
   const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
   // Bumped when a run settles. A conversation is created by its first message
@@ -90,6 +99,10 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
 
   return (
     <div className={'chat-shell' + (narrow ? ' is-narrow' : '')}>
+      {/* The voice controls and the background-task dialog speak through
+          sonner, and nothing on this surface had mounted it: every toast went
+          nowhere. The workspace shell mounts its own; this one is the chat's. */}
+      <Toaster position="top-center" />
       <header className="chat-topbar">
         {narrow && (
           <button
@@ -153,6 +166,26 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
           onArtifact={setArtifact}
           onTools={changeTools}
           onSettled={settled}
+          banner={
+            task ? (
+              <div className="chat-task-banner" role="note">
+                <BookOpenCheck size={16} aria-hidden="true" />
+                <span>
+                  A background task. What it kept is waiting for your review, and nothing is used
+                  until you accept it.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab('memory');
+                    if (narrow) setDrawer('panel');
+                  }}
+                >
+                  Review what it learned
+                </button>
+              </div>
+            ) : null
+          }
         />
 
         {artifact && (

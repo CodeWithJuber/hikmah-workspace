@@ -87,6 +87,10 @@ export type WorkerOptions = {
   drive: RunDriver;
   bus?: RunBus;
   pollMs?: number;
+  /** How many runs may be driven at once. One, as it always was, unless said
+   * otherwise. Above one, the last slot is kept for a chat: a background task
+   * is claimed only while no other task is running. */
+  concurrency?: number;
   onError?: (error: unknown, run: RunRow) => void;
 };
 
@@ -95,28 +99,51 @@ export type Worker = {
   bus: RunBus;
   /** Whether the poll loop is armed. Reported by /api/health. */
   readonly started: boolean;
-  /** Drive at most one queued run. Returns the run it handled, or null. */
+  /** How many runs are being driven right now. Reported by /api/health. */
+  readonly active: number;
+  /** Claim and drive one queued run, if a slot is free. Returns the run it
+   * handled, or null. */
   tick(): Promise<RunRow | null>;
   start(): void;
   stop(): Promise<void>;
   cancel(runId: string): boolean;
 };
 
+/** Whether a run is a background task rather than a turn of a chat. Read from
+ * the stored configuration, the same field the chat-only claim tests. */
+function isTask(run: RunRow): boolean {
+  try {
+    const config = JSON.parse(run.config) as { task?: unknown };
+    return Boolean(config && typeof config === 'object' && config.task);
+  } catch {
+    return false;
+  }
+}
+
 export function createWorker(options: WorkerOptions): Worker {
   const store = createRunStore(options.db);
   const bus = options.bus ?? new RunBus();
   const running = new Map<string, AbortController>();
+  const concurrency = Math.max(1, Math.trunc(options.concurrency ?? 1));
   let timer: ReturnType<typeof setInterval> | undefined;
-  let busy = false;
+  // A count, not a flag. One flag meant one run process-wide, so a long
+  // background task would have frozen every live chat for its whole duration.
+  let active = 0;
+  // Tasks in flight, kept apart from the count above: with more than one slot,
+  // the last is never given to a task, so a chat always has somewhere to run.
+  let tasks = 0;
   let stopped = false;
 
   async function tick(): Promise<RunRow | null> {
-    if (busy || stopped) return null;
-    busy = true;
+    if (active >= concurrency || stopped) return null;
+    active += 1;
     let run: RunRow | null = null;
+    let task = false;
     try {
-      run = store.claimNext();
+      run = store.claimNext({ chatOnly: concurrency > 1 && tasks >= concurrency - 1 });
       if (!run) return null;
+      task = isTask(run);
+      if (task) tasks += 1;
 
       const controller = new AbortController();
       running.set(run.id, controller);
@@ -201,7 +228,8 @@ export function createWorker(options: WorkerOptions): Worker {
       }
       return run;
     } finally {
-      busy = false;
+      if (task) tasks -= 1;
+      active -= 1;
     }
   }
 
@@ -212,13 +240,19 @@ export function createWorker(options: WorkerOptions): Worker {
     get started() {
       return timer !== undefined;
     },
+    get active() {
+      return active;
+    },
     start() {
       if (timer) return;
       // Anything left marked running belongs to a process that is gone.
       store.requeueRunning();
       stopped = false;
       timer = setInterval(() => {
-        void tick();
+        // One claim per free slot. Each tick claims synchronously before it
+        // awaits the driver, so the later calls see the earlier claims and a
+        // queue of two is not left waiting a whole poll for its second.
+        for (let slot = active; slot < concurrency; slot += 1) void tick();
       }, options.pollMs ?? POLL_MS);
       // Do not hold the process open for the poll timer.
       (timer as unknown as { unref?: () => void }).unref?.();

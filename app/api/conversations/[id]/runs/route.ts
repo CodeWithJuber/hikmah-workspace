@@ -5,22 +5,9 @@ import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/c
 import { conversationTitle } from '@/lib/chat/title';
 import { releases } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
-import { createSecretStore } from '@/server/workspace-secrets.mjs';
-import { needsKey, providerDestination } from '@/lib/ai/endpoint';
-import { billingStore, entitlementsForUser } from '@/lib/billing/server';
-import { refusal, runAccess } from '@/lib/billing/access';
+import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
 import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
-import { createActiveCheckpointStore } from '@/lib/context-model/active-store';
-import { loadFieldForUser } from '@/lib/context-model/server';
-import { buildContextBrief, recentUserText } from '@/lib/context-model/run-brief';
-import { candidatesFrom } from '@/lib/context-model/candidates';
-import { createCandidateStore } from '@/lib/context-model/candidate-store';
-import { createKnowledgeSources } from '@/lib/knowledge/store';
-import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
-import { createMemoryStore } from '@/lib/memory/store';
-import { createRecall, recallPrompt } from '@/lib/memory/recall';
-import type { RecalledConversation, UsedMemory } from '@/lib/runs/service';
 import { composePrompt } from '@/lib/ai/compose-prompt';
 import { principleDigest } from '@/lib/kernel/principles';
 
@@ -175,42 +162,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const incoming = incomingMessage;
   if (!incoming) return fail('Send a message to start the run.', 400);
 
-  // The key is resolved once, here, and stored on the run so the worker can
-  // drive it after this request has gone. It is never returned to the browser.
-  let savedKey = '';
-  if (parsed.apiKeySecret) {
-    try {
-      savedKey = await createSecretStore().resolve(
-        user.userId,
-        parsed.apiKeySecret,
-        providerDestination(parsed.baseUrl),
-      );
-    } catch {
-      savedKey = '';
-    }
-  }
-  // Who is allowed to spend what. The deployment's own key used to be the
-  // fallback for anyone signed in, which is invisible with one account and an
-  // open bar with two.
-  const entitlements = entitlementsForUser(user);
-  const access = runAccess({
-    entitlements,
-    savedKey,
-    deploymentKey: process.env.HIKMAH_PROVIDER_KEY ?? '',
-  });
-
-  // Refuse now, in words, rather than queueing a run that cannot succeed. A
-  // hosted provider without a key answers 401, which reached the owner as a
-  // bare "An error occurred" — the commonest first-run failure there is, and
-  // the one where knowing the cause is the whole fix. A private or loopback
-  // endpoint (Ollama, vLLM) legitimately needs no key, so it is not refused.
-  const refused = refusal({
-    access,
-    entitlements,
-    keyless: needsKey(parsed.baseUrl, access.apiKey),
-    meteredThisMonth: access.metered ? billingStore().meteredThisMonth(user.userId) : 0,
-  });
+  // Who may spend what, decided in lib/runs/prepare.ts so a background task
+  // is refused on exactly the same grounds as a chat turn.
+  const { access, refused } = await resolveRunAccess(user, parsed);
   if (refused) return fail(refused, 400);
+  const entitlements = access.entitlements;
 
   // Everything above this line only reads. Nothing is written to the transcript
   // until the run is known to be startable, because a refusal after the write
@@ -306,6 +262,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         disabledTools: parsed.disabledTools,
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,
+        deepResearch: parsed.deepResearch,
       },
     });
   } catch {
@@ -317,96 +274,4 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   void worker.tick();
 
   return Response.json({ runId, conversationId }, { headers, status: 202 });
-}
-
-/**
- * The local syntax compiler's block for this turn, or ''.
- *
- * Never throws and never blocks the send: a checkpoint that will not load, a
- * language with no grammar, or a parse that produced nothing worth saying all
- * mean the run goes without notes. The setting is read from the stored row
- * rather than the request, so it is the owner's choice and not the page's.
- */
-async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<string> {
-  try {
-    const storage = getStorage();
-    if (!createChatSettingsStore(storage.raw).read(userId).contextModel) return '';
-    const active = createActiveCheckpointStore(storage.raw, storage.BUCKET);
-    const { block, graph } = await buildContextBrief({
-      messages,
-      loadField: (language) => loadFieldForUser(userId, language, active),
-    });
-    // The turn has just been parsed to build the block above, and the parse
-    // measured how sure it was of each sentence. That measurement is the only
-    // thing a chat can honestly give a parser fitted on gold annotations — the
-    // reply itself carries no grammar to learn from — so the hardest sentences
-    // are kept for the owner to correct rather than discarded with the parse.
-    // Inside this try, and after the block is computed, so a queue that cannot
-    // be written costs the queue and never the notes or the message.
-    if (graph) createCandidateStore(storage.raw).record(userId, candidatesFrom(graph));
-    return block ? '\n\n' + block : '';
-  } catch (error) {
-    console.error(
-      '[hikmah] context notes skipped:',
-      error instanceof Error ? error.message : error,
-    );
-    return '';
-  }
-}
-
-/**
- * The owner's saved knowledge for this turn, or ''.
- *
- * Read here rather than sent by the page for the same reason the context notes
- * are: it needs the workspace blob and the published rows, and a run resumed
- * after the tab closed has no page to ask. Never throws — a lookup that fails
- * costs the aid, not the answer.
- */
-async function knowledgeFor(
-  userId: string,
-  messages: UIMessage[],
-  options: { conversationId: string; recall: boolean },
-): Promise<{
-  block: string;
-  recall: string;
-  used: UsedMemory[];
-  conversations: RecalledConversation[];
-}> {
-  const none = { block: '', recall: '', used: [], conversations: [] };
-  try {
-    const storage = getStorage();
-    const query = recentUserText(messages, 1);
-    if (!query.trim()) return none;
-    let used: UsedMemory[] = [];
-    const block = await knowledgeForRun({
-      sources: createKnowledgeSources(storage.raw, storage.BUCKET),
-      userId,
-      query,
-      onSelected: (items) => {
-        used = items.map((item) => ({ id: item.id, title: item.title, kind: item.kind }));
-      },
-    });
-    if (used.length) {
-      // Best effort: a count that did not move is not worth a failed answer.
-      createMemoryStore(storage.raw).markUsed(
-        userId,
-        used.map((item) => item.id),
-      );
-    }
-    // Earlier conversations that share words with the question — never this
-    // one, which the run already has in full. Off by a switch, because it
-    // costs a little of the prompt on every turn.
-    const hits = options.recall
-      ? createRecall(storage.raw).recall(userId, query, options.conversationId)
-      : [];
-    return {
-      block: block ? '\n' + block : '',
-      recall: recallPrompt(hits),
-      used,
-      conversations: hits.map((hit) => ({ id: hit.conversationId, title: hit.title })),
-    };
-  } catch (error) {
-    console.error('[hikmah] knowledge skipped:', error instanceof Error ? error.message : error);
-    return none;
-  }
 }

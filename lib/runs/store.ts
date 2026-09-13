@@ -49,9 +49,11 @@ export type ConversationRow = {
   updated_at: string;
 };
 
-/** A conversation as the list needs it: the row, plus what its run is doing. */
+/** A conversation as the list needs it: the row, plus what its run is doing,
+ * plus — for a background task — how many suggestions it left to review. */
 export type ConversationSummaryRow = ConversationRow & {
   run_status: RunStatus | null;
+  to_review: number;
 };
 
 export type StoredMessage = {
@@ -87,7 +89,7 @@ export function createRunStore(
       `INSERT INTO messages (id, conversation_id, seq, role, parts, metadata, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ),
-    getConversation: db.prepare('SELECT id, user_id FROM conversations WHERE id = ?'),
+    getConversation: db.prepare('SELECT id, user_id, mode FROM conversations WHERE id = ?'),
     messageSeq: db.prepare('SELECT seq FROM messages WHERE conversation_id = ? AND id = ?'),
     // Across every conversation, because the primary key is: an id already
     // taken by another thread cannot be inserted here, however free it looks
@@ -101,7 +103,11 @@ export function createRunStore(
     // finishes.
     listConversations: db.prepare(
       `SELECT c.id, c.user_id, c.title, c.mode, c.model, c.active_run_id,
-              c.created_at, c.updated_at, r.status AS run_status
+              c.created_at, c.updated_at, r.status AS run_status,
+              -- What a task filed and nobody has looked at yet. Counted here,
+              -- not by the list, so "2 to review" costs no second request.
+              (SELECT COUNT(*) FROM memories m
+                WHERE m.source_conversation_id = c.id AND m.status = 'suggested') AS to_review
        FROM conversations c
        LEFT JOIN runs r ON r.id = c.active_run_id
        WHERE c.user_id = ?
@@ -112,6 +118,14 @@ export function createRunStore(
        -- arbitrarily but consistently, which is the property that matters.
        ORDER BY c.updated_at DESC, c.created_at DESC, c.id DESC
        LIMIT ?`,
+    ),
+    // Where /chat lands: the last conversation the owner was actually in. A
+    // background task is not that, however recently it finished.
+    latestChat: db.prepare(
+      `SELECT id FROM conversations
+       WHERE user_id = ? AND mode <> 'task'
+       ORDER BY updated_at DESC, created_at DESC, id DESC
+       LIMIT 1`,
     ),
     // Only when it is still unset: the title is written from the opening
     // message, and a later message must not rename a conversation the owner has
@@ -141,6 +155,19 @@ export function createRunStore(
       `UPDATE runs SET status = 'running'
        WHERE id = (
          SELECT id FROM runs WHERE status = 'queued'
+          ORDER BY priority DESC, created_at, id LIMIT 1
+       )
+       RETURNING *`,
+    ),
+    // The same claim, passing over background tasks. The worker uses it while
+    // a task is already running, so the last free slot always goes to a chat:
+    // a task is unattended and long, and two of them would otherwise fill the
+    // worker and queue every live conversation behind them.
+    claimChat: db.prepare(
+      `UPDATE runs SET status = 'running'
+       WHERE id = (
+         SELECT id FROM runs
+          WHERE status = 'queued' AND json_extract(config, '$.task') IS NULL
           ORDER BY priority DESC, created_at, id LIMIT 1
        )
        RETURNING *`,
@@ -233,6 +260,12 @@ export function createRunStore(
       return statements.listConversations.all(userId, limit) as ConversationSummaryRow[];
     },
 
+    /** The conversation /chat opens on: the most recently active one that is
+     * not a background task, or null for an owner with none. */
+    latestChat(userId: string): { id: string } | null {
+      return one<{ id: string }>(statements.latestChat.get(userId));
+    },
+
     /** Name a conversation, if it does not have one yet. */
     setTitle(conversationId: string, title: string) {
       statements.setTitle.run(title, conversationId);
@@ -251,8 +284,8 @@ export function createRunStore(
     },
 
     /** Who owns this conversation, or null when there is no such row. */
-    getConversation(id: string): { id: string; user_id: string } | null {
-      return one<{ id: string; user_id: string }>(statements.getConversation.get(id));
+    getConversation(id: string): { id: string; user_id: string; mode: string } | null {
+      return one<{ id: string; user_id: string; mode: string }>(statements.getConversation.get(id));
     },
 
     appendMessage(conversationId: string, message: StoredMessage) {
@@ -331,9 +364,11 @@ export function createRunStore(
       return input.id;
     },
 
-    /** Take the oldest queued run, or null when the queue is empty. */
-    claimNext(): RunRow | null {
-      return one<RunRow>(statements.claim.get());
+    /** Take the highest-priority, then oldest, queued run — or null when the
+     * queue is empty. With `chatOnly`, a queued background task is left where
+     * it is. */
+    claimNext(options: { chatOnly?: boolean } = {}): RunRow | null {
+      return one<RunRow>((options.chatOnly ? statements.claimChat : statements.claim).get());
     },
 
     getRun(id: string): RunRow | null {

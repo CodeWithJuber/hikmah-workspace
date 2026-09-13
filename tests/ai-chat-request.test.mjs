@@ -94,3 +94,15 @@ test('disabledTools keeps only strings', () => {
   });
   assert.deepEqual(parsed.disabledTools, ['search_web', 'calculate']);
 });
+
+test('deep research is a per-turn switch, off unless the body says exactly true', () => {
+  const body = {
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'a/b',
+    instructions: 'x',
+    messages: [{ role: 'user', parts: [{ type: 'text', text: 'q' }] }],
+  };
+  assert.equal(parseChatRequest(body).deepResearch, false);
+  assert.equal(parseChatRequest({ ...body, deepResearch: true }).deepResearch, true);
+  assert.equal(parseChatRequest({ ...body, deepResearch: 'yes' }).deepResearch, false);
+});

@@ -6711,6 +6711,59 @@ a.auth-brand {
   font-size: 13px;
   padding: 12px 8px;
 }
+/* Tasks under their own heading: handed off rather than had, and a finished
+   one must not read as the last thing the owner said. */
+.conversation-group {
+  margin: 16px 0 0;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.conversation-task-state {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.conversation-task-state.has-review {
+  color: var(--primary);
+  font-weight: 600;
+}
+.chat-task-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 12px 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+  border-inline-start-width: 4px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  font-size: 13px;
+}
+.chat-task-banner span {
+  flex: 1;
+  min-width: 200px;
+}
+.chat-task-banner button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-task-banner button:hover {
+  background: var(--muted);
+}
+.chat-learn-dialog textarea {
+  min-height: 120px;
+  font-size: 14px;
+}
 
 /* Below this width the two side panels slide over the conversation instead of
    sitting beside it. They used to be permanently open strips capped at 33dvh
@@ -7687,6 +7740,88 @@ a.auth-brand {
   color: var(--muted-foreground);
   font-size: 12px;
   margin-top: 6px;
+}
+
+.chat-research {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 14px;
+}
+.chat-research header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.chat-research-count,
+.chat-research-state {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.chat-research-note {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.chat-research ol {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chat-research li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.chat-research li > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.chat-research li > details {
+  flex: 1;
+  min-width: 0;
+}
+.chat-research summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  cursor: pointer;
+}
+.chat-research-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.chat-research summary > span:first-child,
+.chat-research-row > span:first-child {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+.chat-research details > p {
+  margin: 6px 0 4px;
+}
+.chat-research-sources {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.chat-research-failed .chat-research-state,
+.chat-research-skipped .chat-research-state {
+  color: var(--destructive);
 }
 
 .chat-media {

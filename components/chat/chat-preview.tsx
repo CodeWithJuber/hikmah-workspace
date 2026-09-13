@@ -158,8 +158,11 @@ export function ChatPreview({
   onTools,
   onArtifact,
   onSettled,
+  banner,
 }: {
   conversationId: string;
+  /** Shown above the transcript. */
+  banner?: React.ReactNode;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
@@ -291,6 +294,7 @@ export function ChatPreview({
           showActivity={settings.showActivity}
           onTools={onTools}
           onArtifact={onArtifact}
+          banner={banner}
           empty={
             <div className="chat-greeting">
               <HikmahIcon name="orbit" size={34} />

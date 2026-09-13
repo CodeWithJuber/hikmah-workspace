@@ -70,6 +70,8 @@ export type RunConfig = {
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
   compare?: { model?: string };
+  /** Offer `deep_research` this turn. */
+  deepResearch?: boolean;
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
    * as a `data-memories` part so the answer can say what it used. */
   memories?: UsedMemory[];
@@ -78,6 +80,11 @@ export type RunConfig = {
   /** Whether `remember` may save a verbatim preference without review. Absent
    * means yes, the default the setting has. */
   remember?: { autoSave: boolean };
+  /** Set on a background task: a run nobody is watching. It is driven
+   * unattended — no question, no tool that waits for approval — and claimed
+   * only while no other task is running. `brief` is what the person asked it
+   * to learn, kept here so the list and the report can say so. */
+  task?: { kind: 'learn'; brief: string };
 };
 
 /** One memory an answer drew on, as the receipt names it. */
@@ -123,6 +130,11 @@ async function driveWithAgent({
   };
   const model = createLanguageModel(provider);
 
+  // Where a tool's data parts go. Until the stream is open they can only be
+  // logged; once it is, `push` below routes them into the fold as well, so the
+  // research card is persisted on the message and not only replayed.
+  let sink: (chunk: unknown) => void = emit;
+
   const agent = buildRunAgent({
     provider,
     model,
@@ -137,6 +149,12 @@ async function driveWithAgent({
     // Emitted as a chunk, it joins the durable log like any other: it replays
     // to a reconnecting tab and persists on the finished message.
     onPlan: (steps) => emit({ type: 'data-plan', id: 'plan', data: { steps } }),
+    onData: (chunk) => sink(chunk),
+    // Each research lane is its own agent with its own usage; the message's
+    // metadata carries only the parent's, so without this the lanes would be
+    // the one thing the run did that nobody was charged for.
+    onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
+    deepResearch: config.deepResearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],
@@ -158,6 +176,8 @@ async function driveWithAgent({
     // which on a resume is the assistant's — and knows whether that turn
     // carried files, because a pasted document is not the person's own words.
     memory: run.user_id ? memoryContext(run, config, messages as Turn[]) : undefined,
+    // A task cannot stop on a card nobody is watching.
+    unattended: Boolean(config.task),
     media: run.user_id
       ? {
           userId: run.user_id,
@@ -205,6 +225,7 @@ async function driveWithAgent({
           emit(chunk);
           controller.enqueue(chunk);
         };
+        sink = push;
         // The comparison runs alongside rather than after: the point of the
         // mode is watching the two answers arrive together, and running them in
         // sequence would double the wait for no gain.
@@ -322,8 +343,21 @@ function memoryContext(
     hasAttachments: (lastUser?.parts ?? []).some((part) => part?.type === 'file'),
     conversationId: run.conversation_id,
     conversationTitle: title || undefined,
-    autoSaveQuotes: config.remember?.autoSave !== false,
+    // A task saves nothing without review: what it learned is exactly what the
+    // person is asked to look at when it finishes.
+    autoSaveQuotes: !config.task && config.remember?.autoSave !== false,
+    unattended: Boolean(config.task),
   };
+}
+
+/** How many runs the worker drives at once. */
+const DEFAULT_RUN_CONCURRENCY = 2;
+
+/** The configured concurrency, or the default for anything that is not a
+ * positive whole number. */
+function runConcurrency(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_RUN_CONCURRENCY;
 }
 
 export function runService(): Worker {
@@ -332,6 +366,9 @@ export function runService(): Worker {
   const worker = createWorker({
     db: storage.raw,
     drive: driveWithAgent,
+    // Two by default: a chat and, beside it, one background task. The last
+    // slot is always a chat's, so a task never makes a conversation wait.
+    concurrency: runConcurrency(process.env.HIKMAH_RUN_CONCURRENCY),
     onError: (error) => {
       // Surfaced on the run row as well; this is for the operator's log.
       console.error('[hikmah] run failed:', error instanceof Error ? error.message : error);
@@ -373,6 +410,32 @@ function recordRunUsage(
     });
   } catch (error) {
     console.error('[hikmah] usage not recorded:', error instanceof Error ? error.message : error);
+  }
+}
+
+/** One usage row for one finished research lane. Best effort, as above. */
+function recordLaneUsage(
+  run: { id: string; user_id?: string },
+  config: RunConfig,
+  usage: { inputTokens: number; outputTokens: number },
+): void {
+  if (!run.user_id) return;
+  if (usage.inputTokens <= 0 && usage.outputTokens <= 0) return;
+  try {
+    createBillingStore(getStorage().raw).recordUsage({
+      id: 'use_' + randomUUID(),
+      userId: run.user_id,
+      runId: run.id,
+      model: config.model,
+      metered: config.metered === true,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
+  } catch (error) {
+    console.error(
+      '[hikmah] lane usage not recorded:',
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 

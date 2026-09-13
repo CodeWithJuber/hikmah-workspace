@@ -352,3 +352,25 @@ test('truncating from a message of another conversation removes nothing', async 
   assert.equal(store.truncateFrom('c1', 'nope'), 0);
   assert.equal(store.listMessages('c1').length, 1);
 });
+
+test('a background task is listed as one, with what it left to review', async (t) => {
+  // The sidebar groups tasks apart from chats and says how many suggestions a
+  // finished task filed; the landing page never opens on a task.
+  const { store, db } = await freshStore(t, { clock: ticking() });
+  store.createConversation({ id: 't1', userId: 'u1', mode: 'task', title: 'Learn: x' });
+  store.createRun({ id: 'r1', conversationId: 't1', userId: 'u1', config: { task: {} } });
+  db.prepare(
+    `INSERT INTO memories (id, user_id, kind, title, content, content_key, provenance, source,
+       source_conversation_id, status, enabled, created_at, updated_at, uses)
+     VALUES ('m1','u1','reference','a','a','a','inference','Hikmah','t1','suggested',1,'','',0),
+            ('m2','u1','reference','b','b','b','inference','Hikmah','t1','saved',1,'','',0)`,
+  ).run();
+  const [task, chat] = store.listConversations('u1');
+  assert.equal(task.id, 't1', 'most recently active first, as ever');
+  assert.equal(task.mode, 'task');
+  assert.equal(task.to_review, 1, 'only what is still suggested counts');
+  assert.equal(chat.mode, 'chat');
+  assert.equal(chat.to_review, 0);
+  assert.equal(store.latestChat('u1')?.id, 'c1', 'the landing skips the task');
+  assert.equal(store.latestChat('u2'), null);
+});
