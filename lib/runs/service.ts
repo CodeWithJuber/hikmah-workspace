@@ -22,6 +22,7 @@ import { createMemoryStore } from '../memory/store.ts';
 import { recentUserText } from '../context-model/run-brief.ts';
 import type { MemoryToolContext } from '../ai/tools/memory.ts';
 import { withClosingStep } from '../ai/closing-step.ts';
+import { nameAnswer } from './answer-id.ts';
 import { createLanguageModel } from '../ai/models.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
@@ -226,6 +227,14 @@ async function driveWithAgent({
           controller.enqueue(chunk);
         };
         sink = push;
+        // The answer's id, decided here and told to the browser on the first
+        // chunk. A fresh turn's `start` carries no id, so the browser made one
+        // up while the worker stored the answer as `<run>-answer`; the two
+        // never met, and answering an approval on a live stream — which
+        // re-sends the message by id — was refused every time with "no longer
+        // matches the paused turn". A resumed turn's `start` already names the
+        // stored message; that is kept.
+        const name = (chunk: unknown) => nameAnswer(chunk, run.id);
         // The comparison runs alongside rather than after: the point of the
         // mode is watching the two answers arrive together, and running them in
         // sequence would double the wait for no gain.
@@ -249,7 +258,7 @@ async function driveWithAgent({
                   error instanceof Error ? error.message : error,
                 ),
             })) {
-              push(chunk);
+              push(name(chunk));
               // Right after the message opens, so the fold has a message to
               // attach it to: which memories this answer was written with.
               // Not an answer in itself — failure.ts and the closing step both

@@ -1,5 +1,6 @@
 import { getChatGPTUser } from '../../chatgpt-auth';
 import { billingStore, entitlementsForUser } from '@/lib/billing/server';
+import { runAccess } from '@/lib/billing/access';
 import { PLANS, billingConfigured, priceIdFor } from '@/lib/billing/plans';
 import { periodStart } from '@/lib/billing/entitlements';
 
@@ -26,6 +27,15 @@ export async function GET() {
   return Response.json(
     {
       tier: entitlements.tier,
+      // Whether a run with no key of the person's own still has one to use:
+      // the chat's first-run card asks for a key only when nothing would pay.
+      managedKey: Boolean(
+        runAccess({
+          entitlements,
+          savedKey: '',
+          deploymentKey: process.env.HIKMAH_PROVIDER_KEY ?? '',
+        }).apiKey,
+      ),
       monthlyTokenCap: entitlements.monthlyTokenCap,
       execution: entitlements.execution,
       // What counts against the allowance, which is not the same as what they

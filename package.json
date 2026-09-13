@@ -21,6 +21,7 @@
     "build:worker": "node scripts/build-sandbox-worker.mjs"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.53",
     "@ai-sdk/mcp": "2.0.48",
     "@ai-sdk/openai-compatible": "3.0.47",
     "@ai-sdk/react": "4.0.100",

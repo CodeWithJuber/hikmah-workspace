@@ -169,6 +169,14 @@ export function RunSettings({
         </label>
       </section>
 
+      <section className="chat-settings-account">
+        <h4>Account</h4>
+        <p>
+          <a href="/billing">Plan and usage</a> · <a href="/workspace">Workspace</a> ·{' '}
+          <a href="/sign-out">Sign out</a>
+        </p>
+      </section>
+
       <section>
         <h4>How the answer reads</h4>
         <div className="chat-settings-choices" role="group" aria-label="Response style">

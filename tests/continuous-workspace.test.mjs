@@ -80,7 +80,9 @@ test('Experiential enrichment joins exact model and default route IDs with micro
   assert.equal(result[0].pricing.input, 2.5);
   assert.equal(result[0].pricing.source, 'route_estimate');
   assert.equal(result[0].context_length, 128000);
-  assert.equal(estimatedCost(result[0], 100, 100), undefined);
+  // An estimate is still a figure: the receipt shows it marked ≈ rather than
+  // showing nothing, so a direct provider's answer is not priced as free.
+  assert.equal(estimatedCost(result[0], 100, 100), 0.00105);
   assert.deepEqual(result[1], { id: 'other' });
 });
 test('reasoning controls retain provider-returned explanation when supported', () => {

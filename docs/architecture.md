@@ -162,10 +162,24 @@ and nothing waiting on a person, the driver runs one further step against the
 same model with tool calling switched off and an instruction to write the
 answer from the results above (`lib/ai/closing-step.ts`) — one request, not a
 retry of the whole loop — and its text lands in the same message before
-`finish`. Only if that is silent too does the run end as "stopped without
-writing an answer".
+`finish`. If that comes back empty as well (not failed: a provider error is
+not retried), one more request goes out _flat_ — the working quoted as plain
+text under the person's question, no tool definitions, no tool-role messages —
+because that is the shape the small models that return nothing to a tool
+transcript do answer. Only if that is silent too does the run end as "stopped
+without writing an answer".
 
 ## Approvals
+
+**The answer has one id.** A fresh turn's `start` chunk names no message, so
+the browser used to make an id up while the worker stored the answer as
+`<run>-answer`; answering an approval on a live stream re-sends the message by
+the browser's id, the store found no such row, and every live _Allow_ was
+refused with "no longer matches the paused turn". `lib/runs/answer-id.ts`
+decides the id, the driver puts it on the first chunk, the worker stores under
+it, and the route accepts either that id or the browser's. A tab that still
+holds an id of its own making is offered _Reload_, which shows the card again
+from the stored turn.
 
 A tool that needs the owner's say-so pauses the run. This is expressed as the AI
 SDK's `toolApproval` policy rather than as a question inside a tool's `execute`,
@@ -278,6 +292,58 @@ command travels in a request header rather than being registered beforehand:
 registration state would go stale against a config the owner edited, and anything
 holding the shared token can already run commands there through `bash`, so it
 grants nothing new.
+
+## First run
+
+A person with no key saved, on a plan with no included models, used to meet
+three starters, tap one, and get a red card naming an environment variable.
+`/api/billing` now reports whether a message sent now would have a key to run
+on (`managedKey`, through `runAccess` like every other reader of the
+deployment key); with none, the empty conversation shows _Connect a model to
+start_ (`components/chat/connect-model.tsx`) — a free OpenRouter key or the
+provider they already use, both opening the Settings tab — instead of the
+starters, and the no-key failure offers _Add a key_ instead of _Try again_.
+The landing page leads with what the workspace does for everyday work
+(memory, research, background learning, Qur'an grounding) before the
+builders' section, and names the providers. On a phone the sign-out control
+lives at the end of Settings, in words, rather than as an icon on the top
+bar; the workspace shows a _Chat_ link back.
+
+## Providers
+
+One registry, `lib/ai/providers.ts`, read by three things that used to drift:
+the connection screen (which presets to offer, where a key comes from, whether
+there is a free tier), the relay (which hosts it may forward a model list or a
+chat to, and how each wants its key — Anthropic takes `x-api-key` and a
+version header, everyone else a bearer) and the model factory (which SDK
+speaks to it: OpenRouter's, Anthropic's, and `@ai-sdk/openai-compatible` for
+OpenAI, Kimi, Gemini's OpenAI endpoint, DeepSeek, Groq, Mistral, xAI and any
+custom server). Ollama is the one local entry: no key, plain HTTP, reached by
+the server rather than the browser — a phone's `127.0.0.1` is the phone —
+under the same endpoint policy every run applies (`resolveProviderBaseUrl`:
+loopback as is, a private host only when `HIKMAH_PROVIDER_ALLOW_PRIVATE`
+names it, and then over HTTP, since nothing there has a certificate). The
+compose file maps `host.docker.internal` for Ollama on the Docker host.
+
+Each provider keeps its own key in the vault under its own name
+(`secretNameFor`), so switching providers switches keys rather than
+overwriting one; OpenRouter keeps the name it always had. **A model list
+needs no key** — OpenRouter's is public and a local server has none — which
+is what left the picker showing one model to anyone without a key saved.
+_Free models only_ admits OpenRouter's `:free` routes and any local server;
+every other hosted provider bills every token, so the setting is switched off
+for them and the screen says so.
+
+**Prices.** OpenRouter lists a price per model; OpenAI, Anthropic and the
+rest list ids only. The relay attaches OpenRouter's public listing of the
+same model (`lib/ai/pricing.ts`, matched by id after the usual differences in
+spelling) as `source: 'route_estimate'`, and everything that shows a price
+marks such a one with ≈ — the provider bills at its own rate. The listing is
+fetched once an hour (`lib/server/route-catalogue.ts`). The picker
+(`components/chat/model-picker.tsx`, cmdk in a dialog so it works at 360px)
+shows each model's context window, price per million tokens in and out, and
+chips for free, tools and reasoning; the receipt under an answer shows what
+it cost at those rates, from the answer's own token counts.
 
 ## Third-party service terms
 

@@ -14,13 +14,26 @@
 import type { UIMessage } from 'ai';
 import { isToolUIPart } from 'ai';
 import type { LanguageModelUsage } from 'ai';
+import { estimatedCost } from '@/lib/playground/model-catalog';
+import { usePricing } from './pricing-context';
 
 type AnswerMetadata = { model?: string; usage?: LanguageModelUsage };
 
 const count = (value: number) => new Intl.NumberFormat('en-US').format(value);
+const priceLineIsFree = (model: { pricing?: { input?: number; output?: number } } | undefined) =>
+  model?.pricing?.input === 0 && model.pricing.output === 0;
 
 export function ChatReceipt({ message }: { message: UIMessage }) {
   const meta = (message.metadata as AnswerMetadata | undefined) ?? {};
+  // What the answer cost at the listed rates, when the picker knows them. An
+  // estimate from OpenRouter's listing is marked as one.
+  const pricing = usePricing();
+  const listed = meta.model ? pricing.get(meta.model) : undefined;
+  const cost = estimatedCost(
+    listed,
+    Number(meta.usage?.inputTokens ?? 0),
+    Number(meta.usage?.outputTokens ?? 0),
+  );
   const tools = message.parts.filter(isToolUIPart);
   const failed = tools.filter(
     (part) => part.state === 'output-error' || part.state === 'output-denied',
@@ -51,6 +64,20 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
     <p className="chat-receipt" title="Recorded actions, not a measure of quality.">
       {meta.model && <span className="chat-receipt-model">{meta.model}</span>}
       {meta.usage?.totalTokens !== undefined && <span>{count(meta.usage.totalTokens)} tokens</span>}
+      {cost !== undefined && cost > 0 && (
+        <span
+          className="chat-receipt-cost"
+          title={
+            listed?.pricing?.source === 'route_estimate'
+              ? 'At OpenRouter’s listed rates for this model; the provider bills at its own.'
+              : 'At the listed rates.'
+          }
+        >
+          {listed?.pricing?.source === 'route_estimate' ? '≈ ' : ''}
+          {cost < 0.01 ? '$' + cost.toFixed(4) : '$' + cost.toFixed(3)}
+        </span>
+      )}
+      {cost === 0 && priceLineIsFree(listed) && <span className="chat-receipt-cost">free</span>}
       {/* The count of tool calls lives on the working block's header now, which
           also names which sources answered. Two lines counting the same thing
           in different units — "3 steps" here and "2 tool calls" there — was

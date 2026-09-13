@@ -31,6 +31,17 @@ const CLOSING_INSTRUCTION =
   'The tool results above are complete. Write the answer now, in the language the ' +
   'person wrote in, from what was found. Do not call any tool.';
 
+/** The second try, when the first came back empty: the same ask with the
+ * working written out as plain text and no tool definitions at all. Small
+ * models that return nothing to a transcript of tool-role messages answer a
+ * paragraph that says what the tools found. */
+const FLAT_INSTRUCTION =
+  'You already used tools for this question. Their results are quoted below. Write ' +
+  'the answer now, in the language the person wrote in, from those results. Say plainly ' +
+  'what they did not settle.';
+/** How much of the working the flat retry carries. */
+const FLAT_RESULTS_CHARACTERS = 12_000;
+
 export type ClosingStepOptions = {
   model: LanguageModel;
   /** The run's tools, offered so providers that require definitions beside
@@ -89,6 +100,17 @@ async function fold(chunks: UIMessageChunk[]): Promise<UIMessage | undefined> {
   return message;
 }
 
+/** The last thing the person asked, as text. */
+function recentQuestion(messages: readonly UIMessage[]): string {
+  const last = [...messages].reverse().find((message) => message.role === 'user');
+  return (last?.parts ?? [])
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join(' ')
+    .trim()
+    .slice(0, 2000);
+}
+
 const sum = (a: number | undefined, b: number | undefined) =>
   a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0);
 
@@ -116,6 +138,39 @@ function addUsage(metadata: unknown, extra: LanguageModelUsage): unknown {
  * has to arrive before it: a reader folding the stream closes the message on
  * `finish`, and text after that would belong to no message.
  */
+/** The tool calls and results of a folded message, as text a model can read
+ * without tool-role messages. */
+export function flattenWorking(message: UIMessage): string {
+  const lines: string[] = [];
+  for (const part of message.parts) {
+    const typed = part as {
+      type: string;
+      toolName?: string;
+      input?: unknown;
+      output?: unknown;
+      errorText?: string;
+      state?: string;
+    };
+    if (!typed.type.startsWith('tool-') && typed.type !== 'dynamic-tool') continue;
+    const name = typed.toolName ?? typed.type.replace(/^tool-/, '');
+    const input = typed.input === undefined ? '' : JSON.stringify(typed.input);
+    const output =
+      typed.errorText ??
+      (typed.output === undefined
+        ? '(no result)'
+        : typeof typed.output === 'string'
+          ? typed.output
+          : JSON.stringify(typed.output));
+    lines.push(`### ${name}${input ? ' ' + input : ''}\n${output}`);
+  }
+  return lines.join('\n\n').slice(0, FLAT_RESULTS_CHARACTERS);
+}
+
+/** The words a model wrote to the person, from a stream's text chunks. */
+function wroteText(chunks: readonly UIMessageChunk[]): boolean {
+  return chunks.some((chunk) => chunk.type === 'text-delta' && chunk.delta.trim().length > 0);
+}
+
 export async function* withClosingStep(
   source: AsyncIterable<UIMessageChunk>,
   options: ClosingStepOptions,
@@ -163,6 +218,7 @@ export async function* withClosingStep(
           abortSignal: options.signal,
         });
         let failed = false;
+        const written: UIMessageChunk[] = [];
         for await (const chunk of result.toUIMessageStream({
           sendStart: false,
           sendFinish: false,
@@ -176,6 +232,7 @@ export async function* withClosingStep(
             failed = true;
             break;
           }
+          written.push(chunk);
           yield chunk;
         }
         if (!failed && held.type === 'finish')
@@ -183,6 +240,51 @@ export async function* withClosingStep(
             ...held,
             messageMetadata: addUsage(held.messageMetadata, await result.totalUsage),
           };
+
+        // Still nothing, or a refusal: once more, flat. The tool-role
+        // transcript is what some small models return nothing to; the same
+        // results quoted as text under a plain question is what they answer.
+        // One more request, in the failure path only, and never with tools.
+        if (!failed && !wroteText(written) && !options.signal.aborted) {
+          const working = flattenWorking(partial);
+          const question = recentQuestion(options.messages);
+          options.onClosingStep?.();
+          const flat = streamText({
+            model: options.model,
+            instructions: options.instructions + '\n\n' + FLAT_INSTRUCTION,
+            messages: [
+              {
+                role: 'user',
+                content:
+                  (question ? 'Question: ' + question + '\n\n' : '') +
+                  'Tool results:\n\n' +
+                  (working || '(the tools returned nothing)'),
+              },
+            ],
+            abortSignal: options.signal,
+          });
+          let flatFailed = false;
+          for await (const chunk of flat.toUIMessageStream({
+            sendStart: false,
+            sendFinish: false,
+            onError: (error) => {
+              flatFailed = true;
+              options.onError?.(error);
+              return 'closing step failed';
+            },
+          })) {
+            if (chunk.type === 'error') {
+              flatFailed = true;
+              break;
+            }
+            yield chunk;
+          }
+          if (!flatFailed && held.type === 'finish')
+            held = {
+              ...held,
+              messageMetadata: addUsage(held.messageMetadata, await flat.totalUsage),
+            };
+        }
       }
     } catch (error) {
       options.onError?.(error);

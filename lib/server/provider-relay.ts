@@ -12,6 +12,10 @@ import {
   type ToolDefinition,
 } from '../playground/transport.ts';
 import { diagnoseProviderError } from '../playground/provider-diagnostics.ts';
+import { EndpointError, providerDestination, resolveProviderBaseUrl } from '../ai/endpoint.ts';
+import { authHeaders, providerFor } from '../ai/providers.ts';
+import { withRoutePrices } from '../ai/pricing.ts';
+import { routeCatalogue } from './route-catalogue.ts';
 import { normalizeModel, enrichExperientialModels } from '../playground/model-catalog.ts';
 
 const privateHeaders = {
@@ -98,22 +102,47 @@ export async function relayProviderRequest(
     (!origin && site !== 'same-origin')
   )
     return relayFailure('origin');
-  const provider = RELAY_PROVIDERS.find((p) => p.id === url.searchParams.get('provider'));
   const operation = url.searchParams.get('operation');
-  if (!provider || !['models', 'chat'].includes(operation ?? ''))
-    return relayFailure('destination');
+  if (!['models', 'chat'].includes(operation ?? '')) return relayFailure('destination');
+  let provider: { id: string; baseUrl: string } | undefined = RELAY_PROVIDERS.find(
+    (p) => p.id === url.searchParams.get('provider'),
+  );
+  // A model list from an endpoint that is not a preset — a local Ollama, a
+  // vLLM on the compose network — under exactly the policy the run itself
+  // applies to that URL (`resolveProviderBaseUrl`: HTTPS or loopback, private
+  // hosts only when the operator named them). Listing what a server offers is
+  // no wider than the chat the run will send it; an arbitrary URL still never
+  // becomes a proxy, because the same policy refuses it here as it does there.
+  // The browser cannot do this itself: a phone's 127.0.0.1 is the phone.
+  const custom = url.searchParams.get('baseUrl');
+  if (!provider && operation === 'models' && custom) {
+    try {
+      provider = { id: 'custom', baseUrl: resolveProviderBaseUrl(custom) };
+    } catch (error) {
+      if (error instanceof EndpointError) return relayFailure('destination');
+      throw error;
+    }
+  }
+  if (!provider) return relayFailure('destination');
   if (request.method !== (operation === 'chat' ? 'POST' : 'GET')) return relayFailure('request');
   const reference = request.headers.get('X-Hikmah-Secret-Ref');
   let key = request.headers.get('X-Hikmah-Provider-Key')?.trim() ?? '';
   if (reference) {
-    if (!resolveSecret) return relayFailure('key');
+    const destination =
+      provider.id === 'custom' ? providerDestination(provider.baseUrl) : 'provider:' + provider.id;
+    if (!resolveSecret || !destination) return relayFailure('key');
     try {
-      key = await resolveSecret(reference, 'provider:' + provider.id);
+      key = await resolveSecret(reference, destination);
     } catch {
       return relayFailure('key');
     }
   }
-  if (!key || key.length > 8192 || /[\u0000-\u001f\u007f]/.test(key)) return relayFailure('key');
+  if (key.length > 8192 || /[\u0000-\u001f\u007f]/.test(key)) return relayFailure('key');
+  // A chat spends the key's money and is refused without one. A model list is
+  // public on OpenRouter and needs none on a local server — refusing it left
+  // the picker showing one model, the connection's own, to anyone without a
+  // key saved yet, which is everyone on their first day.
+  if (!key && operation === 'chat') return relayFailure('key');
   if (
     operation === 'chat' &&
     !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')
@@ -190,7 +219,7 @@ export async function relayProviderRequest(
         method: body ? 'POST' : 'GET',
         body,
         headers: {
-          Authorization: `Bearer ${key}`,
+          ...authHeaders(providerFor(provider.baseUrl)?.auth ?? 'bearer', key),
           Accept: body ? 'text/event-stream, application/json' : 'application/json',
           ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
@@ -247,6 +276,18 @@ export async function relayProviderRequest(
       let models = data.data
         .map(normalizeModel)
         .filter((m): m is NonNullable<typeof m> => m !== null);
+      // A provider that lists its models without prices — OpenAI, Anthropic,
+      // Kimi and the rest — is shown OpenRouter's public listing for the same
+      // model as an estimate, so the picker can say what a model costs
+      // wherever it is picked. Best effort: no listing, no price, no failure.
+      const vendor = providerFor(provider.baseUrl)?.routeVendor;
+      if (vendor) {
+        try {
+          models = withRoutePrices(models, vendor, await routeCatalogue(controller.signal));
+        } catch {
+          /* the provider's own list stands */
+        }
+      }
       if (provider.id === 'experiential') {
         const metadataController = new AbortController();
         const stopMetadata = () => metadataController.abort();

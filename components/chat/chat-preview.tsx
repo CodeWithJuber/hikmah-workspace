@@ -17,6 +17,8 @@ import type { Agent } from './agents-panel';
 import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
 import { listModels } from '@/lib/playground/transport';
 import { priceKind } from '@/lib/playground/model-catalog';
+import { allModelsFree } from '@/lib/ai/endpoint';
+import type { PickerModel } from './model-picker';
 import { defaultProvider } from '@/lib/playground/session';
 import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
@@ -71,6 +73,10 @@ const FALLBACK: RunConfig = {
 };
 
 type Loaded = { config: RunConfig; messages: UIMessage[]; error?: string };
+
+/** What a catalogue depends on: change any of these and it is stale. */
+const catalogueKey = (config?: RunConfig) =>
+  config ? [config.baseUrl, config.apiKeySecret ?? '', config.freeOnly].join('\n') : '';
 
 /** The connection the workspace already has, so this surface talks to the same
  * provider as the rest of the app. */
@@ -159,10 +165,16 @@ export function ChatPreview({
   onArtifact,
   onSettled,
   banner,
+  needsKey = false,
+  onOpenSettings,
 }: {
   conversationId: string;
   /** Shown above the transcript. */
   banner?: React.ReactNode;
+  /** Nothing would pay for a message sent now: the empty conversation says so. */
+  needsKey?: boolean;
+  /** Opens the Settings tab, where the key goes. */
+  onOpenSettings?: () => void;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
@@ -178,9 +190,13 @@ export function ChatPreview({
   onSettled?: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [catalog, setCatalog] = useState<{ id: string; label: string; contextWindow?: number }[]>(
-    [],
-  );
+  // The catalogue, and which connection it was loaded for: "loading" is the
+  // connection having moved on from that, not a flag an effect has to set.
+  const [catalog, setCatalog] = useState<{ key: string; rows: PickerModel[]; error: string }>({
+    key: '',
+    rows: [],
+    error: '',
+  });
   // Chosen for the next turn only. Null means "whatever the workspace is set
   // to", so changing the saved connection still takes effect here.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -203,6 +219,7 @@ export function ChatPreview({
   useEffect(() => {
     if (!config) return;
     const controller = new AbortController();
+    const key = catalogueKey(config);
     void listModels(
       {
         ...defaultProvider,
@@ -214,18 +231,27 @@ export function ChatPreview({
       controller.signal,
     )
       .then((rows) => {
-        const usable = config.freeOnly ? rows.filter((row) => priceKind(row) === 'free') : rows;
-        setCatalog(
-          usable
-            .map((row) => ({
-              id: row.id,
-              label: row.name || row.id,
-              contextWindow: row.context_length,
-            }))
-            .slice(0, 200),
-        );
+        // A local server prices nothing and charges nothing, so every model it
+        // lists is usable under free-only; the catalogue filter is for a
+        // hosted provider's paid rows.
+        const usable =
+          config.freeOnly && !allModelsFree(config.baseUrl)
+            ? rows.filter((row) => priceKind(row) === 'free')
+            : rows;
+        setCatalog({
+          key,
+          rows: usable.map((row) => ({ ...row, label: row.name || row.id })).slice(0, 500),
+          error: '',
+        });
       })
-      .catch(() => setCatalog([]));
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setCatalog({
+          key,
+          rows: [],
+          error: error instanceof Error ? error.message : 'The catalogue could not be loaded.',
+        });
+      });
     return () => controller.abort();
   }, [config]);
 
@@ -233,15 +259,16 @@ export function ChatPreview({
     if (!config) return [];
     // The connection's own model belongs in the list even when the catalog does
     // not name it, or the picker would show a value it cannot select back to.
-    return catalog.some((row) => row.id === config.model)
-      ? catalog
-      : [{ id: config.model, label: config.model }, ...catalog];
+    return catalog.rows.some((row) => row.id === config.model)
+      ? catalog.rows
+      : [{ id: config.model, label: config.model }, ...catalog.rows];
   }, [catalog, config]);
+  const catalogLoading = Boolean(config) && catalog.key !== catalogueKey(config);
 
   const pick = useCallback((model: string) => setChosen(model), []);
 
   const active = chosen || agent?.model || loaded?.config.model;
-  const contextWindow = models.find((row) => row.id === active)?.contextWindow;
+  const contextWindow = models.find((row) => row.id === active)?.context_length;
 
   return (
     <main className="chat-preview">
@@ -289,12 +316,16 @@ export function ChatPreview({
           initialError={loaded.error}
           onSettled={onSettled}
           starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}
-          models={models.length > 1 ? models : []}
+          models={models}
+          modelsLoading={catalogLoading}
+          modelsError={catalog.error}
           onModel={pick}
           showActivity={settings.showActivity}
           onTools={onTools}
           onArtifact={onArtifact}
           banner={banner}
+          needsKey={needsKey}
+          onOpenSettings={onOpenSettings}
           empty={
             <div className="chat-greeting">
               <HikmahIcon name="orbit" size={34} />

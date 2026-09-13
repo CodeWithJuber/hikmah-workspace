@@ -188,3 +188,41 @@ test('the answer’s recorded cost includes the step that produced it', async ()
   assert.equal(after.inputTokens, before.inputTokens + 3);
   assert.equal(after.outputTokens, before.outputTokens + 2);
 });
+
+test('a closing step that comes back empty is tried once more, flat: no tool messages, no tools', async () => {
+  // The deployed case: tencent/hy4-preview ran a command, said nothing, and
+  // said nothing again to the forced step. The same results quoted as plain
+  // text under the question is what such a model answers.
+  const { agent, closingModel, asked } = scenario(
+    [toolCall('calculate', { expression: '2+2' }), silence],
+    // First forced step: empty. Second, flat: words.
+    [silence, words('It is four.')],
+  );
+  let step = 0;
+  closingModel.doStream = async (options) => {
+    asked.push(options);
+    const script = [silence, words('It is four.')][step++];
+    return { stream: chunks(script) };
+  };
+  let closings = 0;
+  const { wrapped } = await drive(agent, closingModel, { onClosingStep: () => closings++ });
+  assert.equal(text(await fold(wrapped)), 'It is four.');
+  assert.equal(closings, 2, 'two extra steps, no more');
+  assert.equal(asked.length, 2);
+  assert.equal(asked[1].tools, undefined, 'the flat retry carries no tool definitions');
+  assert.ok(!asked[1].prompt.some((m) => m.role === 'tool'), 'and no tool-role messages');
+  const flat = asked[1].prompt.find((m) => m.role === 'user');
+  const content = JSON.stringify(flat?.content ?? '');
+  assert.match(content, /calculate/, 'the working is quoted');
+  assert.match(content, /What is 2\+2/, 'under the question');
+  assert.equal(wrapped.at(-1).type, 'finish');
+});
+
+test('a turn that answers on the first forced step is not asked a third time', async () => {
+  const { agent, closingModel, asked } = scenario(
+    [toolCall('calculate', { expression: '2+2' }), silence],
+    words('Four.'),
+  );
+  await drive(agent, closingModel);
+  assert.equal(asked.length, 1);
+});

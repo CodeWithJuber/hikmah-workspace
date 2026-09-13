@@ -48,7 +48,8 @@ export function normalizeModel(raw: unknown): ModelInfo | null {
   )
     return null;
   const m: ModelInfo = { id: raw.id };
-  if (typeof raw.name === 'string' && raw.name.length <= 512) m.name = raw.name;
+  const name = typeof raw.name === 'string' ? raw.name : raw.display_name;
+  if (typeof name === 'string' && name.length <= 512) m.name = name;
   const context = positive(raw.context_length ?? raw.context_window);
   if (context) m.context_length = context;
   const top = record(raw.top_provider) ? raw.top_provider : {};
@@ -189,13 +190,16 @@ export function contextLabel(count?: number): string {
         ? (count / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'K'
         : String(count);
 }
+/** What an answer cost at the listed rates, in dollars. An OpenRouter listing
+ * used as an estimate for a direct provider counts too: the figure is marked
+ * approximate where it is shown, and no figure at all was the alternative. */
 export function estimatedCost(
   model: ModelInfo | undefined,
   input: number,
   output: number,
 ): number | undefined {
   const p = model?.pricing;
-  return p?.input === undefined || p.output === undefined || p.source === 'route_estimate'
+  return p?.input === undefined || p.output === undefined
     ? undefined
     : (input * p.input + output * p.output) / 1_000_000;
 }

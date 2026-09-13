@@ -2,7 +2,7 @@
 /** The chat page: conversations on the left, the workspace on the right. */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Blocks, BookOpenCheck, CreditCard, LayoutGrid, LogOut, PanelLeft, X } from 'lucide-react';
+import { Blocks, BookOpenCheck, CreditCard, LayoutGrid, PanelLeft, X } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
@@ -13,6 +13,7 @@ import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { useChatSettings } from '@/hooks/use-chat-settings';
+import { providerDestination } from '@/lib/ai/endpoint';
 import { Toaster } from 'sonner';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
@@ -57,6 +58,28 @@ export function ChatShell({
   const settled = useCallback(() => setRevision((value) => value + 1), []);
 
   const [tab, setTab] = useState<'files' | 'agents' | 'memory' | 'settings'>('files');
+  // Whether a message sent now would have a key to run on: the person's own,
+  // or the deployment's for a plan that includes models. Null until known, so
+  // the first-run card is never flashed at someone who does not need it.
+  const [managedKey, setManagedKey] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetch('/api/billing', { credentials: 'same-origin' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { managedKey?: boolean } | null) => {
+        if (live) setManagedKey(Boolean(payload?.managedKey));
+      })
+      .catch(() => {
+        if (live) setManagedKey(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const needsKey =
+    managedKey === false &&
+    Boolean(providerDestination(settings.connection.baseUrl)) &&
+    !settings.connection.apiKeySecret;
   // Applies from the next turn on, not retrospectively: an agent chosen now
   // cannot change an answer already written.
   const [agent, setAgent] = useState<Agent | null>(null);
@@ -70,6 +93,11 @@ export function ChatShell({
   // itself about a quarter of the screen.
   const narrow = useNarrow();
   const [drawer, setDrawer] = useState<'list' | 'panel' | null>(null);
+  // Where the key goes: the Settings tab, opened as a drawer on a phone.
+  const openSettings = useCallback(() => {
+    setTab('settings');
+    if (narrow) setDrawer('panel');
+  }, [narrow]);
 
   // Reset during render rather than in an effect: an effect would paint the
   // open drawer for one frame after the conversation had already changed.
@@ -131,9 +159,14 @@ export function ChatShell({
           <Link href="/billing" title="Plan and usage" aria-label="Plan and usage">
             {narrow ? <CreditCard size={17} /> : 'Plan'}
           </Link>
-          <Link href="/sign-out" title="Sign out" aria-label="Sign out">
-            {narrow ? <LogOut size={17} /> : 'Sign out'}
-          </Link>
+          {/* Not on a phone: an unlabelled sign-out icon beside the workspace
+              and plan icons was one thumb-slip from losing the session. On a
+              narrow screen it lives at the end of Settings, in words. */}
+          {!narrow && (
+            <Link href="/sign-out" title="Sign out" aria-label="Sign out">
+              Sign out
+            </Link>
+          )}
         </nav>
         {narrow && (
           <button
@@ -166,6 +199,8 @@ export function ChatShell({
           onArtifact={setArtifact}
           onTools={changeTools}
           onSettled={settled}
+          needsKey={needsKey}
+          onOpenSettings={openSettings}
           banner={
             task ? (
               <div className="chat-task-banner" role="note">

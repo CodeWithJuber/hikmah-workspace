@@ -254,6 +254,12 @@ function ShellContent() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="workspace-main">
+        {/* On a phone the sidebar is closed and every page opens on its own
+            heading, with no way back to the conversation but the browser.
+            One link, top right, where the eye goes looking for it. */}
+        <Link href="/chat" className="workspace-chat-link">
+          Chat
+        </Link>
         {page === 'agents' ? (
           <AgentsHome />
         ) : page === 'tools' ? (
