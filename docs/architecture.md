@@ -213,6 +213,24 @@ What is gated, and by what rule:
 | `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin. |
 | everything else     | Not gated. They read or compute.                                  |
 
+**A yes can be remembered.** Every gated call used to ask again, so a person
+starting the same preview server for the tenth time approved it for the tenth
+time. The card now offers _Allow once_, _Don't allow_, and an _Always allow_
+menu with three scopes: this exact command with any arguments after it (bash
+only), this tool in this conversation, or this tool anywhere. A grant is saved
+in the chat settings (`lib/chat/approvals.ts`, `approvals: { auto, commands,
+conversations }`) and awaited by the card before it answers, so the resumed run
+already knows. The run reads its grants when it is _driven_
+(`lib/runs/service.ts` → `grantsFor`), not when it is created, so a grant made
+while a run is paused applies the moment it resumes, and a grant taken back in
+Settings applies to the next step of a run already going. A remembered command
+is a prefix matched on a word boundary and refused outright when the call
+carries a shell separator, so `python3 -m http.server` never covers
+`python3 -m http.server; rm -rf /`. Settings → Permissions shows each gated
+tool as Ask or Auto, lists the remembered commands with _Remove_, and can clear
+every per-conversation grant at once. Stored grants are bounded on the way in
+(100 tools, 100 commands, 50 conversations, oldest conversation dropped first).
+
 ## Questions
 
 An approval and a question look alike and are not the same. An approval carries
@@ -324,6 +342,16 @@ under the same endpoint policy every run applies (`resolveProviderBaseUrl`:
 loopback as is, a private host only when `HIKMAH_PROVIDER_ALLOW_PRIVATE`
 names it, and then over HTTP, since nothing there has a certificate). The
 compose file maps `host.docker.internal` for Ollama on the Docker host.
+
+Ollama — local or ollama.com — answers `GET /v1/models` with ids and nothing
+else, so its models showed without a context length or their tools and
+thinking chips and vanished under the picker's Tools filter. The relay asks
+Ollama's own `POST /api/show` for each listed model (`lib/server/ollama-details.ts`):
+capabilities become the tools, reasoning and images chips, and
+`model_info["<architecture>.context_length"]` the context. A few requests at
+a time, a deadline on the whole, kept for an hour, and best effort — a model
+whose details did not arrive keeps its bare row. A custom server is
+recognised as Ollama by the `owned_by` its listing carries.
 
 Each provider keeps its own key in the vault under its own name
 (`secretNameFor`), so switching providers switches keys rather than

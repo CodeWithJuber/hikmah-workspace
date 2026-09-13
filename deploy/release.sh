@@ -71,9 +71,15 @@ stop_present() {
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 previous=false
 backup="backups/pre-$stamp.tar.gz"
+# Caddy is never stopped here. It used to be, first thing, and started again
+# last, so every release was several minutes of "connection refused" for
+# everyone. It stays up: the app is stopped under it for the snapshot and
+# recreated under it, and the Caddyfile has it hold a request while the app
+# is away rather than fail it (lb_try_duration). Caddy itself is only
+# recreated when its own service definition changed.
 if [[ -f release.env && -f compose.yml ]]; then
   previous=true
-  stop_present 30 caddy app workbench
+  stop_present 30 app workbench
   mkdir -p workbench-data
   if ! tar -czf "$backup" .env release.env compose.yml Caddyfile data workbench-data; then
     "${compose[@]}" up -d --wait --wait-timeout 120
@@ -96,12 +102,14 @@ rollback() {
   trap - ERR
   echo 'Deployment failed. Restoring the previous release when available.' >&2
   diagnose 'the release that failed'
-  if [[ -f release.env && -f compose.yml ]]; then stop_present 15 caddy app workbench || true; fi
+  if [[ -f release.env && -f compose.yml ]]; then stop_present 15 app workbench || true; fi
   if $previous && [[ -f "$backup" ]]; then
     mv data "data-failed-$stamp"
     if [[ -d workbench-data ]]; then mv workbench-data "workbench-data-failed-$stamp"; fi
     tar -xzf "$backup"
-    if ! "${compose[@]}" up -d --wait --wait-timeout 120; then
+    # The restored Caddyfile is a new file, which a running Caddy's bind
+    # mount cannot see; a recreate takes seconds.
+    if ! "${compose[@]}" up -d --wait --wait-timeout 120 || ! "${compose[@]}" up -d --force-recreate --wait --wait-timeout 120 caddy; then
       diagnose 'the previous release, which failed to restart'
       echo 'Both releases fail to start, so the cause is on the host rather than in the image. See the app log above.' >&2
     fi
@@ -119,7 +127,10 @@ mkdir -p workbench-data && chown 1000:1000 workbench-data
 "${compose[@]}" up -d app workbench --wait --wait-timeout 120
 actual=$("${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>console.log(x.revision))")
 [[ "$actual" == "$revision" ]]
+# A no-op while Caddy's service is unchanged; cp wrote the Caddyfile in place,
+# so the running Caddy sees the new text and a reload applies it.
 "${compose[@]}" up -d caddy --wait --wait-timeout 120
+"${compose[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 trap - ERR
 printf '%s\n' "$revision" > DEPLOYED_REVISION
 rm "$package/image.tar.gz" "$package/workbench.tar.gz"

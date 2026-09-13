@@ -16,6 +16,7 @@ import { EndpointError, providerDestination, resolveProviderBaseUrl } from '../a
 import { authHeaders, providerFor } from '../ai/providers.ts';
 import { withRoutePrices } from '../ai/pricing.ts';
 import { routeCatalogue } from './route-catalogue.ts';
+import { ollamaApiFor, ollamaDetails, withOllamaDetails } from './ollama-details.ts';
 import { normalizeModel, enrichExperientialModels } from '../playground/model-catalog.ts';
 
 const privateHeaders = {
@@ -287,6 +288,22 @@ export async function relayProviderRequest(
         } catch {
           /* the provider's own list stands */
         }
+      }
+      // Ollama lists ids and nothing else; its own API knows the rest. See
+      // ollama-details.ts. Best effort, like the price above.
+      const ollamaApi = ollamaApiFor(provider.baseUrl, data.data);
+      if (ollamaApi) {
+        models = withOllamaDetails(
+          models,
+          await ollamaDetails(
+            ollamaApi,
+            models.map((model) => model.id),
+            {
+              headers: authHeaders(providerFor(provider.baseUrl)?.auth ?? 'bearer', key),
+              signal: controller.signal,
+            },
+          ),
+        );
       }
       if (provider.id === 'experiential') {
         const metadataController = new AbortController();

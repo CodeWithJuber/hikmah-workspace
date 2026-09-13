@@ -19,6 +19,8 @@ export interface ModelInfo {
   supported_parameters?: string[];
   tools?: boolean;
   reasoning?: boolean;
+  /** Takes images as input. */
+  vision?: boolean;
   reasoning_efforts?: string[];
   metadata_source?: string;
 }
@@ -79,6 +81,12 @@ export function normalizeModel(raw: unknown): ModelInfo | null {
   if (params) m.supported_parameters = params;
   if (typeof raw.tools === 'boolean') m.tools = raw.tools;
   else if (params) m.tools = params.includes('tools');
+  if (typeof raw.vision === 'boolean') m.vision = raw.vision;
+  else if (
+    record(raw.architecture) &&
+    strings(raw.architecture.input_modalities)?.includes('image')
+  )
+    m.vision = true;
   const reasoning = record(raw.reasoning) ? raw.reasoning : {};
   if (typeof raw.reasoning === 'boolean') m.reasoning = raw.reasoning;
   else if (

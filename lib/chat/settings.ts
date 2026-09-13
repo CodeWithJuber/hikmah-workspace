@@ -14,6 +14,7 @@
 // would pull the server's whole tool tree into the browser bundle.
 import { DEFAULT_MAX_STEPS, MAX_ALLOWED_STEPS } from '../ai/chat-request.ts';
 import { DEFAULT_CONTEXT_CHARACTERS } from '../ai/context.ts';
+import { DEFAULT_APPROVALS, parseApprovals, type ApprovalSettings } from './approvals.ts';
 
 /** Which provider a run talks to. The key itself is never here — it lives in
  * the encrypted vault and this only names the secret. */
@@ -71,6 +72,9 @@ export type ChatSettings = {
   contextModel: boolean;
   /** How memory behaves for this person's runs. */
   memory: MemorySettings;
+  /** What may run without asking: commands, tools in a conversation, tools
+   * anywhere. See lib/chat/approvals.ts. */
+  approvals: ApprovalSettings;
 };
 
 export type MemorySettings = {
@@ -99,6 +103,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   explainDecisions: false,
   contextModel: true,
   memory: DEFAULT_MEMORY_SETTINGS,
+  approvals: DEFAULT_APPROVALS,
 };
 
 /** Bounded so one setting cannot become a second system prompt. */
@@ -175,6 +180,7 @@ export function parseChatSettings(raw: unknown): ChatSettings {
     // behaviour the workspace preference had.
     contextModel: value.contextModel !== false,
     memory: parseMemory(value.memory),
+    approvals: parseApprovals(value.approvals),
   };
 }
 

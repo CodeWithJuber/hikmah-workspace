@@ -13,6 +13,7 @@ import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { useChatSettings } from '@/hooks/use-chat-settings';
+import { withGrant, type Grant } from '@/lib/chat/approvals';
 import { providerDestination } from '@/lib/ai/endpoint';
 import { Toaster } from 'sonner';
 
@@ -110,6 +111,15 @@ export function ChatShell({
   // itself about a quarter of the screen.
   const narrow = useNarrow();
   const [drawer, setDrawer] = useState<'list' | 'panel' | null>(null);
+  // A yes remembered from the approval card. Saved through the same store the
+  // run reads when it is driven, and awaited by the card before it answers,
+  // so the resumed run already knows.
+  const grant = useCallback(
+    async (scope: Grant) => {
+      await change({ approvals: withGrant(settings.approvals, scope) });
+    },
+    [change, settings.approvals],
+  );
   // Where the key goes: the Settings tab, opened as a drawer on a phone.
   const openSettings = useCallback(() => {
     setTab('settings');
@@ -219,6 +229,7 @@ export function ChatShell({
           onSettled={settled}
           needsKey={needsKey}
           onOpenSettings={openSettings}
+          onGrant={grant}
           banner={
             task ? (
               <div className="chat-task-banner" role="note">

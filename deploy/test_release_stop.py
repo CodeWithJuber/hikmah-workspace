@@ -49,7 +49,7 @@ def extract_function(name):
     return match.group(0)
 
 
-def run_stop(services, wanted=('caddy', 'app', 'workbench')):
+def run_stop(services, wanted=('app', 'workbench')):
     """Run stop_present against a compose file defining `services`.
 
     Returns (exit code, what stop was asked for)."""
@@ -83,19 +83,26 @@ class StopPresentTests(unittest.TestCase):
         # so naming workbench aborts the release before it starts.
         code, stopped, stderr = run_stop(['app', 'search', 'caddy'])
         self.assertEqual(code, 0, stderr)
-        self.assertEqual(stopped, ['-t', '30', 'caddy', 'app'])
+        self.assertEqual(stopped, ['-t', '30', 'app'])
         self.assertNotIn('workbench', stopped)
 
     def test_once_the_service_exists_it_is_stopped(self):
         code, stopped, stderr = run_stop(['app', 'search', 'caddy', 'workbench'])
         self.assertEqual(code, 0, stderr)
-        self.assertEqual(stopped, ['-t', '30', 'caddy', 'app', 'workbench'])
+        self.assertEqual(stopped, ['-t', '30', 'app', 'workbench'])
 
     def test_a_service_never_stops_something_it_was_not_asked_for(self):
         # search is running and defined, but is not in the wanted list: stopping
         # it would take the search backend down for the length of a release.
         _, stopped, _ = run_stop(['app', 'search', 'caddy', 'workbench'])
         self.assertNotIn('search', stopped)
+
+    def test_caddy_is_never_stopped_by_a_release(self):
+        # Caddy stopped first and started last made every release several
+        # minutes of "connection refused". The app is replaced under it.
+        for line in RELEASE.read_text().splitlines():
+            if line.lstrip().startswith('stop_present '):
+                self.assertNotIn('caddy', line.split(), line)
 
     def test_a_first_deployment_stops_nothing_rather_than_everything(self):
         # No compose file yet, so `config --services` reports nothing. Falling

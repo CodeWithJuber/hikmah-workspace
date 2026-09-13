@@ -180,12 +180,16 @@ export function sshTools(context: SshToolContext) {
  */
 export function sshApprovalPolicy(context: {
   listHosts: () => SshHostRow[] | Promise<SshHostRow[]>;
+  /** Tools the owner has granted, from the card: ssh_exec here means every
+   * host, on top of each host's own allowlist. */
+  grants?: { tools: Set<string> };
 }) {
   return async (raw: unknown) => {
     const input = (raw ?? {}) as { host_id?: unknown; command?: unknown };
     // Anything this cannot read is asked about rather than assumed safe.
     if (typeof input.host_id !== 'string' || typeof input.command !== 'string')
       return 'user-approval' as const;
+    if (context.grants?.tools.has('ssh_exec')) return 'approved' as const;
     const host = (await context.listHosts()).find((entry) => entry.id === input.host_id);
     if (!host) return 'approved' as const;
     return isAutoApproved(input.command, parseAutoApprove(host.auto_approve))

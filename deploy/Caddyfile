@@ -23,8 +23,14 @@
   }
   # Everything else is the app. Both routes use handle blocks so the match is
   # first-wins by the order written here rather than by directive sorting.
+  # lb_try_duration: while the app container is being replaced by a release,
+  # a dial fails for the seconds it takes to boot. Caddy keeps trying for up
+  # to two minutes and answers the request when the new app is up, so a
+  # release is a pause for whoever is on the site, never an error page.
   handle {
     reverse_proxy app:3000 {
+      lb_try_duration 2m
+      lb_try_interval 1s
       flush_interval -1
       header_up X-Real-IP {remote_host}
       header_up -oai-authenticated-user-id

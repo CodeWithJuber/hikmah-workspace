@@ -15,10 +15,28 @@
  * and two buttons.
  */
 import { useState } from 'react';
-import { ShieldQuestion } from 'lucide-react';
+import { ChevronDown, ShieldCheck, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { partToolName, toolProvenance } from '@/lib/chat/working';
+import type { Grant } from '@/lib/chat/approvals';
 import type { RespondToApproval } from './message-parts';
+
+/** Saves a grant before the run is answered, so the resumed run reads it. */
+export type GrantHandler = (grant: Grant) => Promise<void> | void;
+
+/** What "always allow" would cover, in words. */
+const GRANT_LABELS: Record<string, string> = {
+  bash: 'commands on the workspace machine',
+  sandbox_run: 'programs in the sandbox',
+  ssh_exec: 'commands on saved machines',
+};
 
 export type ApprovalPart = {
   type: string;
@@ -68,10 +86,15 @@ function requestDetails(part: ApprovalPart): { why: string; command: string; raw
 
 export function ApprovalCard({
   part,
+  conversationId,
   onApproval,
+  onGrant,
 }: {
   part: ApprovalPart;
+  conversationId?: string;
   onApproval?: RespondToApproval;
+  /** Remembers a yes with a scope. Absent, the card offers a yes for now only. */
+  onGrant?: GrantHandler;
 }) {
   // Answered once. The response flips the part to `approval-responded` and this
   // card unmounts, but a second tap in the gap before that render would send a
@@ -85,6 +108,22 @@ export function ApprovalCard({
     setSent(true);
     onApproval?.({ id, approved });
   };
+  // The grant is saved first and the run answered after, in that order: the
+  // resumed run reads the settings when it is driven, and a grant that landed
+  // a moment later would have applied to the call after this one.
+  const grant = async (scope: Grant) => {
+    if (!id || sent || !onGrant) return;
+    setSent(true);
+    try {
+      await onGrant(scope);
+    } catch {
+      /* the yes still stands for this call */
+    }
+    onApproval?.({ id, approved: true });
+  };
+  const toolId = partToolName(part).replace(/^tool-/, '');
+  const { tool } = toolProvenance(toolId);
+  const label = GRANT_LABELS[toolId] ?? tool.replace(/_/g, ' ');
   const heading = 'approval-' + (part.toolCallId ?? id ?? 'card');
   return (
     <section className="chat-approval" role="group" aria-labelledby={heading}>
@@ -110,8 +149,47 @@ export function ApprovalCard({
         >
           Don&rsquo;t allow
         </Button>
+        {/* A yes that is remembered, with its scope chosen here rather than
+            in a settings screen nobody has opened yet: this command, this tool
+            in this conversation, or this tool anywhere. */}
+        {onGrant && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" disabled={!id || sent}>
+                <ShieldCheck size={16} aria-hidden="true" />
+                Always allow
+                <ChevronDown size={14} aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="chat-approval-menu">
+              <DropdownMenuLabel>Don&rsquo;t ask again for</DropdownMenuLabel>
+              {toolId === 'bash' && command && (
+                <DropdownMenuItem
+                  onSelect={() => void grant({ scope: 'command', tool: 'bash', command })}
+                >
+                  <span>
+                    This command, with any arguments
+                    <code dir="ltr">{command}</code>
+                  </span>
+                </DropdownMenuItem>
+              )}
+              {conversationId && (
+                <DropdownMenuItem
+                  onSelect={() =>
+                    void grant({ scope: 'conversation', tool: toolId, conversationId })
+                  }
+                >
+                  <span>{label[0].toUpperCase() + label.slice(1)} in this conversation</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onSelect={() => void grant({ scope: 'always', tool: toolId })}>
+                <span>{label[0].toUpperCase() + label.slice(1)}, anywhere</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <Button type="button" disabled={!id || sent} onClick={() => answer(true)}>
-          Allow
+          {onGrant ? 'Allow once' : 'Allow'}
         </Button>
       </div>
     </section>
