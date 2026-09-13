@@ -5750,6 +5750,8 @@ body {
 .text-link {
   display: inline-flex;
   align-items: center;
+  /* As .billing-back: a link on its own line is a target, not prose. */
+  min-height: 24px;
   gap: 6px;
 }
 .section-label {
@@ -7129,13 +7131,14 @@ a.auth-brand {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  height: 20px;
+  height: 24px;
   margin-top: -6px;
   opacity: 0;
   transition: opacity 140ms ease;
 }
 .chat-ask-actions > * {
-  height: 20px;
+  width: 24px;
+  height: 24px;
   min-height: 0;
   padding-block: 0;
 }
@@ -7143,10 +7146,33 @@ a.auth-brand {
 .chat-ask-actions:focus-within {
   opacity: 1;
 }
-/* Nothing hovers on a touch screen, so there it is simply always visible. */
+/* Nothing hovers on a touch screen, so there it is simply always visible —
+   and there it is also the only way to reach Edit, so the 20px row a mouse can
+   hit precisely becomes a row a thumb can. Measured at 360px: 32x20 before. */
 @media (hover: none) {
   .chat-ask-actions {
+    height: 32px;
+    margin-top: -2px;
     opacity: 0.55;
+  }
+  .chat-ask-actions > * {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* The copy and download buttons streamdown floats over a code block, a table
+   and a diagram came out 22x22 and 24x24 — under the 24px floor on a pointer
+   and far under a thumb. One class serves all three of its toolbars, and the
+   containers differ, so the button is what to size. */
+button.cursor-pointer.p-1 {
+  min-width: 24px;
+  min-height: 24px;
+}
+@media (hover: none) {
+  button.cursor-pointer.p-1 {
+    min-width: 32px;
+    min-height: 32px;
   }
 }
 
@@ -8300,6 +8326,9 @@ a.auth-brand {
 .billing-back {
   display: inline-flex;
   align-items: center;
+  /* A standalone link, not one inside a sentence, so it carries its own
+     height rather than the 20px its 13px text happened to give it. */
+  min-height: 24px;
   gap: 7px;
   font-size: 13px;
   color: var(--muted-foreground);

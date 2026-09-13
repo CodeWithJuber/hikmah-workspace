@@ -570,7 +570,13 @@ export function ChatView({
           <PromptInputFooter className="chat-composer-row">
             <PromptInputTools className="chat-composer-tools">
               <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
+                {/* An icon-only trigger with no name at all: a screen reader
+                    announced "button" and nothing else, and there was no
+                    tooltip on a pointer either. */}
+                <PromptInputActionMenuTrigger
+                  aria-label="Attach a file, and more for this message"
+                  title="Attach a file, and more"
+                />
                 <PromptInputActionMenuContent>
                   <PromptInputActionAddAttachments />
                   {/* Comparing two answers is an expert's question about the
