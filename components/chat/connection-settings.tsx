@@ -15,6 +15,7 @@ import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_CONNECTION, type ChatConnection } from '@/lib/chat/settings';
+import { providerDestination } from '@/lib/ai/endpoint';
 
 /** One secret per owner for the chat's own provider key. A fixed name because
  * the owner is choosing a provider here, not managing a keyring. */
@@ -49,6 +50,9 @@ export function ConnectionSettings({
   }
 
   const known = PRESETS.some((preset) => preset.baseUrl === draft.baseUrl);
+  /** Anything the vault can hold a credential for: the presets, and any HTTPS
+   * endpoint. A loopback or private address is reached without one. */
+  const takesKey = Boolean(providerDestination(draft.baseUrl));
 
   const save = useCallback(async () => {
     setBusy(true);
@@ -56,6 +60,11 @@ export function ConnectionSettings({
     try {
       let apiKeySecret = draft.apiKeySecret;
       const typed = key.trim();
+      const destination = providerDestination(draft.baseUrl);
+      if (typed && !destination)
+        throw new Error(
+          'That endpoint needs no key. A local or private address is reached direct.',
+        );
       if (typed) {
         const response = await fetch('/api/secrets', {
           method: 'PUT',
@@ -64,9 +73,10 @@ export function ConnectionSettings({
           body: JSON.stringify({
             name: SECRET_NAME,
             value: typed,
-            destination:
-              'provider:' +
-              (draft.baseUrl.includes('experientiallabs') ? 'experiential' : 'openrouter'),
+            // The same function the run route resolves against, so what is
+            // saved here is what is looked up there. It used to be a string
+            // built by hand in each place, and they disagreed.
+            destination,
           }),
         });
         if (!response.ok) throw new Error('The key could not be saved.');
@@ -118,7 +128,7 @@ export function ConnectionSettings({
           />
           <small>
             An OpenAI-compatible endpoint. A local one needs no key; a hosted one keeps its key
-            somewhere this panel cannot reach.
+            here, encrypted, like the rest.
           </small>
         </div>
       )}
@@ -134,7 +144,7 @@ export function ConnectionSettings({
         <small>The provider&rsquo;s own id for the model, copied exactly.</small>
       </div>
 
-      {known && (
+      {takesKey && (
         <div className="chat-setting">
           <label htmlFor="chat-key">API key</label>
           <div className="chat-key-row">
@@ -143,7 +153,11 @@ export function ConnectionSettings({
               type={reveal ? 'text' : 'password'}
               value={key}
               autoComplete="off"
-              placeholder={draft.apiKeySecret ? 'A key is saved. Type to replace it.' : 'sk-or-…'}
+              placeholder={
+                draft.apiKeySecret
+                  ? 'A key is saved. Type to replace it.'
+                  : 'Paste your provider key'
+              }
               onChange={(event) => setKey(event.target.value)}
             />
             <button

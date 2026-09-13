@@ -39,7 +39,7 @@ const CAPABILITIES = [
 const FAQ = [
   {
     q: 'What does “bring your own key” mean?',
-    a: 'You create a free key at openrouter.ai, paste it into settings once, and the workspace talks to models using it. You pay OpenRouter directly for what you use — often nothing, since a good number of models there are free. We never see the bill and never hold a card.',
+    a: 'You open an account with a model provider, paste its key into settings once, and the workspace talks to models using it. You pay that provider directly for what you use — often nothing, since many of them offer free models. We never see the bill and never hold a card. Settings tells you which providers work and where to get a key.',
   },
   {
     q: 'What is the difference on Pro, then?',

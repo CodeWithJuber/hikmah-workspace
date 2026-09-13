@@ -10,7 +10,12 @@
   # WebSocket, so /ws/* belongs to the workbench. stream_timeout keeps a long
   # idle session alive and stream_close_delay stops a config reload from
   # dropping every open terminal.
-  handle /ws/* {
+  #
+  # handle_path, not handle: the plain form matches the prefix and forwards it
+  # unchanged, so the workbench received /ws/terminal and rejected the upgrade.
+  # The workbench now accepts both spellings, but it should still be given the
+  # path it documents.
+  handle_path /ws/* {
     reverse_proxy workbench:3001 {
       stream_timeout 24h
       stream_close_delay 5m

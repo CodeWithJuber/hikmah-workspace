@@ -1,20 +1,16 @@
 'use client';
-import { SavedSecretSelect, SecretsSettings } from './secrets-settings';
-import { useEffect, useRef, useState } from 'react';
+import { SecretsSettings } from './secrets-settings';
+import { useState } from 'react';
+import Link from 'next/link';
 import {
   Plug,
   SlidersHorizontal,
   Database,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  CheckCircle2,
   Sun,
   Moon,
   Download,
   Upload,
   KeyRound,
-  ArrowRight,
 } from 'lucide-react';
 import {
   Dialog,
@@ -54,92 +50,7 @@ export function Settings({
     preferences,
     setPreferences,
   } = usePlayground();
-  const [busy, setBusy] = useState('');
-  const [result, setResult] = useState<{ message: string; kind: 'catalog' | 'generation' } | null>(
-    null,
-  );
-  const [error, setError] = useState<DisplayError | null>(null);
-  const [reveal, setReveal] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const relay = relayProviderFor(provider.baseUrl);
-  useEffect(() => {
-    abortRef.current?.abort();
-    setBusy('');
-    setResult(null);
-    setError(null);
-  }, [
-    provider.baseUrl,
-    provider.apiKey,
-    provider.apiKeySecret,
-    provider.model,
-    provider.maxTokens,
-    provider.temperature,
-    provider.customSampling,
-    provider.stream,
-    provider.tokenParameter,
-    provider.reasoningEffort,
-    provider.freeOnly,
-  ]);
-  useEffect(() => {
-    if (!open) {
-      abortRef.current?.abort();
-      setBusy('');
-      setReveal(false);
-    }
-  }, [open]);
-  const check = async (kind: 'catalog' | 'generation') => {
-    if (busy) return;
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setBusy(kind);
-    setResult(null);
-    setError(null);
-    const start = performance.now();
-    try {
-      if (kind === 'catalog') {
-        const rows = await listModels(provider, controller.signal);
-        if (controller.signal.aborted) return;
-        setModels(rows);
-        setResult({
-          kind,
-          message: `${rows.length} available models loaded. Choose a model, then test generation.`,
-        });
-      } else {
-        const answer = await complete(
-          { ...provider, maxTokens: Math.min(provider.maxTokens, 512) },
-          [{ role: 'user', content: 'Reply briefly with the word Connected.' }],
-          { signal: controller.signal },
-        );
-        if (controller.signal.aborted) return;
-        if (!answer.content.trim())
-          throw Error(
-            'The model returned no visible text. Increase the output limit or choose another model.',
-          );
-        setResult({
-          kind,
-          message: `Generation succeeded in ${((performance.now() - start) / 1000).toFixed(1)}s. ${answer.usage.total_tokens !== undefined ? answer.usage.total_tokens + ' tokens reported.' : ''} Your selected model can answer.`,
-        });
-      }
-    } catch (e) {
-      if (controller.signal.aborted) return;
-      setError({
-        message: errorMessage(e),
-        code: e instanceof ProviderTransportError ? (e.diagnostic?.code ?? e.code) : undefined,
-        action: e instanceof ProviderTransportError ? e.diagnostic?.action : undefined,
-        model: provider.model,
-        provider: relay?.name,
-        status:
-          e instanceof ProviderTransportError ? (e.diagnostic?.status ?? e.status) : undefined,
-        retryAfterSeconds:
-          e instanceof ProviderTransportError ? e.diagnostic?.retryAfterSeconds : undefined,
-      });
-    } finally {
-      if (abortRef.current === controller) {
-        setBusy('');
-        abortRef.current = null;
-      }
-    }
-  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="settings-dialog">
@@ -167,280 +78,25 @@ export function Settings({
             </TabsTrigger>
           </TabsList>
           <div className="settings-scroll">
+            {/* The Connection tab was here. It kept a provider key in React
+                state labelled "Session only", which meant it survived until the
+                tab reloaded and then did not — and it was one of five places in
+                this app that could take a credential, three of which stored it
+                nowhere. There is one now, in the chat's own settings, and it
+                writes to the encrypted vault. */}
             <TabsContent value="connection">
               <div className="settings-section-title">
                 <span className="step-number">1</span>
                 <div>
                   <h3>Connect a provider</h3>
-                  <p>Use your own account and API key.</p>
+                  <p>Your provider, model and API key live with the chat now.</p>
                 </div>
               </div>
-              <Choice
-                label="Provider"
-                value={relay?.id ?? 'custom'}
-                onChange={(v) => {
-                  setProvider((p) => ({
-                    ...p,
-                    baseUrl: RELAY_PROVIDERS.find((x) => x.id === v)?.baseUrl ?? '',
-                    apiKey: '',
-                    apiKeySecret: '',
-                    model: '',
-                    customSampling: false,
-                  }));
-                }}
-                options={[
-                  ...RELAY_PROVIDERS.map((p) => ({ value: p.id, label: p.name })),
-                  { value: 'custom', label: 'Custom OpenAI-compatible API' },
-                ]}
-              />
-              <div className="field">
-                <label htmlFor="provider-url">API base URL</label>
-                <Input
-                  id="provider-url"
-                  value={provider.baseUrl}
-                  onChange={(e) =>
-                    setProvider((p) => ({
-                      ...p,
-                      baseUrl: e.target.value,
-                      apiKey: '',
-                      apiKeySecret: '',
-                      model: '',
-                    }))
-                  }
-                  placeholder="https://api.experientiallabs.ai/v1"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </div>
-              {relay && (
-                <SavedSecretSelect
-                  destination={'provider:' + relay.id}
-                  value={provider.apiKeySecret}
-                  onChange={(apiKeySecret) =>
-                    setProvider((p) => ({ ...p, apiKeySecret, apiKey: '' }))
-                  }
-                />
-              )}
-              <div className="field">
-                <label htmlFor="provider-key">
-                  API key <span className="optional-label">Session only</span>
-                </label>
-                <div className="password-input">
-                  <Input
-                    id="provider-key"
-                    type={reveal ? 'text' : 'password'}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={provider.apiKey}
-                    onChange={(e) =>
-                      setProvider((p) => ({ ...p, apiKey: e.target.value, apiKeySecret: '' }))
-                    }
-                    placeholder="Paste your provider key"
-                  />
-                  <Button
-                    variant="ghost"
-                    className="icon-button"
-                    aria-label={reveal ? 'Hide API key' : 'Show API key'}
-                    onClick={() => setReveal(!reveal)}
-                  >
-                    {reveal ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </Button>
-                </div>
-              </div>
-              <p className="connection-route">
-                <KeyRound size={14} />
-                {relay
-                  ? `${relay.name} connects through the app server.`
-                  : 'Custom endpoints connect from your browser and require CORS support.'}{' '}
-                Save reusable keys in the Secrets tab. Session keys are excluded from saved
-                settings.
+              <p className="settings-moved">
+                Open <Link href="/chat">the chat</Link> and choose{' '}
+                <strong>Settings → Connection</strong>. A key saved there is encrypted before it is
+                stored and never sent back to the page, which the field here could not promise.
               </p>
-              <div className="settings-section-title separated">
-                <span className="step-number">2</span>
-                <div>
-                  <h3>Choose a model</h3>
-                  <p>Use an exact model ID from your provider.</p>
-                </div>
-                <Button variant="outline" disabled={!!busy} onClick={() => void check('catalog')}>
-                  {busy === 'catalog' ? <LoaderCircle className="spin" size={16} /> : null}Load
-                  models
-                </Button>
-              </div>
-              <div className="field">
-                <label>Selected model</label>
-                <ModelPicker label="Select your model" />
-              </div>
-              <label className="setting-switch">
-                <div>
-                  <strong>Free models only</strong>
-                  <span>
-                    Blocks paid models, unknown routes and media generation. OpenRouter requests
-                    carry a zero-price ceiling.
-                  </span>
-                </div>
-                <Switch
-                  aria-label="Free models only"
-                  checked={provider.freeOnly === true}
-                  onCheckedChange={(freeOnly) => setProvider((p) => ({ ...p, freeOnly }))}
-                />
-              </label>
-              {provider.freeOnly && (
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setProvider((p) => ({
-                      ...p,
-                      baseUrl: 'https://openrouter.ai/api/v1',
-                      apiKey: p.baseUrl === 'https://openrouter.ai/api/v1' ? p.apiKey : '',
-                      apiKeySecret:
-                        p.baseUrl === 'https://openrouter.ai/api/v1' ? p.apiKeySecret : '',
-                      model: 'openrouter/free',
-                      reasoningEffort: 'default',
-                      customSampling: false,
-                    }))
-                  }
-                >
-                  Use OpenRouter Free Router
-                </Button>
-              )}
-              <ModelDetails model={models.find((m) => m.id === provider.model)} />
-              <details className="manual-model-id">
-                <summary>Enter a model ID manually</summary>
-                <Input
-                  id="provider-model"
-                  aria-label="Model ID"
-                  value={provider.model}
-                  onChange={(e) =>
-                    setProvider((p) => ({
-                      ...p,
-                      model: e.target.value,
-                      reasoningEffort: 'default',
-                    }))
-                  }
-                  placeholder="Exact provider model ID"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </details>
-              <div className="settings-section-title separated">
-                <span className="step-number">3</span>
-                <div>
-                  <h3>Test a real response</h3>
-                  <p>One short model request. Provider usage may apply.</p>
-                </div>
-                <Button
-                  disabled={!!busy || !provider.model}
-                  onClick={() => void check('generation')}
-                >
-                  {busy === 'generation' ? (
-                    <LoaderCircle className="spin" size={16} />
-                  ) : (
-                    <ArrowRight size={16} />
-                  )}
-                  Test generation
-                </Button>
-              </div>
-              {result && (
-                <div className="connection-success" role="status">
-                  <CheckCircle2 size={19} />
-                  <span>{result.message}</span>
-                </div>
-              )}
-              {error && <ErrorCard error={error} />}
-              <details className="settings-advanced">
-                <summary>Advanced connection</summary>
-                <div className="settings-grid">
-                  <div className="field">
-                    <label htmlFor="max-output">Maximum output tokens</label>
-                    <Input
-                      id="max-output"
-                      type="number"
-                      min={128}
-                      max={131072}
-                      value={provider.maxTokens}
-                      onChange={(e) =>
-                        setProvider((p) => ({
-                          ...p,
-                          maxTokens: Math.min(131072, Math.max(128, Number(e.target.value) || 128)),
-                        }))
-                      }
-                    />
-                  </div>
-                  <Choice
-                    label="Token parameter"
-                    value={provider.tokenParameter ?? 'max_tokens'}
-                    onChange={(v) =>
-                      setProvider((p) => ({
-                        ...p,
-                        tokenParameter: v as 'max_tokens' | 'max_completion_tokens',
-                      }))
-                    }
-                    options={[
-                      { value: 'max_tokens', label: 'max_tokens (gateway default)' },
-                      { value: 'max_completion_tokens', label: 'max_completion_tokens' },
-                    ]}
-                  />
-                </div>
-                <label className="setting-switch">
-                  <div>
-                    <strong>Stream responses</strong>
-                    <span>Show the answer as it arrives.</span>
-                  </div>
-                  <Switch
-                    checked={provider.stream !== false}
-                    onCheckedChange={(v) => setProvider((p) => ({ ...p, stream: v }))}
-                  />
-                </label>
-                <label className="setting-switch">
-                  <div>
-                    <strong>Custom sampling</strong>
-                    <span>Leave off for the widest model compatibility.</span>
-                  </div>
-                  <Switch
-                    checked={provider.customSampling === true}
-                    onCheckedChange={(v) => setProvider((p) => ({ ...p, customSampling: v }))}
-                  />
-                </label>
-                {provider.customSampling && (
-                  <div className="field">
-                    <label htmlFor="temperature">Temperature</label>
-                    <Input
-                      id="temperature"
-                      type="number"
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      value={provider.temperature}
-                      onChange={(e) =>
-                        setProvider((p) => ({
-                          ...p,
-                          temperature: Math.min(2, Math.max(0, Number(e.target.value) || 0)),
-                        }))
-                      }
-                    />
-                    <p className="small-note">
-                      Some models reject this field or only accept a fixed value.
-                    </p>
-                  </div>
-                )}
-                <p className="small-note">
-                  The server forwards requests only to the two provider presets. Other endpoints use
-                  a direct browser connection. Messages and requested file contents go to your
-                  provider; its rates and data policies apply. Failures are not retried
-                  automatically. When enabled, unfinished text and agent work continue with
-                  additional billable requests. Models are never switched silently.
-                </p>
-                <Button
-                  variant="outline"
-                  disabled={!provider.apiKey}
-                  onClick={() => {
-                    setProvider((p) => ({ ...p, apiKey: '' }));
-                    toast.success('Session key cleared');
-                  }}
-                >
-                  Clear session key
-                </Button>
-              </details>
             </TabsContent>
             <TabsContent value="secrets">
               <SecretsSettings />

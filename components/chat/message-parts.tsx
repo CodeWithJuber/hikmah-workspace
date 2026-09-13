@@ -456,20 +456,23 @@ export function MessageParts({
             </MessageActions>
           </MessageToolbar>
         )}
-
-        {asked && onEdit && (
-          <MessageToolbar>
-            <MessageActions>
-              <MessageAction
-                tooltip="Edit and ask again, replacing everything after this"
-                onClick={onEdit}
-              >
-                <Pencil size={15} />
-              </MessageAction>
-            </MessageActions>
-          </MessageToolbar>
-        )}
       </MessageContent>
+      {/* Beside the question, not inside it. As a toolbar within MessageContent
+          this added a fourth line to a bubble whose content was one word, so a
+          conversation of short questions was mostly empty box. It sits under
+          the bubble now, out of the way until wanted: revealed on hover with a
+          pointer, always there on a touch screen, where there is no hover to
+          reveal it with. */}
+      {asked && onEdit && (
+        <div className="chat-ask-actions">
+          <MessageAction
+            tooltip="Edit and ask again, replacing everything after this"
+            onClick={onEdit}
+          >
+            <Pencil size={15} />
+          </MessageAction>
+        </div>
+      )}
     </Message>
   );
 }

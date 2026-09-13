@@ -19,8 +19,12 @@ export const PLANS = [
     tier: 'byok',
     trialDays: 0,
     monthlyTokenCap: null,
+    // Which provider is a setup detail, not a selling point. Naming one here
+    // tells every visitor what this is built on and ties the pricing page to a
+    // third party; the Connection panel names it, links to it, and can name a
+    // second one later without any of this changing.
     features: [
-      'Your own OpenRouter key, so you pay your provider directly',
+      'Your own model key, so you pay your provider directly',
       'Every model your key can reach, including the free ones',
       'Runs that survive a closed tab',
       'Files, code and the JavaScript sandbox',

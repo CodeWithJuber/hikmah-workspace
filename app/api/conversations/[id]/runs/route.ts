@@ -126,10 +126,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const kind = releases(paused?.status, incomingMessage);
     const release = kind === 'approval' ? store.requeueApproved : store.requeueAnswered;
     if (kind && incomingMessage) {
-      store.replaceMessage(conversationId, {
+      // The decision has to land on the stored turn before the run is
+      // released. When it does not, the message is not the one this run is
+      // paused on, and requeueing anyway would re-drive an unanswered
+      // transcript — which reads, from the outside, as the answer being
+      // ignored.
+      const recorded = store.replaceMessage(conversationId, {
         id: incomingMessage.id,
         parts: incomingMessage.parts,
       });
+      if (!recorded)
+        return fail('That answer no longer matches the paused turn. Reload the conversation.', 409);
       // False when the run has moved on, which absorbs a duplicate answer
       // rather than starting a second run over the same conversation.
       if (release(already)) void worker.tick();
@@ -145,36 +152,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const incoming = incomingMessage;
   if (!incoming) return fail('Send a message to start the run.', 400);
-
-  // Answering again replays a message that is already a row, so the turn it
-  // started has to go before it can be written back. Without this the insert
-  // below hits the messages primary key, the route fails outside any handler,
-  // and the owner is told only that the run could not be started.
-  //
-  // Scoped to the trigger and to this conversation: a plain new turn never
-  // deletes anything, and truncateFrom is a no-op for an id it cannot find.
-  if (parsed.regenerate && incoming.id) store.truncateFrom(conversationId, incoming.id);
-
-  try {
-    store.appendMessage(conversationId, {
-      id: incoming.id ?? newMessageId(),
-      role: incoming.role,
-      parts: incoming.parts,
-      metadata: undefined,
-    });
-  } catch {
-    // The only way here is a message id that already exists, which means this
-    // turn has already been recorded. Say so rather than returning a 500 with
-    // no body for the transport to make sense of.
-    return fail('That message was already sent. Reload to see the conversation.', 409);
-  }
-  // Name it from the message that started it. setTitle only writes when the
-  // title is still empty, so a later message cannot rename a conversation the
-  // owner has been finding in the list by that name.
-  if (incoming.role === 'user') {
-    const title = conversationTitle(incoming.parts);
-    if (title) store.setTitle(conversationId, title);
-  }
 
   // The key is resolved once, here, and stored on the run so the worker can
   // drive it after this request has gone. It is never returned to the browser.
@@ -212,6 +189,42 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     meteredThisMonth: access.metered ? billingStore().meteredThisMonth(user.userId) : 0,
   });
   if (refused) return fail(refused, 400);
+
+  // Everything above this line only reads. Nothing is written to the transcript
+  // until the run is known to be startable, because a refusal after the write
+  // leaves a question with no answer — and after the truncate below it would
+  // destroy the turn it was replaying. Both were visible on the deployed site
+  // as a column of unanswered messages.
+
+  // Answering again replays a message that is already a row, so the turn it
+  // started has to go before it can be written back. Without this the insert
+  // below hits the messages primary key, the route fails outside any handler,
+  // and the owner is told only that the run could not be started.
+  //
+  // Scoped to the trigger and to this conversation: a plain new turn never
+  // deletes anything, and truncateFrom is a no-op for an id it cannot find.
+  if (parsed.regenerate && incoming.id) store.truncateFrom(conversationId, incoming.id);
+
+  try {
+    store.appendMessage(conversationId, {
+      id: incoming.id ?? newMessageId(),
+      role: incoming.role,
+      parts: incoming.parts,
+      metadata: undefined,
+    });
+  } catch {
+    // The only way here is a message id that already exists, which means this
+    // turn has already been recorded. Say so rather than returning a 500 with
+    // no body for the transport to make sense of.
+    return fail('That message was already sent. Reload to see the conversation.', 409);
+  }
+  // Name it from the message that started it. setTitle only writes when the
+  // title is still empty, so a later message cannot rename a conversation the
+  // owner has been finding in the list by that name.
+  if (incoming.role === 'user') {
+    const title = conversationTitle(incoming.parts);
+    if (title) store.setTitle(conversationId, title);
+  }
 
   const runId = newRunId();
   try {

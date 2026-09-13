@@ -136,7 +136,7 @@
   --ring: #3d8a67;
   --sidebar: #f4f7f5;
   --sidebar-foreground: #17212b;
-  --sidebar-accent: #e3efe8;
+  --sidebar-accent: #e8f2ec;
   --sidebar-accent-foreground: #1f4b39;
   --sidebar-border: #dee5e0;
   --radius: 0.375rem;
@@ -205,11 +205,10 @@ pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* One rule for buttons, further down with the rest of the control styles. This
+   block used to set a second, taller size that the later one silently
+   overrode. */
 [data-slot='button'] {
-  height: 44px;
-  border-radius: 6px;
-  font-size: 16px;
-  padding-inline: 18px;
   box-shadow: none;
 }
 [data-slot='input'],
@@ -220,9 +219,16 @@ pre {
   font-size: 16px;
   line-height: 1.5;
 }
+/* Full width is a property of a field in a form, not of the element type: the
+   chat's model picker is a select in a toolbar row, and this rule made it claim
+   the whole row and paint over the send button. Anything that wants the old
+   behaviour asks for it with .field. */
+/* The pair of these that used to sit here said exactly what the copy further
+   down says, and lost to it. One rule. */
 [data-slot='input'],
-[data-slot='select-trigger'] {
-  min-height: 44px;
+.field [data-slot='select-trigger'],
+.settings-scroll [data-slot='select-trigger'],
+.chat-setting [data-slot='select-trigger'] {
   width: 100%;
 }
 [data-slot='textarea'] {
@@ -397,7 +403,7 @@ pre {
 }
 .notice {
   border-left: 3px solid var(--primary);
-  background: #f2f7f4;
+  background: #f4f7f5;
   padding: 12px 16px;
   margin-top: 16px;
   font-size: 14px;
@@ -584,7 +590,7 @@ pre {
 }
 .message {
   padding: 18px 0;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid #eceef3;
 }
 .message pre {
   background: #f5f7fa;
@@ -710,7 +716,7 @@ pre {
 
 /* Hikmah workspace — shared product tokens */
 :root {
-  --background: #fafbfd;
+  --background: #fff;
   --foreground: #172033;
   --card: #fff;
   --card-foreground: #172033;
@@ -718,33 +724,33 @@ pre {
   --popover-foreground: #172033;
   --primary: #285d46;
   --primary-foreground: #fff;
-  --secondary: #f0f2f7;
+  --secondary: #f5f7fa;
   --secondary-foreground: #35425c;
-  --muted: #f0f2f7;
+  --muted: #f5f7fa;
   --muted-foreground: #687791;
   --accent: #e8f2ec;
   --accent-foreground: #1f4b39;
-  --border: #e3e7ef;
+  --border: #dde3eb;
   --input: #d3dbe8;
   --ring: #3d8a67;
-  --sidebar: #151d30;
-  --sidebar-foreground: #dde5f5;
+  --sidebar: #172033;
+  --sidebar-foreground: #dbe5f5;
   --sidebar-accent: #2b3447;
   --sidebar-accent-foreground: #fff;
-  --sidebar-border: #293248;
+  --sidebar-border: #232e43;
   --radius: 0.65rem;
   --user-bubble: #eceef3;
   --error-bg: #fff5f3;
   --error-text: #a43b34;
-  --success-bg: #edf8f3;
+  --success-bg: #e8f2ec;
   --success-text: #286b4b;
 }
 :root[data-theme='dark'] {
   --background: #111827;
   --foreground: #e8edf6;
-  --card: #192235;
+  --card: #172033;
   --card-foreground: #e8edf6;
-  --popover: #202b40;
+  --popover: #232e43;
   --popover-foreground: #e8edf6;
   --secondary: #232e43;
   --secondary-foreground: #d4dcee;
@@ -755,10 +761,10 @@ pre {
   --border: #303b51;
   --input: #45536f;
   --ring: #6fc39c;
-  --user-bubble: #263148;
+  --user-bubble: #232e43;
   --error-bg: #35232b;
   --error-text: #ffb0a7;
-  --success-bg: #1a352e;
+  --success-bg: #20352e;
   --success-text: #a1e1c0;
 }
 body {
@@ -779,11 +785,54 @@ textarea,
 select {
   font-family: inherit;
 }
-button:focus-visible,
-a:focus-visible,
-summary:focus-visible {
+/* One focus ring, for everything that can take focus.
+ *
+ * There were four of these, three of them naming their own colour, so the
+ * workspace focused blue while the chat focused green and the auth cards
+ * focused a third thing. Everything that can be focused gets the same ring in
+ * the same colour, and it is a token so there is one place to change it. */
+:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
+  border-radius: max(var(--radius), 4px);
+}
+/* A control the browser focuses because it was clicked does not need a ring;
+   one focused from the keyboard does. :focus-visible already draws that line,
+   so nothing here removes an outline the way `outline: none` used to. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* The states that were missing, applied once rather than per screen.
+ *
+ * "Blurred hover" was mostly no hover at all: 36 :hover rules across 7,890
+ * lines, so most controls did nothing until they were clicked. A control that
+ * does not acknowledge the pointer feels broken however well it is drawn. */
+@media (hover: hover) {
+  [data-slot='button']:not(:disabled):hover,
+  .icon-button:not(:disabled):hover {
+    filter: brightness(0.96);
+  }
+  [data-slot='button'][data-variant='ghost']:not(:disabled):hover,
+  [data-slot='button'][data-variant='outline']:not(:disabled):hover {
+    background: var(--accent);
+    filter: none;
+  }
+}
+[data-slot='button']:not(:disabled):active,
+.icon-button:not(:disabled):active {
+  transform: translateY(0.5px);
+}
+/* Someone who has asked their system for less motion gets none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 .small-note,
 .muted {
@@ -807,6 +856,41 @@ summary:focus-visible {
   border-radius: 9px;
   padding-inline: 15px;
   gap: 8px;
+  /* One duration for every control, so the whole product settles at the same
+     speed. Named properties rather than `all`, which would animate layout and
+     make a resize crawl; 120ms is under the point where a transition starts to
+     read as latency rather than polish. */
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
+}
+/* An icon button is square. Without this the padding above re-inflates a
+   32px control to 46px, and buttons do not shrink, so a toolbar row that
+   should fit a phone overflows and paints on top of whatever follows it. */
+[data-slot='button'][data-size='icon'],
+[data-slot='button'][data-size='icon-sm'],
+[data-slot='button'][data-size='icon-xs'] {
+  padding-inline: 0;
+  gap: 0;
+}
+/* Matching the variants in components/ui/button.tsx: size-9, size-8, size-6.
+   Restated because the height above is unlayered and would otherwise beat
+   them. */
+[data-slot='button'][data-size='icon'] {
+  height: 36px;
+  width: 36px;
+}
+[data-slot='button'][data-size='icon-sm'] {
+  height: 32px;
+  width: 32px;
+}
+[data-slot='button'][data-size='icon-xs'] {
+  height: 24px;
+  width: 24px;
 }
 [data-slot='button'][data-variant='outline'] {
   border-color: var(--input);
@@ -824,6 +908,17 @@ summary:focus-visible {
   background: var(--card);
   color: var(--foreground);
   border-color: var(--input);
+  /* One duration for every control, so the whole product settles at the same
+     speed. Named properties rather than `all`, which would animate layout and
+     make a resize crawl; 120ms is under the point where a transition starts to
+     read as latency rather than polish. */
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    filter 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
 }
 [data-slot='input'],
 [data-slot='select-trigger'] {
@@ -878,7 +973,7 @@ summary:focus-visible {
   color: #fff;
 }
 .hikmah-brand svg {
-  color: #7b80ff;
+  color: #777dfa;
   stroke-width: 2;
 }
 .hikmah-brand.compact {
@@ -897,7 +992,7 @@ summary:focus-visible {
 .workspace-sidebar-content {
   padding: 0 12px !important;
   gap: 0 !important;
-  color: #dce4f5;
+  color: #dbe5f5;
 }
 .primary-nav button,
 .workspace-sidebar-footer > button {
@@ -908,7 +1003,7 @@ summary:focus-visible {
   padding: 12px 15px;
   background: none;
   border: 0;
-  color: #d9e2f4;
+  color: #d4dcee;
   font-size: 15px;
   text-align: left;
   border-radius: 9px;
@@ -916,15 +1011,15 @@ summary:focus-visible {
 }
 .primary-nav button:hover,
 .workspace-sidebar-footer > button:hover {
-  background: #252f43;
+  background: #232e43;
 }
 .primary-nav button.selected,
 .workspace-sidebar-footer > button.selected {
-  background: #30394b;
+  background: #303847;
   color: #fff;
 }
 .recent-row.active {
-  background: #2c3548;
+  background: #2b3447;
 }
 .workspace-sidebar-footer {
   padding: 14px 12px 17px !important;
@@ -1522,7 +1617,7 @@ summary:focus-visible {
 }
 .file-tabs > button.active {
   background: #172033;
-  color: #e3eafa;
+  color: #dbe5f5;
   box-shadow: inset 0 2px 0 #777dfa;
 }
 .file-tabs > .icon-button {
@@ -1549,7 +1644,7 @@ summary:focus-visible {
 .editor-status .icon-button {
   height: 28px;
   width: 28px;
-  color: #a9b9d1;
+  color: #a6b6d0;
 }
 .preview-empty {
   display: flex;
@@ -1858,25 +1953,25 @@ summary:focus-visible {
   --primary-foreground: #fff;
   --card: #fff;
   --popover: #fff;
-  --secondary: #f7f8fa;
-  --muted: #f7f8fa;
-  --muted-foreground: #6b7280;
+  --secondary: #f4f7f5;
+  --muted: #f4f7f5;
+  --muted-foreground: #657181;
   --accent: #e8f2ec;
   --accent-foreground: #1f4b39;
-  --border: #e4e7ed;
-  --input: #d5dae5;
+  --border: #dde3eb;
+  --input: #d3dbe8;
   --ring: #3d8a67;
-  --sidebar: #f7f8fa;
+  --sidebar: #f4f7f5;
   --sidebar-foreground: #172033;
-  --sidebar-accent: #e3efe8;
-  --sidebar-border: #e4e7ed;
-  --user-bubble: #f0f2f6;
+  --sidebar-accent: #e8f2ec;
+  --sidebar-border: #dde3eb;
+  --user-bubble: #f5f7fa;
 }
 :root[data-theme='dark'] {
   --background: #11151b;
-  --foreground: #e9f0ec;
-  --card: #181e25;
-  --popover: #1c242c;
+  --foreground: #e8f2ec;
+  --card: #161c22;
+  --popover: #17212b;
   --secondary: #202832;
   --muted: #202832;
   --muted-foreground: #a4b3ab;
@@ -1891,7 +1986,7 @@ summary:focus-visible {
   --primary: #7fd3aa;
   --primary-foreground: #10241b;
   --sidebar: #161c22;
-  --sidebar-foreground: #e9f0ec;
+  --sidebar-foreground: #e8f2ec;
   --sidebar-accent: #22392f;
   --sidebar-accent-foreground: #b6dfc9;
   --sidebar-border: #303c37;
@@ -2857,22 +2952,22 @@ summary:focus-visible {
    over time, and the app wore whichever one happened to win. They now all name
    the same green, so the cascade cannot change the answer. */
 :root:not([data-theme='dark']) {
-  --background: #ffffff;
+  --background: #fff;
   --foreground: #182230;
-  --card: #ffffff;
+  --card: #fff;
   --card-foreground: #182230;
-  --sidebar: #f5f6f8;
+  --sidebar: #f4f7f5;
   --sidebar-foreground: #182230;
-  --muted: #f8f9fb;
+  --muted: #f5f7fa;
   --muted-foreground: #596579;
-  --secondary: #f5f6f8;
+  --secondary: #f4f7f5;
   --accent: #e8f2ec;
   --accent-foreground: #1f4b39;
   --primary: #285d46;
   --primary-foreground: #fff;
-  --border: #e4e8ef;
+  --border: #dde3eb;
   --input: #aab4c3;
-  --user-bubble: #eef4f0;
+  --user-bubble: #e8f2ec;
   --ring: #3d8a67;
 }
 .studio-shell {
@@ -2889,11 +2984,6 @@ summary:focus-visible {
     background-color 140ms ease,
     border-color 140ms ease,
     color 140ms ease;
-}
-.studio-shell button:focus-visible,
-.studio-shell a:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
 }
 .studio-shell [data-slot='button'] {
   font-size: 14px;
@@ -2924,7 +3014,7 @@ summary:focus-visible {
 .new-chat:hover {
   background: var(--accent);
   color: var(--primary);
-  border-color: #c7d8f5;
+  border-color: #cbdcf8;
 }
 .workspace-sidebar-content {
   color: var(--foreground);
@@ -3068,7 +3158,7 @@ summary:focus-visible {
   height: 34px;
 }
 .composer {
-  border: 1px solid #cfd6e2;
+  border: 1px solid #ccd5e4;
   border-radius: 20px;
   background: var(--card);
   box-shadow:
@@ -3757,7 +3847,7 @@ summary:focus-visible {
   gap: 15px;
   padding: 15px 19px;
   border: 1px solid #eac8bc;
-  background: #fff7f4;
+  background: #fff5f3;
   border-radius: 10px;
   font-size: 14px;
   color: #873e28;
@@ -4724,21 +4814,21 @@ summary:focus-visible {
 /* v7: a calm, task-first workspace with progressive disclosure. */
 :root {
   --hk-accent: #285d46;
-  --hk-surface: #ffffff;
+  --hk-surface: #fff;
   --hk-muted: #647084;
-  --hk-border: #e5e9f0;
+  --hk-border: #e8edf6;
 }
 [data-theme='dark'] {
   --hk-accent: #9baeff;
-  --hk-surface: #171b24;
-  --hk-muted: #aab4c6;
+  --hk-surface: #131720;
+  --hk-muted: #aab4c3;
   --hk-border: #303847;
 }
 .studio-shell {
   font-size: 16px;
 }
 .studio-shell .workspace-sidebar {
-  background: #f6f7fb;
+  background: #f5f7fa;
 }
 .studio-shell .workspace-sidebar-header {
   padding: 25px 18px 16px;
@@ -4748,7 +4838,7 @@ summary:focus-visible {
   min-height: 44px;
   background: #fff;
   color: #28334a;
-  border: 1px solid #dde3ee;
+  border: 1px solid #dde3eb;
   box-shadow: 0 2px 5px #1b2f4d06;
 }
 .studio-shell .primary-nav button,
@@ -4822,7 +4912,7 @@ summary:focus-visible {
   gap: 22px;
   padding: 20px;
   min-height: 124px;
-  background: #f8f9fc;
+  background: #f5f7fa;
   border: 1px solid var(--hk-border);
   border-radius: 16px;
   font-size: 14px;
@@ -4833,7 +4923,7 @@ summary:focus-visible {
     border-color 0.15s;
 }
 .studio-shell .starter-prompts button:hover {
-  background: #f0f3ff;
+  background: #f0f3fb;
   border-color: #b9c6f6;
 }
 .studio-shell .composer-dock {
@@ -4841,7 +4931,7 @@ summary:focus-visible {
   background: linear-gradient(0deg, var(--hk-surface) 85%, transparent);
 }
 .studio-shell .composer {
-  border: 1px solid #d7deeb;
+  border: 1px solid #d3dbe8;
   border-radius: 22px;
   box-shadow: 0 6px 28px #18386708;
   overflow: visible;
@@ -5011,8 +5101,8 @@ summary:focus-visible {
 .knowledge-empty {
   padding: 45px 20px;
   text-align: center;
-  background: #fafbfe;
-  border: 1px dashed #dce3ef;
+  background: #fff;
+  border: 1px dashed #dde3eb;
   border-radius: 18px;
 }
 .knowledge-empty > svg {
@@ -5033,7 +5123,7 @@ summary:focus-visible {
   display: flex;
   gap: 16px;
   align-items: center;
-  background: #f4f6fc;
+  background: #f5f7fa;
   padding: 22px;
   border-radius: 16px;
   margin-top: 30px;
@@ -5099,10 +5189,9 @@ summary:focus-visible {
   font-size: 14px !important;
   min-height: 40px;
 }
-.studio-shell :focus-visible {
-  outline: 2px solid #7893ed;
-  outline-offset: 3px;
-}
+/* Was a hardcoded blue, which is how the workspace kept focusing in a colour
+   the rest of the product had stopped using. Two other copies of this rule
+   above it are gone; the one at the top of the file covers everything. */
 .studio-shell .local-save {
   white-space: normal;
   font-size: 12px;
@@ -5120,14 +5209,14 @@ summary:focus-visible {
 [data-theme='dark'] .knowledge-empty,
 [data-theme='dark'] .learning-separation,
 [data-theme='dark'] .connect-banner {
-  background: #1b2231 !important;
-  color: #e4eaf6 !important;
+  background: #182230 !important;
+  color: #e8edf6 !important;
 }
 [data-theme='dark'] .knowledge-card.suggested {
   background: #302d21;
 }
 [data-theme='dark'] .chat-message.user .chat-message-inner {
-  background: #242e44;
+  background: #232e43;
 }
 [data-theme='dark'] .studio-shell .primary-nav button.selected,
 [data-theme='dark'] .knowledge-nav.selected {
@@ -5485,7 +5574,7 @@ summary:focus-visible {
   --primary-foreground: #fff;
   --ring: #3d8a67;
   --accent: #e8f2ec;
-  --sidebar-accent: #e3efe8;
+  --sidebar-accent: #e8f2ec;
   --sidebar-accent-foreground: #1f4b39;
 }
 body {
@@ -5499,8 +5588,8 @@ body {
   letter-spacing: -0.012em;
 }
 .studio-shell .workspace-sidebar {
-  --sidebar: #f6f7f4;
-  --sidebar-border: #e6e9e3;
+  --sidebar: #f4f7f5;
+  --sidebar-border: #dee5e0;
 }
 .hikmah-brand {
   letter-spacing: -1px !important;
@@ -5509,7 +5598,7 @@ body {
 }
 .hikmah-brand > svg {
   color: #326857;
-  background: #e6efe9;
+  background: #e8f2ec;
   padding: 5px;
   border-radius: 11px;
   box-sizing: content-box;
@@ -5530,12 +5619,12 @@ body {
 }
 .studio-shell .primary-nav button.selected,
 .studio-shell .knowledge-nav.selected {
-  background: #e6efea !important;
+  background: #e8f2ec !important;
   color: #245645 !important;
 }
 .studio-shell .composer {
   border-radius: 22px !important;
-  border-color: #dfe6e0 !important;
+  border-color: #dee5e0 !important;
   box-shadow: 0 3px 25px #254a3510 !important;
 }
 .studio-shell .send-button {
@@ -5545,13 +5634,13 @@ body {
 .studio-shell .welcome > svg {
   color: #326857;
   padding: 11px;
-  background: #edf4f0;
+  background: #e8f2ec;
   border-radius: 20px;
   box-sizing: content-box;
 }
 .studio-shell .starter-prompts button {
   border-radius: 15px !important;
-  background: #fcfcfa;
+  background: #fff;
 }
 .studio-shell .welcome h2 {
   font-weight: 560;
@@ -5559,7 +5648,7 @@ body {
 }
 .studio-shell .assistant-label > svg {
   color: #326857;
-  background: #edf4f0;
+  background: #e8f2ec;
   border-radius: 8px;
   padding: 3px;
   box-sizing: content-box;
@@ -5646,11 +5735,11 @@ body {
   height: 44px;
   flex-shrink: 0;
   border-radius: 14px;
-  background: #eaf2ed;
+  background: #e8f2ec;
   color: #316851;
 }
 .agent-avatar.coding {
-  background: #edf0fb;
+  background: #e8edf6;
   color: #506bb1;
 }
 .agent-avatar.voice {
@@ -5690,7 +5779,7 @@ body {
   font-size: 11px;
   padding: 4px 8px;
   color: #326857;
-  background: #edf4f0;
+  background: #e8f2ec;
   border-radius: 20px;
 }
 .agent-card-actions {
@@ -5983,12 +6072,12 @@ body {
 .dark .hikmah-brand > svg,
 .dark .agent-avatar,
 .dark .status-pill {
-  background: #243b32;
+  background: #22392f;
   color: #b3d9c6;
 }
 .dark .studio-shell .workspace-sidebar {
   --sidebar: #171e1b;
-  --sidebar-border: #303b34;
+  --sidebar-border: #303c37;
 }
 .dark .studio-shell .primary-nav button.selected,
 .dark .studio-shell .knowledge-nav.selected {
@@ -6003,7 +6092,7 @@ body {
 }
 .dark .studio-shell .welcome > svg,
 .dark .studio-shell .assistant-label > svg {
-  background: #233b30;
+  background: #22392f;
   color: #b3d9c6;
 }
 @media (max-width: 1180px) {
@@ -6081,7 +6170,7 @@ body {
   display: grid;
   place-items: center;
   padding: 28px 20px;
-  background: radial-gradient(ellipse at 25% 10%, #e7eee9, transparent 55%), #f7f8f5;
+  background: radial-gradient(ellipse at 25% 10%, #e8f2ec, transparent 55%), #f4f7f5;
   color: #20352e;
 }
 .auth-card {
@@ -6089,7 +6178,7 @@ body {
   max-width: 440px;
   background: #fff;
   padding: 44px;
-  border: 1px solid #e3e8e2;
+  border: 1px solid #dee5e0;
   border-radius: 24px;
   box-shadow: 0 20px 70px #243b2e0a;
 }
@@ -6133,10 +6222,10 @@ body {
 }
 .auth-card input {
   height: 46px;
-  border: 1px solid #dbe2dc;
+  border: 1px solid #dee5e0;
   border-radius: 10px;
   padding: 0 14px;
-  background: #fbfcfa;
+  background: #fff;
   margin-bottom: 8px;
   outline: none;
 }
@@ -6163,7 +6252,7 @@ body {
   cursor: wait;
 }
 .auth-error {
-  color: #a43c36;
+  color: #a43b34;
   font-size: 13px;
 }
 .auth-note {
@@ -6175,7 +6264,7 @@ body {
 }
 .auth-card footer {
   margin-top: 32px;
-  border-top: 1px solid #ecf0eb;
+  border-top: 1px solid #e8f2ec;
   padding-top: 16px;
   display: flex;
   justify-content: space-between;
@@ -6204,7 +6293,7 @@ a.auth-brand {
   font-weight: 500;
 }
 .auth-social:hover {
-  background: #f7f8f5 !important;
+  background: #f4f7f5 !important;
 }
 .auth-divider {
   display: flex;
@@ -6219,7 +6308,7 @@ a.auth-brand {
   content: '';
   flex: 1;
   height: 1px;
-  background: #ecf0eb;
+  background: #e8f2ec;
 }
 .auth-hint {
   font-size: 12px;
@@ -6254,8 +6343,8 @@ a.auth-brand {
   font-size: 14px;
   line-height: 1.65;
   color: #37544a;
-  background: #f2f7f3;
-  border: 1px solid #dde8e0;
+  background: #f4f7f5;
+  border: 1px solid #dee5e0;
   border-radius: 14px;
   padding: 22px 20px;
 }
@@ -6263,11 +6352,8 @@ a.auth-brand {
   font-weight: 600;
   word-break: break-all;
 }
-.auth-card button:focus-visible,
-.auth-card a:focus-visible {
-  outline: 3px solid #7fba9c;
-  outline-offset: 3px;
-}
+/* The auth cards used their own ring colour too. The one at the top of the
+   file already covers them. */
 @media (max-width: 480px) {
   .auth-card {
     padding: 28px 24px;
@@ -6581,17 +6667,31 @@ a.auth-brand {
    and 40dvh, which left the conversation itself barely a quarter of a phone
    screen. */
 @media (max-width: 900px) {
+  .chat-body {
+    /* See the drawer rules below. */
+    overflow-x: clip;
+  }
   .chat-drawer {
     position: absolute;
-    inset: 0 auto 0 0;
     z-index: 3;
     background: var(--background);
     box-shadow: 0 0 0 1px var(--border);
-    transform: translateX(-100%);
     visibility: hidden;
     transition:
       transform 180ms ease,
       visibility 180ms;
+  }
+  /* A closed drawer sits one full width outside the body, and something has
+     to absorb that. It used to be nothing: an off-canvas box still counts
+     towards scrollable overflow even while visibility:hidden, so about 300px
+     of empty page hung off the right edge and the whole layout could be
+     scrolled sideways with the header running off the screen.
+     `.chat-body { overflow-x: clip }` below is what absorbs it — clip rather
+     than hidden, because hidden would make the body a scroll container and
+     break the transcript's own scrolling. */
+  .chat-drawer-list {
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
   }
   .chat-drawer-panel {
     inset: 0 0 0 auto;
@@ -6862,8 +6962,59 @@ a.auth-brand {
 .chat-starters button:focus-visible::before {
   background: var(--primary);
 }
+/* The composer's bottom row.
+ *
+ * It was a single non-wrapping flex line holding five controls, a token meter
+ * and the send button. The tools group had min-w-0 so its box shrank while its
+ * contents — all shrink-0 buttons and nowrap labels — did not, and the surplus
+ * painted straight over the meter and the send button. On a phone that read as
+ * "Free Models" written across the send button with the last letters cut off.
+ *
+ * Wrapping is the honest answer: a row that does not fit becomes two rows
+ * rather than one row of overlapping text. */
+/* The edit control under a question. Present but quiet: a question you asked
+   rarely needs changing, and a control that shouts on every turn is what makes
+   a transcript feel cluttered. */
+.chat-ask-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -2px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.group:hover > .chat-ask-actions,
+.chat-ask-actions:focus-within {
+  opacity: 1;
+}
+/* Nothing hovers on a touch screen, so there it is simply always visible. */
+@media (hover: none) {
+  .chat-ask-actions {
+    opacity: 0.55;
+  }
+}
+
+.chat-composer-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.chat-composer-tools {
+  flex-wrap: wrap;
+  row-gap: 8px;
+  /* It may take the whole width when it wraps, but it must not force the meter
+     and the send button off the line before it does. */
+  flex: 1 1 auto;
+}
 .chat-model-select {
-  max-width: 210px;
+  /* Auto, not the 100% every select gets: this one shares a row. It gives up
+     width before the buttons do, and truncates rather than pushing. */
+  width: auto;
+  min-width: 0;
+  max-width: min(210px, 42vw);
+}
+.chat-model-select > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* The preview is a third column beside the conversation. .artifact-panel is
    layout-neutral on its own, so the width belongs here rather than in the
@@ -7001,9 +7152,6 @@ a.auth-brand {
 .chat-receipt-model {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   overflow-wrap: anywhere;
-}
-.chat-receipt-caveat {
-  margin-left: auto;
 }
 .chat-tools-trigger {
   height: 34px;
@@ -7555,9 +7703,9 @@ a.auth-brand {
 .landing {
   --ink: #16261f;
   --ink-soft: #55695f;
-  --line: #e2e9e3;
+  --line: #dee5e0;
   --accent: #285d46;
-  background: radial-gradient(ellipse at 20% -5%, #e6efe8, transparent 60%), #fbfcfa;
+  background: radial-gradient(ellipse at 20% -5%, #e8f2ec, transparent 60%), #fff;
   color: var(--ink);
   min-height: 100dvh;
   padding: 0 20px 72px;
@@ -7789,7 +7937,4 @@ a.auth-brand {
   padding-top: 24px;
   margin-top: 12px;
 }
-.landing a:focus-visible {
-  outline: 3px solid #7fba9c;
-  outline-offset: 3px;
-}
+/* Likewise the landing page. */

@@ -12,7 +12,12 @@ export type ConversationProps = ComponentProps<typeof StickToBottom>;
 
 export const Conversation = ({ className, ...props }: ConversationProps) => (
   <StickToBottom
-    className={cn("relative flex-1 overflow-y-hidden", className)}
+    // overflow-y-auto, not hidden. The library creates its own scroller inside
+    // this box, so hidden looks harmless — until something shrinks the viewport
+    // (an error card appearing below it) and pushes a message past the top
+    // edge. With hidden there is then no way to scroll back to it: the message
+    // is simply cut off, which is what the last turn did.
+    className={cn("relative flex-1 overflow-y-auto", className)}
     initial="smooth"
     resize="smooth"
     role="log"
@@ -29,7 +34,9 @@ export const ConversationContent = ({
   ...props
 }: ConversationContentProps) => (
   <StickToBottom.Content
-    className={cn("flex flex-col gap-8 p-4", className)}
+    // Room at the bottom so the last turn is not sitting against the composer,
+    // and so an error card mounting between them does not take its space.
+    className={cn("flex flex-col gap-8 p-4 pb-8", className)}
     {...props}
   />
 );

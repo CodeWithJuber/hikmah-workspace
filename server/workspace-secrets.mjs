@@ -29,6 +29,21 @@ export function validateDestination(destination) {
   // editing the host after the fact.
   if (typeof destination === 'string' && /^ssh:[A-Za-z0-9_-]{1,64}$/.test(destination))
     return destination;
+  // A key for an endpoint this deployment has no preset for. Without it the
+  // only way to use a custom provider was a field that kept the key in browser
+  // memory until the tab reloaded, which is not somewhere a credential belongs.
+  // Bound to the origin, so a key saved for one host cannot be spent on another
+  // by editing the endpoint afterwards.
+  if (typeof destination === 'string' && destination.startsWith('provider:https://')) {
+    try {
+      const url = new URL(destination.slice('provider:'.length));
+      if (url.protocol !== 'https:' || url.username || url.password || url.hash || url.search)
+        throw Error();
+      return 'provider:' + url.origin;
+    } catch {
+      throw new SecretError('A custom provider needs a plain HTTPS endpoint.');
+    }
+  }
   try {
     if (
       typeof destination !== 'string' ||

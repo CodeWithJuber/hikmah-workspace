@@ -30,7 +30,7 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
   if (!meta.model && !meta.usage && !tools.length) return null;
 
   return (
-    <p className="chat-receipt">
+    <p className="chat-receipt" title="Recorded actions, not a measure of quality.">
       {meta.model && <span className="chat-receipt-model">{meta.model}</span>}
       {meta.usage?.totalTokens !== undefined && <span>{count(meta.usage.totalTokens)} tokens</span>}
       {!!tools.length && (
@@ -39,9 +39,11 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
           {failed > 0 && `, ${count(failed)} unsuccessful`}
         </span>
       )}
-      {/* The honest part, and still true: these are recorded actions, not a
-          measure of whether the answer is any good. */}
-      <span className="chat-receipt-caveat">Recorded actions, not a quality score.</span>
+      {/* The caveat is still true and still worth saying — these are recorded
+          actions, not a measure of whether the answer is any good — but saying
+          it under every single answer turned an honest note into furniture.
+          It reads once, on hover, where someone wondering what the figures
+          mean will look. */}
     </p>
   );
 }
