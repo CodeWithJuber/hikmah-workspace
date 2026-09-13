@@ -15,6 +15,8 @@ export type ChatRequestBody = {
   maxSteps?: number;
   /** How much earlier conversation the run may carry, in characters. */
   contextCharacters?: number;
+  /** The model's window in tokens, when the provider publishes one. */
+  contextWindow?: number;
   disabledTools: string[];
   /** An agent's allowlist over the built-in tools; empty means all of them. */
   enabledTools: string[];
@@ -89,6 +91,22 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     contextCharacters = body.contextCharacters;
   }
 
+  // What the provider says this model can hold, so the run can budget history
+  // against it instead of a flat number that fitted no model in particular.
+  // Bounded because it arrives from the client and only ever shrinks the
+  // request: a caller inflating it spends its own window, not ours.
+  let contextWindow: number | undefined;
+  if (body.contextWindow !== undefined) {
+    if (
+      typeof body.contextWindow !== 'number' ||
+      !Number.isInteger(body.contextWindow) ||
+      body.contextWindow < 1_000 ||
+      body.contextWindow > 10_000_000
+    )
+      throw new ChatRequestError('The model context window must be a whole number of tokens.');
+    contextWindow = body.contextWindow;
+  }
+
   let maxSteps: number | undefined;
   if (body.maxSteps !== undefined) {
     if (
@@ -130,6 +148,7 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     instructions: body.instructions,
     maxSteps,
     contextCharacters,
+    contextWindow,
     disabledTools: Array.isArray(body.disabledTools)
       ? body.disabledTools.filter((tool): tool is string => typeof tool === 'string')
       : [],
