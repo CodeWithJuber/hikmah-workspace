@@ -49,7 +49,7 @@ export function ChatShell({
    * into what it left to review. */
   task?: boolean;
 }) {
-  const { settings, change } = useChatSettings();
+  const { settings, change, ready } = useChatSettings();
   const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
   // Bumped when a run settles. A conversation is created by its first message
   // and titled from it, so without this the list would keep showing the state
@@ -196,6 +196,7 @@ export function ChatShell({
           conversationId={conversationId}
           agent={agent}
           settings={settings}
+          settingsReady={ready}
           onArtifact={setArtifact}
           onTools={changeTools}
           onSettled={settled}
@@ -273,7 +274,12 @@ export function ChatShell({
                 Settings
               </button>
               {narrow && (
-                <button type="button" aria-label="Close" onClick={() => setDrawer(null)}>
+                <button
+                  type="button"
+                  className="workspace-tabs-close"
+                  aria-label="Close"
+                  onClick={() => setDrawer(null)}
+                >
                   <X size={15} />
                 </button>
               )}

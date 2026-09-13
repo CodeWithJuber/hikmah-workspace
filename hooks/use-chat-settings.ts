@@ -12,6 +12,11 @@ import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from '@/lib/chat/settings';
 
 export function useChatSettings() {
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
+  // Whether `settings` is what the server holds rather than the defaults it
+  // started as. A reader that overlays the saved connection on a run must not
+  // overlay the defaults — that would point a run at OpenRouter for the frame
+  // before the real answer arrives.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -22,7 +27,10 @@ export function useChatSettings() {
       })
       // The defaults are usable settings, so a failed read costs nothing worth
       // interrupting the owner about.
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (live) setReady(true);
+      });
     return () => {
       live = false;
     };
@@ -42,5 +50,5 @@ export function useChatSettings() {
     if (payload.settings) setSettings(payload.settings);
   }, []);
 
-  return { settings, change };
+  return { settings, change, ready };
 }

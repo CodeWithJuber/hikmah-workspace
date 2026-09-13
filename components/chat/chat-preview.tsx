@@ -161,6 +161,7 @@ export function ChatPreview({
   conversationId,
   agent,
   settings,
+  settingsReady,
   onTools,
   onArtifact,
   onSettled,
@@ -182,6 +183,9 @@ export function ChatPreview({
    * turn, so a change applies from the next message rather than needing a
    * reload. */
   settings: ChatSettings;
+  /** Whether `settings` has been read from the server yet, or is still the
+   * defaults. Only a read connection is overlaid on the run. */
+  settingsReady?: boolean;
   /** Saves a change to which tools the run may use. */
   onTools?: (disabledTools: string[]) => Promise<void> | void;
   /** Opens a page an answer produced, in the side panel. */
@@ -211,11 +215,38 @@ export function ChatPreview({
     };
   }, [conversationId]);
 
+  // The connection as it is now, not as it was when this mounted. Saving a
+  // different provider in Settings changed the run's endpoint at once but the
+  // model, the catalogue and the picker kept the old provider's, so the next
+  // message went to Ollama asking for an OpenRouter model, and the composer
+  // said OpenRouter until a reload. Overlaid only once the settings have
+  // actually been read: before that they are the defaults, and the defaults
+  // would point a run at OpenRouter for a frame.
+  const live = settingsReady ? settings.connection : undefined;
+  const config = useMemo<RunConfig | undefined>(() => {
+    if (!loaded) return undefined;
+    if (!live) return loaded.config;
+    return {
+      ...loaded.config,
+      baseUrl: live.baseUrl || loaded.config.baseUrl,
+      model: live.model || loaded.config.model,
+      freeOnly: live.freeOnly,
+      apiKeySecret: live.apiKeySecret || loaded.config.apiKeySecret,
+    };
+  }, [loaded, live]);
+  // A model picked for the next turn belongs to the provider it was picked
+  // from. When the endpoint changes, the pick is stale; reset during render
+  // rather than in an effect, so no frame shows the old one against the new.
+  const [pickedFor, setPickedFor] = useState(config?.baseUrl);
+  if (config && pickedFor !== config.baseUrl) {
+    setPickedFor(config.baseUrl);
+    setChosen(null);
+  }
+
   // The catalog is a convenience, not a precondition: a provider that publishes
   // no model list still works, the composer just does not offer a picker. The
   // request carries a secret reference rather than a key, and goes through the
   // relay, so this stays as key-free as the rest of the surface.
-  const config = loaded?.config;
   useEffect(() => {
     if (!config) return;
     const controller = new AbortController();
@@ -267,7 +298,7 @@ export function ChatPreview({
 
   const pick = useCallback((model: string) => setChosen(model), []);
 
-  const active = chosen || agent?.model || loaded?.config.model;
+  const active = chosen || agent?.model || config?.model;
   const contextWindow = models.find((row) => row.id === active)?.context_length;
 
   return (
@@ -275,7 +306,7 @@ export function ChatPreview({
       {/* No page heading here: the topbar already names the app, and a
           paragraph explaining that runs are server-side was repeating an
           implementation detail above every conversation. */}
-      {loaded ? (
+      {loaded && config ? (
         <ChatView
           id={conversationId}
           run={{
@@ -296,15 +327,14 @@ export function ChatPreview({
             // The owner's own choice first, then the agent's, then the saved
             // connection: picking an agent should not quietly override a model
             // the owner just selected.
-            model: active ?? settings.connection.model ?? loaded.config.model,
-            // From the live settings, not the copy read when this mounted:
-            // saving a key and sending a message in the same visit has to work,
-            // and reading it once meant the run still went out keyless until
-            // the owner happened to reload.
-            baseUrl: settings.connection.baseUrl || loaded.config.baseUrl,
-            freeOnly: settings.connection.freeOnly,
+            model: active ?? config.model,
+            // From the live connection above, not the copy read when this
+            // mounted: saving a key and sending a message in the same visit
+            // has to work, and so does switching provider.
+            baseUrl: config.baseUrl,
+            freeOnly: config.freeOnly,
             contextWindow,
-            apiKeySecret: settings.connection.apiKeySecret || loaded.config.apiKeySecret,
+            apiKeySecret: config.apiKeySecret,
             maxSteps: settings.maxSteps,
             contextCharacters: settings.contextCharacters,
             // An agent's allowlist and the owner's off-switches are different
