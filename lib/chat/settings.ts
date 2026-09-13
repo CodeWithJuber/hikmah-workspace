@@ -46,6 +46,29 @@ export type ChatSettings = {
   /** The provider this owner's runs use. Kept here rather than in the
    * workspace blob so the chat works without ever opening the workspace. */
   connection: ChatConnection;
+  /**
+   * Standing instructions the owner wants on every run.
+   *
+   * The workspace had this and it reached the model through `workspacePrompt`,
+   * which lost its only caller when the browser run loop was retired. Nothing
+   * noticed, so for a while the setting existed and did nothing at all.
+   */
+  instructions: string;
+  /** How much the answer should say. */
+  responseStyle: 'concise' | 'balanced' | 'detailed';
+  /** Whether the answer explains the decisions behind it. */
+  explainDecisions: boolean;
+  /**
+   * Whether this project's own syntax compiler annotates the recent turns for
+   * the model.
+   *
+   * The workspace called this `enableCoModel` and had it on by default; it
+   * reached the run through `workspacePrompt`, which lost its only caller with
+   * the browser run loop, so for a while the switch existed and the compiler
+   * ran nowhere. On by default here for the same reason it was there, and
+   * switchable because the notes cost tokens on every turn.
+   */
+  contextModel: boolean;
 };
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -54,7 +77,35 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   contextCharacters: DEFAULT_CONTEXT_CHARACTERS,
   showActivity: true,
   connection: DEFAULT_CONNECTION,
+  instructions: '',
+  responseStyle: 'balanced',
+  explainDecisions: false,
+  contextModel: true,
 };
+
+/** Bounded so one setting cannot become a second system prompt. */
+export const MAX_INSTRUCTIONS = 4000;
+
+/**
+ * The owner's own standing instructions, as a block for the system prompt.
+ *
+ * Kept apart from the core rules and labelled, so a model reading it knows
+ * whose words these are, and so nothing in it can read as a platform rule.
+ */
+export function personalPrompt(settings: ChatSettings): string {
+  const parts: string[] = [];
+  if (settings.responseStyle !== 'balanced')
+    parts.push(
+      settings.responseStyle === 'concise'
+        ? 'Answer concisely: the result first, detail only where it changes what to do.'
+        : 'Answer in depth: include the reasoning, the alternatives considered and the limits.',
+    );
+  if (settings.explainDecisions)
+    parts.push('Include a short account of the key decisions, the evidence and the trade-offs.');
+  const own = settings.instructions.trim();
+  if (own) parts.push("The person's own standing instructions:\n" + own);
+  return parts.length ? '\n\n' + parts.join('\n') : '';
+}
 
 /** Below this a conversation cannot carry its own previous turn, which makes
  * the setting a way to break the chat rather than tune it. */
@@ -95,6 +146,16 @@ export function parseChatSettings(raw: unknown): ChatSettings {
     // before this field existed should not silently hide it.
     showActivity: value.showActivity !== false,
     connection: parseConnection(value.connection),
+    instructions:
+      typeof value.instructions === 'string' ? value.instructions.slice(0, MAX_INSTRUCTIONS) : '',
+    responseStyle:
+      value.responseStyle === 'concise' || value.responseStyle === 'detailed'
+        ? value.responseStyle
+        : 'balanced',
+    explainDecisions: value.explainDecisions === true,
+    // Absent means on, so a row written before this field existed keeps the
+    // behaviour the workspace preference had.
+    contextModel: value.contextModel !== false,
   };
 }
 

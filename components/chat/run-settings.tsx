@@ -9,10 +9,15 @@
  * `buildRunAgent`, and `showActivity` decides what the transcript renders.
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { ChatSettings } from '@/lib/chat/settings';
+import { MAX_INSTRUCTIONS, type ChatSettings } from '@/lib/chat/settings';
 import { ConnectionSettings } from './connection-settings';
 
 const STEP_CHOICES = [2, 4, 8, 12, 20, 32];
+const STYLES = [
+  { value: 'concise' as const, label: 'Concise' },
+  { value: 'balanced' as const, label: 'Balanced' },
+  { value: 'detailed' as const, label: 'Detailed' },
+];
 const CONTEXT_CHOICES = [
   { value: 16_000, label: 'Short' },
   { value: 60_000, label: 'Medium' },
@@ -122,6 +127,77 @@ export function RunSettings({
             <small>Tool calls, reasoning and what the run cost, under each answer.</small>
           </span>
         </label>
+      </section>
+
+      <section>
+        <h4>How the answer reads</h4>
+        <div className="chat-settings-choices" role="group" aria-label="Response style">
+          {STYLES.map((choice) => (
+            <button
+              key={choice.value}
+              type="button"
+              disabled={saving}
+              aria-pressed={settings.responseStyle === choice.value}
+              onClick={() => void apply({ responseStyle: choice.value })}
+            >
+              {choice.label}
+            </button>
+          ))}
+        </div>
+        <label className="chat-settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.explainDecisions}
+            disabled={saving}
+            onChange={(event) => void apply({ explainDecisions: event.target.checked })}
+          />
+          <span>
+            <strong>Explain the decisions</strong>
+            <small>A short account of what was chosen, on what evidence, and the trade-offs.</small>
+          </span>
+        </label>
+        {/* The workspace called this the co-model and had it on. It reached the
+            run through the same function the standing instructions did, so it
+            stopped doing anything at the same moment and for the same reason. */}
+        <label className="chat-settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.contextModel}
+            disabled={saving}
+            onChange={(event) => void apply({ contextModel: event.target.checked })}
+          />
+          <span>
+            <strong>Local context notes</strong>
+            <small>
+              This project&rsquo;s own syntax compiler annotates your recent messages — who did what
+              to whom, negation, attribution, exact numbers — and passes the notes to the model as
+              fallible hints. Costs a few tokens a turn.
+            </small>
+          </span>
+        </label>
+      </section>
+
+      <section>
+        <h4>Your standing instructions</h4>
+        {/* This existed in the workspace and reached the model through a
+            function that lost its only caller when the browser run loop was
+            retired, so for a while the setting was there and did nothing. */}
+        <textarea
+          className="chat-settings-instructions"
+          rows={4}
+          maxLength={MAX_INSTRUCTIONS}
+          defaultValue={settings.instructions}
+          disabled={saving}
+          placeholder="Anything you want on every answer — the language to reply in, how to cite, what to avoid."
+          onBlur={(event) => {
+            if (event.target.value !== settings.instructions)
+              void apply({ instructions: event.target.value });
+          }}
+        />
+        <small>
+          Added to every run, after the workspace&rsquo;s own rules and before an agent&rsquo;s.
+          Saved when you click away.
+        </small>
       </section>
 
       <p className="chat-settings-note" role="status">

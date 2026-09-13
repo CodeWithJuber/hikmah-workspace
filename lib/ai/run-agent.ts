@@ -14,6 +14,7 @@ import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
 import { mcpToolApproval, type McpRunTools } from '../mcp/run-context.ts';
+import { withServerGuidance } from './server-guidance.ts';
 import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/shell.ts';
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
@@ -79,7 +80,7 @@ export type RunAgentOptions = {
    * Connecting is the caller's job because it is async and has to happen once
    * per run, while this function is synchronous and may be called per step.
    */
-  mcp?: Pick<McpRunTools, 'tools' | 'approval'>;
+  mcp?: Pick<McpRunTools, 'tools' | 'approval' | 'guidance'>;
   model?: LanguageModel;
 };
 
@@ -134,7 +135,7 @@ export function buildRunAgent(options: RunAgentOptions) {
 
   return new ToolLoopAgent({
     model: options.model ?? createLanguageModel(options.provider),
-    instructions: options.instructions,
+    instructions: withServerGuidance(options.instructions, options.mcp?.guidance),
     tools,
     stopWhen: isStepCount(options.maxSteps ?? DEFAULT_MAX_STEPS),
     prepareStep: ({ messages }) => ({ messages: reduceMessages(messages, limit) }),
