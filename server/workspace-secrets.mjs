@@ -8,11 +8,25 @@ export class SecretError extends Error {
   }
 }
 const validName = (name) => typeof name === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(name);
+/** Every hosted preset in lib/ai/providers.ts, as a key destination. */
+export const PROVIDER_DESTINATIONS = new Set(
+  [
+    'openrouter',
+    'ollama-cloud',
+    'openai',
+    'anthropic',
+    'moonshot',
+    'google',
+    'deepseek',
+    'groq',
+    'mistral',
+    'xai',
+    'experiential',
+  ].map((id) => 'provider:' + id),
+);
 export function validateDestination(destination) {
   if (
     [
-      'provider:openrouter',
-      'provider:experiential',
       'search:brave',
       'runtime',
       'runtime:env',
@@ -24,6 +38,15 @@ export function validateDestination(destination) {
     ].includes(destination)
   )
     return destination;
+  // A key for a provider preset, by the preset's id. This file cannot import
+  // the preset table (it runs at boot, before anything is compiled), so the
+  // ids are listed here and tests/one-key-panel.test.mjs checks the list
+  // against the table: when it held two names and nothing checked it, every
+  // provider added since was refused with "The key could not be saved", and
+  // the run went out keyless. The binding is unchanged — the id is part of the
+  // ciphertext's associated data, so a key saved for one provider cannot be
+  // spent on another.
+  if (PROVIDER_DESTINATIONS.has(destination)) return destination;
   // A saved SSH credential belongs to one host row and nothing else. Binding it
   // to the host id means a key cannot be reused against a different machine by
   // editing the host after the fact.

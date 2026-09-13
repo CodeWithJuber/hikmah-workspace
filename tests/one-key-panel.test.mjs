@@ -64,9 +64,22 @@ test('a key can be saved for any provider the run route can resolve one for', as
   const { providerDestination } = await import(pathToFileURL(join(dir, 'endpoint.mjs')));
   const { validateDestination } = await import('../server/workspace-secrets.mjs');
 
+  // Every hosted preset, not only the two the vault was written for: the
+  // providers added later produced a destination the vault refused, so saving
+  // an Ollama Cloud or OpenAI key answered "The key could not be saved" and
+  // the next run went out keyless.
   for (const [baseUrl, expected] of [
     ['https://openrouter.ai/api/v1', 'provider:openrouter'],
     ['https://api.experientiallabs.ai/v1', 'provider:experiential'],
+    ['https://ollama.com/v1', 'provider:ollama-cloud'],
+    ['https://api.openai.com/v1', 'provider:openai'],
+    ['https://api.anthropic.com/v1', 'provider:anthropic'],
+    ['https://api.moonshot.ai/v1', 'provider:moonshot'],
+    ['https://generativelanguage.googleapis.com/v1beta/openai', 'provider:google'],
+    ['https://api.deepseek.com/v1', 'provider:deepseek'],
+    ['https://api.groq.com/openai/v1', 'provider:groq'],
+    ['https://api.mistral.ai/v1', 'provider:mistral'],
+    ['https://api.x.ai/v1', 'provider:xai'],
     ['https://llm.example.com/v1', 'provider:https://llm.example.com'],
     ['https://llm.example.com:8443/v1', 'provider:https://llm.example.com:8443'],
   ]) {
@@ -79,6 +92,28 @@ test('a key can be saved for any provider the run route can resolve one for', as
   // put one rather than a place that would never be read.
   for (const local of ['http://127.0.0.1:11434/v1', 'http://ollama:11434/v1', 'not a url'])
     assert.equal(providerDestination(local), '', local);
+});
+
+test('the vault knows every hosted preset the settings offer', async () => {
+  // The vault cannot import the preset table, so it keeps its own list; this
+  // is what stops the two drifting apart again. Ollama Cloud, OpenAI and the
+  // rest were in the table for a release before the vault heard of them.
+  const dir = await mkdtemp(join(tmpdir(), 'hikmah-presets-'));
+  await build({
+    entryPoints: ['lib/ai/providers.ts'],
+    outdir: dir,
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    outExtension: { '.js': '.mjs' },
+    logLevel: 'silent',
+  });
+  const { hostedProviders } = await import(pathToFileURL(join(dir, 'providers.mjs')));
+  const { PROVIDER_DESTINATIONS, validateDestination } =
+    await import('../server/workspace-secrets.mjs');
+  const expected = hostedProviders().map((provider) => 'provider:' + provider.id);
+  assert.deepEqual([...PROVIDER_DESTINATIONS].sort(), [...expected].sort());
+  for (const destination of expected) assert.equal(validateDestination(destination), destination);
 });
 
 test('a custom destination is bound to the origin, not to a URL someone typed', async () => {
