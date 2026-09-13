@@ -130,6 +130,46 @@ export function RunSettings({
       </section>
 
       <section>
+        <h4>Memory</h4>
+        <label className="chat-settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.memory.recallConversations}
+            disabled={saving}
+            onChange={(event) =>
+              void apply({
+                memory: { ...settings.memory, recallConversations: event.target.checked },
+              })
+            }
+          />
+          <span>
+            <strong>Recall earlier conversations</strong>
+            <small>
+              A few short excerpts from your other chats that share words with the question, as
+              reference. The receipt says when one was used.
+            </small>
+          </span>
+        </label>
+        <label className="chat-settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.memory.autoSaveQuotes}
+            disabled={saving}
+            onChange={(event) =>
+              void apply({ memory: { ...settings.memory, autoSaveQuotes: event.target.checked } })
+            }
+          />
+          <span>
+            <strong>Save preferences in your own words without review</strong>
+            <small>
+              When the model quotes a preference exactly from your message, keep it at once. Facts
+              and anything the model inferred always wait for your review in Memory.
+            </small>
+          </span>
+        </label>
+      </section>
+
+      <section>
         <h4>How the answer reads</h4>
         <div className="chat-settings-choices" role="group" aria-label="Response style">
           {STYLES.map((choice) => (

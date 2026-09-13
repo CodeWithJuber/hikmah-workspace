@@ -241,6 +241,42 @@ export function ChatView({
     transport.setConfig({ ...run, compare: compare ? {} : undefined });
   }, [transport, run, compare]);
 
+  // Remember, by hand: your own message is saved as your words; an answer is
+  // filed as the model's inference and waits for review. The route names the
+  // memory after this conversation and decides the status from the provenance,
+  // so the button cannot claim more trust for a line than its origin earns.
+  const remember = useCallback(
+    async (message: UIMessage): Promise<'saved' | 'suggested' | null> => {
+      const content = messageText(message);
+      if (!content) return null;
+      try {
+        const response = await fetch('/api/memory', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content,
+            kind: 'reference',
+            provenance: message.role === 'user' ? 'quote' : 'inference',
+            sourceConversationId: id,
+          }),
+        });
+        if (!response.ok) return null;
+        const payload = (await response.json().catch(() => ({}))) as {
+          memory?: { status?: string };
+        };
+        return payload.memory?.status === 'saved'
+          ? 'saved'
+          : payload.memory?.status === 'suggested'
+            ? 'suggested'
+            : null;
+      } catch {
+        return null;
+      }
+    },
+    [id],
+  );
+
   const busy = status === 'submitted' || status === 'streaming';
   // Whether any of the answer has actually arrived. Once it has, the words are
   // the progress indicator and a label beside them is noise.
@@ -384,6 +420,7 @@ export function ChatView({
               }
               showActivity={showActivity}
               onArtifact={onArtifact}
+              onRemember={remember}
               // Offered on every settled answer, not just the last: the server
               // truncates from the message being replayed, so an earlier one
               // rewinds the conversation to that point rather than corrupting

@@ -28,16 +28,24 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
   // What the prompt carried from the person's memory. The Memory screen has
   // promised "each answer shows which items were used" since before there was
   // a server to make it true; this is where it becomes true.
-  const used = message.parts.reduce(
-    (n, part) =>
-      part.type === 'data-memories'
-        ? n + (((part as { data?: { used?: unknown[] } }).data?.used ?? []).length ?? 0)
-        : n,
-    0,
-  );
+  const memories = message.parts.find((part) => part.type === 'data-memories') as
+    { data?: { used?: unknown[]; conversations?: unknown[] } } | undefined;
+  const used = memories?.data?.used?.length ?? 0;
+  const recalled = memories?.data?.conversations?.length ?? 0;
+  // What the run saved from this turn, in the person's words — or filed for
+  // their review. Read from the tool's own result, so the count is what the
+  // store actually did rather than what was attempted.
+  const remembered = tools.filter(
+    (part) =>
+      part.type === 'tool-remember' &&
+      part.state === 'output-available' &&
+      ['saved', 'suggested'].includes(
+        String((part.output as { status?: string } | undefined)?.status),
+      ),
+  ).length;
 
   // Nothing recorded and nothing run means nothing worth a line of chrome.
-  if (!meta.model && !meta.usage && !tools.length && !used) return null;
+  if (!meta.model && !meta.usage && !tools.length && !used && !recalled) return null;
 
   return (
     <p className="chat-receipt" title="Recorded actions, not a measure of quality.">
@@ -52,6 +60,14 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
         <span className="chat-receipt-memories">
           used {count(used)} {used === 1 ? 'memory' : 'memories'}
         </span>
+      )}
+      {recalled > 0 && (
+        <span className="chat-receipt-memories">
+          recalled {count(recalled)} earlier {recalled === 1 ? 'conversation' : 'conversations'}
+        </span>
+      )}
+      {remembered > 0 && (
+        <span className="chat-receipt-memories">remembered {count(remembered)} — see Memory</span>
       )}
       {failed > 0 && (
         <span className="chat-receipt-failed">

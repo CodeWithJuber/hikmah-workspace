@@ -68,14 +68,29 @@ export async function POST(request: Request) {
   const provenance = (PROVENANCES as readonly string[]).includes(body.provenance as string)
     ? (body.provenance as Provenance)
     : 'quote';
+  const conversationId =
+    typeof body.sourceConversationId === 'string' ? body.sourceConversationId : null;
+  // A memory taken from a message is named after its conversation: "You · <title>"
+  // for the person's own words, "Hikmah · <title>" for an answer's.
+  const title = conversationId
+    ? (
+        getStorage()
+          .raw.prepare('SELECT title FROM conversations WHERE id = ? AND user_id = ?')
+          .get(conversationId, user.userId) as { title?: string } | undefined
+      )?.title
+    : undefined;
   const saved = store().add(user.userId, {
     kind: KINDS.has(body.kind as string) ? (body.kind as MemoryKind) : 'reference',
     title: typeof body.title === 'string' ? body.title.trim() : '',
     content,
     provenance,
-    source: typeof body.source === 'string' ? body.source : 'Added by you',
-    sourceConversationId:
-      typeof body.sourceConversationId === 'string' ? body.sourceConversationId : null,
+    source:
+      typeof body.source === 'string'
+        ? body.source
+        : title
+          ? (provenance === 'quote' ? 'You · ' : 'Hikmah · ') + title
+          : 'Added by you',
+    sourceConversationId: conversationId,
     // Only a person's own words may be saved without review.
     status: provenance === 'quote' && body.status !== 'suggested' ? 'saved' : 'suggested',
   });

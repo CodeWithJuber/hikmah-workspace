@@ -370,6 +370,32 @@ a preference; everything else is `suggested` until the person accepts it.
 Deleting or disabling a memory is always the person's action; there is no
 `forget` tool.
 
+**Recall from earlier conversations.** `drizzle/0015_messages_fts.sql` is an
+FTS5 index over the text parts of `messages` — a standalone table holding its
+own text, filled by triggers on insert, update and delete, with `user_id`
+copied from `conversations` so recall can never cross accounts, and never a
+tool's output, which would otherwise make every page ever read a
+prompt-injection channel into every later conversation. The index applies the
+same normalisation the query side does (harakat and tatweel stripped, Urdu and
+Arabic letter forms folded, combining marks kept inside words), so a vowelled
+phrase and its plain form find each other. `lib/memory/recall.ts` turns the
+last user turn into a quoted, OR'ed `MATCH` query — raw text is a syntax
+error to FTS5 — and returns at most three excerpts, one per conversation, from
+the person's _other_ conversations, which `composePrompt` places after their
+saved memories as reference data. The `data-memories` part names the
+conversations recalled, so the receipt can say so. Switchable per person
+(`memory.recallConversations`).
+
+**`remember`** (`lib/ai/tools/memory.ts`) is the only way a run writes a
+memory, and it keeps the rule the deleted browser tool had: the quote must be
+the person's exact words from their last user turn, checked after NFC and
+whitespace normalisation on both sides. A preference quoted verbatim is saved
+at once when `memory.autoSaveQuotes` is on and the turn carried no attachment,
+the quote is short and the message is short; a reference, and everything
+else, is suggested for review. The Remember action on a message does the same
+by hand: your own message becomes a `quote`, an answer becomes an `inference`
+that waits.
+
 **The screen** is `components/chat/memory-panel.tsx`, the fourth tab of the
 chat's workspace panel and the body of the `/workspace` Memory screen, over
 `/api/memory` (`getChatGPTUser` on reads, `Origin` on writes). To review,

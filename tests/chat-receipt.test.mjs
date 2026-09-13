@@ -88,3 +88,41 @@ test('a turn that carried memories and said nothing is still a blank turn', () =
   const html = render(answered([memories([{ id: 'm-a', title: 'Language', kind: 'preference' }])]));
   assert.match(html, /produced nothing/);
 });
+
+test('the receipt says how many earlier conversations were recalled', () => {
+  const html = render(
+    answered([
+      {
+        type: 'data-memories',
+        id: 'memories',
+        data: { used: [], conversations: [{ id: 'conv_a', title: 'Ghar ki baat' }] },
+      },
+      { type: 'text', text: 'Aap Karachi mein rehte hain, jaisa aapne pehle kaha.' },
+    ]),
+  );
+  assert.match(html, /recalled 1 earlier conversation\b/);
+  assert.doesNotMatch(html, /used \d+ memor/, 'no memories were used, so it does not say so');
+});
+
+test('the receipt says when the turn remembered something, from the tool’s own result', () => {
+  const html = render(
+    answered([
+      {
+        type: 'tool-remember',
+        toolCallId: 'c1',
+        state: 'output-available',
+        input: { title: 'Language', quote: 'simple Urdu', kind: 'preference' },
+        output: { status: 'saved', location: 'Memory' },
+      },
+      {
+        type: 'tool-remember',
+        toolCallId: 'c2',
+        state: 'output-available',
+        input: { title: 'Nope', quote: 'not their words', kind: 'preference' },
+        output: { status: 'refused', reason: 'not verbatim' },
+      },
+      { type: 'text', text: 'Theek hai, yaad rakh liya.' },
+    ]),
+  );
+  assert.match(html, /remembered 1 — see Memory/, 'the refused call is not counted');
+});

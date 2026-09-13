@@ -19,7 +19,8 @@ import { createCandidateStore } from '@/lib/context-model/candidate-store';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
 import { createMemoryStore } from '@/lib/memory/store';
-import type { UsedMemory } from '@/lib/runs/service';
+import { createRecall, recallPrompt } from '@/lib/memory/recall';
+import type { RecalledConversation, UsedMemory } from '@/lib/runs/service';
 import { composePrompt } from '@/lib/ai/compose-prompt';
 import { principleDigest } from '@/lib/kernel/principles';
 
@@ -256,7 +257,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // What this person has saved, and what the operator has published. Both were
   // written, tested and then called by nothing after the browser run loop was
   // deleted — the Memory screen has been saving items no answer could read.
-  const saved = await knowledgeFor(user.userId, messages);
+  const chatSettings = createChatSettingsStore(getStorage().raw).read(user.userId);
+  const saved = await knowledgeFor(user.userId, messages, {
+    conversationId,
+    recall: chatSettings.memory.recallConversations,
+  });
 
   const runId = newRunId();
   try {
@@ -283,12 +288,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           base: parsed.instructions,
           principles: principleDigest(),
           knowledge: saved.block,
+          recall: saved.recall,
           contextNotes,
         }),
         // What the answer drew on, so the run can say so where the person is
         // reading. The ids are counted as used at creation, not when the
         // answer lands: a run resumed after a restart still used them.
         memories: saved.used,
+        recalled: saved.conversations,
+        // Whether `remember` may save a verbatim preference without review.
+        // Decided here like every other policy on the run, so a switch flipped
+        // while a run is paused does not change what it was allowed to do.
+        remember: { autoSave: chatSettings.memory.autoSaveQuotes },
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,
@@ -354,8 +365,14 @@ async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<s
 async function knowledgeFor(
   userId: string,
   messages: UIMessage[],
-): Promise<{ block: string; used: UsedMemory[] }> {
-  const none = { block: '', used: [] };
+  options: { conversationId: string; recall: boolean },
+): Promise<{
+  block: string;
+  recall: string;
+  used: UsedMemory[];
+  conversations: RecalledConversation[];
+}> {
+  const none = { block: '', recall: '', used: [], conversations: [] };
   try {
     const storage = getStorage();
     const query = recentUserText(messages, 1);
@@ -376,7 +393,18 @@ async function knowledgeFor(
         used.map((item) => item.id),
       );
     }
-    return { block: block ? '\n' + block : '', used };
+    // Earlier conversations that share words with the question — never this
+    // one, which the run already has in full. Off by a switch, because it
+    // costs a little of the prompt on every turn.
+    const hits = options.recall
+      ? createRecall(storage.raw).recall(userId, query, options.conversationId)
+      : [];
+    return {
+      block: block ? '\n' + block : '',
+      recall: recallPrompt(hits),
+      used,
+      conversations: hits.map((hit) => ({ id: hit.conversationId, title: hit.title })),
+    };
   } catch (error) {
     console.error('[hikmah] knowledge skipped:', error instanceof Error ? error.message : error);
     return none;

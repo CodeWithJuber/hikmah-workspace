@@ -56,6 +56,21 @@ async function stop() {
   }
 }
 try {
+  // The messages index (drizzle/0015) is FTS5, and a build of SQLite without
+  // it would throw at boot, on a read-only rootfs, after the release had
+  // shipped. Ask this runtime before starting the server, so the failure is a
+  // sentence here rather than a container that never comes up.
+  {
+    const { DatabaseSync } = await import('node:sqlite');
+    const probe = new DatabaseSync(':memory:');
+    try {
+      probe.exec('CREATE VIRTUAL TABLE fts_probe USING fts5(x)');
+    } catch (error) {
+      throw Error('This SQLite has no FTS5; the messages index cannot be applied: ' + error);
+    } finally {
+      probe.close();
+    }
+  }
   await cp('.next/standalone', directory, { recursive: true, dereference: true });
   for (const folder of ['public', 'server', 'drizzle'])
     await cp(folder, join(directory, folder), { recursive: true, dereference: true });

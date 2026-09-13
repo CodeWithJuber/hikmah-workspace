@@ -28,6 +28,7 @@ export const BUILT_IN_TOOLS = [
   'read_file',
   'read_principle',
   'read_webpage',
+  'remember',
   'research_quran',
   'run_javascript',
   'sandbox_run',

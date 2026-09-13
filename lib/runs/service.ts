@@ -18,6 +18,9 @@ import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
 import { answered, NO_ANSWER } from './failure.ts';
 import { mediaKeyFor } from './media.ts';
+import { createMemoryStore } from '../memory/store.ts';
+import { recentUserText } from '../context-model/run-brief.ts';
+import type { MemoryToolContext } from '../ai/tools/memory.ts';
 import { withClosingStep } from '../ai/closing-step.ts';
 import { createLanguageModel } from '../ai/models.ts';
 import { createBillingStore } from '../billing/store.ts';
@@ -70,10 +73,17 @@ export type RunConfig = {
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
    * as a `data-memories` part so the answer can say what it used. */
   memories?: UsedMemory[];
+  /** The earlier conversations the prompt carried excerpts from. */
+  recalled?: RecalledConversation[];
+  /** Whether `remember` may save a verbatim preference without review. Absent
+   * means yes, the default the setting has. */
+  remember?: { autoSave: boolean };
 };
 
 /** One memory an answer drew on, as the receipt names it. */
 export type UsedMemory = { id: string; title: string; kind: 'preference' | 'reference' };
+/** One earlier conversation an answer was written with an excerpt from. */
+export type RecalledConversation = { id: string; title: string };
 
 /**
  * Drive one run with the same agent the request-scoped chat route uses.
@@ -144,6 +154,10 @@ async function driveWithAgent({
     files: run.user_id
       ? { userId: run.user_id, files: createFileStore(getStorage().raw) }
       : undefined,
+    // `remember` may only quote the last user turn — not the last message,
+    // which on a resume is the assistant's — and knows whether that turn
+    // carried files, because a pasted document is not the person's own words.
+    memory: run.user_id ? memoryContext(run, config, messages as Turn[]) : undefined,
     media: run.user_id
       ? {
           userId: run.user_id,
@@ -221,8 +235,12 @@ async function driveWithAgent({
               // leave it out of the "did the turn say anything" test.
               if (!started && chunk.type === 'start') {
                 started = true;
-                if (config.memories?.length)
-                  push({ type: 'data-memories', id: 'memories', data: { used: config.memories } });
+                if (config.memories?.length || config.recalled?.length)
+                  push({
+                    type: 'data-memories',
+                    id: 'memories',
+                    data: { used: config.memories ?? [], conversations: config.recalled ?? [] },
+                  });
               }
             }
           })(),
@@ -278,6 +296,34 @@ async function driveWithAgent({
   } finally {
     await mcp?.close();
   }
+}
+
+/** A stored message as far as the memory context reads it. */
+type Turn = { role?: string; parts?: { type?: string; text?: string }[] };
+
+/** What the `remember` tool needs to know about this run. */
+function memoryContext(
+  run: { user_id?: string; conversation_id?: string },
+  config: RunConfig,
+  messages: Turn[],
+): MemoryToolContext {
+  const lastUser = [...messages].reverse().find((message) => message?.role === 'user');
+  const title = run.conversation_id
+    ? (
+        getStorage()
+          .raw.prepare('SELECT title FROM conversations WHERE id = ?')
+          .get(run.conversation_id) as { title?: string } | undefined
+      )?.title
+    : undefined;
+  return {
+    userId: run.user_id ?? '',
+    store: createMemoryStore(getStorage().raw),
+    latestUserText: recentUserText(messages, 1),
+    hasAttachments: (lastUser?.parts ?? []).some((part) => part?.type === 'file'),
+    conversationId: run.conversation_id,
+    conversationTitle: title || undefined,
+    autoSaveQuotes: config.remember?.autoSave !== false,
+  };
 }
 
 export function runService(): Worker {

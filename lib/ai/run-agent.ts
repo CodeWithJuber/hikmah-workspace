@@ -18,6 +18,7 @@ import { withServerGuidance } from './server-guidance.ts';
 import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/shell.ts';
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
+import { rememberTools, type MemoryToolContext } from './tools/memory.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 
 export type RunAgentOptions = {
@@ -77,6 +78,11 @@ export type RunAgentOptions = {
    */
   files?: FileToolContext;
   /**
+   * Enables `remember`: saving something the person just said, in their own
+   * words, to their memory. Omitted when the run has no person behind it.
+   */
+  memory?: MemoryToolContext;
+  /**
    * MCP tools for this run, already connected and gated.
    *
    * Connecting is the caller's job because it is async and has to happen once
@@ -101,6 +107,7 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...(options.shell?.available ? shellTools({ ...options.shell, signal: options.signal }) : {}),
     ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),
     ...(options.files ? fileTools(options.files) : {}),
+    ...(options.memory ? rememberTools(options.memory) : {}),
     // Last, so a built-in tool can never be shadowed by a server that named one
     // of its tools after it. The mcp__server__tool prefix makes a collision
     // unlikely, but "unlikely" is not the property worth relying on here.

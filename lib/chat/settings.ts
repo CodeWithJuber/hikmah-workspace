@@ -69,6 +69,23 @@ export type ChatSettings = {
    * switchable because the notes cost tokens on every turn.
    */
   contextModel: boolean;
+  /** How memory behaves for this person's runs. */
+  memory: MemorySettings;
+};
+
+export type MemorySettings = {
+  /** Save a preference the model quotes verbatim from your message without
+   * review. Your own words about yourself are the one thing the model cannot
+   * be wrong about; everything else always waits. */
+  autoSaveQuotes: boolean;
+  /** Carry short excerpts from your earlier conversations that share words
+   * with the question. Costs a little of the prompt on every turn. */
+  recallConversations: boolean;
+};
+
+const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
+  autoSaveQuotes: true,
+  recallConversations: true,
 };
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -81,6 +98,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   responseStyle: 'balanced',
   explainDecisions: false,
   contextModel: true,
+  memory: DEFAULT_MEMORY_SETTINGS,
 };
 
 /** Bounded so one setting cannot become a second system prompt. */
@@ -156,6 +174,17 @@ export function parseChatSettings(raw: unknown): ChatSettings {
     // Absent means on, so a row written before this field existed keeps the
     // behaviour the workspace preference had.
     contextModel: value.contextModel !== false,
+    memory: parseMemory(value.memory),
+  };
+}
+
+/** Absent means the defaults, and each switch is read on its own so a row
+ * written before one of them existed keeps the other. */
+function parseMemory(raw: unknown): MemorySettings {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return {
+    autoSaveQuotes: value.autoSaveQuotes !== false,
+    recallConversations: value.recallConversations !== false,
   };
 }
 
