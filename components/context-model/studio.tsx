@@ -26,6 +26,8 @@ import {
 } from '@/lib/context-model/client';
 import { languageNames, type ContextGraph } from '@/lib/context-model/discourse';
 import type { FieldModel, Sentence } from '@/lib/context-model/field-model';
+import { parseConllu, type ParseProblem } from '@/lib/context-model/conllu';
+import { MAX_CORPUS, MAX_SUBMISSION } from '@/lib/context-model/training';
 import { downloadJson } from '@/components/playground/common';
 type Evaluation = { las: number; uas: number; posAccuracy: number; tokenCount: number };
 type ModelReport = {
@@ -274,7 +276,14 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
     [rows, setRows] = useState(JSON.stringify(reviewedSample, null, 2)),
     [autoPromote, setAutoPromote] = useState(true),
     [candidate, setCandidate] = useState<{ model: FieldModel; reviewed: Sentence[] } | null>(null),
-    [saved, setSaved] = useState<SavedVersion | null>(null);
+    [saved, setSaved] = useState<SavedVersion | null>(null),
+    // What an upload could not read, kept beside the box rather than thrown:
+    // one bad token in a 300-sentence file used to lose the whole file.
+    [problems, setProblems] = useState<ParseProblem[]>([]),
+    // How many sentences this owner has already saved for this language. The
+    // corpus is cumulative and capped, and until now the only way to discover
+    // that was to hit the cap.
+    [counted, setCounted] = useState<number | null>(null);
   const [pivotWord, setPivotWord] = useState('knowledge'),
     [pivotLanguage, setPivotLanguage] = useState('en'),
     [pivot, setPivot] = useState<Awaited<ReturnType<typeof arabicCandidates>> | null>(null),
@@ -349,6 +358,75 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
       setMessage('Development gate passed. Candidate saved and activated.');
     } else setMessage('Candidate saved. ' + result.receipt.reason);
   };
+  // How much of the corpus is already used, for the language now selected. The
+  // cap is cumulative, so a number the owner cannot see is a wall they walk
+  // into.
+  useEffect(() => {
+    let live = true;
+    void jsonRequest('/api/context-model?language=' + trainLanguage)
+      .then((previous) => {
+        if (live) setCounted(((previous.reviewedRows as unknown[] | undefined) ?? []).length);
+      })
+      .catch(() => {
+        if (live) setCounted(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [trainLanguage, saved]);
+
+  /**
+   * Read a dropped file into the box, alongside whatever is already there.
+   *
+   * Added rather than replacing, so several files can be combined before one
+   * fit — and parsed here rather than on the server so a malformed line is
+   * named while the owner still has the file open. `validateTeaching` remains
+   * the only thing that decides what may be trained.
+   */
+  const addFile = async (file: File | undefined) => {
+    if (!file) return;
+    setError('');
+    setProblems([]);
+    try {
+      const text = await file.text();
+      const conllu = !/\.json$/i.test(file.name) && !text.trimStart().startsWith('[');
+      const group = 'owner/' + file.name.replace(/\.[^.]+$/, '').slice(0, 120);
+      const parsed = conllu ? parseConllu(text, group) : { rows: JSON.parse(text), problems: [] };
+      if (!Array.isArray(parsed.rows)) throw Error('That file is not a list of sentences.');
+      if (!parsed.rows.length)
+        throw Error(
+          parsed.problems.length
+            ? 'No sentence in that file could be read. ' + parsed.problems[0].reason
+            : 'That file has no sentences in it.',
+        );
+      if (parsed.rows.length > MAX_SUBMISSION)
+        throw Error(
+          `That file has ${parsed.rows.length} sentences; ${MAX_SUBMISSION} is the most that can be added at once.`,
+        );
+      const current = rows.trim();
+      let existing: unknown[] = [];
+      if (current)
+        try {
+          existing = JSON.parse(current);
+        } catch {
+          throw Error('The box does not hold valid JSON, so nothing can be added to it.');
+        }
+      if (!Array.isArray(existing)) existing = [];
+      setRows(JSON.stringify([...existing, ...parsed.rows], null, 2));
+      setProblems(parsed.problems);
+      setMessage(
+        `Added ${parsed.rows.length} sentence${parsed.rows.length === 1 ? '' : 's'} from ${file.name}.`,
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const countLabel =
+    counted === null
+      ? ''
+      : `${counted.toLocaleString()} of ${MAX_CORPUS.toLocaleString()} saved for ${languageNames[trainLanguage] ?? trainLanguage}`;
+
   const train = async () => {
     setBusy(true);
     setError('');
@@ -600,19 +678,67 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
               </select>
             </div>
             <details className="context-details">
-              <summary>Annotation format & cumulative learning</summary>
+              <summary>The format, and what is accepted</summary>
               <p>
-                Each sentence needs sequential tokens, lemmas, UPOS, dependency heads and relation
-                labels. Use a new owner/ document group. Corrections from the active checkpoint are
-                included in the next fit. Unactivated candidates do not silently become training
-                data. Automatic chat collection and unreviewed provider answers are not ground
-                truth.
+                Two ways in. <strong>Upload a file</strong> below — <code>.conllu</code>, the format
+                Universal Dependencies distributes and every annotation tool exports, or{' '}
+                <code>.json</code> in the shape of the example — or paste JSON into the box. An
+                upload is added to whatever is already in the box rather than replacing it, so
+                several files can be combined before training.
               </p>
               <p>
-                The JSON example is English. Replace it with reviewed annotations in the selected
-                language. The server scores syntax, not meaning or factual truth.
+                Every sentence needs a unique id, a document group beginning <code>owner/</code>,
+                its text, and 1&ndash;96 tokens. Every token needs its position (running 1, 2,
+                3&hellip;), the <code>form</code> as written, a <code>lemma</code>, one of the
+                seventeen{' '}
+                <a
+                  href="https://universaldependencies.org/u/pos/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  UPOS tags
+                </a>
+                , a <code>head</code> (the position of the word it depends on, or 0 for the root)
+                and a <code>deprel</code> relation label &mdash; <code>root</code> exactly where the
+                head is 0. Each sentence needs exactly one root and no cycles.
+              </p>
+              <p>
+                Corrections from the active checkpoint are included in the next fit, so the corpus
+                below is cumulative and capped at {MAX_CORPUS.toLocaleString()} sentences per
+                language, {MAX_SUBMISSION} per upload. Unactivated candidates do not silently become
+                training data; automatic chat collection and unreviewed provider answers are not
+                ground truth. The server scores syntax, not meaning or factual truth.
               </p>
             </details>
+            <div className="context-upload">
+              <label className="context-upload-button">
+                <input
+                  type="file"
+                  accept=".conllu,.conll,.txt,.json,application/json,text/plain"
+                  disabled={busy}
+                  onChange={(event) => void addFile(event.target.files?.[0])}
+                />
+                <Upload size={15} aria-hidden="true" />
+                Add a file
+              </label>
+              <span>{counted === null ? '\u00a0' : countLabel}</span>
+            </div>
+            {!!problems.length && (
+              <div className="context-problems" role="status">
+                <strong>
+                  {problems.length} sentence{problems.length === 1 ? '' : 's'} could not be read.
+                  The rest were added.
+                </strong>
+                <ul>
+                  {problems.slice(0, 8).map((problem, index) => (
+                    <li key={index}>
+                      Line {problem.line} &mdash; {problem.sentence}: {problem.reason}
+                    </li>
+                  ))}
+                </ul>
+                {problems.length > 8 && <p>&hellip; and {problems.length - 8} more.</p>}
+              </div>
+            )}
             <Textarea
               className="annotation-editor"
               aria-label="Reviewed dependency annotations JSON"

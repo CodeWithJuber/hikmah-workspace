@@ -4437,6 +4437,56 @@ select {
   font-weight: 500;
   margin-left: 6px;
 }
+/* Adding a corpus by file, and how much of the cap it leaves.
+   The box below still takes a paste; this is the way in for the hundreds of
+   sentences that made a textarea the wrong instrument. */
+.context-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.context-upload > span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.context-upload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.context-upload-button:hover,
+.context-upload-button:focus-within {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+/* The control is the label; the input itself is only the file picker behind it. */
+.context-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.context-problems {
+  border: 1px solid var(--destructive);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.context-problems ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
 .annotation-editor {
   font-family: ui-monospace, monospace;
   font-size: 13px !important;
