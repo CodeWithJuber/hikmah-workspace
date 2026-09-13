@@ -8,7 +8,12 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { createMcpStore } from '../lib/mcp/store.ts';
 import { mcpRunTools, mcpToolApproval } from '../lib/mcp/run-context.ts';
-import { MCP_CONNECT_TIMEOUT_MS, toolFingerprint, toolId } from '../lib/mcp/manager.ts';
+import {
+  MCP_CALL_TIMEOUT_MS,
+  MCP_CONNECT_TIMEOUT_MS,
+  toolFingerprint,
+  toolId,
+} from '../lib/mcp/manager.ts';
 
 function setup(t) {
   const db = new DatabaseSync(':memory:');
@@ -270,4 +275,43 @@ test('a server that never answers costs its own tools, not the conversation', as
 
 test('the deadline is a stated number, not an accident of the network', () => {
   assert.ok(MCP_CONNECT_TIMEOUT_MS >= 5_000 && MCP_CONNECT_TIMEOUT_MS <= 30_000);
+});
+
+// And the other half of the same hole.
+//
+// Bounding the connect left a server that answers the handshake and then hangs
+// on a call stalling the run just as completely — the likelier failure, since a
+// server has to be reachable to be used at all. The catch cannot see it either:
+// a hang does not throw.
+test('a tool call that never answers fails the tool, not the run', async (t) => {
+  const store = setup(t);
+  only(store, ['quran']);
+  const hanging = {
+    ...readOnly('Never answers.'),
+    execute: () => new Promise(() => {}),
+  };
+  const { connect } = serving({ quran: { fetch_quran: hanging } });
+  const result = await run(store, connect, { callTimeoutMs: 50 });
+
+  const id = toolId('quran', 'fetch_quran');
+  assert.ok(result.tools[id], 'the tool is still offered');
+  // Against the unwrapped tool this await never returns, which is the defect.
+  await assert.rejects(() => result.tools[id].execute({}, {}), /did not answer within/);
+});
+
+test('a tool that answers is not delayed or altered by the deadline', async (t) => {
+  const store = setup(t);
+  only(store, ['quran']);
+  const { connect } = serving({
+    quran: { fetch_quran: { ...readOnly('Answers.'), execute: async () => ({ ayah: '2:255' }) } },
+  });
+  const result = await run(store, connect, { callTimeoutMs: 50 });
+  const tool = result.tools[toolId('quran', 'fetch_quran')];
+  assert.deepEqual(await tool.execute({}, {}), { ayah: '2:255' });
+  // The wrapper must not eat what the model reads to decide whether to call it.
+  assert.equal(tool.description, 'Answers.');
+});
+
+test('the call deadline is a stated number, generous enough for a real tool', () => {
+  assert.ok(MCP_CALL_TIMEOUT_MS >= 30_000 && MCP_CALL_TIMEOUT_MS <= 180_000);
 });

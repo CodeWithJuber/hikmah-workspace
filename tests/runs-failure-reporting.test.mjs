@@ -12,6 +12,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nothingToSend, streamIsFinished } from '../lib/runs/resume.ts';
+import { answered, NO_ANSWER } from '../lib/runs/failure.ts';
 
 const failed = (error) => ({ status: 'failed', error });
 
@@ -124,4 +125,28 @@ test('something that is not a URL is treated as needing a key', () => {
   // The request fails either way; "no API key" is the more useful of the two
   // messages, and the alternative is silently letting it through.
   assert.equal(needsKey('not a url', ''), true);
+});
+
+// Whether a run actually answered.
+//
+// A loop can end with tool calls and no words — the model reads a tool result
+// and returns an empty turn. Recorded as success it left a transcript showing
+// the working and then nothing at all.
+test('tool calls without words are not an answer', () => {
+  assert.equal(answered([{ type: 'step-start' }, { type: 'dynamic-tool' }]), false);
+  assert.equal(answered([]), false);
+  // Whitespace is not words.
+  assert.equal(answered([{ type: 'text', text: '  \n ' }]), false);
+});
+
+test('text, a file or a data part all count as answering', () => {
+  assert.equal(answered([{ type: 'dynamic-tool' }, { type: 'text', text: 'Here.' }]), true);
+  // A generated picture with no caption is a real answer.
+  assert.equal(answered([{ type: 'file' }]), true);
+  // So is a plan or a comparison the surface renders as its own card.
+  assert.equal(answered([{ type: 'data-plan' }]), true);
+});
+
+test('the sentence tells the person what to do next', () => {
+  assert.match(NO_ANSWER, /answer again|different model/i);
 });

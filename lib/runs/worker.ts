@@ -10,7 +10,7 @@
  * its output is replayable from the store.
  */
 import { readUIMessageStream } from 'ai';
-import { describeFailure, operatorRun } from './failure.ts';
+import { describeFailure, operatorRun, NO_ANSWER } from './failure.ts';
 import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
 
@@ -77,6 +77,8 @@ export type RunDriver = (context: {
   awaitingApproval?: boolean;
   /** The stream stopped on a question only the owner can answer. */
   awaitingClient?: boolean;
+  /** The loop ended without writing an answer — tool calls and no words. */
+  silent?: boolean;
 } | void>;
 
 export type WorkerOptions = {
@@ -170,6 +172,10 @@ export function createWorker(options: WorkerOptions): Worker {
           // carries what the person said.
           if (result?.awaitingApproval) store.setStatus(run.id, 'waiting_approval');
           else if (result?.awaitingClient) store.setStatus(run.id, 'waiting_client');
+          // A loop that ended with tool calls and no words is not a success.
+          // Recorded as one, it left a transcript showing the working and then
+          // nothing at all — no answer, no error, and nothing to press.
+          else if (result?.silent) store.finish(run.id, 'failed', NO_ANSWER);
           else store.finish(run.id, 'done');
         }
       } catch (error) {

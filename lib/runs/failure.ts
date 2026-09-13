@@ -61,6 +61,32 @@ function summarise(error: unknown): string {
   return first.length > LIMIT ? first.slice(0, LIMIT - 1).trimEnd() + '…' : first;
 }
 
+/** What a run that finished without answering has to say for itself. */
+export const NO_ANSWER =
+  'The model stopped without writing an answer. Smaller free models often do ' +
+  'this after using a tool. Answer again, or choose a different model.';
+
+/**
+ * Did this run actually answer?
+ *
+ * A run can reach the end of its loop having produced tool calls and no text:
+ * the model calls a tool, reads the result, and returns an empty turn. Nothing
+ * caught that, so the run was recorded `done` and the transcript showed the
+ * working and then nothing — reported as "no response after mcp call", with no
+ * error, no explanation and nothing to retry.
+ *
+ * Text or a file counts. Media arrives as a file part, and a picture with no
+ * words is a real answer.
+ */
+export function answered(parts: readonly { type?: string; text?: string }[]): boolean {
+  return parts.some(
+    (part) =>
+      (part?.type === 'text' && !!part.text?.trim()) ||
+      part?.type === 'file' ||
+      part?.type?.startsWith('data-') === true,
+  );
+}
+
 /**
  * Whether this run belongs to the operator, read from its stored config.
  *

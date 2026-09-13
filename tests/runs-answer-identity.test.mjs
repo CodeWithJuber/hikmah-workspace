@@ -122,3 +122,47 @@ test('an answer that arrives with an id of its own keeps it', async (t) => {
 
   assert.equal(assistants(store, 'conv-1')[0].id, 'm-from-sdk');
 });
+
+// A run that ends without saying anything.
+//
+// The loop can finish having called a tool and written no text: the model reads
+// the result and returns an empty turn. Nothing caught that, so the run was
+// recorded `done` and the transcript showed the working and then nothing — no
+// answer, no error, nothing to press. Reported as "no response after mcp call".
+test('a run that ends with tool calls and no words says so', async (t) => {
+  const worker = setup(t, async () => ({
+    message: {
+      id: '',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolName: 'mcp__quran__fetch_grounding_rules',
+          state: 'output-available',
+          output: { ok: true },
+        },
+      ],
+    },
+    // What driveWithAgent computes from those parts.
+    silent: true,
+  }));
+  const { store } = worker;
+
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+
+  const run = store.getRun('run-1');
+  assert.equal(run?.status, 'failed', 'not a success with nothing to show');
+  assert.match(run?.error ?? '', /without writing an answer/i);
+  // The working is still kept: what it did is worth reading even though it
+  // never got to the answer.
+  assert.equal(assistants(store, 'conv-1').length, 1);
+});
+
+test('an answer with words is not mistaken for silence', async (t) => {
+  const worker = setup(t, async () => ({ ...answer('Here it is.'), silent: false }));
+  const { store } = worker;
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+  assert.equal(store.getRun('run-1')?.status, 'done');
+});
