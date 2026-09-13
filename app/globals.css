@@ -7072,25 +7072,62 @@ a.auth-brand {
 .chat-composer-row {
   flex-wrap: wrap;
   row-gap: 8px;
+  align-items: center;
 }
 .chat-composer-tools {
   flex-wrap: wrap;
   row-gap: 8px;
-  /* It may take the whole width when it wraps, but it must not force the meter
-     and the send button off the line before it does. */
+  align-items: center;
+  /* `1 1 auto` was wrong, and it is why the send arrow appeared alone on the
+     left of its own row. Flex decides where to break a line from an item's
+     *hypothetical* main size — the content width, about 411px here — not from
+     the width it would shrink to, so `min-width: 0` never entered into it: the
+     group claimed the whole first line and pushed the button onto a second,
+     where `justify-content: space-between` puts a lone item at the start.
+     A zero basis makes the group's hypothetical size zero, so it shares the
+     line and wraps inside itself instead. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Every child of the row was `shrink-0` (the button variant's own base) or
+   `nowrap`, so the row could only wrap, never compress. These are the ones that
+   can afford to give up width; the icon buttons keep their size. */
+.chat-composer-tools > .chat-model-select {
   flex: 1 1 auto;
 }
 .chat-model-select {
-  /* Auto, not the 100% every select gets: this one shares a row. It gives up
-     width before the buttons do, and truncates rather than pushing. */
+  /* Auto, not the 100% every select gets: this one shares a row. */
   width: auto;
-  min-width: 0;
-  max-width: min(210px, 42vw);
+  /* Was `min(210px, 42vw)` — 151px at 360px, which after the trigger's padding,
+     gap and chevron left about 103px for the label and clipped an ordinary
+     model name to "Free Models Ro…". The cap is about not dominating a wide
+     row; on a narrow one the row itself is the only limit that should apply. */
+  min-width: 9ch;
+  max-width: 210px;
+  /* 16px comes from the shared field rule above, which beats Tailwind's text-sm
+     because this stylesheet declares no layer. A select is not a text input, so
+     it does not need 16px to stop a phone zooming on focus, and the two extra
+     pixels per character are what tipped the label into the ellipsis. */
+  font-size: 14px;
 }
 .chat-model-select > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* One height for the whole row.
+ *
+ * Six controls at five heights — 32, 36, 34, 36, ~19 and 32 — read as a jumble
+ * rather than as a toolbar, and the difference is invisible as intent and
+ * obvious as sloppiness. The number is 36 because that is what the select and
+ * the mic already are, and shrinking a touch target is the wrong direction. */
+/* By element, not by slot: the four controls in this row carry three different
+   data-slot values — button, dropdown-menu-trigger and popover-trigger — and a
+   rule written against one of them left the other two at 32px and 34px. */
+.chat-composer-row button,
+.chat-composer-row [data-slot='select-trigger'] {
+  height: 36px;
+  min-height: 36px;
 }
 /* The preview is a third column beside the conversation. .artifact-panel is
    layout-neutral on its own, so the width belongs here rather than in the
@@ -7555,19 +7592,15 @@ a.auth-brand {
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
+  /* A provider failure is routinely one unbroken token — a URL, a JSON blob, a
+     SQLite message. Without this it ran past the card, and `.chat-body`'s
+     `overflow-x: clip` then swallowed the rest with no scrollbar, so the part
+     of the message that said what went wrong was the part that disappeared. */
+  overflow-wrap: anywhere;
 }
 .chat-error button {
   margin-top: 6px;
   text-decoration: underline;
-  cursor: pointer;
-}
-.chat-compare-toggle {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--muted-foreground);
   cursor: pointer;
 }
 
@@ -7589,6 +7622,10 @@ a.auth-brand {
 .chat-compare-timing {
   color: var(--muted-foreground);
   font-size: 12px;
+  /* A model slug is one unbroken token with slashes and a colon in it, and it
+     is wider than a phone. Same clipping as .chat-error above. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 .chat-compare-note {
   color: var(--muted-foreground);
@@ -8014,3 +8051,57 @@ a.auth-brand {
   margin-top: 12px;
 }
 /* Likewise the landing page. */
+
+/* The phone.
+ *
+ * This surface had no breakpoint below 600px at all: the only responsive
+ * decision anywhere in the chat block was the 900px drawer switch, so every
+ * value used at 390px was the value chosen for 899px. The arithmetic that
+ * follows from that, measured at 360px CSS width:
+ *
+ *   .chat-preview pads 16px a side and ConversationContent adds p-4, so 32px a
+ *   side goes to gutters and the text column is 281px — about 34 characters a
+ *   line. The composer's row is 302px of usable width holding controls that
+ *   measure about 411px.
+ *
+ * So the gutter is halved and the row is allowed to be a row. */
+@media (max-width: 600px) {
+  .chat-preview {
+    padding: 0 8px env(safe-area-inset-bottom);
+  }
+  /* The scroller's own padding, on top of the gutter above. */
+  .chat-preview [data-slot='conversation-content'] {
+    padding-inline: 4px;
+    /* 24px between turns is a desktop rhythm. On a phone it is a quarter of
+       the visible transcript spent on nothing. */
+    gap: 16px;
+  }
+  /* The bubble caps itself at 95%, and that sliver buys nothing on a phone
+     where a bubble is told apart by its background rather than by the gap
+     beside it. (The class, not a data-slot: this element carries neither
+     `data-slot` nor an id, only `is-user` / `is-assistant`.) */
+  .chat-preview .is-user,
+  .chat-preview .is-assistant {
+    max-width: 100%;
+  }
+  /* The model name is the widest thing in the row and the least useful when
+     truncated to three words. Given its own line it is readable at last. */
+  .chat-composer-tools > .chat-model-select {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  /* Five icon buttons in a 360px bar with about 7px to spare, and they were
+     `width: 38px` rather than `min-width`, with no `flex-shrink: 0` — so they
+     compressed into 18px slivers inside 38px boxes rather than staying square.
+     Their intrinsic minimum is the icon, which is why they could. */
+  .chat-topbar-toggle,
+  .chat-topbar-links.is-compact a {
+    min-width: 38px;
+    flex-shrink: 0;
+  }
+  .chat-topbar-brand {
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
+}

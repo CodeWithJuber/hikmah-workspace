@@ -53,6 +53,7 @@ import {
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
+import { DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
@@ -241,6 +242,11 @@ export function ChatView({
   // says how much room is left.
   const latest = messages.findLast((message) => message.role === 'assistant');
   const spent = (latest?.metadata as AnswerMetadata | undefined) ?? undefined;
+  // Three fifths of the window is where trimming the oldest turns starts to be
+  // a real possibility rather than a theoretical one, so it is where the figure
+  // starts being information rather than decoration.
+  const crowded =
+    (spent?.usage?.totalTokens ?? 0) > (run.contextWindow || ASSUMED_CONTEXT_TOKENS) * 0.6;
 
   // Report the edge, not the state: firing on every render while idle would
   // refetch the conversation list forever.
@@ -426,6 +432,11 @@ export function ChatView({
           <StagedAttachments />
           <PromptInputTextarea
             ref={composer}
+            // The transcript sets dir="auto" on every rendered message and the
+            // composer never did, so typing Urdu or Arabic stayed left-aligned
+            // with the caret and the punctuation on the wrong side — the one
+            // place in the app where the owner writes rather than reads.
+            dir="auto"
             placeholder={
               editing ? 'Rewrite your question…' : 'Ask anything, or describe what to build.'
             }
@@ -437,6 +448,18 @@ export function ChatView({
               <PromptInputActionMenuTrigger />
               <PromptInputActionMenuContent>
                 <PromptInputActionAddAttachments />
+                {/* Comparing two answers is an expert's question about the
+                    product, asked once and then rarely. It was a labelled
+                    checkbox on the main row, permanently occupying width that
+                    the model name needed, in front of everyone who only wanted
+                    to type a message. */}
+                <DropdownMenuCheckboxItem
+                  checked={compare}
+                  onCheckedChange={setCompare}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  Also answer without tools
+                </DropdownMenuCheckboxItem>
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
             <VoiceInput disabled={busy} onText={dictate} />
@@ -457,22 +480,14 @@ export function ChatView({
                 </PromptInputSelectContent>
               </PromptInputSelect>
             )}
-            {/* "Compare without tools" wrapped onto three lines on a phone and
-                crowded the send button off the row. The full meaning is in the
-                tooltip, which costs no width. */}
-            <label
-              className="chat-compare-toggle"
-              title="Answer a second time with no tools, to show what the tools are buying"
-            >
-              <input
-                type="checkbox"
-                checked={compare}
-                onChange={(event) => setCompare(event.target.checked)}
-              />
-              Compare
-            </label>
           </PromptInputTools>
-          {spent?.usage && (
+          {/* The meter is a diagnostic, and it was on screen permanently: a bare
+              percentage beside a spinner, meaning nothing to most people, taking
+              room on the row the send button needed. Every answer already
+              carries its own token count in its receipt, so this is only worth
+              showing once the window is actually filling up and the next message
+              is at risk of losing the beginning of the conversation. */}
+          {spent?.usage && crowded && (
             <Context
               maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
               modelId={spent.model ?? run.model}

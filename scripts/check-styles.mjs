@@ -23,17 +23,40 @@ const bare = css.replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length));
 
 const colours = new Set([...bare.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase()));
 
+/* Counted per at-rule context, not per selector.
+ *
+ * A rule restated inside `@media (max-width: 600px)` is not a duplicate of the
+ * one outside it — that is how a responsive override is written, and there is
+ * no other way to write one. Counting the two together made this check
+ * penalise adding a breakpoint, which is the opposite of what it is for: the
+ * chat surface had no rule below 600px at all, and the first one added tripped
+ * the ratchet. Two definitions in the *same* context are still drift, which is
+ * the thing being ratcheted. */
 const seen = new Map();
-for (const rule of bare.matchAll(/^\s*([.#[][^{}\n,]*(?:,\s*\n?\s*[^{}\n,]+)*)\s*\{/gm))
-  for (const selector of rule[1]
+const context = [];
+for (const [, preludeRaw, brace] of bare.matchAll(/([^{}]*)([{}])/g)) {
+  if (brace === '}') {
+    context.pop();
+    continue;
+  }
+  const prelude = preludeRaw.trim().replace(/\s+/g, ' ');
+  // An at-rule opens a block and names the context its rules live in; a style
+  // rule opens one too, so both are pushed and the depth stays honest.
+  context.push(prelude.startsWith('@') ? prelude : null);
+  if (prelude.startsWith('@')) continue;
+  const where = context.filter(Boolean).join(' ');
+  for (const selector of prelude
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean))
-    seen.set(selector, (seen.get(selector) ?? 0) + 1);
+    .filter((s) => /^[.#[]/.test(s))) {
+    const key = where ? where + ' { ' + selector : selector;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+}
 const repeated = [...seen].filter(([, n]) => n > 1);
 const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
 
-const BASELINE = { colours: 143, repeated: 265, extra: 359 };
+const BASELINE = { colours: 143, repeated: 103, extra: 143 };
 const actual = { colours: colours.size, repeated: repeated.length, extra };
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);

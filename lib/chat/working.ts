@@ -69,6 +69,21 @@ export function toolProvenance(type: string): { server?: string; tool: string } 
     : { tool: name };
 }
 
+/**
+ * What a part's tool is called.
+ *
+ * Every MCP tool reaches the transcript as a `dynamic-tool` part — the SDK's
+ * shape for a tool it did not know about at build time — and its real name is
+ * in `toolName`, not in `type`. Reading the type alone summarised a Qur'an
+ * lookup as "Dynamic-tool", which is precisely the case where naming the source
+ * matters most.
+ */
+export function partToolName(part: TranscriptPart): string {
+  if (part.type !== 'dynamic-tool') return part.type;
+  const name = part.toolName;
+  return typeof name === 'string' && name ? name : part.type;
+}
+
 /** Plain names for the built-ins, so the working reads as sentences rather than
  * as identifiers. Anything absent falls back to its own name with the
  * underscores taken out, which is right for a tool added later. */
@@ -94,6 +109,20 @@ const PLAIN: Record<string, string> = {
 };
 
 /**
+ * A tool's name as a person would say it, for the card's own header.
+ *
+ * The header printed the raw identifier — `mcp__quran__fetch_tafsir`, which at
+ * phone width broke mid-word into "mcp__quran__fe / tch_tafsir". A card asking
+ * someone to allow something has to say what it is in their language, not the
+ * protocol's.
+ */
+export function toolLabel(part: TranscriptPart): string {
+  const { server, tool } = toolProvenance(partToolName(part));
+  const plain = PLAIN[tool] ?? tool.replace(/_/g, ' ');
+  return server ? server + ' · ' + tool.replace(/_/g, ' ') : plain;
+}
+
+/**
  * One line saying what was actually done, for the collapsed header.
  *
  * Named sources first and in the order they were used, because "which source
@@ -109,7 +138,7 @@ export function describeWorking(working: readonly TranscriptPart[]): string {
       thoughts++;
       continue;
     }
-    const { server, tool } = toolProvenance(part.type);
+    const { server, tool } = toolProvenance(partToolName(part));
     const label = server
       ? `asked ${server}` + (tool ? ` (${tool.replace(/_/g, ' ')})` : '')
       : (PLAIN[tool] ?? tool.replace(/_/g, ' '));

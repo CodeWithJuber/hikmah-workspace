@@ -54,7 +54,12 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
+      // wrap-anywhere, because Streamdown gives that rule to anchors and to
+      // nothing else: a bare URL, a file path or a long identifier in ordinary
+      // prose ran past the bubble, and overflow-hidden then cut it off with no
+      // scrollbar — the characters simply vanished. Breaking it is better than
+      // losing it, and a code block brings its own scroller.
+      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden wrap-anywhere text-sm",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:text-foreground",
       className
