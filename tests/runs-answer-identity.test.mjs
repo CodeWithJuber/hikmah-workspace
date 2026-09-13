@@ -1,0 +1,124 @@
+// Every answer needs an id of its own, and the SDK does not supply one.
+//
+// `createAgentUIStream` folded through `readUIMessageStream` returns a message
+// whose `id` is the empty string — not undefined. So `message.id ?? fallback`
+// keeps `''`, and every assistant answer in the deployment was written under
+// that one id: the first inserted, a second in another conversation hit the
+// primary key and destroyed the answer, and a second in the same conversation
+// silently overwrote the first.
+//
+// These drive the real worker over a real database with the shape the SDK
+// actually produces, rather than a driver that invents a tidy id.
+// Run: node --test tests/runs-answer-identity.test.mjs
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { applySchema } from './schema.mjs';
+import { DatabaseSync } from 'node:sqlite';
+import { createWorker } from '../lib/runs/worker.ts';
+
+const config = JSON.stringify({
+  baseUrl: 'https://openrouter.ai/api/v1',
+  model: 'a/b:free',
+  apiKey: 'k',
+  instructions: 'test',
+});
+
+/** What the SDK hands back: parts, and a blank id. */
+const answer = (text) => ({
+  message: { id: '', role: 'assistant', parts: [{ type: 'text', text }] },
+});
+
+function setup(t, drive) {
+  const db = new DatabaseSync(':memory:');
+  db.exec('PRAGMA foreign_keys=ON');
+  applySchema(db);
+  const worker = createWorker({ db, drive });
+  t.after(() => {
+    void worker.stop();
+    db.close();
+  });
+  return worker;
+}
+
+/** One conversation with one question, and a run queued over it. */
+function ask(store, conversationId, runId, text = 'hello') {
+  if (!store.getConversation(conversationId))
+    store.createConversation({ id: conversationId, userId: 'user-1', model: 'a/b:free' });
+  store.appendMessage(conversationId, {
+    id: conversationId + '-' + runId + '-user',
+    role: 'user',
+    parts: [{ type: 'text', text }],
+  });
+  store.createRun({ id: runId, conversationId, userId: 'user-1', config });
+}
+
+const assistants = (store, conversationId) =>
+  store.listMessages(conversationId).filter((message) => message.role === 'assistant');
+
+test('a second conversation can store an answer', async (t) => {
+  const worker = setup(t, async () => answer('the answer'));
+  const { store } = worker;
+
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+  ask(store, 'conv-2', 'run-2');
+  await worker.tick();
+
+  // Before the fix the second insert hit `messages.id`, the run was recorded
+  // failed with the raw SQLite text, and the answer was gone.
+  assert.equal(store.getRun('run-2')?.status, 'done');
+  assert.equal(assistants(store, 'conv-2').length, 1);
+  assert.equal(assistants(store, 'conv-2')[0].parts[0].text, 'the answer');
+});
+
+test('a second answer does not overwrite the first', async (t) => {
+  let text = 'first';
+  const worker = setup(t, async () => answer(text));
+  const { store } = worker;
+
+  ask(store, 'conv-1', 'run-1', 'one');
+  await worker.tick();
+  text = 'second';
+  ask(store, 'conv-1', 'run-2', 'two');
+  await worker.tick();
+
+  const stored = assistants(store, 'conv-1');
+  assert.equal(stored.length, 2);
+  assert.deepEqual(
+    stored.map((message) => message.parts[0].text),
+    ['first', 'second'],
+  );
+});
+
+test('resuming one run updates its answer rather than adding another', async (t) => {
+  let text = 'paused';
+  let pause = true;
+  const worker = setup(t, async () => ({ ...answer(text), awaitingApproval: pause }));
+  const { store } = worker;
+
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+  assert.equal(store.getRun('run-1')?.status, 'waiting_approval');
+
+  // The same run, driven a second time after the person answered.
+  text = 'continued';
+  pause = false;
+  store.requeueApproved('run-1');
+  await worker.tick();
+
+  const stored = assistants(store, 'conv-1');
+  assert.equal(stored.length, 1, 'the resumed run continues its own turn');
+  assert.equal(stored[0].parts[0].text, 'continued');
+});
+
+test('an answer that arrives with an id of its own keeps it', async (t) => {
+  const worker = setup(t, async () => ({
+    message: { id: 'm-from-sdk', role: 'assistant', parts: [{ type: 'text', text: 'hi' }] },
+  }));
+  const { store } = worker;
+
+  ask(store, 'conv-1', 'run-1');
+  await worker.tick();
+
+  assert.equal(assistants(store, 'conv-1')[0].id, 'm-from-sdk');
+});

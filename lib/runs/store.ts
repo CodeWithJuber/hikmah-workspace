@@ -89,6 +89,10 @@ export function createRunStore(
     ),
     getConversation: db.prepare('SELECT id, user_id FROM conversations WHERE id = ?'),
     messageSeq: db.prepare('SELECT seq FROM messages WHERE conversation_id = ? AND id = ?'),
+    // Across every conversation, because the primary key is: an id already
+    // taken by another thread cannot be inserted here, however free it looks
+    // from inside this one.
+    messageById: db.prepare('SELECT id FROM messages WHERE id = ?'),
     countMessages: db.prepare('SELECT COUNT(*) AS total FROM messages WHERE conversation_id = ?'),
     deleteFromSeq: db.prepare('DELETE FROM messages WHERE conversation_id = ? AND seq >= ?'),
     // Joined to the active run because "in flight" and "stopped to ask you
@@ -419,29 +423,29 @@ export function createRunStore(
      * Scoped to the conversation on purpose: an id that belongs to a different
      * thread is not this turn, and adopting it would move someone else's
      * message rather than record this one.
+     *
+     * And an answer is never lost to its id. When the id is taken by another
+     * conversation the message is still written here, under one derived from
+     * it: a primary key is a bookkeeping detail, and the answer the person
+     * waited for is not. Losing one to a collision is exactly how
+     * `UNIQUE constraint failed: messages.id` reached the transcript.
      */
     saveAssistantMessage(conversationId: string, message: StoredMessage): void {
+      const parts = JSON.stringify(message.parts ?? []);
+      const metadata = message.metadata === undefined ? null : JSON.stringify(message.metadata);
       const changed = statements.replaceMessage.run(
-        JSON.stringify(message.parts ?? []),
-        message.metadata === undefined ? null : JSON.stringify(message.metadata),
+        parts,
+        metadata,
         message.id,
         conversationId,
       ) as { changes?: number };
       // The UPDATE is scoped to the conversation, so nothing changed means this
-      // id is not a turn in this thread — either it is new, or it belongs to
-      // someone else's, and inserting is right in the first case and refused by
-      // the primary key in the second.
+      // id is not a turn in this thread — either it is new, or it is taken.
       if (Number(changed?.changes ?? 0) > 0) return;
       const seq = (statements.nextSeq.get(conversationId) as { next: number }).next;
-      statements.insertMessage.run(
-        message.id,
-        conversationId,
-        seq,
-        message.role,
-        JSON.stringify(message.parts ?? []),
-        message.metadata === undefined ? null : JSON.stringify(message.metadata),
-        now(),
-      );
+      const taken = statements.messageById.get(message.id) as { id: string } | undefined;
+      const id = taken ? message.id + '-' + conversationId + '-' + seq : message.id;
+      statements.insertMessage.run(id, conversationId, seq, message.role, parts, metadata, now());
     },
 
     /** Why the last run for this conversation failed, or null.

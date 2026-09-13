@@ -144,8 +144,17 @@ export function createWorker(options: WorkerOptions): Worker {
             };
             // Idempotent: a resumed run's message carries the id of the turn
             // it is continuing, so this is an update, not a second row.
+            //
+            // Blank, not absent. `createAgentUIStream` folded through
+            // `readUIMessageStream` returns `id: ''`, so `??` kept the empty
+            // string and every answer in the deployment was written under that
+            // one id: the first inserted, a second in another conversation hit
+            // the primary key and destroyed the answer, and a second in the
+            // same conversation quietly overwrote the first. The run id is the
+            // right fallback because it is stable across a resume of this run
+            // and unique across every other.
             store.saveAssistantMessage(run.conversation_id, {
-              id: message.id ?? run.id + '-answer',
+              id: message.id?.trim() ? message.id : run.id + '-answer',
               role: message.role ?? 'assistant',
               parts: message.parts ?? [],
               // Model and token usage, so a reload can still say what the
