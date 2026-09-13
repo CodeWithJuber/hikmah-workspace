@@ -103,7 +103,17 @@ export function assertModelAllowed(options: {
  */
 export function providerDestination(baseUrl: string): string {
   const provider = relayProviderFor(baseUrl);
-  return provider ? 'provider:' + provider.id : '';
+  if (provider) return 'provider:' + provider.id;
+  // An endpoint with no preset still needs somewhere to keep its key. Bound to
+  // the origin rather than the full URL: the path is a detail of the API, the
+  // host is who the credential is for. A non-HTTPS endpoint is loopback or a
+  // private address, which needs no key.
+  try {
+    const url = new URL(baseUrl);
+    return url.protocol === 'https:' ? 'provider:' + url.origin : '';
+  } catch {
+    return '';
+  }
 }
 
 /**

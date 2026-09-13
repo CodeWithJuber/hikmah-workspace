@@ -63,10 +63,6 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
     openSettings,
     conversations,
     files,
-    mediaKey,
-    setMediaKey,
-    connectorKeys,
-    setConnectorKeys,
     connectorTools,
     connectConnector,
     setWorkspacePage,
@@ -78,14 +74,12 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
   const [remove, setRemove] = useState<{ kind: 'skill' | 'connector'; id: string } | null>(null);
   const [catalogs, setCatalogs] = useState<Partial<Record<MediaKind, MediaModel[]>>>({});
   const [plan, setPlan] = useState('');
-  const effectiveSecret =
-    workspace.media.secretRef ||
-    (!mediaKey && provider.baseUrl.replace(/\/+$/, '') === 'https://openrouter.ai/api/v1'
-      ? provider.apiKeySecret
-      : '');
-  const effectiveKey =
-    mediaKey ||
-    (provider.baseUrl.replace(/\/$/, '') === 'https://openrouter.ai/api/v1' ? provider.apiKey : '');
+  // Media runs on OpenRouter, so a workspace already connected to it needs no
+  // second credential. The `mediaKey` these used to fall back to was the
+  // session-only field, which is gone: a media key is a saved secret now.
+  const onOpenRouter = provider.baseUrl.replace(/\/+$/, '') === 'https://openrouter.ai/api/v1';
+  const effectiveSecret = workspace.media.secretRef || (onOpenRouter ? provider.apiKeySecret : '');
+  const effectiveKey = onOpenRouter ? provider.apiKey : '';
   useEffect(() => {
     if (tab === 'plan' && !plan)
       void fetch('/research/product-plan.md')
@@ -298,31 +292,20 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               destination="provider:openrouter"
               value={workspace.media.secretRef}
               label="Saved media secret"
-              onChange={(secretRef) => {
-                setMediaKey('');
-                setWorkspace((p) => ({ ...p, media: { ...p.media, secretRef } }));
-              }}
+              onChange={(secretRef) =>
+                setWorkspace((p) => ({ ...p, media: { ...p.media, secretRef } }))
+              }
             />
-            <div className="field">
-              <label htmlFor="media-key">
-                OpenRouter media key <span className="optional-label">Session only</span>
-              </label>
-              <Input
-                id="media-key"
-                type="password"
-                autoComplete="off"
-                value={mediaKey}
-                onChange={(e) => {
-                  setMediaKey(e.target.value);
-                  setWorkspace((p) => ({ ...p, media: { ...p.media, secretRef: '' } }));
-                }}
-                placeholder={
-                  provider.baseUrl.includes('openrouter.ai')
-                    ? 'Uses your chat key when left blank'
-                    : 'Enter your OpenRouter API key'
-                }
-              />
-            </div>
+            {/* A "Session only" key field used to be here. It held the key in
+                this tab's memory until a reload, which is not storage, and it
+                was one of three fields in this app that pretended otherwise.
+                A media key is a saved secret like every other credential: name
+                it in the Secrets tab and pick it above. */}
+            <p className="small-note">
+              No saved secret yet? Add one under <strong>Settings → Secrets</strong> and choose it
+              here. It is encrypted before it is stored, which a field on this page could not
+              promise.
+            </p>
             <p className="small-note">
               Models and charges differ by operation. Generating media makes a provider request;
               catalog loading does not generate content.
@@ -462,19 +445,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <span>{connectorTools[c.id]?.length ?? 0} tools connected</span>
                   <span>{c.approval === 'ask' ? 'Ask before each call' : 'Calls allowed'}</span>
                 </div>
-                <div className="field">
-                  <label htmlFor={'connector-key-' + c.id}>
-                    Server bearer token <span className="optional-label">Session only</span>
-                  </label>
-                  <Input
-                    id={'connector-key-' + c.id}
-                    type="password"
-                    autoComplete="off"
-                    value={connectorKeys[c.id] ?? ''}
-                    onChange={(e) => setConnectorKeys((p) => ({ ...p, [c.id]: e.target.value }))}
-                    placeholder="Leave blank for a public server"
-                  />
-                </div>
+                {/* Likewise: a bearer token that lived until the tab reloaded.
+                    A server that needs one is configured under Connections,
+                    where its ${VARIABLE} resolves from the encrypted vault. */}
                 <div className="connector-actions">
                   <Button
                     disabled={!!busy}
@@ -734,9 +707,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               if (!connection) return;
               try {
                 validateMcpUrl(connection.url);
-                const old = workspace.connectors.find((c) => c.id === connection.id);
-                if (connection.secretRef || (old && old.url !== connection.url))
-                  setConnectorKeys((p) => ({ ...p, [connection.id]: '' }));
+                // The per-server bearer token this used to clear was the
+                // session-only field, which is gone: a server that needs one
+                // names a ${VARIABLE} resolved from the encrypted vault.
                 setWorkspace((p) => ({
                   ...p,
                   connectors: [...p.connectors.filter((c) => c.id !== connection.id), connection],
