@@ -75,6 +75,24 @@ test('only the operator may reach a machine', () => {
   assert.deepEqual(EXECUTION_TOOLS, ['bash', 'sandbox_run', 'ssh_exec', 'list_ssh_hosts']);
 });
 
+// The two the Pro plan sells, which were sold before they existed.
+test('generating pictures and speech is what the paid plan says it is', () => {
+  assert.equal(entitlementsFor('owner').media, true);
+  assert.equal(entitlementsFor('managed').media, true);
+  // This removes something a free bring-your-own-key user had by accident: the
+  // media key was derived from their own provider key, so the paid feature was
+  // quietly everyone's.
+  assert.equal(entitlementsFor('byok').media, false);
+});
+
+test('priority on the run queue is a number, and the paid tiers have more of it', () => {
+  assert.ok(entitlementsFor('managed').queuePriority > entitlementsFor('byok').queuePriority);
+  // The operator above the customer: one worker, and their own work should not
+  // queue behind someone else's.
+  assert.ok(entitlementsFor('owner').queuePriority > entitlementsFor('managed').queuePriority);
+  assert.equal(entitlementsFor('byok').queuePriority, 0, 'the default every existing run has');
+});
+
 test('the owner is the pinned user id, not whoever holds the configured email', () => {
   const base = { email: 'someone@example.test', ownerEmail: 'owner@example.test', saved: null };
   // Once the row exists it is the only answer, so changing the environment

@@ -53,7 +53,13 @@ import {
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
-import { DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
@@ -236,6 +242,13 @@ export function ChatView({
   }, [transport, run, compare]);
 
   const busy = status === 'submitted' || status === 'streaming';
+  // Whether any of the answer has actually arrived. Once it has, the words are
+  // the progress indicator and a label beside them is noise.
+  const streamingText =
+    messages.at(-1)?.role === 'assistant' &&
+    (messages.at(-1)?.parts ?? []).some(
+      (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
+    );
 
   // The most recent answer's own figures. Earlier turns each carry their own,
   // but the composer is about the next message, so the latest is the one that
@@ -385,6 +398,23 @@ export function ChatView({
               }
             />
           ))}
+          {/* Something on the screen while the work happens.
+              A screen reader was told by the live region below, and a sighted
+              person was told by a spinner inside the send button and nothing
+              else — so a turn that took a while, or a tool that took a while
+              before writing a word, looked like nothing had happened. It
+              disappears the moment real text arrives, because the answer is a
+              better indicator than any label. */}
+          {busy && !streamingText && (
+            <div className="chat-thinking" role="status">
+              <span className="chat-thinking-dots" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span>{status === 'submitted' ? 'Sending…' : 'Working on it…'}</span>
+            </div>
+          )}
           {/* The answer region is announced while a run is in progress, so a
               screen reader learns that work is happening and when it lands. */}
           <div aria-live="polite" className="sr-only">
@@ -460,6 +490,27 @@ export function ChatView({
                 >
                   Also answer without tools
                 </DropdownMenuCheckboxItem>
+                {/* The model, on a phone.
+                    At 360px the composer row has about 320px and the four
+                    controls beside it take 166 — so a name like "Free Models
+                    Router" had roughly 60px to render in, which is not a
+                    choice between layouts but an impossibility. Here it has the
+                    width to be read. The select below is the same choice for a
+                    window with room for it; exactly one of the two is ever
+                    displayed, which is why both exist. */}
+                {!!models?.length && onModel && (
+                  <div className="chat-model-menu">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Model</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup value={run.model} onValueChange={onModel}>
+                      {models.map((model) => (
+                        <DropdownMenuRadioItem key={model.id} value={model.id}>
+                          {model.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </div>
+                )}
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
             <VoiceInput disabled={busy} onText={dictate} />

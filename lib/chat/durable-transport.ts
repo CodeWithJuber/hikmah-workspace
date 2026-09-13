@@ -41,6 +41,10 @@ export type DurableChatTransport = ChatTransport<UIMessage> & {
 };
 
 /** How many times to re-open a stream that ended without the run finishing. */
+/** Run states that are stopped on a person rather than working. A new message
+ * is not an answer to either, so neither will produce output for it. */
+const PAUSED = new Set(['waiting_approval', 'waiting_client']);
+
 const MAX_CONTINUATIONS = 200;
 /** Backoff between attempts after a failed read, in milliseconds. */
 const RETRY_DELAYS = [250, 500, 1000, 2000];
@@ -213,10 +217,26 @@ export function createDurableChatTransport(options: DurableTransportOptions): Du
       runId?: string;
       error?: string;
       alreadyRunning?: boolean;
+      status?: string | null;
     };
-    // 409 means this conversation already has a run. Tailing it is the honest
-    // answer to a double submit: the work is happening, just not from this
-    // click, and failing here would hide a run that is already producing output.
+    // 409 means this conversation already has a run, and what to do about it
+    // depends on what that run is doing.
+    //
+    // Queued or streaming: tailing it is the honest answer to a double submit —
+    // the work is happening, just not from this click, and failing here would
+    // hide a run that is already producing output.
+    //
+    // Paused on a person: it will never produce another token until the
+    // question above is answered, so attaching to its stream shows nothing at
+    // all. That is how three messages in a row got no reply and no error — each
+    // was displayed by the browser, refused by the server, and quietly attached
+    // to a run that had stopped. Say so instead.
+    if (payload.alreadyRunning && PAUSED.has(payload.status ?? ''))
+      throw new Error(
+        payload.status === 'waiting_approval'
+          ? 'This conversation is waiting for you to allow or refuse something above. Answer that first.'
+          : 'This conversation is waiting for your answer to the question above.',
+      );
     if (!payload.runId) throw new Error(payload.error ?? 'The run could not be started.');
     return payload.runId;
   }

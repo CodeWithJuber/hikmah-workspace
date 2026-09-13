@@ -127,14 +127,22 @@ export function createRunStore(
       'SELECT id, role, parts, metadata FROM messages WHERE conversation_id = ? ORDER BY seq',
     ),
     insertRun: db.prepare(
-      `INSERT INTO runs (id, conversation_id, user_id, status, config, created_at)
-       VALUES (?, ?, ?, 'queued', ?, ?)`,
+      `INSERT INTO runs (id, conversation_id, user_id, status, config, created_at, priority)
+       VALUES (?, ?, ?, 'queued', ?, ?, ?)`,
     ),
-    // Claim the oldest queued run and mark it running in one statement, so two
+    // Claim the next queued run and mark it running in one statement, so two
     // workers (or a worker racing its own restart) cannot take the same run.
+    //
+    // Priority first, then age. The Pro plan has been claiming "priority on the
+    // run queue" against a strict FIFO with no such column; this is the
+    // ordering that makes the sentence true. Age still breaks every tie, so
+    // within a tier the queue is exactly as fair as it was.
     claim: db.prepare(
       `UPDATE runs SET status = 'running'
-       WHERE id = (SELECT id FROM runs WHERE status = 'queued' ORDER BY created_at, id LIMIT 1)
+       WHERE id = (
+         SELECT id FROM runs WHERE status = 'queued'
+          ORDER BY priority DESC, created_at, id LIMIT 1
+       )
        RETURNING *`,
     ),
     getRun: db.prepare('SELECT * FROM runs WHERE id = ?'),
@@ -300,13 +308,24 @@ export function createRunStore(
       }));
     },
 
-    createRun(input: { id: string; conversationId: string; userId: string; config: unknown }) {
+    createRun(input: {
+      id: string;
+      conversationId: string;
+      userId: string;
+      config: unknown;
+      /** Higher is claimed first. Written here from the caller's tier rather
+       * than read from their subscription at claim time, so a plan that changes
+       * while a run waits cannot reorder work already queued under the old one.
+       * Absent means 0, which is how every run behaved before this existed. */
+      priority?: number;
+    }) {
       statements.insertRun.run(
         input.id,
         input.conversationId,
         input.userId,
         JSON.stringify(input.config),
         now(),
+        Number.isFinite(input.priority) ? Math.trunc(input.priority as number) : 0,
       );
       statements.setActiveRun.run(input.id, now(), input.conversationId);
       return input.id;

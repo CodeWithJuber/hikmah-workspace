@@ -17,6 +17,7 @@ import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
 import { answered, NO_ANSWER } from './failure.ts';
+import { mediaKeyFor } from './media.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 
@@ -47,6 +48,11 @@ export type RunConfig = {
    * written before this existed behaving as it did.
    */
   execution?: boolean;
+  /** Whether this run may generate pictures and speech.
+   *
+   * Absent means yes, which keeps every run row written before this existed
+   * behaving as it did — the same convention `execution` uses. */
+  media?: boolean;
   instructions: string;
   maxSteps?: number;
   /** How much earlier conversation the run may carry, in characters. */
@@ -88,13 +94,7 @@ async function driveWithAgent({
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
-  // Media goes through OpenRouter. When the run is already on OpenRouter its
-  // key is the same key, so media works without configuring anything twice; on
-  // any other provider it needs its own, and without one the tools are simply
-  // not offered rather than offered and failing.
-  const mediaKey = /(^|\.)openrouter\.ai$/.test(hostOf(config.baseUrl))
-    ? config.apiKey
-    : (process.env.HIKMAH_MEDIA_KEY ?? '');
+  const mediaKey = mediaKeyFor(config);
 
   const agent = buildRunAgent({
     provider: {
@@ -286,15 +286,6 @@ function recordRunUsage(
     });
   } catch (error) {
     console.error('[hikmah] usage not recorded:', error instanceof Error ? error.message : error);
-  }
-}
-
-/** The host of a base URL, or '' when it is not a URL at all. */
-function hostOf(baseUrl: string): string {
-  try {
-    return new URL(baseUrl).hostname.toLowerCase();
-  } catch {
-    return '';
   }
 }
 

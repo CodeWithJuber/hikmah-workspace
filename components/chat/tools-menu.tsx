@@ -33,7 +33,10 @@ export function ToolsMenu({
       <PopoverTrigger asChild>
         <Button variant="ghost" className="chat-tools-trigger" disabled={busy}>
           <Wrench size={16} />
-          Tools
+          {/* Wrapped so the word can go at phone width while the icon and the
+              count stay: the composer row has about 302px, and the model name
+              needs more of it than this label does. */}
+          <span className="chat-tools-label">Tools</span>
           <span>{activeToolCount(tools, disabled)}</span>
         </Button>
       </PopoverTrigger>
