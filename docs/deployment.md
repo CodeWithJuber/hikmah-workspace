@@ -73,7 +73,7 @@ Push to `main`, or run **Verify and deploy Hikmah** from Actions. Deployments ru
 3. Build an image tagged with the full commit SHA.
 4. Start that image with restricted permissions, authenticate, save a large conversation, restart, and verify saved data and the session.
 5. Upload the verified image artifact, checksum and deployment files over SSH.
-6. Back up an existing installation while the app is stopped, start the new image, check its health/revision, then start Caddy.
+6. Back up an existing installation while the app is stopped, start the new image under the running Caddy, check its health/revision, then reload Caddy's configuration.
 7. Verify the same revision at the public HTTPS `/api/health` endpoint.
 
 The first TLS certificate may take a little time to issue. The workflow retries the public check within a bounded window. A failed public HTTPS check is reported as a failed verification, even if the app container is healthy; investigate DNS, inbound ports and Caddy logs.
@@ -96,9 +96,9 @@ docker compose --env-file .env --env-file release.env -f compose.yml ps
 docker compose --env-file .env --env-file release.env -f compose.yml logs --tail 100 app caddy
 ```
 
-The update takes a short maintenance window. Caddy and the app stop before the snapshot, preventing new public writes during rollback. If the new app fails its startup/health/revision check, the release script restores the previous image configuration and pre-update database/object snapshot. Failed candidate data is retained in a private `data-failed-*` directory for inspection. First deployments have no earlier release to restore.
+The update is a pause, not an outage. Caddy stays up throughout: the app stops under it for the snapshot and is recreated under it, and the Caddyfile has Caddy hold a request for up to two minutes while the app is away (`lb_try_duration`) rather than fail it. Nothing reaches the app while it is stopped, so no public write can land during a rollback. Caddy is only recreated when its own service definition changed, or by a rollback, which restores a Caddyfile its bind mount cannot otherwise see. If the new app fails its startup/health/revision check, the release script restores the previous image configuration and pre-update database/object snapshot. Failed candidate data is retained in a private `data-failed-*` directory for inspection. First deployments have no earlier release to restore.
 
-Treat schema changes as reviewed migrations. Never edit an applied migration: its checksum is checked at startup. To recover an older release manually, stop the app and Caddy, preserve the current data directory, and restore a matching backup **together with** its image configuration. Do not point an old image at a newer incompatible database.
+Treat schema changes as reviewed migrations. Never edit an applied migration: its checksum is checked at startup. To recover an older release manually, stop the app (Caddy can stay up), preserve the current data directory, and restore a matching backup **together with** its image configuration. Do not point an old image at a newer incompatible database.
 
 Pre-deploy snapshots are local, not an off-site disaster-recovery solution. Configure an encrypted off-site backup destination, retention, an actual restore drill and uptime/error monitoring before relying on the service commercially. Backups contain private chats and authentication records; protect them accordingly. Do not remove shared Docker images/volumes or run an unrestricted system prune.
 
