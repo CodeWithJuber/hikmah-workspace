@@ -10,6 +10,7 @@
  * its output is replayable from the store.
  */
 import { readUIMessageStream } from 'ai';
+import { describeFailure } from './failure.ts';
 import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
 
@@ -141,7 +142,9 @@ export function createWorker(options: WorkerOptions): Worker {
               parts?: unknown;
               metadata?: unknown;
             };
-            store.appendMessage(run.conversation_id, {
+            // Idempotent: a resumed run's message carries the id of the turn
+            // it is continuing, so this is an update, not a second row.
+            store.saveAssistantMessage(run.conversation_id, {
               id: message.id ?? run.id + '-answer',
               role: message.role ?? 'assistant',
               parts: message.parts ?? [],
@@ -164,11 +167,10 @@ export function createWorker(options: WorkerOptions): Worker {
         options.onError?.(error, run);
         if (controller.signal.aborted) store.finish(run.id, 'cancelled');
         else
-          store.finish(
-            run.id,
-            'failed',
-            error instanceof Error ? error.message : 'The run failed.',
-          );
+          // The provider's own words where there are any, and a sentence the
+          // person can act on where the fault is ours. Either way the raw
+          // exception has already gone to the log through onError above.
+          store.finish(run.id, 'failed', describeFailure(error));
       } finally {
         running.delete(run.id);
         // Whatever the outcome, tailing responses must be told to close.

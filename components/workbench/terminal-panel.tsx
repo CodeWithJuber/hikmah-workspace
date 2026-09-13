@@ -11,7 +11,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { RotateCw, TerminalSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { closeReason, controlFrame, encodeInput } from '@/lib/workbench/protocol';
+import { closeReason, controlFrame, encodeInput, refusedReason } from '@/lib/workbench/protocol';
 
 type Status =
   | { state: 'connecting' }
@@ -84,7 +84,17 @@ export function TerminalPanel({ className }: { className?: string }) {
       ws.binaryType = 'arraybuffer';
       socket.current = ws;
 
+      // A handshake that never completed is a refusal, not a dropped session,
+      // and the two need different words: one means "this did not start", the
+      // other means "this ended". Browsers report every failed handshake as
+      // close code 1006 with no detail, and onclose fires after onerror, so
+      // without this flag the refusal was always overwritten by "The
+      // connection dropped." — which is what the terminal said for months
+      // while the real cause was a proxy path mismatch.
+      let opened = false;
+
       ws.onopen = () => {
+        opened = true;
         setStatus({ state: 'open' });
         // The shell starts at 80x24; tell it the real size before the first
         // prompt is drawn, or full-screen programs open at the wrong size.
@@ -98,10 +108,13 @@ export function TerminalPanel({ className }: { className?: string }) {
       };
       ws.onclose = (event) => {
         if (disposed) return;
-        setStatus({ state: 'closed', reason: closeReason(event.code) });
+        if (opened) setStatus({ state: 'closed', reason: closeReason(event.code) });
+        else setStatus({ state: 'error', reason: refusedReason(event.code) });
       };
       ws.onerror = () => {
-        if (!disposed) setStatus({ state: 'error', reason: 'The terminal could not connect.' });
+        // Left to onclose, which always follows and knows whether the session
+        // ever opened. Setting a reason here only to have it replaced a
+        // millisecond later is how the useful half got lost.
       };
       terminal.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) ws.send(encodeInput(data));

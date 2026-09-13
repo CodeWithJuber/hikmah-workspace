@@ -407,6 +407,43 @@ export function createRunStore(
       return row?.id ?? null;
     },
 
+    /** Store the answer a run produced, whether or not it has been stored before.
+     *
+     * A resumed run gets its message back from the SDK carrying the id of the
+     * paused turn it is continuing — `createAgentUIStream` defaults
+     * `originalMessages` to the transcript it was given, and reuses the last
+     * assistant message's id. Appending that a second time hit the primary key,
+     * which failed the run and threw away the answer it had just produced. It is
+     * the same turn, so it is an update.
+     *
+     * Scoped to the conversation on purpose: an id that belongs to a different
+     * thread is not this turn, and adopting it would move someone else's
+     * message rather than record this one.
+     */
+    saveAssistantMessage(conversationId: string, message: StoredMessage): void {
+      const changed = statements.replaceMessage.run(
+        JSON.stringify(message.parts ?? []),
+        message.metadata === undefined ? null : JSON.stringify(message.metadata),
+        message.id,
+        conversationId,
+      ) as { changes?: number };
+      // The UPDATE is scoped to the conversation, so nothing changed means this
+      // id is not a turn in this thread — either it is new, or it belongs to
+      // someone else's, and inserting is right in the first case and refused by
+      // the primary key in the second.
+      if (Number(changed?.changes ?? 0) > 0) return;
+      const seq = (statements.nextSeq.get(conversationId) as { next: number }).next;
+      statements.insertMessage.run(
+        message.id,
+        conversationId,
+        seq,
+        message.role,
+        JSON.stringify(message.parts ?? []),
+        message.metadata === undefined ? null : JSON.stringify(message.metadata),
+        now(),
+      );
+    },
+
     /** Why the last run for this conversation failed, or null.
      *
      * A failure is recorded on the run row and, until this existed, read by

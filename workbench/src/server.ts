@@ -103,6 +103,9 @@ export function createWorkbench(options: WorkbenchOptions) {
 
   const wss = new WebSocketServer({ noServer: true });
 
+  /** What a terminal upgrade may be addressed to. See the check below. */
+  const TERMINAL_PATHS = new Set(['/terminal', '/ws/terminal']);
+
   httpServer.on('upgrade', (request, socket, head) => {
     const reject = (code: number, reason: string) => {
       socket.write(`HTTP/1.1 ${code} ${reason}\r\n\r\n`);
@@ -120,7 +123,14 @@ export function createWorkbench(options: WorkbenchOptions) {
     } catch {
       return reject(400, 'Bad Request');
     }
-    if (url.pathname !== '/terminal') return reject(404, 'Not Found');
+    // Both spellings, because the proxy in front decides which one arrives.
+    // Caddy's `handle` matches a prefix without stripping it (`handle_path`
+    // strips), so this server was receiving /ws/terminal and rejecting every
+    // upgrade with a 404 the browser reports only as close code 1006 — which
+    // is why the terminal has never connected on a real deployment while both
+    // sides' own tests passed. Accepting both here means a different proxy
+    // cannot break it again.
+    if (!TERMINAL_PATHS.has(url.pathname)) return reject(404, 'Not Found');
     if (sessions.size >= MAX_SESSIONS) return reject(503, 'Too Many Sessions');
 
     pruneSeen(spentTickets);
