@@ -58,6 +58,17 @@ export type ChatSettings = {
   responseStyle: 'concise' | 'balanced' | 'detailed';
   /** Whether the answer explains the decisions behind it. */
   explainDecisions: boolean;
+  /**
+   * Whether this project's own syntax compiler annotates the recent turns for
+   * the model.
+   *
+   * The workspace called this `enableCoModel` and had it on by default; it
+   * reached the run through `workspacePrompt`, which lost its only caller with
+   * the browser run loop, so for a while the switch existed and the compiler
+   * ran nowhere. On by default here for the same reason it was there, and
+   * switchable because the notes cost tokens on every turn.
+   */
+  contextModel: boolean;
 };
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -69,6 +80,7 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   instructions: '',
   responseStyle: 'balanced',
   explainDecisions: false,
+  contextModel: true,
 };
 
 /** Bounded so one setting cannot become a second system prompt. */
@@ -141,6 +153,9 @@ export function parseChatSettings(raw: unknown): ChatSettings {
         ? value.responseStyle
         : 'balanced',
     explainDecisions: value.explainDecisions === true,
+    // Absent means on, so a row written before this field existed keeps the
+    // behaviour the workspace preference had.
+    contextModel: value.contextModel !== false,
   };
 }
 

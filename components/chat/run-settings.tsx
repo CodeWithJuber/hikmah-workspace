@@ -156,6 +156,25 @@ export function RunSettings({
             <small>A short account of what was chosen, on what evidence, and the trade-offs.</small>
           </span>
         </label>
+        {/* The workspace called this the co-model and had it on. It reached the
+            run through the same function the standing instructions did, so it
+            stopped doing anything at the same moment and for the same reason. */}
+        <label className="chat-settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.contextModel}
+            disabled={saving}
+            onChange={(event) => void apply({ contextModel: event.target.checked })}
+          />
+          <span>
+            <strong>Local context notes</strong>
+            <small>
+              This project&rsquo;s own syntax compiler annotates your recent messages — who did what
+              to whom, negation, attribution, exact numbers — and passes the notes to the model as
+              fallible hints. Costs a few tokens a turn.
+            </small>
+          </span>
+        </label>
       </section>
 
       <section>

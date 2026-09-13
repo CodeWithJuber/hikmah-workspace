@@ -9,6 +9,11 @@ import { createSecretStore } from '@/server/workspace-secrets.mjs';
 import { needsKey, providerDestination } from '@/lib/ai/endpoint';
 import { billingStore, entitlementsForUser } from '@/lib/billing/server';
 import { refusal, runAccess } from '@/lib/billing/access';
+import { getStorage } from '@/server/storage.mjs';
+import { createChatSettingsStore } from '@/lib/chat/settings-store';
+import { createActiveCheckpointStore } from '@/lib/context-model/active-store';
+import { loadFieldForUser } from '@/lib/context-model/server';
+import { buildContextBrief } from '@/lib/context-model/run-brief';
 
 export const dynamic = 'force-dynamic';
 
@@ -226,6 +231,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (title) store.setTitle(conversationId, title);
   }
 
+  // The co-model's notes on the recent turns, composed here rather than sent by
+  // the client: it needs the field checkpoints on disk and whichever one this
+  // owner has activated, and a run resumed after the tab closed has no client
+  // to ask. Written onto the run row with the rest of the instructions, so a
+  // run paused on an approval resumes with the notes it started with.
+  const contextNotes = await contextBriefFor(user.userId, messages);
+
   const runId = newRunId();
   try {
     store.createRun({
@@ -239,7 +251,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         apiKey: access.apiKey,
         metered: access.metered,
         execution: access.execution,
-        instructions: parsed.instructions,
+        instructions: parsed.instructions + contextNotes,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         disabledTools: parsed.disabledTools,
@@ -256,4 +268,31 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   void worker.tick();
 
   return Response.json({ runId, conversationId }, { headers, status: 202 });
+}
+
+/**
+ * The local syntax compiler's block for this turn, or ''.
+ *
+ * Never throws and never blocks the send: a checkpoint that will not load, a
+ * language with no grammar, or a parse that produced nothing worth saying all
+ * mean the run goes without notes. The setting is read from the stored row
+ * rather than the request, so it is the owner's choice and not the page's.
+ */
+async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<string> {
+  try {
+    const storage = getStorage();
+    if (!createChatSettingsStore(storage.raw).read(userId).contextModel) return '';
+    const active = createActiveCheckpointStore(storage.raw, storage.BUCKET);
+    const { block } = await buildContextBrief({
+      messages,
+      loadField: (language) => loadFieldForUser(userId, language, active),
+    });
+    return block ? '\n\n' + block : '';
+  } catch (error) {
+    console.error(
+      '[hikmah] context notes skipped:',
+      error instanceof Error ? error.message : error,
+    );
+    return '';
+  }
 }
