@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { createMcpStore } from '../lib/mcp/store.ts';
 import { mcpRunTools, mcpToolApproval } from '../lib/mcp/run-context.ts';
-import { toolFingerprint, toolId } from '../lib/mcp/manager.ts';
+import { MCP_CONNECT_TIMEOUT_MS, toolFingerprint, toolId } from '../lib/mcp/manager.ts';
 
 function setup(t) {
   const db = new DatabaseSync(':memory:');
@@ -44,8 +44,8 @@ function serving(toolsByServer, { failing = [] } = {}) {
 const readOnly = (description) => ({ description, annotations: { readOnlyHint: true } });
 const destructive = (description) => ({ description, annotations: { destructiveHint: true } });
 
-const run = (store, connect) =>
-  mcpRunTools({ store, userId: 'user-1', secret: () => undefined, connect });
+const run = (store, connect, extra = {}) =>
+  mcpRunTools({ store, userId: 'user-1', secret: () => undefined, connect, ...extra });
 
 /** Enable exactly these servers and no others. */
 function only(store, names) {
@@ -244,4 +244,30 @@ test('the seeded catalogue offers a stdio server, disabled', async () => {
   assert.equal(filesystem.config.type, 'stdio');
   assert.equal(filesystem.enabled, false, 'a server that writes files is not on by default');
   assert.match(filesystem.notice, /workbench/);
+});
+
+// A hung server used to hang the whole conversation.
+//
+// `connectServer` awaited createMCPClient and then client.tools() with no time
+// limit, and the run-context catch only sees a *failure* — a hang never
+// returns. So one unresponsive server held the run open before it had streamed
+// a byte, and the composer sat on its stop button. Reported as "MCP gets stuck
+// so the chat gets stuck, and there is an ✕ where Enter should be".
+test('a server that never answers costs its own tools, not the conversation', async (t) => {
+  const store = setup(t);
+  only(store, ['quran']);
+  // Never settles, which is precisely the case a try/catch cannot see.
+  // A short deadline: the point is that one exists, not how long it is.
+  const result = await run(store, () => new Promise(() => {}), { connectTimeoutMs: 50 });
+  assert.deepEqual(result.tools, {});
+  // And the owner is told why, on the server's own row, rather than left with a
+  // conversation that simply stopped.
+  const row = store.list('user-1').find((r) => r.name === 'quran');
+  assert.equal(row.status, 'failed');
+  assert.match(row.last_error, /did not answer within/);
+  // Before this the same test did not fail — it hung, which is the defect.
+});
+
+test('the deadline is a stated number, not an accident of the network', () => {
+  assert.ok(MCP_CONNECT_TIMEOUT_MS >= 5_000 && MCP_CONNECT_TIMEOUT_MS <= 30_000);
 });

@@ -33,10 +33,14 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
     <p className="chat-receipt" title="Recorded actions, not a measure of quality.">
       {meta.model && <span className="chat-receipt-model">{meta.model}</span>}
       {meta.usage?.totalTokens !== undefined && <span>{count(meta.usage.totalTokens)} tokens</span>}
-      {!!tools.length && (
-        <span>
-          {count(tools.length)} tool call{tools.length === 1 ? '' : 's'}
-          {failed > 0 && `, ${count(failed)} unsuccessful`}
+      {/* The count of tool calls lives on the working block's header now, which
+          also names which sources answered. Two lines counting the same thing
+          in different units — "3 steps" here and "2 tool calls" there — was
+          exactly the confusion this receipt was supposed to remove. What is
+          kept is what the header cannot say: that something did not work. */}
+      {failed > 0 && (
+        <span className="chat-receipt-failed">
+          {count(failed)} tool call{failed === 1 ? '' : 's'} did not succeed
         </span>
       )}
       {/* The caveat is still true and still worth saying — these are recorded

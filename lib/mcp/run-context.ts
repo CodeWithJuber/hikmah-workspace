@@ -6,6 +6,7 @@
  */
 import type { ToolSet } from 'ai';
 import {
+  MCP_CONNECT_TIMEOUT_MS,
   approvalFor,
   connectServer,
   parseToolId,
@@ -49,6 +50,9 @@ export type McpRunOptions = {
   bridge?: { url: string; token: string };
   /** Injected by the tests. */
   connect?: typeof connectServer;
+  /** Injected by the tests, so a suite does not pay the real deadline to prove
+   * the deadline exists. */
+  connectTimeoutMs?: number;
 };
 
 /**
@@ -72,11 +76,22 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
     const record = toRecord(row);
     let server: ConnectedServer;
     try {
-      server = await connect(record, {
-        secret: options.secret,
-        signal: options.signal,
-        bridge: options.bridge,
-      });
+      // Bounded. `connectServer` awaits a handshake and then a tools listing
+      // with no limit of its own, and the catch below only sees a *failure* —
+      // a hang never returns. So one unresponsive server held the whole run
+      // open before it had streamed a byte, and the composer sat on its stop
+      // button with nothing arriving. Here rather than inside connectServer so
+      // that any connect implementation is bounded, the tests' included.
+      server = await withDeadline(
+        connect(record, {
+          secret: options.secret,
+          signal: options.signal,
+          bridge: options.bridge,
+        }),
+        record.name,
+        options.signal,
+        options.connectTimeoutMs ?? MCP_CONNECT_TIMEOUT_MS,
+      );
     } catch (error) {
       options.store.setStatus(
         row.id,
@@ -142,4 +157,57 @@ export function mcpToolApproval(approval: Map<string, ApprovalMode>) {
   return Object.fromEntries(
     [...approval].map(([id, mode]) => [id, mode === 'auto' ? 'approved' : 'user-approval']),
   );
+}
+
+/**
+ * A connection attempt with a time limit and an abort.
+ *
+ * When the limit wins the attempt is still in flight, so a server that answers
+ * late is closed rather than left holding a socket for the life of the worker.
+ */
+async function withDeadline(
+  work: Promise<ConnectedServer>,
+  name: string,
+  signal: AbortSignal | undefined,
+  limit: number,
+): Promise<ConnectedServer> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let settled = false;
+  const abandon = (reason: string) => {
+    void work.then(
+      (server) => {
+        if (!settled) void server.close().catch(() => {});
+      },
+      () => {},
+    );
+    return new Error(reason);
+  };
+  try {
+    return await Promise.race([
+      work.then((server) => {
+        settled = true;
+        return server;
+      }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              abandon(
+                `"${name}" did not answer within ${Math.round(limit / 1000)} seconds. Its tools are not available for this run.`,
+              ),
+            ),
+          limit,
+        );
+        signal?.addEventListener(
+          'abort',
+          () => reject(abandon(`Connecting to "${name}" was cancelled.`)),
+          {
+            once: true,
+          },
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -7007,6 +7007,49 @@ a.auth-brand {
   }
 }
 
+/* The working: one collapsed block per answer, so the thinking, the tool calls
+   and the MCP calls stop being interleaved with the answer itself. Its header
+   names which sources answered, which is what a reader is asking when they say
+   they cannot tell where the MCP call happened. */
+.chat-working {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+  font-size: 13px;
+}
+.chat-working > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  list-style: none;
+  border-radius: 10px;
+  transition: background 140ms ease;
+}
+.chat-working > summary::-webkit-details-marker {
+  display: none;
+}
+.chat-working > summary::before {
+  content: '▸';
+  font-size: 11px;
+  transition: transform 140ms ease;
+}
+.chat-working[open] > summary::before {
+  transform: rotate(90deg);
+}
+.chat-working > summary:hover {
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+}
+.chat-working-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px 12px;
+}
+
 /* The standing-instructions field. Uses the shared control styling rather than
    its own, which is the whole point of having one. */
 .chat-settings-instructions {
