@@ -96,6 +96,21 @@ export type ConnectedServer = {
   close: () => Promise<void>;
 };
 
+/**
+ * How long a server has to shake hands and list its tools.
+ *
+ * There was no limit at all. `connectServer` awaited `createMCPClient` and then
+ * `client.tools()`, and `run-context` catches a *failure* and skips the server —
+ * but a hang is not a failure, it never returns. So one unresponsive server
+ * held `mcpForUser` open, the run never started streaming, and the composer sat
+ * on its stop button with nothing arriving. That is the "MCP stuck so the chat
+ * is stuck, and there is an ✕ where Enter should be" report.
+ *
+ * Ten seconds is generous for a remote handshake plus a tools listing, and
+ * short enough that a person waiting for an answer does not give up first.
+ */
+export const MCP_CONNECT_TIMEOUT_MS = 10_000;
+
 export type ConnectOptions = {
   /** Resolves `${NAME}` from the encrypted secret store. */
   secret: (name: string) => string | undefined;
