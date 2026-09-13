@@ -72,7 +72,7 @@ const ALLOW = [
  * test and reaching no user, while their screens carried on offering the
  * setting. Lower one when you lower the file; `--update` records a drop.
  */
-const BASELINE = { orphanFiles: 0, testedOnly: 71, dead: 46 };
+const BASELINE = { orphanFiles: 0, testedOnly: 71, dead: 45 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
