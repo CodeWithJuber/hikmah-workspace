@@ -165,10 +165,16 @@ export function ChatPreview({
   onArtifact,
   onSettled,
   banner,
+  needsKey = false,
+  onOpenSettings,
 }: {
   conversationId: string;
   /** Shown above the transcript. */
   banner?: React.ReactNode;
+  /** Nothing would pay for a message sent now: the empty conversation says so. */
+  needsKey?: boolean;
+  /** Opens the Settings tab, where the key goes. */
+  onOpenSettings?: () => void;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
@@ -318,6 +324,8 @@ export function ChatPreview({
           onTools={onTools}
           onArtifact={onArtifact}
           banner={banner}
+          needsKey={needsKey}
+          onOpenSettings={onOpenSettings}
           empty={
             <div className="chat-greeting">
               <HikmahIcon name="orbit" size={34} />

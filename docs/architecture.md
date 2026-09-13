@@ -293,6 +293,22 @@ registration state would go stale against a config the owner edited, and anythin
 holding the shared token can already run commands there through `bash`, so it
 grants nothing new.
 
+## First run
+
+A person with no key saved, on a plan with no included models, used to meet
+three starters, tap one, and get a red card naming an environment variable.
+`/api/billing` now reports whether a message sent now would have a key to run
+on (`managedKey`, through `runAccess` like every other reader of the
+deployment key); with none, the empty conversation shows _Connect a model to
+start_ (`components/chat/connect-model.tsx`) — a free OpenRouter key or the
+provider they already use, both opening the Settings tab — instead of the
+starters, and the no-key failure offers _Add a key_ instead of _Try again_.
+The landing page leads with what the workspace does for everyday work
+(memory, research, background learning, Qur'an grounding) before the
+builders' section, and names the providers. On a phone the sign-out control
+lives at the end of Settings, in words, rather than as an icon on the top
+bar; the workspace shows a _Chat_ link back.
+
 ## Providers
 
 One registry, `lib/ai/providers.ts`, read by three things that used to drift:

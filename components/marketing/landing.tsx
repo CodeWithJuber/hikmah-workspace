@@ -8,10 +8,47 @@
  * next one.
  */
 import Link from 'next/link';
-import { ArrowRight, Check, Puzzle, Server, Terminal, Waypoints } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpenCheck,
+  Brain,
+  Check,
+  Puzzle,
+  Search,
+  Server,
+  Sparkles,
+  Terminal,
+  Waypoints,
+} from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { PublicAuthConfig } from '@/lib/auth/public-config';
 import type { Plan } from '@/lib/billing/plans';
+
+/** What it does for the work most people actually bring: writing, questions,
+ * research, learning. Listed first, because a visitor who does not write code
+ * used to meet a terminal in the first card and leave. */
+const EVERYDAY = [
+  {
+    icon: Brain,
+    title: 'Remembers you — on your terms',
+    body: 'It keeps what you tell it about yourself and your work, in your own words, and says under each answer which memories it used. Anything it merely inferred waits for your review; nothing is saved behind your back.',
+  },
+  {
+    icon: Search,
+    title: 'Research that reads the sources',
+    body: 'Ask for deep research and several agents fan out, each reading real pages, and come back with findings and the exact links they opened — and a plain list of what they could not settle.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Learns while you do something else',
+    body: 'Hand it a topic to learn in the background. It works on its own, files what it found for your review, and writes you a report — no tab to keep open, nothing lost if you close it.',
+  },
+  {
+    icon: BookOpenCheck,
+    title: 'Qur’an grounded, not guessed',
+    body: 'Verses, translations and tafsir come from quran.com with the edition cited, never from the model’s memory. It can say what a text says, and where.',
+  },
+];
 
 const CAPABILITIES = [
   {
@@ -95,9 +132,24 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
             Free with your own model key. No card, and nothing to cancel.
           </p>
         )}
+        <p className="landing-providers">
+          Works with OpenRouter’s free models, OpenAI, Anthropic, Kimi, Gemini, DeepSeek, Ollama and
+          any OpenAI-compatible server — with the price of each model in view.
+        </p>
       </section>
 
-      <section className="landing-grid" aria-label="What it does">
+      <section className="landing-grid" aria-label="For everyday work">
+        {EVERYDAY.map(({ icon: Icon, title, body }) => (
+          <article key={title}>
+            <Icon size={20} aria-hidden />
+            <h2>{title}</h2>
+            <p>{body}</p>
+          </article>
+        ))}
+      </section>
+
+      <h2 className="landing-section-title">And for the builders.</h2>
+      <section className="landing-grid" aria-label="For developers">
         {CAPABILITIES.map(({ icon: Icon, title, body }) => (
           <article key={title}>
             <Icon size={20} aria-hidden />

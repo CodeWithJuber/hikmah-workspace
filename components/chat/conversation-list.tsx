@@ -134,7 +134,7 @@ export function ConversationList({
               {/* A conversation that opened with a file rather than words has no
                   title, and saying so is more use than calling every one of
                   them the same thing. */}
-              <span className="conversation-title">{conversation.title || 'Untitled'}</span>
+              <span className="conversation-title">{conversation.title || 'New chat'}</span>
               {/* A paused run needs the owner, not patience, so it is not shown
                   as if it were working. */}
               {conversation.waiting && (

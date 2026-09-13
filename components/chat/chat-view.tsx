@@ -51,6 +51,7 @@ import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { DropdownMenuCheckboxItem, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
+import { ConnectModelCard } from './connect-model';
 import { allModelsFree } from '@/lib/ai/endpoint';
 import { PricingContext } from './pricing-context';
 import { VoiceInput } from './voice-controls';
@@ -175,6 +176,11 @@ export type ChatViewProps = {
   onArtifact?: (files: WorkspaceFiles) => void;
   /** Shown above the transcript: a background task says what it is. */
   banner?: React.ReactNode;
+  /** Nothing would pay for a message: the empty state asks for a key instead
+   * of offering starters that would fail. */
+  needsKey?: boolean;
+  /** Opens the Settings tab. */
+  onOpenSettings?: () => void;
 };
 
 export function ChatView({
@@ -193,6 +199,8 @@ export function ChatView({
   onTools,
   onArtifact,
   banner,
+  needsKey = false,
+  onOpenSettings,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -411,7 +419,10 @@ export function ChatView({
             {messages.length === 0 && (
               <div className="chat-welcome">
                 {empty}
-                {!!starters?.length && (
+                {needsKey && onOpenSettings ? (
+                  <ConnectModelCard onOpenSettings={onOpenSettings} />
+                ) : null}
+                {!needsKey && !!starters?.length && (
                   <div className="chat-starters">
                     {starters.map((prompt) => (
                       <button key={prompt} type="button" onClick={() => submit({ text: prompt })}>
@@ -494,6 +505,12 @@ export function ChatView({
             ) ? (
               <button type="button" onClick={() => window.location.reload()}>
                 Reload
+              </button>
+            ) : /No API key/.test(error ? error.message : (initialError ?? '')) &&
+              onOpenSettings ? (
+              // The fix is a key, not a retry: open where it goes.
+              <button type="button" onClick={onOpenSettings}>
+                Add a key
               </button>
             ) : (
               <button

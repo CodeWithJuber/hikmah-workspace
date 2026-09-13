@@ -7634,6 +7634,97 @@ a.auth-brand {
 .chat-model-row > input {
   flex: 1 1 160px;
 }
+.chat-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+  border-inline-start-width: 4px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  text-align: start;
+}
+.chat-connect > svg {
+  color: var(--primary);
+}
+.chat-connect h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.chat-connect > p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.chat-connect-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.chat-connect-choices button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  text-align: start;
+  cursor: pointer;
+}
+.chat-connect-choices button.is-primary {
+  border-color: var(--primary);
+}
+.chat-connect-choices button:hover {
+  background: var(--muted);
+}
+.chat-connect-choices strong {
+  display: block;
+  font-size: 14px;
+}
+.chat-connect-choices small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.chat-connect-choices a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.chat-settings-account p {
+  font-size: 13px;
+}
+.chat-settings-account a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.workspace-chat-link {
+  display: none;
+}
+@media (max-width: 900px) {
+  .workspace-main {
+    position: relative;
+  }
+  .workspace-chat-link {
+    display: inline-flex;
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 5;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 13px;
+    color: var(--foreground);
+    text-decoration: none;
+  }
+}
 .chat-inline-link {
   padding: 0;
   border: 0;
@@ -8337,6 +8428,27 @@ a.auth-brand {
   border: 1px solid var(--line);
   background: #fff;
   font-size: 14.5px;
+}
+/* The featured plan's button inherits the white card button above and then
+   `.landing-primary`'s white text: white on white, an empty box where "Start
+   14 days free" belonged. Filled, like the hero's. */
+.landing-plans article > a.landing-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.landing-providers {
+  margin: 18px auto 0;
+  max-width: 560px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.landing-section-title {
+  margin: 36px 0 -8px;
+  font-size: 22px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
 }
 .landing-faq {
   padding: 32px 0;
