@@ -6993,6 +6993,25 @@ a.auth-brand {
   }
 }
 
+/* The standing-instructions field. Uses the shared control styling rather than
+   its own, which is the whole point of having one. */
+.chat-settings-instructions {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--input);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.chat-settings-instructions:focus-visible {
+  border-color: var(--ring);
+}
+
 .chat-composer-row {
   flex-wrap: wrap;
   row-gap: 8px;

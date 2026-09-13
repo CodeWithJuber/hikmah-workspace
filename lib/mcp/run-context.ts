@@ -22,6 +22,12 @@ export type McpRunTools = {
   approval: Map<string, ApprovalMode>;
   /** Tool ids whose description changed since the owner last saw it. */
   changed: string[];
+  /**
+   * What each connected server says about using it, to be added to the system
+   * prompt. Named per server, because a model given fifteen tools and no word
+   * about when they are authoritative will answer from memory instead.
+   */
+  guidance: { server: string; instructions: string }[];
   close: () => Promise<void>;
 };
 
@@ -29,6 +35,7 @@ export const EMPTY_MCP_TOOLS: McpRunTools = {
   tools: {},
   approval: new Map(),
   changed: [],
+  guidance: [],
   close: async () => {},
 };
 
@@ -59,6 +66,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
   const tools: ToolSet = {};
   const approval = new Map<string, ApprovalMode>();
   const changed: string[] = [];
+  const guidance: { server: string; instructions: string }[] = [];
 
   for (const row of rows) {
     const record = toRecord(row);
@@ -79,6 +87,8 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
     }
     connected.push(server);
     options.store.setStatus(row.id, 'connected', null);
+    if (server.instructions)
+      guidance.push({ server: record.name, instructions: server.instructions });
 
     const pins = options.store.pins(row.id);
     for (const [id, tool] of Object.entries(server.tools)) {
@@ -115,6 +125,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
     tools,
     approval,
     changed,
+    guidance,
     close: async () => {
       await Promise.all(connected.map((server) => server.close()));
     },

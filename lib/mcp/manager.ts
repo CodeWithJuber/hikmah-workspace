@@ -83,6 +83,16 @@ export type ConnectedServer = {
   server: ServerRecord;
   tools: ToolSet;
   fingerprints: Map<string, string>;
+  /**
+   * What the server says about using it, from the initialize handshake.
+   *
+   * The protocol has servers return this so a client can put it in the system
+   * prompt, and it is the difference between a model that has fifteen Qur'an
+   * tools available and a model that knows it must use them. Quran.com's says,
+   * in as many words, never to answer from training data. We were discarding
+   * it, which is the one thing this deployment could least afford to discard.
+   */
+  instructions: string;
   close: () => Promise<void>;
 };
 
@@ -183,6 +193,7 @@ export async function connectServer(
     server,
     tools,
     fingerprints,
+    instructions: (client.instructions ?? '').trim(),
     close: async () => {
       try {
         await client.close();

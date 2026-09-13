@@ -18,7 +18,7 @@ import { HIKMAH_CORE } from '@/lib/playground/agent-prompts';
 import { listModels } from '@/lib/playground/transport';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { defaultProvider } from '@/lib/playground/session';
-import type { ChatSettings } from '@/lib/chat/settings';
+import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from '@/components/kernel/icons';
 
@@ -253,9 +253,15 @@ export function ChatPreview({
             // Appended rather than replacing: the workspace's own instructions
             // say true things about this deployment that an agent should not be
             // able to switch off by accident.
-            instructions: agent?.instructions
-              ? `${loaded.config.instructions}\n\n${agent.instructions}`
-              : loaded.config.instructions,
+            // Core rules, then what this person has asked for on every run,
+            // then the agent's own. The middle one is new: it lived in the
+            // workspace and reached the model through a function that lost its
+            // only caller when the browser run loop went, so the setting
+            // existed and did nothing.
+            instructions:
+              loaded.config.instructions +
+              personalPrompt(settings) +
+              (agent?.instructions ? `\n\n${agent.instructions}` : ''),
             enabledTools: agent?.tools?.length ? agent.tools : undefined,
             // The owner's own choice first, then the agent's, then the saved
             // connection: picking an agent should not quietly override a model
