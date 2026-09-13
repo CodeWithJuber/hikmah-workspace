@@ -28,12 +28,21 @@ const EMPTY: Omit<Agent, 'id' | 'builtIn'> = {
 };
 
 export function AgentsPanel({
-  activeId,
+  activeId = null,
   onPick,
 }: {
-  activeId: string | null;
-  /** The agent to apply to the next turn, or null for none. */
-  onPick: (agent: Agent | null) => void;
+  activeId?: string | null;
+  /**
+   * The agent to apply to the next turn, or null for none.
+   *
+   * Optional, because the same panel serves two surfaces. In the chat it picks
+   * the agent for the next turn; on the workspace's Agents screen there is no
+   * conversation to apply one to, so it manages them and picking is off. That
+   * screen had its own 389-line copy over the workspace blob — a store nothing
+   * has read since the browser run loop was retired, so every agent created
+   * there was invisible to every run.
+   */
+  onPick?: (agent: Agent | null) => void;
 }) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [tools, setTools] = useState<string[]>([]);
@@ -103,7 +112,7 @@ export function AgentsPanel({
       });
       if (!response.ok) return;
       // A deleted agent cannot go on driving the next turn.
-      if (agent.id === activeId) onPick(null);
+      if (agent.id === activeId) onPick?.(null);
       setRevision((value) => value + 1);
     },
     [activeId, onPick],
@@ -126,7 +135,11 @@ export function AgentsPanel({
           <li key={agent.id} className={agent.id === activeId ? 'is-open' : ''}>
             <button
               type="button"
-              onClick={() => onPick(agent.id === activeId ? null : agent)}
+              onClick={() => onPick?.(agent.id === activeId ? null : agent)}
+              // Without a picker this row is a label, not a control: saying so
+              // is the difference between "nothing happened" and "nothing was
+              // supposed to happen".
+              disabled={!onPick}
               title={agent.description}
             >
               <span className="files-path">{agent.name}</span>

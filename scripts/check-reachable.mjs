@@ -72,7 +72,11 @@ const ALLOW = [
  * test and reaching no user, while their screens carried on offering the
  * setting. Lower one when you lower the file; `--update` records a drop.
  */
-const BASELINE = { orphanFiles: 0, testedOnly: 71, dead: 46 };
+// testedOnly went 71 → 74 for three named on purpose by the chat-candidate
+// tests: MIN_TOKENS and toAnnotation in lib/context-model/candidates.ts, and
+// MAX_QUEUED in its store. Each is used inside its own module and exported so a
+// test can assert against the constant rather than restate the number.
+const BASELINE = { orphanFiles: 0, testedOnly: 74, dead: 45 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

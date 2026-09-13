@@ -166,11 +166,11 @@ export const starterFiles: WorkspaceFiles = {
   'script.js':
     'let count = 0;\nconst button = document.querySelector("#count");\nbutton?.addEventListener("click", () => {\n  count += 1;\n  button.textContent = `Count: ${count}`;\n});',
 };
-export const newConversation = (): Conversation => ({
-  id: randomId(),
-  title: 'New conversation',
-  messages: [],
-});
+/* `newConversation` lived here and made a conversation inside the workspace
+   blob. Conversations are server rows now — `newConversationId` in
+   lib/runs/service — and its last caller went with the workspace's Agents
+   screen, which used it to start a chat that the retired browser run loop was
+   the only thing able to answer. */
 export function validateFiles(value: unknown): WorkspaceFiles {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw Error('Files must be an object.');

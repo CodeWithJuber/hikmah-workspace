@@ -12,7 +12,12 @@
  * the model does not see the conversation re-described halfway through.
  */
 
-import { compileContext, detectLanguage, documentSentences } from './discourse.ts';
+import {
+  compileContext,
+  detectLanguage,
+  documentSentences,
+  type ContextGraph,
+} from './discourse.ts';
 import { contextBrief, type ContextBrief } from './brief.ts';
 import type { FieldModel } from './field-model.ts';
 import { isSupported } from './server.ts';
@@ -71,6 +76,17 @@ export type BriefOutcome = {
   /** Why the block is empty, for the run receipt and the operator log. */
   reason: 'ok' | 'empty' | 'no-model' | 'failed' | 'off';
   brief?: ContextBrief;
+  /**
+   * The compiled graph, with each sentence's parse.
+   *
+   * Returned so the caller can keep what the parse measured rather than only
+   * what it said. Every turn is already parsed to build the block above, and
+   * the confidence of each sentence — which words were unknown, how close the
+   * tree was — was computed and thrown away. That measurement is the only thing
+   * a chat can honestly contribute to a parser fitted on gold annotations, so
+   * it is worth carrying the reference out.
+   */
+  graph?: ContextGraph;
 };
 
 const NOTHING = (reason: BriefOutcome['reason']): BriefOutcome => ({ block: '', reason });
@@ -117,10 +133,11 @@ export async function buildContextBrief(options: {
   }
 
   try {
-    const brief = contextBrief(compileContext(sentences.join(' '), models, 'auto'));
+    const graph = compileContext(sentences.join(' '), models, 'auto');
+    const brief = contextBrief(graph);
     return brief.block
-      ? { block: brief.block, reason: 'ok', brief }
-      : { ...NOTHING('empty'), brief };
+      ? { block: brief.block, reason: 'ok', brief, graph }
+      : { ...NOTHING('empty'), brief, graph };
   } catch {
     return NOTHING('failed');
   }

@@ -16,7 +16,7 @@ import { sshRunContext, workbenchReady } from '../ssh/run-context.ts';
 import { mcpForUser } from '../mcp/app-context.ts';
 import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
-import { answered } from './failure.ts';
+import { answered, NO_ANSWER } from './failure.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 
@@ -227,6 +227,12 @@ async function driveWithAgent({
     // words. Reported rather than recorded as success, because success with
     // nothing to show is indistinguishable from the app being broken.
     const silent = !awaitingApproval && !awaitingClient && !answered(parts);
+    // Into the stream, not only onto the run row. The worker records the
+    // reason after the stream has closed, so a tab that watched the whole run
+    // live saw a clean ending and showed nothing at all — the reason only
+    // appeared on a reload, which is not where the person is looking. This
+    // chunk reaches them where they are watching.
+    if (silent) emit({ type: 'error', errorText: NO_ANSWER });
     return { message, awaitingApproval, awaitingClient, silent };
   } finally {
     await mcp?.close();

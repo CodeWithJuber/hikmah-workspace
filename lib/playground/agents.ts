@@ -9,7 +9,11 @@ export type AgentProfile = {
   review: boolean;
   kind: 'custom' | 'research' | 'coding' | 'voice' | 'video' | 'support';
 };
-export const builtInToolIds = [
+/* Not exported since the workspace's Agents screen stopped keeping its own
+   copy of the tool list: `parseAgents` below is the only reader, and the
+   canonical list a run actually uses is BUILT_IN_TOOLS in lib/agents/templates.
+   Two exported lists of tool names is how the two drift apart. */
+const builtInToolIds = [
   'calculate',
   'list_files',
   'read_file',
@@ -25,7 +29,10 @@ export const builtInToolIds = [
   'research_quran',
 ];
 const base = ['calculate', 'list_files', 'read_file', 'update_plan'];
-export const agentTemplates: AgentProfile[] = [
+/* Likewise. The templates a person can pick from are AGENT_TEMPLATES, served
+   by /api/agents; these remain only so parseAgents can recognise the `kind` of
+   an agent saved in an old workspace blob. */
+const agentTemplates: AgentProfile[] = [
   {
     id: 'research',
     kind: 'research',
