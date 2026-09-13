@@ -15,6 +15,8 @@
  */
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { providerFor } from './providers.ts';
 import type { LanguageModel } from 'ai';
 import { assertModelAllowed, resolveProviderBaseUrl } from './endpoint.ts';
 import { withIdleTimeout } from './watchdog.ts';
@@ -51,6 +53,18 @@ export function createLanguageModel(request: ModelRequest): LanguageModel {
       fetch: fetchWithWatchdog,
     });
     return openrouter.chat(model);
+  }
+
+  // Anthropic's Messages API is not the OpenAI protocol; its own provider
+  // speaks it, tool calling and streaming included.
+  if (providerFor(baseUrl)?.auth === 'anthropic') {
+    const anthropic = createAnthropic({
+      apiKey: request.apiKey,
+      baseURL: baseUrl,
+      headers: attribution(request),
+      fetch: fetchWithWatchdog,
+    });
+    return anthropic.messages(model);
   }
 
   // Any other OpenAI-compatible server, including a self-hosted Ollama or vLLM

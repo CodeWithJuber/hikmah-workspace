@@ -354,3 +354,144 @@ test('relay sign-in failures are distinguished from an invalid provider key in t
     /sign-in has expired/,
   );
 });
+
+test('a model list is relayed without a key; a chat is not', async (t) => {
+  // OpenRouter's /models is public. Refusing the request for want of a key
+  // left the chat's model picker with one entry until a key was saved.
+  const fetchMock = t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, 'https://openrouter.ai/api/v1/models');
+    assert.equal(options.headers.Authorization, undefined, 'no bearer for no key');
+    return Response.json({ data: [{ id: 'openrouter/free' }, { id: 'x/y:free' }] });
+  });
+  const listed = await relayProviderRequest(
+    request({
+      provider: 'openrouter',
+      operation: 'models',
+      headers: { 'X-Hikmah-Provider-Key': '' },
+    }),
+    true,
+  );
+  assert.equal(listed.status, 200);
+  assert.equal((await listed.json()).data.length, 2);
+  assert.equal(fetchMock.mock.callCount(), 1);
+  const chat = await relayProviderRequest(
+    request({ provider: 'openrouter', headers: { 'X-Hikmah-Provider-Key': '' } }),
+    true,
+  );
+  assert.equal(chat.status, 400);
+  assert.equal(chat.headers.get('X-Hikmah-Relay-Error'), 'key');
+  assert.equal(fetchMock.mock.callCount(), 1, 'the chat never reached upstream');
+});
+
+test('a custom endpoint is listed under the run’s own endpoint policy, never as an open proxy', async (t) => {
+  const seen = [];
+  const fetchMock = t.mock.method(globalThis, 'fetch', async (url) => {
+    seen.push(url);
+    return Response.json({ data: [{ id: 'llama3.2' }] });
+  });
+  const list = (baseUrl, extra = {}) =>
+    relayProviderRequest(
+      new Request(
+        `${origin}/api/provider?operation=models&baseUrl=${encodeURIComponent(baseUrl)}`,
+        {
+          headers: { Origin: origin, 'Sec-Fetch-Site': 'same-origin', ...extra },
+        },
+      ),
+      true,
+    );
+  // Loopback: Ollama on the box, no key, plain HTTP.
+  const local = await list('http://127.0.0.1:11434/v1/');
+  assert.equal(local.status, 200);
+  assert.deepEqual(seen, ['http://127.0.0.1:11434/v1/models']);
+  // The cloud metadata service, a compose neighbour, a plain-HTTP public host:
+  // every one is the same refusal the run itself would give.
+  for (const baseUrl of [
+    'http://169.254.169.254/latest',
+    'http://ollama:11434/v1',
+    'http://host.docker.internal:11434/v1',
+    'http://example.com/v1',
+    'https://user:pw@example.com/v1',
+  ]) {
+    const refused = await list(baseUrl);
+    assert.equal(refused.status, 400, baseUrl);
+    assert.equal(refused.headers.get('X-Hikmah-Relay-Error'), 'destination', baseUrl);
+  }
+  assert.equal(fetchMock.mock.callCount(), 1, 'nothing refused was fetched');
+  // A chat can never name its own destination this way.
+  const chat = await relayProviderRequest(
+    new Request(
+      `${origin}/api/provider?operation=chat&baseUrl=${encodeURIComponent('http://127.0.0.1:11434/v1')}`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: origin,
+          'Sec-Fetch-Site': 'same-origin',
+          'Content-Type': 'application/json',
+          'X-Hikmah-Provider-Key': key,
+        },
+        body: JSON.stringify(payload),
+      },
+    ),
+    true,
+  );
+  assert.equal(chat.status, 400);
+  assert.equal(chat.headers.get('X-Hikmah-Relay-Error'), 'destination');
+});
+
+test('a private model server the operator named is listed', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ data: [{ id: 'qwen3' }] }));
+  const previous = process.env.HIKMAH_PROVIDER_ALLOW_PRIVATE;
+  process.env.HIKMAH_PROVIDER_ALLOW_PRIVATE = 'host.docker.internal';
+  t.after(() => {
+    if (previous === undefined) delete process.env.HIKMAH_PROVIDER_ALLOW_PRIVATE;
+    else process.env.HIKMAH_PROVIDER_ALLOW_PRIVATE = previous;
+  });
+  const listed = await relayProviderRequest(
+    new Request(
+      `${origin}/api/provider?operation=models&baseUrl=${encodeURIComponent('http://host.docker.internal:11434/v1')}`,
+      { headers: { Origin: origin, 'Sec-Fetch-Site': 'same-origin' } },
+    ),
+    true,
+  );
+  assert.equal(listed.status, 200);
+  assert.deepEqual(
+    (await listed.json()).data.map((m) => m.id),
+    ['qwen3'],
+  );
+});
+
+test('Anthropic is asked with its own headers, and its display names are kept', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    if (url === 'https://openrouter.ai/api/v1/models')
+      return Response.json({
+        data: [
+          {
+            id: 'anthropic/claude-sonnet-4.5',
+            pricing: { prompt: '0.000003', completion: '0.000015' },
+            context_length: 200000,
+          },
+        ],
+      });
+    assert.equal(url, 'https://api.anthropic.com/v1/models');
+    assert.equal(options.headers['x-api-key'], key);
+    assert.equal(options.headers['anthropic-version'], '2023-06-01');
+    assert.equal(options.headers.Authorization, undefined, 'no bearer header for Anthropic');
+    return Response.json({
+      data: [
+        { id: 'claude-sonnet-4-5-20250929', display_name: 'Claude Sonnet 4.5', type: 'model' },
+      ],
+    });
+  });
+  const listed = await relayProviderRequest(
+    request({ provider: 'anthropic', operation: 'models' }),
+    true,
+  );
+  assert.equal(listed.status, 200);
+  const [model] = (await listed.json()).data;
+  assert.equal(model.name, 'Claude Sonnet 4.5');
+  // Priced from OpenRouter's listing of the same model, and said to be.
+  assert.equal(model.pricing.source, 'route_estimate');
+  assert.equal(model.pricing.input, 3);
+  assert.equal(model.pricing.output, 15);
+  assert.equal(model.context_length, 200000);
+});

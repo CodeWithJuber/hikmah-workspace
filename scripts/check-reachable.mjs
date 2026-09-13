@@ -81,7 +81,11 @@ const ALLOW = [
 // pure rules the fan-out depends on (how a numbered plan is read, and what
 // counts as the provider refusing on rate), each asserted directly rather than
 // through a scripted model.
-const BASELINE = { orphanFiles: 0, testedOnly: 76, dead: 45 };
+// 76 → 78 for two named by the provider tests: routeListingFor in
+// lib/ai/pricing.ts (the id match a direct provider's price rests on) and
+// resetRouteCatalogue in lib/server/route-catalogue.ts (the hour-long cache
+// cannot be tested without a way to empty it).
+const BASELINE = { orphanFiles: 0, testedOnly: 78, dead: 45 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

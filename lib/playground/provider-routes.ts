@@ -1,8 +1,10 @@
-/** Explicit destinations only. An arbitrary URL must never become a server proxy. */
-export const RELAY_PROVIDERS = [
-  { id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1' },
-  { id: 'experiential', name: 'Experiential Labs', baseUrl: 'https://api.experientiallabs.ai/v1' },
-] as const;
+import { hostedProviders } from '../ai/providers.ts';
+
+/** Explicit destinations only. An arbitrary URL must never become a server
+ * proxy. The list is the provider registry's hosted presets, so a provider
+ * added there is forwarded here without a second edit. */
+export const RELAY_PROVIDERS: readonly { id: string; name: string; baseUrl: string }[] =
+  hostedProviders().map(({ id, name, baseUrl }) => ({ id, name, baseUrl }));
 
 export function relayProviderFor(baseUrl: string) {
   try {

@@ -5,6 +5,7 @@ import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/c
 import { conversationTitle } from '@/lib/chat/title';
 import { releases } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
+import { answerIdFor } from '@/lib/runs/answer-id';
 import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
 import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
@@ -132,10 +133,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       // paused on, and requeueing anyway would re-drive an unanswered
       // transcript — which reads, from the outside, as the answer being
       // ignored.
-      const recorded = store.replaceMessage(conversationId, {
-        id: incomingMessage.id,
-        parts: incomingMessage.parts,
-      });
+      // By the id the browser has, or failing that by the id the worker
+      // stores the answer under: a tab opened before the stream began naming
+      // the message still holds an id of its own making.
+      const recorded =
+        store.replaceMessage(conversationId, {
+          id: incomingMessage.id,
+          parts: incomingMessage.parts,
+        }) ||
+        store.replaceMessage(conversationId, {
+          id: answerIdFor(already),
+          parts: incomingMessage.parts,
+        });
       if (!recorded)
         return fail('That answer no longer matches the paused turn. Reload the conversation.', 409);
       // False when the run has moved on, which absorbs a duplicate answer

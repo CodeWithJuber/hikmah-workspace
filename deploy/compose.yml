@@ -11,6 +11,11 @@ services:
       HIKMAH_WORKBENCH_URL: ${HIKMAH_WORKBENCH_URL:-http://workbench:3001}
     depends_on:
       search: { condition: service_started }
+    # The Docker host by name, for a model server running on it (Ollama on
+    # 11434). Only the name: the app still refuses it until the operator adds
+    # host.docker.internal to HIKMAH_PROVIDER_ALLOW_PRIVATE in .env.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     volumes:
       - ./data:/data
     read_only: true

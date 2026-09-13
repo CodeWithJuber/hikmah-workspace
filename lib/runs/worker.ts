@@ -11,6 +11,7 @@
  */
 import { readUIMessageStream } from 'ai';
 import { describeFailure, operatorRun, NO_ANSWER } from './failure.ts';
+import { answerIdFor } from './answer-id.ts';
 import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
 
@@ -183,7 +184,7 @@ export function createWorker(options: WorkerOptions): Worker {
             // right fallback because it is stable across a resume of this run
             // and unique across every other.
             store.saveAssistantMessage(run.conversation_id, {
-              id: message.id?.trim() ? message.id : run.id + '-answer',
+              id: message.id?.trim() ? message.id : answerIdFor(run.id),
               role: message.role ?? 'assistant',
               parts: message.parts ?? [],
               // Model and token usage, so a reload can still say what the

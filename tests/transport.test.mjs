@@ -104,16 +104,24 @@ test('config preserves custom prefixes, trims slash, permits loopback without ke
   );
 });
 
-test('models use direct fetch, preserve path, omit credentials and permit unselected model', async (t) => {
+test('models on a custom endpoint are listed through the server, with the path preserved', async (t) => {
+  // The catalogue used to be fetched by the browser itself, which works on a
+  // laptop and fails on a phone: 127.0.0.1 there is the phone, and a model
+  // server on the box is unreachable. The server lists it now, under the same
+  // endpoint policy the run applies to the same URL.
   t.mock.method(globalThis, 'fetch', async (url, options) => {
-    assert.equal(url, 'https://example.com/compatible/v7/models');
+    assert.equal(
+      url,
+      '/api/provider?operation=models&baseUrl=' +
+        encodeURIComponent('https://example.com/compatible/v7'),
+    );
     assert.equal(options.method, 'GET');
-    assert.equal(options.credentials, 'omit');
+    assert.equal(options.credentials, 'same-origin');
+    assert.equal(options.mode, 'same-origin');
     assert.equal(options.redirect, 'error');
-    assert.equal(options.mode, 'cors');
     assert.equal(options.cache, 'no-store');
-    assert.equal(options.referrerPolicy, 'no-referrer');
-    assert.equal(options.headers.Authorization, `Bearer ${config.apiKey}`);
+    assert.equal(options.headers['X-Hikmah-Provider-Key'], config.apiKey);
+    assert.equal(options.headers.Authorization, undefined);
     assert.equal(options.body, undefined);
     return new Response(
       JSON.stringify({
@@ -129,6 +137,40 @@ test('models use direct fetch, preserve path, omit credentials and permit unsele
   assert.deepEqual(
     await listModels({ ...config, baseUrl: 'https://example.com/compatible/v7/', model: '' }),
     [{ id: 'a', name: 'Alpha', context_length: 100 }, { id: 'b' }],
+  );
+});
+
+test('a model list needs no key, and a private model server may be asked for one', async (t) => {
+  // OpenRouter's catalogue is public; a local server has no key at all. Both
+  // were refused on the browser side before a request was even made, so the
+  // picker showed one model — the connection's own — to anyone without a key
+  // saved, which is everyone on their first day.
+  const asked = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    asked.push({ url, key: options.headers['X-Hikmah-Provider-Key'] });
+    return new Response(JSON.stringify({ data: [{ id: 'llama3.2' }] }));
+  });
+  const base = { model: '', maxTokens: 128, temperature: 0, apiKey: '' };
+  await listModels({ ...base, baseUrl: 'https://openrouter.ai/api/v1' });
+  await listModels({ ...base, baseUrl: 'http://host.docker.internal:11434/v1' });
+  assert.deepEqual(asked, [
+    { url: '/api/provider?provider=openrouter&operation=models', key: undefined },
+    {
+      url:
+        '/api/provider?operation=models&baseUrl=' +
+        encodeURIComponent('http://host.docker.internal:11434/v1'),
+      key: undefined,
+    },
+  ]);
+  // A chat from this browser still needs a key for a hosted provider and is
+  // still refused for a private host it cannot reach.
+  assert.throws(
+    () => validateConfig({ ...config, apiKey: '' }),
+    (error) => safeError(error, 'config'),
+  );
+  assert.throws(
+    () => validateConfig({ ...config, baseUrl: 'http://host.docker.internal:11434/v1' }),
+    (error) => safeError(error, 'config'),
   );
 });
 

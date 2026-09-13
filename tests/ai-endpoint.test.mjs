@@ -4,7 +4,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EndpointError,
+  allModelsFree,
   assertModelAllowed,
+  isLocalEndpoint,
   isFreeOpenRouterModel,
   resolveProviderBaseUrl,
 } from '../lib/ai/endpoint.ts';
@@ -56,7 +58,21 @@ test('an operator can allow exactly the local model server they run', () => {
   );
 });
 
-test('plain HTTP is only allowed on loopback', () => {
+test('plain HTTP is allowed on loopback and on a private host the operator named', () => {
+  // Ollama on the Docker host has no certificate. The name in the allow-list
+  // is the operator saying this is a model server; HTTPS cannot be demanded of
+  // it, and a public host still gets no such exception.
+  const allowPrivate = parsePrivateAllowList('host.docker.internal');
+  assert.equal(
+    resolveProviderBaseUrl('http://host.docker.internal:11434/v1', { allowPrivate }),
+    'http://host.docker.internal:11434/v1',
+  );
+  assert.throws(
+    () => resolveProviderBaseUrl('http://ollama:11434/v1', { allowPrivate }),
+    EndpointError,
+    'a neighbour not named is still refused',
+  );
+
   assert.equal(
     resolveProviderBaseUrl('http://127.0.0.1:11434/v1', none),
     'http://127.0.0.1:11434/v1',
@@ -112,4 +128,39 @@ test('with free-only off, any resolved endpoint and model is allowed', () => {
   assert.doesNotThrow(() =>
     assertModelAllowed({ baseUrl: 'https://api.example.com/v1', model: 'openai/gpt-4o' }),
   );
+});
+
+test('free-only admits a local model server: there is nothing there to spend', () => {
+  // Ollama on the box, or a vLLM the operator named. The setting exists to
+  // stop an unattended loop running up a bill; a local server has none. A
+  // paid hosted endpoint is still blocked, whatever the model is called.
+  for (const baseUrl of [
+    'http://127.0.0.1:11434/v1',
+    'http://localhost:11434/v1',
+    'http://host.docker.internal:11434/v1',
+    'http://ollama:11434/v1',
+  ])
+    assert.doesNotThrow(() => assertModelAllowed({ baseUrl, model: 'llama3.2', freeOnly: true }));
+  assert.ok(isLocalEndpoint('http://127.0.0.1:11434/v1'));
+  assert.ok(!isLocalEndpoint('https://api.example.com/v1'));
+  assert.ok(!isLocalEndpoint('not a url'));
+  assert.throws(
+    () =>
+      assertModelAllowed({
+        baseUrl: 'https://api.example.com/v1',
+        model: 'llama3.2',
+        freeOnly: true,
+      }),
+    EndpointError,
+  );
+});
+
+test('free-only admits Ollama Cloud whole: free within its limits, no prices to filter by', () => {
+  assert.doesNotThrow(() =>
+    assertModelAllowed({ baseUrl: 'https://ollama.com/v1', model: 'kimi-k3', freeOnly: true }),
+  );
+  assert.ok(allModelsFree('https://ollama.com/v1'));
+  assert.ok(allModelsFree('http://127.0.0.1:11434/v1'));
+  assert.ok(!allModelsFree('https://openrouter.ai/api/v1'));
+  assert.ok(!allModelsFree('https://api.openai.com/v1'));
 });

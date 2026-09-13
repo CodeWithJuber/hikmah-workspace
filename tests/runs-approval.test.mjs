@@ -180,3 +180,23 @@ test('the resumed run drives again and can finish', async (t) => {
   assert.equal(worker.store.activeForConversation('conv-1'), null, 'the thread is free again');
   assert.match(worker.store.listMessages('conv-1').at(-1).parts[0].text, /Restarted/);
 });
+
+test('the answer is named on the first chunk, by the id the worker stores it under', async () => {
+  // Answering an approval on a live stream re-sends the message by id. The
+  // browser's id has to be the stored one, and a fresh turn's `start` chunk
+  // names none — so the driver names it.
+  const { answerIdFor, nameAnswer } = await import('../lib/runs/answer-id.ts');
+  assert.deepEqual(nameAnswer({ type: 'start' }, 'run_1'), {
+    type: 'start',
+    messageId: answerIdFor('run_1'),
+  });
+  assert.deepEqual(
+    nameAnswer({ type: 'start', messageId: 'run_1-answer' }, 'run_1'),
+    { type: 'start', messageId: 'run_1-answer' },
+    'a resumed turn already names the stored message',
+  );
+  assert.deepEqual(nameAnswer({ type: 'text-delta', delta: 'x' }, 'run_1'), {
+    type: 'text-delta',
+    delta: 'x',
+  });
+});

@@ -9,7 +9,7 @@
  * What that buys, and what the old surface could not do: close the tab
  * mid-answer, come back, and the answer is still being written.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import { hasAnsweredQuestion } from '@/lib/runs/resume';
 import { useChat } from '@ai-sdk/react';
@@ -26,11 +26,6 @@ import {
   PromptInputActionMenuTrigger,
   PromptInputBody,
   PromptInputFooter,
-  PromptInputSelect,
-  PromptInputSelectContent,
-  PromptInputSelectItem,
-  PromptInputSelectTrigger,
-  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -53,15 +48,11 @@ import {
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
-import {
-  DropdownMenuCheckboxItem,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenuCheckboxItem, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { LearnTaskDialog } from './learn-task';
+import { ModelPicker, type PickerModel } from './model-picker';
+import { allModelsFree } from '@/lib/ai/endpoint';
+import { PricingContext } from './pricing-context';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
@@ -166,9 +157,13 @@ export type ChatViewProps = {
   /** Offered on an empty conversation. Sent as written rather than dropped in
    * the composer: a starter is a question someone already decided to ask. */
   starters?: string[];
-  /** The models the provider offers. Empty while the catalog is loading, or
-   * when the provider does not publish one. */
-  models?: { id: string; label: string }[];
+  /** The models the provider offers, with what the catalogue says about each.
+   * Empty while it loads, or when the provider publishes none. */
+  models?: PickerModel[];
+  /** The catalogue is still being fetched. */
+  modelsLoading?: boolean;
+  /** Why the catalogue could not be fetched, in words, or ''. */
+  modelsError?: string;
   /** Applies from the next turn, which is why it is not part of `run`: an
    * answer already written was written by the model that wrote it. */
   onModel?: (model: string) => void;
@@ -191,6 +186,8 @@ export function ChatView({
   empty,
   starters,
   models,
+  modelsLoading = false,
+  modelsError = '',
   onModel,
   showActivity = true,
   onTools,
@@ -399,246 +396,244 @@ export function ChatView({
     [busy, editing, messages, regenerate, sendMessage, setMessages],
   );
 
+  // What each model costs, for the receipt under every answer.
+  const pricing = useMemo(
+    () => new Map((models ?? []).map((model) => [model.id, model])),
+    [models],
+  );
+
   return (
-    <div className="chat-view">
-      {banner}
-      <Conversation>
-        <ConversationContent>
-          {messages.length === 0 && (
-            <div className="chat-welcome">
-              {empty}
-              {!!starters?.length && (
-                <div className="chat-starters">
-                  {starters.map((prompt) => (
-                    <button key={prompt} type="button" onClick={() => submit({ text: prompt })}>
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {messages.map((message, index) => (
-            <MessageParts
-              key={message.id}
-              message={message}
-              status={status}
-              onApproval={addToolApprovalResponse}
-              // The answer is written into the message as the tool's output,
-              // which is what the run resumes from. The tool name has to match
-              // the call: addToolOutput routes by it.
-              onQuestion={({ toolCallId, answer }) =>
-                addToolOutput({ tool: 'ask_user', toolCallId, output: answer })
-              }
-              showActivity={showActivity}
-              onArtifact={onArtifact}
-              onRemember={remember}
-              // Offered on every settled answer, not just the last: the server
-              // truncates from the message being replayed, so an earlier one
-              // rewinds the conversation to that point rather than corrupting
-              // it. The tooltip says so, because it is not reversible.
-              onRegenerate={
-                !busy && !editing && message.role === 'assistant'
-                  ? () => void regenerate({ messageId: message.id })
-                  : undefined
-              }
-              onEdit={
-                !busy && !editing && message.role === 'user' ? () => beginEdit(message) : undefined
-              }
-            />
-          ))}
-          {/* Something on the screen while the work happens.
+    <PricingContext.Provider value={pricing}>
+      <div className="chat-view">
+        {banner}
+        <Conversation>
+          <ConversationContent>
+            {messages.length === 0 && (
+              <div className="chat-welcome">
+                {empty}
+                {!!starters?.length && (
+                  <div className="chat-starters">
+                    {starters.map((prompt) => (
+                      <button key={prompt} type="button" onClick={() => submit({ text: prompt })}>
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {messages.map((message, index) => (
+              <MessageParts
+                key={message.id}
+                message={message}
+                status={status}
+                onApproval={addToolApprovalResponse}
+                // The answer is written into the message as the tool's output,
+                // which is what the run resumes from. The tool name has to match
+                // the call: addToolOutput routes by it.
+                onQuestion={({ toolCallId, answer }) =>
+                  addToolOutput({ tool: 'ask_user', toolCallId, output: answer })
+                }
+                showActivity={showActivity}
+                onArtifact={onArtifact}
+                onRemember={remember}
+                // Offered on every settled answer, not just the last: the server
+                // truncates from the message being replayed, so an earlier one
+                // rewinds the conversation to that point rather than corrupting
+                // it. The tooltip says so, because it is not reversible.
+                onRegenerate={
+                  !busy && !editing && message.role === 'assistant'
+                    ? () => void regenerate({ messageId: message.id })
+                    : undefined
+                }
+                onEdit={
+                  !busy && !editing && message.role === 'user'
+                    ? () => beginEdit(message)
+                    : undefined
+                }
+              />
+            ))}
+            {/* Something on the screen while the work happens.
               A screen reader was told by the live region below, and a sighted
               person was told by a spinner inside the send button and nothing
               else — so a turn that took a while, or a tool that took a while
               before writing a word, looked like nothing had happened. It
               disappears the moment real text arrives, because the answer is a
               better indicator than any label. */}
-          {busy && !streamingText && (
-            <div className="chat-thinking" role="status">
-              <span className="chat-thinking-dots" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span>{status === 'submitted' ? 'Sending…' : 'Working on it…'}</span>
-            </div>
-          )}
-          {/* The answer region is announced while a run is in progress, so a
+            {busy && !streamingText && (
+              <div className="chat-thinking" role="status">
+                <span className="chat-thinking-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span>{status === 'submitted' ? 'Sending…' : 'Working on it…'}</span>
+              </div>
+            )}
+            {/* The answer region is announced while a run is in progress, so a
               screen reader learns that work is happening and when it lands. */}
-          <div aria-live="polite" className="sr-only">
-            {busy ? 'Working on your request.' : ''}
-          </div>
-        </ConversationContent>
-        <ConversationScrollButton />
-      </Conversation>
+            <div aria-live="polite" className="sr-only">
+              {busy ? 'Working on your request.' : ''}
+            </div>
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
 
-      {/* The live failure first; the stored one only while nothing has been
+        {/* The live failure first; the stored one only while nothing has been
           sent since, so pressing Try again cannot leave the old reason sitting
           under the new answer. */}
-      {(error || (initialError && !retried)) && (
-        <div className="chat-error" role="alert">
-          <p>{error ? error.message : initialError}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setRetried(true);
-              void regenerate();
-            }}
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
-      <PromptInput
-        onSubmit={submit}
-        accept={ACCEPT}
-        multiple
-        globalDrop
-        maxFiles={MAX_FILES}
-        maxFileSize={MAX_FILE_BYTES}
-      >
-        <PromptInputBody>
-          {editing && (
-            <p className="chat-editing" role="status">
-              Editing an earlier question. Sending replaces it, and every reply after it.
-              <button type="button" onClick={cancelEdit}>
-                Cancel
+        {(error || (initialError && !retried)) && (
+          <div className="chat-error" role="alert">
+            <p>{error ? error.message : initialError}</p>
+            {/* A run paused on a card this tab has lost track of — answered
+                once and refused, or answered from another tab — is put right by
+                reloading, which shows the card again from the stored turn.
+                Try again would re-send into the same refusal. */}
+            {/waiting for you|Reload the conversation/.test(
+              error ? error.message : (initialError ?? ''),
+            ) ? (
+              <button type="button" onClick={() => window.location.reload()}>
+                Reload
               </button>
-            </p>
-          )}
-          <StagedAttachments />
-          <PromptInputTextarea
-            ref={composer}
-            // The transcript sets dir="auto" on every rendered message and the
-            // composer never did, so typing Urdu or Arabic stayed left-aligned
-            // with the caret and the punctuation on the wrong side — the one
-            // place in the app where the owner writes rather than reads.
-            dir="auto"
-            placeholder={
-              editing ? 'Rewrite your question…' : 'Ask anything, or describe what to build.'
-            }
-          />
-        </PromptInputBody>
-        <PromptInputFooter className="chat-composer-row">
-          <PromptInputTools className="chat-composer-tools">
-            <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger />
-              <PromptInputActionMenuContent>
-                <PromptInputActionAddAttachments />
-                {/* Comparing two answers is an expert's question about the
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setRetried(true);
+                  void regenerate();
+                }}
+              >
+                Try again
+              </button>
+            )}
+          </div>
+        )}
+
+        <PromptInput
+          onSubmit={submit}
+          accept={ACCEPT}
+          multiple
+          globalDrop
+          maxFiles={MAX_FILES}
+          maxFileSize={MAX_FILE_BYTES}
+        >
+          <PromptInputBody>
+            {editing && (
+              <p className="chat-editing" role="status">
+                Editing an earlier question. Sending replaces it, and every reply after it.
+                <button type="button" onClick={cancelEdit}>
+                  Cancel
+                </button>
+              </p>
+            )}
+            <StagedAttachments />
+            <PromptInputTextarea
+              ref={composer}
+              // The transcript sets dir="auto" on every rendered message and the
+              // composer never did, so typing Urdu or Arabic stayed left-aligned
+              // with the caret and the punctuation on the wrong side — the one
+              // place in the app where the owner writes rather than reads.
+              dir="auto"
+              placeholder={
+                editing ? 'Rewrite your question…' : 'Ask anything, or describe what to build.'
+              }
+            />
+          </PromptInputBody>
+          <PromptInputFooter className="chat-composer-row">
+            <PromptInputTools className="chat-composer-tools">
+              <PromptInputActionMenu>
+                <PromptInputActionMenuTrigger />
+                <PromptInputActionMenuContent>
+                  <PromptInputActionAddAttachments />
+                  {/* Comparing two answers is an expert's question about the
                     product, asked once and then rarely. It was a labelled
                     checkbox on the main row, permanently occupying width that
                     the model name needed, in front of everyone who only wanted
                     to type a message. */}
-                <DropdownMenuCheckboxItem
-                  checked={compare}
-                  onCheckedChange={setCompare}
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  Also answer without tools
-                </DropdownMenuCheckboxItem>
-                {/* Sub-agents fanned out over the question, each reading its
+                  <DropdownMenuCheckboxItem
+                    checked={compare}
+                    onCheckedChange={setCompare}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    Also answer without tools
+                  </DropdownMenuCheckboxItem>
+                  {/* Sub-agents fanned out over the question, each reading its
                     own sources. A choice for a question, not a setting. */}
-                <DropdownMenuCheckboxItem
-                  checked={deepResearch}
-                  onCheckedChange={setDeepResearch}
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  Research deeply
-                </DropdownMenuCheckboxItem>
-                {/* A task is handed off, not sent: it becomes its own
+                  <DropdownMenuCheckboxItem
+                    checked={deepResearch}
+                    onCheckedChange={setDeepResearch}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    Research deeply
+                  </DropdownMenuCheckboxItem>
+                  {/* A task is handed off, not sent: it becomes its own
                     conversation and this one stays free to type in. */}
-                <DropdownMenuItem onSelect={() => setLearning(true)}>
-                  Learn this in the background…
-                </DropdownMenuItem>
-                {/* The model, on a phone.
-                    At 360px the composer row has about 320px and the four
-                    controls beside it take 166 — so a name like "Free Models
-                    Router" had roughly 60px to render in, which is not a
-                    choice between layouts but an impossibility. Here it has the
-                    width to be read. The select below is the same choice for a
-                    window with room for it; exactly one of the two is ever
-                    displayed, which is why both exist. */}
-                {!!models?.length && onModel && (
-                  <div className="chat-model-menu">
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Model</DropdownMenuLabel>
-                    <DropdownMenuRadioGroup value={run.model} onValueChange={onModel}>
-                      {models.map((model) => (
-                        <DropdownMenuRadioItem key={model.id} value={model.id}>
-                          {model.label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </div>
-                )}
-              </PromptInputActionMenuContent>
-            </PromptInputActionMenu>
-            <VoiceInput disabled={busy} onText={dictate} />
-            {onTools && (
-              <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
-            )}
-            {!!models?.length && (
-              <PromptInputSelect value={run.model} onValueChange={onModel}>
-                <PromptInputSelectTrigger className="chat-model-select">
-                  <PromptInputSelectValue placeholder={run.model} />
-                </PromptInputSelectTrigger>
-                <PromptInputSelectContent>
-                  {models.map((model) => (
-                    <PromptInputSelectItem key={model.id} value={model.id}>
-                      {model.label}
-                    </PromptInputSelectItem>
-                  ))}
-                </PromptInputSelectContent>
-              </PromptInputSelect>
-            )}
-          </PromptInputTools>
-          {/* The meter is a diagnostic, and it was on screen permanently: a bare
+                  <DropdownMenuItem onSelect={() => setLearning(true)}>
+                    Learn this in the background…
+                  </DropdownMenuItem>
+                </PromptInputActionMenuContent>
+              </PromptInputActionMenu>
+              <VoiceInput disabled={busy} onText={dictate} />
+              {onTools && (
+                <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
+              )}
+              {onModel && (
+                <ModelPicker
+                  models={models ?? []}
+                  value={run.model}
+                  onSelect={onModel}
+                  loading={modelsLoading}
+                  error={modelsError}
+                  className="chat-model-select"
+                  local={allModelsFree(run.baseUrl)}
+                />
+              )}
+            </PromptInputTools>
+            {/* The meter is a diagnostic, and it was on screen permanently: a bare
               percentage beside a spinner, meaning nothing to most people, taking
               room on the row the send button needed. Every answer already
               carries its own token count in its receipt, so this is only worth
               showing once the window is actually filling up and the next message
               is at risk of losing the beginning of the conversation. */}
-          {spent?.usage && crowded && (
-            <Context
-              maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
-              modelId={spent.model ?? run.model}
-              usage={spent.usage}
-              usedTokens={spent.usage.totalTokens ?? 0}
-            >
-              <ContextTrigger />
-              <ContextContent>
-                <ContextContentHeader />
-                <ContextContentBody>
-                  <ContextInputUsage />
-                  <ContextOutputUsage />
-                  <ContextReasoningUsage />
-                  <ContextCacheUsage />
-                </ContextContentBody>
-                <ContextContentFooter />
-              </ContextContent>
-            </Context>
-          )}
-          {/* Doubles as Stop while a run is in flight.
+            {spent?.usage && crowded && (
+              <Context
+                maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
+                modelId={spent.model ?? run.model}
+                usage={spent.usage}
+                usedTokens={spent.usage.totalTokens ?? 0}
+              >
+                <ContextTrigger />
+                <ContextContent>
+                  <ContextContentHeader />
+                  <ContextContentBody>
+                    <ContextInputUsage />
+                    <ContextOutputUsage />
+                    <ContextReasoningUsage />
+                    <ContextCacheUsage />
+                  </ContextContentBody>
+                  <ContextContentFooter />
+                </ContextContent>
+              </Context>
+            )}
+            {/* Doubles as Stop while a run is in flight.
               After a failure the button is passed 'ready', not 'error': the
               component renders an ✕ for an errored chat, and on a phone that
               read as "stop" or "blocked" on a button that in fact sends —
               reported as "beech me stuck". The card above already says what
               went wrong; a button you can press should look like one. */}
-          <PromptInputSubmit
-            status={status === 'error' ? 'ready' : status}
-            onClick={busy ? halt : undefined}
-          />
-        </PromptInputFooter>
-      </PromptInput>
-      <LearnTaskDialog
-        open={learning}
-        onOpenChange={setLearning}
-        run={run as unknown as Record<string, unknown>}
-        onStarted={onSettled}
-      />
-    </div>
+            <PromptInputSubmit
+              status={status === 'error' ? 'ready' : status}
+              onClick={busy ? halt : undefined}
+            />
+          </PromptInputFooter>
+        </PromptInput>
+        <LearnTaskDialog
+          open={learning}
+          onOpenChange={setLearning}
+          run={run as unknown as Record<string, unknown>}
+          onStarted={onSettled}
+        />
+      </div>
+    </PricingContext.Provider>
   );
 }

@@ -152,7 +152,16 @@ function normalizeConfig(config: ProviderConfig, requireModel: boolean): Provide
     );
   const host = url.hostname.toLowerCase().replace(/\.$/, '');
   const local = isLoopback(host);
-  if (!local && (url.protocol !== 'https:' || isNonPublic(host)))
+  // A chat sent from this browser can only reach a public HTTPS host or the
+  // device's own loopback. A model list is asked for through the server, and
+  // a private host over plain HTTP there is a local model server — Ollama on
+  // the Docker host, vLLM on the compose network — which the server admits or
+  // refuses by HIKMAH_PROVIDER_ALLOW_PRIVATE, where the request is sent.
+  const privateServer = !local && isNonPublic(host);
+  if (
+    (requireModel && !local && (url.protocol !== 'https:' || privateServer)) ||
+    (!requireModel && url.protocol !== 'https:' && !local && !privateServer)
+  )
     fail(
       'config',
       'Use a public HTTPS API URL, or localhost HTTP for a compatible server running on this device.',
@@ -170,12 +179,16 @@ function normalizeConfig(config: ProviderConfig, requireModel: boolean): Provide
       'This is an OpenRouter key. Choose OpenRouter and use https://openrouter.ai/api/v1.',
     );
   const apiKeySecret = parseSecretRef(config.apiKeySecret);
-  if (config.apiKeySecret && (!apiKeySecret || !relayProviderFor(raw.replace(/\/+$/, ''))))
+  if (config.apiKeySecret && !apiKeySecret) fail('config', 'That saved secret name is not valid.');
+  if (config.apiKeySecret && requireModel && !relayProviderFor(raw.replace(/\/+$/, '')))
     fail(
       'config',
       'Saved keys support OpenRouter and Experiential. Choose a supported provider or use a session key for a custom endpoint.',
     );
-  if (!local && !apiKey && !apiKeySecret)
+  // Listing models needs no key: OpenRouter's catalogue is public and a local
+  // server has none. A chat is refused without one where a hosted provider
+  // would answer 401 anyway.
+  if (requireModel && !local && !apiKey && !apiKeySecret)
     fail('config', 'Enter an API key or select a saved secret for this provider.');
   if (
     typeof config.model !== 'string' ||
@@ -308,27 +321,34 @@ async function request<T>(
   if (source?.aborted) abort();
   try {
     if (controller.signal.aborted) fail('aborted', 'Request cancelled.');
+    // The catalogue is always asked for through the server: it is the server
+    // that will talk to the endpoint, and a browser on a phone cannot reach a
+    // model server on the box. A chat goes through the server for the presets
+    // and direct from this browser otherwise, as before.
+    const viaServer = Boolean(relay) || !body;
     const headers: Record<string, string> = {
       Accept: body ? 'text/event-stream, application/json' : 'application/json',
     };
-    if (config.apiKeySecret && relay) headers['X-Hikmah-Secret-Ref'] = config.apiKeySecret;
+    if (config.apiKeySecret && viaServer) headers['X-Hikmah-Secret-Ref'] = config.apiKeySecret;
     else if (config.apiKey)
-      headers[relay ? 'X-Hikmah-Provider-Key' : 'Authorization'] = relay
+      headers[viaServer ? 'X-Hikmah-Provider-Key' : 'Authorization'] = viaServer
         ? config.apiKey
         : `Bearer ${config.apiKey}`;
     if (body && config.freeOnly) headers['X-Hikmah-Free-Only'] = 'true';
     if (body) headers['Content-Type'] = 'application/json';
     const target = relay
       ? `/api/provider?provider=${relay.id}&operation=${body ? 'chat' : 'models'}`
-      : `${config.baseUrl}/${endpoint}`;
+      : viaServer
+        ? `/api/provider?operation=models&baseUrl=${encodeURIComponent(config.baseUrl)}`
+        : `${config.baseUrl}/${endpoint}`;
     const response = await abortable(
       fetch(target, {
         method: body ? 'POST' : 'GET',
         headers,
         body,
         signal: controller.signal,
-        mode: relay ? 'same-origin' : 'cors',
-        credentials: relay ? 'same-origin' : 'omit',
+        mode: viaServer ? 'same-origin' : 'cors',
+        credentials: viaServer ? 'same-origin' : 'omit',
         redirect: 'error',
         cache: 'no-store',
         referrerPolicy: 'no-referrer',

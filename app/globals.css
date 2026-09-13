@@ -7518,6 +7518,132 @@ a.auth-brand {
   flex-direction: column;
   gap: 2px;
 }
+.chat-model-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.chat-model-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-dialog {
+  max-width: 560px;
+}
+.model-dialog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.model-dialog-filters button {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.model-dialog-filters button[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.model-dialog-count {
+  margin-inline-start: auto;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.model-dialog-list {
+  max-height: min(60vh, 480px);
+}
+.model-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+.model-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.model-row-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.model-row-id,
+.model-row-unpriced {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.model-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+}
+.model-chip.is-free {
+  color: var(--primary);
+  border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
+}
+.model-dialog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.model-dialog-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.chat-receipt-cost {
+  font-variant-numeric: tabular-nums;
+}
+.chat-model-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-model-row > button {
+  max-width: 100%;
+}
+.chat-model-row > input {
+  flex: 1 1 160px;
+}
+.chat-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
 .chat-connection-actions {
   display: flex;
   gap: 8px;
@@ -8280,12 +8406,10 @@ a.auth-brand {
   .chat-tools-label {
     display: none;
   }
-  /* And the model picker leaves the row altogether, for the + menu, where a
-     name has the width to be read. Two attempts came before this one and both
-     were worse: on the row it truncated to "Free Models Ro…", and on a row of
-     its own it was a second line of chrome under the composer. */
+  /* The picker is a dialog now, so its trigger can be small: the name is read
+     in the dialog, where it has the whole screen, not on the row. */
   .chat-composer-row .chat-model-select {
-    display: none;
+    max-width: 34vw;
   }
   /* Five icon buttons in a 360px bar with about 7px to spare, and they were
      `width: 38px` rather than `min-width`, with no `flex-shrink: 0` — so they
@@ -8300,19 +8424,6 @@ a.auth-brand {
     min-width: 0;
     flex-shrink: 1;
     overflow: hidden;
-  }
-}
-
-/* The model list inside the + menu is the phone's picker; above that width the
-   select in the composer row is, and this is hidden instead. Exactly one of the
-   two is ever shown. Long lists scroll rather than running off the screen. */
-.chat-model-menu {
-  max-height: 45vh;
-  overflow-y: auto;
-}
-@media (min-width: 601px) {
-  .chat-model-menu {
-    display: none;
   }
 }
 
