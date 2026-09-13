@@ -10,6 +10,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { foldFrames, type CommandResult, type RunFrame } from '../../ssh/frames.ts';
 import { workbenchStream } from '../../ssh/client.ts';
+import { commandGranted, type ResolvedGrants } from '../../chat/approvals.ts';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_TIMEOUT_MS = 600_000;
@@ -176,10 +177,15 @@ export function shellTools(context: ShellToolContext) {
  * always pauses, because a program is not something anyone can skim the way they
  * can skim `ls -la`.
  */
-export function shellApprovalPolicy() {
+export function shellApprovalPolicy(grants?: ResolvedGrants) {
   return (raw: unknown) => {
     const input = (raw ?? {}) as { command?: unknown };
     if (typeof input.command !== 'string') return 'user-approval' as const;
-    return isReadOnlyCommand(input.command) ? ('approved' as const) : ('user-approval' as const);
+    // What the owner has already said yes to: the tool anywhere or in this
+    // conversation, or this command by name. Read-only commands never asked.
+    if (grants?.tools.has('bash')) return 'approved' as const;
+    if (isReadOnlyCommand(input.command)) return 'approved' as const;
+    if (grants && commandGranted(input.command, grants.commands)) return 'approved' as const;
+    return 'user-approval' as const;
   };
 }

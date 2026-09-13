@@ -26,6 +26,8 @@ import { nameAnswer } from './answer-id.ts';
 import { createLanguageModel } from '../ai/models.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
+import { createChatSettingsStore } from '../chat/settings-store.ts';
+import { grantsFor } from '../chat/approvals.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
@@ -182,6 +184,15 @@ async function driveWithAgent({
     memory: run.user_id ? memoryContext(run, config, messages as Turn[]) : undefined,
     // A task cannot stop on a card nobody is watching.
     unattended: Boolean(config.task),
+    // What the owner has already said yes to, read now rather than at
+    // creation: a grant made on the card while this run was paused has to
+    // apply the moment it resumes, and a resume is this function again.
+    approvals: run.user_id
+      ? grantsFor(
+          createChatSettingsStore(getStorage().raw).read(run.user_id).approvals,
+          run.conversation_id ?? run.id,
+        )
+      : undefined,
     media: run.user_id
       ? {
           userId: run.user_id,

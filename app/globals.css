@@ -8866,6 +8866,59 @@ a.auth-brand {
 .chat-approval-actions [data-slot='button'] {
   min-height: 40px;
 }
+/* The scopes of a remembered yes. A command is shown under its choice in
+   full, because the choice is about that exact command. */
+.chat-approval-menu {
+  max-width: min(360px, 92vw);
+}
+.chat-approval-menu code {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* What runs without asking, in Settings. */
+.chat-permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chat-permissions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+.chat-permissions li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.chat-permissions li > code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.chat-permissions .chat-settings-choices {
+  flex-shrink: 0;
+  margin: 0;
+}
+.chat-permissions-remove {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
 @media (max-width: 600px) {
   /* Two full-width targets, thumb-sized, rather than two small buttons in a
      corner of the card. */

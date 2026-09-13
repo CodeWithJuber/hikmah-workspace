@@ -156,9 +156,17 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
  * `'ask'` becomes `'user-approval'` so the run pauses and the owner answers,
  * which is the same path ssh_exec uses.
  */
-export function mcpToolApproval(approval: Map<string, ApprovalMode>) {
+export function mcpToolApproval(
+  approval: Map<string, ApprovalMode>,
+  grants?: { tools: Set<string> },
+) {
   return Object.fromEntries(
-    [...approval].map(([id, mode]) => [id, mode === 'auto' ? 'approved' : 'user-approval']),
+    [...approval].map(([id, mode]) => [
+      id,
+      // The server's own setting, or a grant the owner made from the card:
+      // "always allow this tool", here or anywhere.
+      mode === 'auto' || grants?.tools.has(id) ? 'approved' : 'user-approval',
+    ]),
   );
 }
 

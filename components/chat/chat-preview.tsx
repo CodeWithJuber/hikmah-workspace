@@ -23,6 +23,7 @@ import { defaultProvider } from '@/lib/playground/session';
 import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from '@/components/kernel/icons';
+import type { GrantHandler } from './approval-card';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -168,6 +169,7 @@ export function ChatPreview({
   banner,
   needsKey = false,
   onOpenSettings,
+  onGrant,
 }: {
   conversationId: string;
   /** Shown above the transcript. */
@@ -176,6 +178,8 @@ export function ChatPreview({
   needsKey?: boolean;
   /** Opens the Settings tab, where the key goes. */
   onOpenSettings?: () => void;
+  /** Remembers a yes from the approval card, with its scope. */
+  onGrant?: GrantHandler;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
@@ -356,6 +360,7 @@ export function ChatPreview({
           banner={banner}
           needsKey={needsKey}
           onOpenSettings={onOpenSettings}
+          onGrant={onGrant}
           empty={
             <div className="chat-greeting">
               <HikmahIcon name="orbit" size={34} />

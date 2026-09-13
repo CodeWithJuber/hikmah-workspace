@@ -10,7 +10,15 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { MAX_INSTRUCTIONS, type ChatSettings } from '@/lib/chat/settings';
+import { GATED_TOOLS, withGrant, withoutGrant } from '@/lib/chat/approvals';
 import { ConnectionSettings } from './connection-settings';
+
+/** The gated tools, in the words the approval card uses. */
+const PERMISSION_LABELS: Record<(typeof GATED_TOOLS)[number], string> = {
+  bash: 'Commands on the workspace machine',
+  sandbox_run: 'Programs in the sandbox',
+  ssh_exec: 'Commands on saved machines',
+};
 
 const STEP_CHOICES = [2, 4, 8, 12, 20, 32];
 const STYLES = [
@@ -167,6 +175,119 @@ export function RunSettings({
             </small>
           </span>
         </label>
+      </section>
+
+      <section>
+        <h4>Permissions</h4>
+        <p>
+          What runs without asking. Everything else shows a card first, and the card can remember
+          your answer for one command, one conversation, or for good.
+        </p>
+        <ul className="chat-permissions" aria-label="Tools that reach a machine">
+          {GATED_TOOLS.map((tool) => {
+            const auto = settings.approvals.auto.includes(tool);
+            return (
+              <li key={tool}>
+                <span>{PERMISSION_LABELS[tool]}</span>
+                <div
+                  className="chat-settings-choices"
+                  role="group"
+                  aria-label={PERMISSION_LABELS[tool]}
+                >
+                  <button
+                    type="button"
+                    aria-pressed={!auto}
+                    disabled={saving}
+                    onClick={() =>
+                      void apply({
+                        approvals: withoutGrant(settings.approvals, { kind: 'auto', value: tool }),
+                      })
+                    }
+                  >
+                    Ask
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={auto}
+                    disabled={saving}
+                    onClick={() =>
+                      void apply({
+                        approvals: withGrant(settings.approvals, { scope: 'always', tool }),
+                      })
+                    }
+                  >
+                    Auto
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+          {settings.approvals.auto
+            .filter((tool) => !(GATED_TOOLS as readonly string[]).includes(tool))
+            .map((tool) => (
+              <li key={tool}>
+                <code>{tool}</code>
+                <button
+                  type="button"
+                  className="chat-permissions-remove"
+                  disabled={saving}
+                  onClick={() =>
+                    void apply({
+                      approvals: withoutGrant(settings.approvals, { kind: 'auto', value: tool }),
+                    })
+                  }
+                >
+                  Ask again
+                </button>
+              </li>
+            ))}
+        </ul>
+        {settings.approvals.commands.length > 0 && (
+          <>
+            <p>Commands allowed without asking, with any arguments after them:</p>
+            <ul className="chat-permissions" aria-label="Commands allowed without asking">
+              {settings.approvals.commands.map((command) => (
+                <li key={command}>
+                  <code dir="ltr">{command}</code>
+                  <button
+                    type="button"
+                    className="chat-permissions-remove"
+                    aria-label={`Ask again for ${command}`}
+                    disabled={saving}
+                    onClick={() =>
+                      void apply({
+                        approvals: withoutGrant(settings.approvals, {
+                          kind: 'command',
+                          value: command,
+                        }),
+                      })
+                    }
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {Object.keys(settings.approvals.conversations).length > 0 && (
+          <p>
+            {Object.keys(settings.approvals.conversations).length === 1
+              ? 'One conversation has'
+              : `${Object.keys(settings.approvals.conversations).length} conversations have`}{' '}
+            their own grants.{' '}
+            <button
+              type="button"
+              className="chat-permissions-remove"
+              disabled={saving}
+              onClick={() =>
+                void apply({ approvals: { ...settings.approvals, conversations: {} } })
+              }
+            >
+              Clear them
+            </button>
+          </p>
+        )}
       </section>
 
       <section className="chat-settings-account">

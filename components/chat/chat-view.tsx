@@ -58,6 +58,7 @@ import { PricingContext } from './pricing-context';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
+import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 
 /** What the run recorded about itself when it finished. Written by the worker
@@ -182,6 +183,8 @@ export type ChatViewProps = {
   needsKey?: boolean;
   /** Opens the Settings tab. */
   onOpenSettings?: () => void;
+  /** Remembers a yes from the approval card, with its scope. */
+  onGrant?: GrantHandler;
 };
 
 export function ChatView({
@@ -201,6 +204,7 @@ export function ChatView({
   onArtifact,
   banner,
   needsKey = false,
+  onGrant,
   onOpenSettings,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
@@ -444,6 +448,8 @@ export function ChatView({
                 message={message}
                 status={status}
                 onApproval={addToolApprovalResponse}
+                conversationId={id}
+                onGrant={onGrant}
                 // The answer is written into the message as the tool's output,
                 // which is what the run resumes from. The tool name has to match
                 // the call: addToolOutput routes by it.

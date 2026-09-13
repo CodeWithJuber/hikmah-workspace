@@ -26,6 +26,7 @@ import {
   type ResearchView,
 } from './tools/deep-research.ts';
 import type { Model } from '../engines/meaning-engine.ts';
+import type { ResolvedGrants } from '../chat/approvals.ts';
 
 export type RunAgentOptions = {
   provider: ModelRequest;
@@ -56,6 +57,13 @@ export type RunAgentOptions = {
    * who asked for the web should not get an answer from memory instead.
    */
   webSearch?: boolean;
+  /**
+   * What the owner has already said yes to: tools that run without asking,
+   * here or anywhere, and commands granted by name. Read when the run is
+   * driven, so a grant made on the card while the run was paused applies as
+   * soon as it resumes. See lib/chat/approvals.ts.
+   */
+  approvals?: ResolvedGrants;
   signal: AbortSignal;
   /** Tool names the owner has switched off for this run. */
   disabledTools?: readonly string[];
@@ -220,19 +228,27 @@ export function buildRunAgent(options: RunAgentOptions) {
   // Only tools that reach outside this process are gated. Everything else in the
   // set reads or computes; ssh_exec runs a command on a machine the owner cares
   // about, and an MCP tool belongs to a server that is not on our side.
+  const grants = options.approvals;
   const sshApproval =
     options.ssh && !disabled.has('ssh_exec')
-      ? { ssh_exec: sshApprovalPolicy({ listHosts: options.ssh.listHosts }) }
+      ? { ssh_exec: sshApprovalPolicy({ listHosts: options.ssh.listHosts, grants }) }
       : undefined;
   const mcpApproval = options.mcp?.approval.size
-    ? mcpToolApproval(options.mcp.approval)
+    ? mcpToolApproval(options.mcp.approval, grants)
     : undefined;
-  // sandbox_run is never auto-approved: a program is not something anyone can
-  // skim the way they can skim `ls -la`.
+  // sandbox_run is never auto-approved by a rule: a program is not something
+  // anyone can skim the way they can skim `ls -la`. Only the owner's own grant
+  // from the card, for this conversation or always, lets it run unasked.
   const shellApproval = options.shell?.available
     ? {
-        ...(disabled.has('bash') ? {} : { bash: shellApprovalPolicy() }),
-        ...(disabled.has('sandbox_run') ? {} : { sandbox_run: 'user-approval' as const }),
+        ...(disabled.has('bash') ? {} : { bash: shellApprovalPolicy(grants) }),
+        ...(disabled.has('sandbox_run')
+          ? {}
+          : {
+              sandbox_run: grants?.tools.has('sandbox_run')
+                ? ('approved' as const)
+                : ('user-approval' as const),
+            }),
       }
     : undefined;
 

@@ -15,7 +15,7 @@ import {
   ConfirmationRejected,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
-import { ApprovalCard } from './approval-card';
+import { ApprovalCard, type GrantHandler } from './approval-card';
 import {
   Bookmark,
   BookmarkCheck,
@@ -376,7 +376,9 @@ function sourceParts(message: UIMessage) {
 export function MessageParts({
   message,
   status,
+  conversationId,
   onApproval,
+  onGrant,
   onQuestion,
   onRegenerate,
   onEdit,
@@ -386,7 +388,11 @@ export function MessageParts({
 }: {
   message: UIMessage;
   status: ChatStatus;
+  /** For an approval remembered for this conversation only. */
+  conversationId?: string;
   onApproval?: RespondToApproval;
+  /** Remembers a yes with a scope; see the approval card. */
+  onGrant?: GrantHandler;
   onQuestion?: RespondToQuestion;
   /** Whether the run's own working is shown. Off hides the tool cards and the
    * reasoning; it never hides a tool waiting on the owner, because a question
@@ -490,7 +496,16 @@ export function MessageParts({
       // and on a live stream the part mounts *before* the approval is asked
       // for, so the card stayed closed and Allow was behind a tap nobody knew
       // to make. See components/chat/approval-card.tsx.
-      if (waiting) return <ApprovalCard key={key} part={part} onApproval={onApproval} />;
+      if (waiting)
+        return (
+          <ApprovalCard
+            key={key}
+            part={part}
+            conversationId={conversationId}
+            onApproval={onApproval}
+            onGrant={onGrant}
+          />
+        );
       // The plan is rendered as its own card from the data part, so the
       // tool's own row would be the same information twice.
       if (part.type === 'tool-update_plan' && hasPlan) return null;
