@@ -94,3 +94,23 @@ test('settings belong to one owner', async (t) => {
   assert.equal(store.read('u2').maxSteps, DEFAULT_CHAT_SETTINGS.maxSteps);
   assert.equal(store.read('u1').maxSteps, 3);
 });
+
+test('memory switches default on, and a row written before they existed keeps them on', () => {
+  assert.deepEqual(DEFAULT_CHAT_SETTINGS.memory, {
+    autoSaveQuotes: true,
+    recallConversations: true,
+  });
+  assert.deepEqual(parseChatSettings({ showActivity: true }).memory, {
+    autoSaveQuotes: true,
+    recallConversations: true,
+  });
+  assert.equal(
+    parseChatSettings({ memory: { recallConversations: false } }).memory.recallConversations,
+    false,
+  );
+  assert.equal(
+    parseChatSettings({ memory: { recallConversations: false } }).memory.autoSaveQuotes,
+    true,
+    'each switch on its own',
+  );
+});

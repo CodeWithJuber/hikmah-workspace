@@ -6,7 +6,6 @@ import { BookOpen, Plus, Search, Pencil, Trash2, BrainCircuit, ArrowUpRight } fr
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Dialog,
@@ -23,6 +22,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { usePlayground } from './context';
+import { MemoryPanel } from '@/components/chat/memory-panel';
 import { type KnowledgeItem, parseKnowledge } from '@/lib/playground/knowledge';
 import { toast } from 'sonner';
 import { useKernel } from '@/components/kernel/context';
@@ -35,16 +35,14 @@ export function KnowledgeEditor({
   onClose: () => void;
   shared?: boolean;
 }) {
-  const { knowledge, setKnowledge, refreshSharedKnowledge } = usePlayground();
+  const { refreshSharedKnowledge } = usePlayground();
   const [draft, setDraft] = useState(value);
   if (!draft) return null;
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="knowledge-editor">
         <DialogHeader>
-          <DialogTitle>
-            {knowledge.some((k) => k.id === draft.id) ? 'Edit saved knowledge' : 'Remember this'}
-          </DialogTitle>
+          <DialogTitle>{shared ? 'Publish shared knowledge' : 'Remember this'}</DialogTitle>
           <DialogDescription>
             {shared
               ? 'Published items are available to every signed-in user of this app. Review the source and remove personal information.'
@@ -99,7 +97,6 @@ export function KnowledgeEditor({
             try {
               const next = parseKnowledge([
                 { ...draft, status: 'saved', updatedAt: new Date().toISOString() },
-                ...knowledge.filter((k) => k.id !== draft.id),
               ]);
               if (shared) {
                 const r = await fetch('/api/shared-knowledge', {
@@ -111,8 +108,26 @@ export function KnowledgeEditor({
                 await refreshSharedKnowledge();
                 toast.success('Shared knowledge published.');
               } else {
-                setKnowledge(next);
-                toast.success('Knowledge updated. Syncing to your workspace.');
+                // Into the memories table — the store every answer reads — not
+                // the workspace blob, which no answer has read since the
+                // browser run loop was retired.
+                const r = await fetch('/api/memory', {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: next[0].title,
+                    content: next[0].content,
+                    kind: next[0].kind,
+                    source: next[0].source,
+                  }),
+                });
+                if (!r.ok)
+                  throw Error(
+                    ((await r.json().catch(() => ({}))) as { error?: string }).error ??
+                      'Could not save.',
+                  );
+                toast.success('Saved to your memory.');
               }
               onClose();
             } catch (e) {
@@ -141,22 +156,14 @@ export function newKnowledge(content = '', source = 'Added by you'): KnowledgeIt
   };
 }
 export function Knowledge() {
-  const {
-    knowledge,
-    setKnowledge,
-    sharedKnowledge,
-    refreshSharedKnowledge,
-    setWorkspacePage,
-    storageMessage,
-  } = usePlayground();
+  const { sharedKnowledge, refreshSharedKnowledge, setWorkspacePage } = usePlayground();
   const kernel = useKernel();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<KnowledgeItem | null>(null);
   const [scope, setScope] = useState<'personal' | 'shared'>('personal');
   const [error, setError] = useState('');
   const owner = kernel.role === 'super_admin';
-  const items = scope === 'shared' ? sharedKnowledge : knowledge;
-  const visible = items.filter((k) =>
+  const visible = sharedKnowledge.filter((k) =>
     (k.title + ' ' + k.content).toLowerCase().includes(search.toLowerCase()),
   );
   return (
@@ -164,10 +171,10 @@ export function Knowledge() {
       <header className="workspace-header">
         <SidebarTrigger />
         <h1>Memory</h1>
-        {(scope === 'personal' || owner) && (
+        {scope === 'shared' && owner && (
           <Button onClick={() => setDraft(newKnowledge())}>
             <Plus size={17} />
-            {scope === 'shared' ? 'Publish knowledge' : 'Remember something'}
+            Publish knowledge
           </Button>
         )}
       </header>
@@ -184,7 +191,7 @@ export function Knowledge() {
             variant={scope === 'personal' ? 'default' : 'ghost'}
             onClick={() => setScope('personal')}
           >
-            Personal <span>{knowledge.length}</span>
+            Personal
           </Button>
           <Button
             variant={scope === 'shared' ? 'default' : 'ghost'}
@@ -195,132 +202,84 @@ export function Knowledge() {
         </div>
         <p className="knowledge-scope-note">
           {scope === 'personal'
-            ? 'Private to your account. New suggestions wait for your review before use.'
+            ? 'Private to your account, and the store every answer reads. Suggestions wait for your review before use.'
             : 'Published by the owner for everyone in this app. Personal chats are never published automatically.'}
         </p>
-        {scope === 'personal' && knowledge.some((k) => k.status === 'suggested') && (
-          <div className="memory-review-banner" role="status">
-            <span>
-              <strong>
-                {knowledge.filter((k) => k.status === 'suggested').length} suggestions
-              </strong>{' '}
-              waiting for your review
-            </span>
-            <Button onClick={() => setDraft(knowledge.find((k) => k.status === 'suggested')!)}>
-              Review next
-            </Button>
+        {scope === 'personal' ? (
+          /* The same panel as the chat's Memory tab, over the same table. This
+             screen used to keep its own list in the workspace blob, which no
+             answer could read. */
+          <div className="knowledge-personal">
+            <MemoryPanel />
           </div>
-        )}
-        <div className="knowledge-search">
-          <Search size={18} />
-          <Input
-            aria-label="Search knowledge"
-            placeholder="Search your knowledge"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        {error && <p role="alert">{error}</p>}
-        <div className="knowledge-list">
-          {visible.map((item) => (
-            <article
-              key={item.id}
-              className={'knowledge-card' + (item.status === 'suggested' ? ' suggested' : '')}
-            >
-              <header>
-                <BookOpen size={18} />
-                <h3>{item.title}</h3>
-                {item.status === 'suggested' ? (
-                  <span className="status-pill">Review suggestion</span>
-                ) : scope === 'personal' ? (
-                  <Switch
-                    aria-label={'Use ' + item.title}
-                    checked={item.enabled}
-                    onCheckedChange={(enabled) =>
-                      setKnowledge((items) =>
-                        items.map((k) => (k.id === item.id ? { ...k, enabled } : k)),
-                      )
-                    }
-                  />
-                ) : (
-                  <span className="status-pill">Owner published</span>
-                )}
-              </header>
-              <p>{item.content}</p>
-              <footer>
-                <span>
-                  {item.kind === 'preference' ? 'Preference' : 'Reference'} · {item.source}
-                  <br />
-                  {new Date(item.updatedAt).toLocaleDateString()}
-                </span>
-                {(scope === 'personal' || owner) && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      aria-label={'Edit ' + item.title}
-                      onClick={() => setDraft(item)}
-                    >
-                      {item.status === 'suggested' ? 'Review' : <Pencil size={16} />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      aria-label={'Forget ' + item.title}
-                      onClick={async () => {
-                        if (scope === 'shared') {
-                          try {
-                            const r = await fetch(
-                              '/api/shared-knowledge?id=' + encodeURIComponent(item.id),
-                              { method: 'DELETE' },
-                            );
-                            if (!r.ok) throw Error('Could not remove shared knowledge.');
-                            await refreshSharedKnowledge();
-                          } catch (e) {
-                            setError(e instanceof Error ? e.message : 'Request failed.');
-                          }
-                        } else {
-                          setKnowledge((items) => items.filter((k) => k.id !== item.id));
-                          toast('Removed from future retrieval', {
-                            action: {
-                              label: 'Undo',
-                              onClick: () =>
-                                setKnowledge((items) => [
-                                  item,
-                                  ...items.filter((k) => k.id !== item.id),
-                                ]),
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </>
-                )}
-              </footer>
-            </article>
-          ))}
-        </div>
-        {!visible.length && (
-          <div className="knowledge-empty">
-            <BookOpen size={34} />
-            <h3>
-              {search
-                ? 'No matching knowledge'
-                : scope === 'shared'
-                  ? 'Shared knowledge starts with review'
-                  : 'Start with something useful'}
-            </h3>
-            <p>
-              {scope === 'shared'
-                ? 'The owner can publish approved facts and references here.'
-                : 'Your preferences, a project brief, or a fact to reuse. Choose Remember on a message, or ask Hikmah to suggest a memory.'}
-            </p>
-            {(scope === 'personal' || owner) && (
-              <Button variant="outline" onClick={() => setDraft(newKnowledge())}>
-                Add an item
-              </Button>
+        ) : (
+          <>
+            <div className="knowledge-search">
+              <Search size={18} />
+              <Input
+                aria-label="Search knowledge"
+                placeholder="Search shared knowledge"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {error && <p role="alert">{error}</p>}
+            <div className="knowledge-list">
+              {visible.map((item) => (
+                <article key={item.id} className="knowledge-card">
+                  <header>
+                    <BookOpen size={18} />
+                    <h3>{item.title}</h3>
+                    <span className="status-pill">Owner published</span>
+                  </header>
+                  <p>{item.content}</p>
+                  <footer>
+                    <span>
+                      {item.kind === 'preference' ? 'Preference' : 'Reference'} · {item.source}
+                      <br />
+                      {new Date(item.updatedAt).toLocaleDateString()}
+                    </span>
+                    {owner && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          aria-label={'Edit ' + item.title}
+                          onClick={() => setDraft(item)}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          aria-label={'Forget ' + item.title}
+                          onClick={async () => {
+                            try {
+                              const r = await fetch(
+                                '/api/shared-knowledge?id=' + encodeURIComponent(item.id),
+                                { method: 'DELETE' },
+                              );
+                              if (!r.ok) throw Error('Could not remove shared knowledge.');
+                              await refreshSharedKnowledge();
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Request failed.');
+                            }
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </>
+                    )}
+                  </footer>
+                </article>
+              ))}
+            </div>
+            {!visible.length && (
+              <div className="knowledge-empty">
+                <BookOpen size={34} />
+                <h3>{search ? 'No matching knowledge' : 'Shared knowledge starts with review'}</h3>
+                <p>The owner can publish approved facts and references here.</p>
+              </div>
             )}
-          </div>
+          </>
         )}
         <div className="learning-separation">
           <BrainCircuit size={23} />
@@ -339,15 +298,16 @@ export function Knowledge() {
         <details className="knowledge-learning-details">
           <summary>What happens in real time?</summary>
           <ol>
-            <li>Messages and tool receipts are saved as the task progresses.</li>
             <li>
-              The model can suggest a memory from your exact words. Suggestions are excluded until
-              approved.
+              Every answer retrieves the saved memories relevant to your question — preferences
+              always, references when the question shares their words — and its receipt says how
+              many it used.
             </li>
             <li>
-              Relevant personal and shared knowledge is retrieved for the next request. Each answer
-              shows which items were used.
+              Every memory shows where it came from: your own words, a named source, or the model’s
+              inference. Only your own words are ever saved without review.
             </li>
+            <li>Shared knowledge published by the owner is retrieved the same way.</li>
             <li>
               Feedback updates a measured workflow preference. Parameter training uses reviewed
               examples and a regression gate.
@@ -358,22 +318,9 @@ export function Knowledge() {
             remain until those are removed.
           </p>
         </details>
-        <p className="knowledge-research-link">
-          <a href="/research/v7/memory-research.md" target="_blank" rel="noreferrer">
-            Memory research, Quranic context & equations ↗
-          </a>
-        </p>
-        <p className="knowledge-save" role="status">
-          {storageMessage}
-        </p>
       </div>
       {draft && (
-        <KnowledgeEditor
-          key={draft.id}
-          value={draft}
-          shared={scope === 'shared'}
-          onClose={() => setDraft(null)}
-        />
+        <KnowledgeEditor key={draft.id} value={draft} onClose={() => setDraft(null)} shared />
       )}
     </div>
   );

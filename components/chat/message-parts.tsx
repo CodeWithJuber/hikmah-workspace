@@ -8,6 +8,7 @@
  * unhandled one must degrade to something visible rather than vanish.
  */
 import { isToolUIPart, type UIMessage } from 'ai';
+import { useState } from 'react';
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -15,7 +16,15 @@ import {
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
 import { ApprovalCard } from './approval-card';
-import { Check, Copy, LoaderCircle, Pencil, RefreshCw } from 'lucide-react';
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  Copy,
+  LoaderCircle,
+  Pencil,
+  RefreshCw,
+} from 'lucide-react';
 import {
   Message,
   MessageAction,
@@ -49,6 +58,54 @@ export type RespondToApproval = (response: { id: string; approved: boolean }) =>
 /** Answers one ask_user call. Same owner, same reason: only useChat can write a
  * tool output back into the message. */
 export type RespondToQuestion = (response: { toolCallId: string; answer: string }) => void;
+
+/** Saves a message to memory. Returns how it was filed, or null on failure. */
+export type RememberMessage = (message: UIMessage) => Promise<'saved' | 'suggested' | null>;
+
+/** The Remember control on a message.
+ *
+ * The control `components/playground/knowledge.tsx` has promised — "choose
+ * Remember on a message" — since before the chat surface existed. Your own
+ * message is saved as your words; an answer is filed as the model's
+ * inference and waits for your review, and the label says which happened.
+ */
+function RememberAction({
+  message,
+  onRemember,
+}: {
+  message: UIMessage;
+  onRemember: RememberMessage;
+}) {
+  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'suggested' | 'failed'>('idle');
+  const own = message.role === 'user';
+  const label =
+    state === 'saved'
+      ? 'Saved to memory'
+      : state === 'suggested'
+        ? 'Suggested — review it in Memory'
+        : state === 'failed'
+          ? 'Could not save'
+          : own
+            ? 'Remember this, in your words'
+            : 'Suggest this answer as a memory';
+  return (
+    <MessageAction
+      tooltip={label}
+      aria-label={label}
+      disabled={state === 'saving' || !messageText(message)}
+      onClick={() => {
+        setState('saving');
+        void onRemember(message).then((result) => setState(result ?? 'failed'));
+      }}
+    >
+      {state === 'saved' || state === 'suggested' ? (
+        <BookmarkCheck size={15} />
+      ) : (
+        <Bookmark size={15} />
+      )}
+    </MessageAction>
+  );
+}
 
 /** What ask_user is asking, defensively read: it arrives as tool input, which is
  * model output, so neither field is guaranteed to be the shape the schema asked
@@ -222,6 +279,7 @@ export function MessageParts({
   onRegenerate,
   onEdit,
   onArtifact,
+  onRemember,
   showActivity = true,
 }: {
   message: UIMessage;
@@ -239,6 +297,8 @@ export function MessageParts({
   onEdit?: () => void;
   /** Opens a produced page in the side panel. */
   onArtifact?: (files: WorkspaceFiles) => void;
+  /** Saves this message to memory. */
+  onRemember?: RememberMessage;
 }) {
   const streaming = status === 'streaming';
   const sources = sourceParts(message);
@@ -396,6 +456,10 @@ export function MessageParts({
     if (part.type === 'data-compare')
       return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
+    // Which saved memories the prompt carried. The receipt below the answer
+    // reads it; here it would be a line above the answer saying the same.
+    if (part.type === 'data-memories') return null;
+
     // A step boundary in a multi-step run. It carries no content of its
     // own; the tool cards around it already show what happened.
     if (part.type === 'step-start') return null;
@@ -421,7 +485,8 @@ export function MessageParts({
     message.role === 'assistant' &&
     settled &&
     !hasText &&
-    rest.length === 0 &&
+    // The memories bookkeeping part renders nothing, so it cannot fill the hole.
+    rest.filter((part) => part.type !== 'data-memories').length === 0 &&
     !(showActivity && working.length > 0);
 
   return (
@@ -484,6 +549,7 @@ export function MessageParts({
                   between them are not spoken. Silent about code, which the
                   component replaces with a spoken note rather than reciting. */}
               <ReadAloud text={messageText(message)} />
+              {onRemember && <RememberAction message={message} onRemember={onRemember} />}
               {onRegenerate && (
                 <MessageAction
                   tooltip="Answer again, replacing everything after this"
@@ -502,14 +568,17 @@ export function MessageParts({
           the bubble now, out of the way until wanted: revealed on hover with a
           pointer, always there on a touch screen, where there is no hover to
           reveal it with. */}
-      {asked && onEdit && (
+      {asked && (onEdit || onRemember) && (
         <div className="chat-ask-actions">
-          <MessageAction
-            tooltip="Edit and ask again, replacing everything after this"
-            onClick={onEdit}
-          >
-            <Pencil size={15} />
-          </MessageAction>
+          {onRemember && <RememberAction message={message} onRemember={onRemember} />}
+          {onEdit && (
+            <MessageAction
+              tooltip="Edit and ask again, replacing everything after this"
+              onClick={onEdit}
+            >
+              <Pencil size={15} />
+            </MessageAction>
+          )}
         </div>
       )}
     </Message>

@@ -83,7 +83,10 @@ export function answered(parts: readonly { type?: string; text?: string }[]): bo
     (part) =>
       (part?.type === 'text' && !!part.text?.trim()) ||
       part?.type === 'file' ||
-      part?.type?.startsWith('data-') === true,
+      // A data part is an answer — a plan, a comparison — except the one that
+      // only records which memories the prompt carried. A turn that said
+      // nothing but was written with two memories still said nothing.
+      (part?.type?.startsWith('data-') === true && part.type !== 'data-memories'),
   );
 }
 

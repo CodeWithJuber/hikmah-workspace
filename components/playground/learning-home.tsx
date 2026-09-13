@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePlayground } from './context';
+import { useMemory } from '@/hooks/use-memory';
 import { useKernel } from '@/components/kernel/context';
 import { KnowledgeEditor, newKnowledge } from './knowledge';
 import type { KnowledgeItem } from '@/lib/playground/knowledge';
@@ -56,13 +57,14 @@ export function OwnerAccess({ children }: { children: ReactNode }) {
 }
 
 export function LearningHome({ owner = false }: { owner?: boolean }) {
-  const { knowledge, setWorkspacePage, storageMessage, preferences, provider } = usePlayground();
+  const { setWorkspacePage, storageMessage, preferences, provider } = usePlayground();
+  // Counts and recent activity from the memories table, the store every
+  // answer reads — not the workspace blob this screen used to count.
+  const { memories, counts } = useMemory();
   const kernel = useKernel();
   const [draft, setDraft] = useState<KnowledgeItem | null>(null);
-  const saved = knowledge.filter((k) => k.enabled && k.status !== 'suggested');
-  const pending = knowledge.filter((k) => k.status === 'suggested');
   const activity = [
-    ...knowledge.map((k) => ({
+    ...(memories ?? []).map((k) => ({
       id: k.id,
       at: k.updatedAt,
       title: k.status === 'suggested' ? 'Memory awaiting review' : 'Memory updated',
@@ -107,7 +109,7 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
     : [
         {
           title: 'Open memory',
-          text: `${saved.length} enabled · ${pending.length} awaiting review. Edit, approve or forget.`,
+          text: `${counts.saved} saved · ${counts.suggested} awaiting review. Edit, approve or forget.`,
           page: 'knowledge',
           icon: BookOpen,
         },
@@ -155,12 +157,12 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
         <div className="learning-status-grid">
           <div>
             <BookOpen size={20} />
-            <strong>{saved.length}</strong>
-            <span>Enabled memories</span>
+            <strong>{counts.saved}</strong>
+            <span>Saved memories</span>
           </div>
           <div>
             <BrainCircuit size={20} />
-            <strong>{pending.length}</strong>
+            <strong>{counts.suggested}</strong>
             <span>Awaiting your review</span>
           </div>
           <div>
@@ -169,15 +171,15 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
             <span>Feedback updates</span>
           </div>
         </div>
-        {pending.length > 0 && (
+        {counts.suggested > 0 && (
           <div className="memory-review-banner" role="status">
             <span>
               <strong>
-                {pending.length} memory suggestion{pending.length > 1 ? 's' : ''}
+                {counts.suggested} memory suggestion{counts.suggested > 1 ? 's' : ''}
               </strong>{' '}
               ready to review before use.
             </span>
-            <Button onClick={() => setDraft(pending[0])}>Review next</Button>
+            <Button onClick={() => setWorkspacePage('knowledge')}>Review</Button>
           </div>
         )}
         <div className="learning-links">
@@ -198,11 +200,11 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
             <dl>
               <div>
                 <dt>Personal memory</dt>
-                <dd>{saved.length ? 'Enabled for new requests' : 'Add a memory to begin'}</dd>
+                <dd>{counts.saved ? 'Retrieved for every answer' : 'Add a memory to begin'}</dd>
               </div>
               <div>
                 <dt>Memory suggestions</dt>
-                <dd>Tool-capable models can suggest; you review</dd>
+                <dd>Saved in your own words now; the model’s suggestions arrive with review</dd>
               </div>
               <div>
                 <dt>Feedback learning</dt>

@@ -6,13 +6,10 @@
  */
 
 import type { KnowledgeSources } from './run-knowledge.ts';
+import { parseKnowledge, type KnowledgeItem } from '../playground/knowledge.ts';
+import { createMemoryStore, toKnowledgeItem, type SqliteHandle } from '../memory/store.ts';
 
-export type SqliteHandle = {
-  prepare(sql: string): {
-    get(...params: unknown[]): unknown;
-    all(...params: unknown[]): unknown[];
-  };
-};
+export type { SqliteHandle };
 
 export type ObjectStore = { get(key: string): Promise<{ text(): Promise<string> } | null> };
 
@@ -21,7 +18,32 @@ export function createKnowledgeSources(db: SqliteHandle, bucket?: ObjectStore): 
     state: db.prepare('SELECT body FROM workspace_states WHERE user_id = ?'),
     shared: db.prepare('SELECT body FROM shared_knowledge ORDER BY updated_at DESC LIMIT 500'),
   };
-  return {
+  const memories = createMemoryStore(db);
+  const sources: KnowledgeSources = {
+    /**
+     * The person's memories, after a one-time copy of what the blob held.
+     *
+     * The blob is read whole here — not through the 4 MB guard the run applies
+     * to its own reads — because an import that skipped a large blob and then
+     * marked itself done would lose everything in it. The marker is written
+     * only after the rows landed (see importItems), so a read that throws is
+     * retried on the next run rather than recorded as finished.
+     */
+    async memories(userId) {
+      if (!memories.imported(userId)) {
+        let items: KnowledgeItem[] = [];
+        try {
+          const body = await sources.personal(userId);
+          if (body) items = parseKnowledge((JSON.parse(body) as { knowledge?: unknown }).knowledge);
+        } catch {
+          // Unreadable is not the same as empty: leave the marker unwritten so
+          // the next run tries again, and answer from the table as it stands.
+          return memories.list(userId).map(toKnowledgeItem);
+        }
+        memories.importItems(userId, items);
+      }
+      return memories.list(userId).map(toKnowledgeItem);
+    },
     async personal(userId) {
       const row = statements.state.get(userId) as { body?: string } | undefined;
       const body = row?.body;
@@ -43,4 +65,5 @@ export function createKnowledgeSources(db: SqliteHandle, bucket?: ObjectStore): 
       return (statements.shared.all() as { body: string }[]).map((row) => row.body);
     },
   };
+  return sources;
 }

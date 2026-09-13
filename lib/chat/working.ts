@@ -106,6 +106,7 @@ const PLAIN: Record<string, string> = {
   generate_speech: 'generated speech',
   interpret_meaning: 'parsed a sentence locally',
   update_plan: 'updated the plan',
+  remember: 'saved a memory',
 };
 
 /**

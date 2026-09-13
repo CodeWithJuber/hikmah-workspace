@@ -8,6 +8,7 @@ import { ChatPreview } from './chat-preview';
 import { ConversationList } from './conversation-list';
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
+import { MemoryPanel } from './memory-panel';
 import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
@@ -46,7 +47,7 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
   const [revision, setRevision] = useState(0);
   const settled = useCallback(() => setRevision((value) => value + 1), []);
 
-  const [tab, setTab] = useState<'files' | 'agents' | 'settings'>('files');
+  const [tab, setTab] = useState<'files' | 'agents' | 'memory' | 'settings'>('files');
   // Applies from the next turn on, not retrospectively: an agent chosen now
   // cannot change an answer already written.
   const [agent, setAgent] = useState<Agent | null>(null);
@@ -190,6 +191,14 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
               <button
                 type="button"
                 role="tab"
+                aria-selected={tab === 'memory'}
+                onClick={() => setTab('memory')}
+              >
+                Memory
+              </button>
+              <button
+                type="button"
+                role="tab"
                 aria-selected={tab === 'settings'}
                 onClick={() => setTab('settings')}
               >
@@ -208,6 +217,8 @@ export function ChatShell({ conversationId }: { conversationId: string }) {
               <FilesPanel revision={revision} />
             ) : tab === 'agents' ? (
               <AgentsPanel activeId={agent?.id ?? null} onPick={setAgent} />
+            ) : tab === 'memory' ? (
+              <MemoryPanel />
             ) : (
               <RunSettings settings={settings} onChange={change} />
             )}

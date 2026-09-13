@@ -105,7 +105,7 @@ test('the prompt sections are composed in the stated order', () => {
   // asserting a sequence nothing else uses.
   assert.deepEqual(
     [...PROMPT_ORDER],
-    ['base', 'principles', 'knowledge', 'contextNotes', 'serverGuidance'],
+    ['base', 'principles', 'knowledge', 'recall', 'contextNotes', 'serverGuidance'],
   );
 });
 

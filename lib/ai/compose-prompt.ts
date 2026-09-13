@@ -21,6 +21,10 @@ export type PromptParts = {
   principles?: string;
   /** What this person saved and what the operator published. */
   knowledge?: string;
+  /** Excerpts from this person's earlier conversations that share words with
+   * the question. After their saved memories, which they chose on purpose,
+   * and before the syntax notes. */
+  recall?: string;
   /** The local syntax model's notes on the recent turns. */
   contextNotes?: string;
   /** What each connected MCP server says about when it is authoritative.
@@ -40,6 +44,7 @@ export const PROMPT_ORDER = [
   'base',
   'principles',
   'knowledge',
+  'recall',
   'contextNotes',
   'serverGuidance',
 ] as const satisfies readonly (keyof PromptParts)[];
