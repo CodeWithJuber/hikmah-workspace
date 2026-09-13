@@ -16,7 +16,7 @@
  * with the reason, so the exceptions are read rather than guessed at.
  */
 import { readFile, readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -51,7 +51,28 @@ const ALLOW = [
   /^scripts\//,
   // Test-only helpers live beside their tests.
   /^tests\//,
+  // Configuration and generated declarations. Read by the toolchain rather than
+  // imported by the app, so "no route reaches this" is true and means nothing.
+  // db/schema.ts belongs here for a different reason worth stating: Drizzle is
+  // schema-only in this project and no runtime query goes through it, so the
+  // file is the written record of what the hand-written migrations build.
+  /^db\/schema\.ts$/,
+  /^next-env\.d\.ts$/,
+  /\.config\.(ts|mjs|js)$/,
 ];
+
+/**
+ * The ratchet, in the shape check-styles.mjs already uses here.
+ *
+ * Zero is not the target and pretending otherwise would make the check
+ * ignorable: 71 of these are constants and helpers a test names deliberately,
+ * which is a reasonable thing for a test to do. What must not happen again is
+ * the number *growing* unnoticed — `retrieveKnowledge`, `knowledgePrompt` and
+ * the co-model's `analyzeContext` each sat in this list for weeks, proved by a
+ * test and reaching no user, while their screens carried on offering the
+ * setting. Lower one when you lower the file; `--update` records a drop.
+ */
+const BASELINE = { orphanFiles: 0, testedOnly: 71, dead: 46 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
@@ -169,3 +190,42 @@ if (dead.length) {
 }
 if (!orphanFiles.length && !testedOnly.length && !dead.length)
   console.log('\nnothing unreachable.');
+
+const actual = {
+  orphanFiles: orphanFiles.length,
+  testedOnly: testedOnly.length,
+  dead: dead.length,
+};
+const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
+if (grown.length) {
+  console.error('\nreachability moved in the wrong direction:\n');
+  for (const [key, limit] of grown) console.error(`  ${key}: ${actual[key]}, was ${limit}`);
+  console.error(
+    [
+      '',
+      'Something new is exported and reaches no route. If it is a feature, wire',
+      'it to one — a screen that offers a setting no run reads is the defect',
+      'this check exists for. If it is a constant a test names on purpose, or a',
+      'file the toolchain reads rather than imports, add it to ALLOW above with',
+      'the reason, or raise the baseline in this file and say why in the commit.',
+    ].join('\n'),
+  );
+  process.exit(1);
+}
+
+// Lowered by hand, so a refactor that improved things cannot quietly raise the
+// ceiling again.
+const slack = Object.entries(BASELINE).filter(([key, limit]) => actual[key] < limit);
+if (slack.length && process.argv.includes('--update')) {
+  const self = join(ROOT, 'scripts/check-reachable.mjs');
+  writeFileSync(
+    self,
+    readFileSync(self, 'utf8').replace(
+      /const BASELINE = \{[^}]*\};/,
+      `const BASELINE = { orphanFiles: ${actual.orphanFiles}, testedOnly: ${actual.testedOnly}, dead: ${actual.dead} };`,
+    ),
+  );
+  console.log('\nBaseline lowered to', actual);
+} else if (slack.length) {
+  console.log('\nbelow baseline; run with --update to lock it in');
+}

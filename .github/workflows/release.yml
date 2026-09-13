@@ -22,6 +22,9 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run lint:styles
+      # A feature that loses its only caller breaks the build here rather than
+      # going quiet for a month. See scripts/check-reachable.mjs.
+      - run: npm run lint:reach
       - run: npm test
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high

@@ -979,15 +979,44 @@ select {
 .hikmah-brand.compact {
   padding: 0;
 }
+/* One rule for the sidebar's primary action.
+ *
+ * It had five: three bare `.new-chat` blocks (an indigo #5056e8, then two
+ * card-coloured ones) and two `.studio-shell .new-chat` blocks, the last of
+ * which set `background: #326857 !important` and no colour — so the background
+ * came from one rule and the text colour (#28334a, navy) from another that had
+ * never heard of it. Measured in the browser: 1.96:1, against the 4.5:1 body
+ * text needs. Only dark mode escaped, and only because a third rule overrode
+ * both with !important.
+ *
+ * It was also `display: block` while carrying an icon and a label, so the
+ * `justify-content` and `gap` two of those rules set were inert and the two
+ * children stacked on separate lines 21px apart inside a 44px button.
+ *
+ * The green is the brand primary, so it is the token rather than a hex: the
+ * pair moves together and the contrast cannot come apart again. */
 .new-chat {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
   width: 100%;
-  height: 46px;
+  min-height: 46px;
+  padding: 0 15px;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: 15px;
-  background: #5056e8;
-  box-shadow: 0 3px 12px #050c2025;
+  box-shadow: 0 3px 9px #204e3b0e;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .new-chat:hover {
-  background: #6066f4;
+  background: color-mix(in oklab, var(--primary) 88%, white);
+  border-color: color-mix(in oklab, var(--primary) 88%, white);
+  color: var(--primary-foreground);
 }
 .workspace-sidebar-content {
   padding: 0 12px !important;
@@ -2007,20 +2036,6 @@ select {
 .hikmah-brand svg {
   color: var(--primary);
 }
-.new-chat {
-  background: var(--card);
-  color: var(--foreground);
-  border: 1px solid var(--input);
-  box-shadow: none;
-  justify-content: flex-start;
-  font-size: 15px;
-  height: 44px;
-}
-.new-chat:hover {
-  background: var(--accent);
-  color: var(--accent-foreground);
-  border-color: var(--ring);
-}
 .workspace-sidebar-content {
   color: var(--foreground);
   padding: 0 10px !important;
@@ -3001,20 +3016,6 @@ select {
 .hikmah-brand svg {
   color: var(--primary);
   stroke-width: 1.65;
-}
-.new-chat {
-  background: var(--card);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 4px #18223004;
-  justify-content: flex-start;
-  padding-left: 15px;
-  border-radius: 11px;
-}
-.new-chat:hover {
-  background: var(--accent);
-  color: var(--primary);
-  border-color: #cbdcf8;
 }
 .workspace-sidebar-content {
   color: var(--foreground);
@@ -4883,14 +4884,6 @@ select {
 .studio-shell .workspace-sidebar-header {
   padding: 25px 18px 16px;
 }
-.studio-shell .new-chat {
-  border-radius: 12px;
-  min-height: 44px;
-  background: #fff;
-  color: #28334a;
-  border: 1px solid #dde3eb;
-  box-shadow: 0 2px 5px #1b2f4d06;
-}
 .studio-shell .primary-nav button,
 .knowledge-nav {
   display: flex;
@@ -5247,11 +5240,16 @@ select {
   font-size: 12px;
   line-height: 1.5;
 }
-[data-theme='dark'] .workspace-sidebar,
-[data-theme='dark'] .studio-shell .workspace-sidebar {
-  background: #131720;
+/* The outer element is covered edge to edge by shadcn's own bg-sidebar panel,
+   so painting it here did nothing but disagree with the token below it
+   (#131720 blue-grey against the token's green-grey). The token is what the
+   panel reads; this just makes the 1px the panel does not cover match. */
+[data-theme='dark'] .workspace-sidebar {
+  background: var(--sidebar);
 }
-[data-theme='dark'] .studio-shell .new-chat,
+/* .new-chat is deliberately not in this list: it is the primary action and
+   wears the primary token in both themes, which is what stopped the two from
+   disagreeing about its text colour. */
 [data-theme='dark'] .studio-shell .starter-prompts button,
 [data-theme='dark'] .execution-stage,
 [data-theme='dark'] .provider-explanation,
@@ -5268,10 +5266,9 @@ select {
 [data-theme='dark'] .chat-message.user .chat-message-inner {
   background: #232e43;
 }
-[data-theme='dark'] .studio-shell .primary-nav button.selected,
 [data-theme='dark'] .knowledge-nav.selected {
-  background: #263455;
-  color: #c2cfff;
+  background: #293f33;
+  color: #c8dfcf;
 }
 @media (max-width: 1100px) {
 }
@@ -5652,12 +5649,6 @@ body {
   padding: 5px;
   border-radius: 11px;
   box-sizing: content-box;
-}
-.studio-shell .new-chat {
-  background: #326857 !important;
-  border-color: #326857 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 3px 9px #204e3b0e !important;
 }
 .studio-shell .primary-nav button,
 .studio-shell .knowledge-nav,
@@ -6119,29 +6110,38 @@ body {
   color: var(--destructive);
   background: color-mix(in oklab, var(--destructive) 14%, transparent) !important;
 }
-.dark .hikmah-brand > svg,
-.dark .agent-avatar,
-.dark .status-pill {
+/* These ten rules were written with a `.dark ` prefix and this app has never
+   put a `dark` class on anything: the theme is `[data-theme='dark']` on the
+   html element, set from the theme cookie. So every one of them was dead, and
+   the most visible consequence was that the workspace sidebar had never been
+   dark at all — it kept `--sidebar: #f4f7f5` while the rest of the page went
+   dark around it, which is what made the brand and the navigation almost
+   invisible there. Measured on the element: --sidebar resolved to #161c22 on
+   html and to #f4f7f5 from `.workspace-sidebar` down.
+
+   (Tailwind's own `dark:` utility is fine — @custom-variant at the top of this
+   file already maps it to [data-theme]. It is only these hand-written rules
+   that had the wrong prefix.) */
+[data-theme='dark'] .hikmah-brand > svg,
+[data-theme='dark'] .agent-avatar,
+[data-theme='dark'] .status-pill {
   background: #22392f;
   color: #b3d9c6;
 }
-.dark .studio-shell .workspace-sidebar {
+[data-theme='dark'] .studio-shell .workspace-sidebar {
   --sidebar: #171e1b;
   --sidebar-border: #303c37;
 }
-.dark .studio-shell .primary-nav button.selected,
-.dark .studio-shell .knowledge-nav.selected {
+[data-theme='dark'] .studio-shell .primary-nav button.selected,
+[data-theme='dark'] .studio-shell .knowledge-nav.selected {
   background: #293f33 !important;
   color: #c8dfcf !important;
 }
-.dark .studio-shell .starter-prompts button {
-  background: #1d2821;
-}
-.dark .studio-shell .composer {
+[data-theme='dark'] .studio-shell .composer {
   border-color: #3b4a40 !important;
 }
-.dark .studio-shell .welcome > svg,
-.dark .studio-shell .assistant-label > svg {
+[data-theme='dark'] .studio-shell .welcome > svg,
+[data-theme='dark'] .studio-shell .assistant-label > svg {
   background: #22392f;
   color: #b3d9c6;
 }
