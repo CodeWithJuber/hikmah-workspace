@@ -2,6 +2,7 @@ import unittest, json, sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+import os
 from configure import main
 from configure import validate
 
@@ -63,10 +64,16 @@ class ConfigurationTests(unittest.TestCase):
     # because every test named a variable that was already on the list.
 
     def release(self, root, **overrides):
-        """Run one release against a temporary /opt/hikmah."""
+        """Run one release against a temporary /opt/hikmah.
+
+        os.chown is patched out: on a server this runs as root and the bootstrap
+        password must end up owned by the container user, but a CI runner is not
+        root and this suite is about what lands in .env, not about file
+        ownership. Leaving it unpatched failed only on the runner."""
         incoming = root/'incoming.json'
         incoming.write_text(json.dumps(self.config | {'owner_password': ''} | overrides))
         with patch('configure.Path', side_effect=lambda path: root if path=='/opt/hikmah' else Path(path)), \
+             patch.object(os,'chown',lambda *a, **k: None), \
              patch.object(sys,'argv',['configure.py',str(incoming)]): main()
         return (root/'.env').read_text()
 
@@ -220,5 +227,19 @@ class ConfigurationTests(unittest.TestCase):
             (root/'.env').write_text('HIKMAH_OWNER_EMAIL=owner@example.com\n')
             self.release(root)
             self.assertEqual(oct((root/'.env').stat().st_mode)[-3:],'600')
+
+    def test_a_non_root_release_says_so_instead_of_raising_an_errno(self):
+        # Unpatched, this is what the CI runner hit: a bare PermissionError
+        # naming a temp path, which tells an operator nothing.
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'data').mkdir()
+            incoming=root/'incoming.json'
+            incoming.write_text(json.dumps(self.config))
+            def refuse(*a, **k): raise PermissionError(1, 'Operation not permitted')
+            with patch('configure.Path', side_effect=lambda path: root if path=='/opt/hikmah' else Path(path)), \
+                 patch.object(os,'chown',refuse), \
+                 patch.object(sys,'argv',['configure.py',str(incoming)]):
+                with self.assertRaisesRegex(ValueError,'must run as root'): main()
 
 if __name__=='__main__':unittest.main()

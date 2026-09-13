@@ -123,7 +123,14 @@ def main():
         if password and not (root/'data'/'auth.sqlite').exists():
             path = root/'data'/'bootstrap-owner-password'
             path.write_text(password)
-            os.chown(path, 1000, 1000)
+            try:
+                # The container runs as uid 1000 and has to read this once to
+                # create the owner account.
+                os.chown(path, 1000, 1000)
+            except PermissionError as error:
+                raise ValueError(
+                    'configure.py must run as root: the bootstrap password has to be owned by the container user.'
+                ) from error
     finally:
         incoming.unlink(missing_ok=True)
 
