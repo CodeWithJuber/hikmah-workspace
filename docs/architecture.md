@@ -148,6 +148,16 @@ show is a conversation that never finishes.
 **Documented limit:** one worker per process, and the resume buffer is a
 process-local `EventEmitter`. A second replica would break the tail.
 
+**A silent turn gets one more chance.** Small free models often call a tool,
+read its result and then emit nothing, so the loop ends with the working on
+screen and no answer. When a stream ends with no text, no file, no data part
+and nothing waiting on a person, the driver runs one further step against the
+same model with tool calling switched off and an instruction to write the
+answer from the results above (`lib/ai/closing-step.ts`) — one request, not a
+retry of the whole loop — and its text lands in the same message before
+`finish`. Only if that is silent too does the run end as "stopped without
+writing an answer".
+
 ## Approvals
 
 A tool that needs the owner's say-so pauses the run. This is expressed as the AI

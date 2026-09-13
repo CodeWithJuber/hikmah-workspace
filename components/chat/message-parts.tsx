@@ -11,12 +11,10 @@ import { isToolUIPart, type UIMessage } from 'ai';
 import {
   Confirmation,
   ConfirmationAccepted,
-  ConfirmationAction,
-  ConfirmationActions,
   ConfirmationRejected,
-  ConfirmationRequest,
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
+import { ApprovalCard } from './approval-card';
 import { Check, Copy, LoaderCircle, Pencil, RefreshCw } from 'lucide-react';
 import {
   Message,
@@ -66,22 +64,6 @@ function questionFrom(input: unknown): { question: string; options: string[] } |
       )
     : [];
   return { question, options };
-}
-
-/** What the owner is being asked to allow, in their words rather than JSON.
- *
- * Tools that ask for approval carry a `description` written for a person; it is
- * the whole point of that field. Falling back to the raw input keeps the card
- * honest when a tool does not supply one — an empty card would be a prompt to
- * approve something unstated. */
-function approvalSummary(part: { input?: unknown }): string {
-  const input = (part.input ?? {}) as Record<string, unknown>;
-  const described = typeof input.description === 'string' ? input.description.trim() : '';
-  const command = typeof input.command === 'string' ? input.command.trim() : '';
-  if (described && command) return `${described}\n\n${command}`;
-  if (described) return described;
-  if (command) return command;
-  return JSON.stringify(part.input ?? {}, null, 2);
 }
 
 /** One generated asset, as the media tools describe it in their output. */
@@ -339,15 +321,19 @@ export function MessageParts({
       // the owner stays too: hiding the question would strand the run.
       const waiting = part.state === 'approval-requested';
       if (!showActivity && !media.length && !waiting) return null;
+      // The run is paused here waiting for an answer, and the answer is the
+      // only thing that can move it. Its own block in the transcript — never a
+      // Collapsible. The card lived inside the tool's disclosure, opened with
+      // `defaultOpen` when the part was waiting; that is read once at mount,
+      // and on a live stream the part mounts *before* the approval is asked
+      // for, so the card stayed closed and Allow was behind a tap nobody knew
+      // to make. See components/chat/approval-card.tsx.
+      if (waiting) return <ApprovalCard key={key} part={part} onApproval={onApproval} />;
       // The plan is rendered as its own card from the data part, so the
       // tool's own row would be the same information twice.
       if (part.type === 'tool-update_plan' && hasPlan) return null;
       return (
-        // A tool card is a Collapsible and it starts closed, so the Allow and
-        // Don't allow buttons — which live in its content — were two taps away
-        // from a run that had stopped and was waiting for them. A control the
-        // run is blocked on is never behind a disclosure.
-        <Tool key={key} defaultOpen={waiting}>
+        <Tool key={key}>
           {part.type === 'dynamic-tool' ? (
             <ToolHeader
               type="dynamic-tool"
@@ -359,42 +345,16 @@ export function MessageParts({
             <ToolHeader type={part.type} state={part.state} title={toolLabel(part)} />
           )}
           <ToolContent>
-            {/* The approval card below states the request in the words the tool
-                wrote for a person. Printing the same thing again as JSON above
-                it — "PARAMETERS { "description": "Read tafsir for 2:255" }" —
-                is the same sentence twice, the second time in a language the
-                reader did not ask for. */}
-            {!waiting && <ToolInput input={part.input} />}
-            {/* The run is paused here waiting for an answer. Without this
-                      card the tool sits on "Awaiting Approval" forever, because
-                      nothing else can send the response. */}
+            <ToolInput input={part.input} />
+            {/* What was decided, once it has been: the card above handled the
+                asking, this is the record of the answer. */}
             <Confirmation approval={part.approval} state={part.state}>
-              <ConfirmationRequest>
-                <ConfirmationTitle>{approvalSummary(part)}</ConfirmationTitle>
-              </ConfirmationRequest>
               <ConfirmationAccepted>
                 <ConfirmationTitle>You allowed this.</ConfirmationTitle>
               </ConfirmationAccepted>
               <ConfirmationRejected>
                 <ConfirmationTitle>You declined this.</ConfirmationTitle>
               </ConfirmationRejected>
-              <ConfirmationActions>
-                <ConfirmationAction
-                  variant="outline"
-                  onClick={() =>
-                    part.approval && onApproval?.({ id: part.approval.id, approved: false })
-                  }
-                >
-                  Don&rsquo;t allow
-                </ConfirmationAction>
-                <ConfirmationAction
-                  onClick={() =>
-                    part.approval && onApproval?.({ id: part.approval.id, approved: true })
-                  }
-                >
-                  Allow
-                </ConfirmationAction>
-              </ConfirmationActions>
             </Confirmation>
             {/* A generated picture is the answer, not a description of
                       one, so it is shown rather than printed as the JSON
