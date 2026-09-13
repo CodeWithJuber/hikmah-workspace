@@ -7289,32 +7289,133 @@ a.auth-brand {
 .files-run button:hover {
   background: var(--muted);
 }
-.files-preview {
+.files-run a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--foreground);
+  text-decoration: none;
+}
+/* A page from the workspace, over everything: the whole viewport, a bar of
+   controls, the page in a sandboxed frame. On a phone that is the only view
+   that makes sense; on a desktop the width switch shows the page at a phone's
+   width in the middle of the stage. */
+.page-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+  background: var(--background);
 }
-.files-preview iframe {
-  width: 100%;
-  height: 320px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: #fff;
+.page-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
-.files-console {
-  max-height: 160px;
-  overflow: auto;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
+.page-preview-bar > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.page-preview-bar button,
+.page-preview-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.page-preview-bar button[aria-pressed='true'] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.page-preview-width {
+  display: none;
+  gap: 2px;
+  padding: 2px;
   border-radius: 9px;
   background: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.page-preview-width button {
+  height: 30px;
+  padding: 0 8px;
+}
+.page-preview-width button[aria-pressed='true'] {
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.page-preview-count {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: 11px;
+}
+.page-preview-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  background: var(--secondary);
+}
+.page-preview-stage > iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+.page-preview-console {
+  max-height: 32vh;
+  overflow: auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
   line-height: 1.6;
 }
-.files-console p {
+.page-preview-console p {
   overflow-wrap: anywhere;
+}
+@media (min-width: 700px) {
+  .page-preview-width {
+    display: inline-flex;
+  }
+  .page-preview-bar button > span,
+  .page-preview-bar a > span {
+    display: inline;
+  }
+  .page-preview-stage.is-phone > iframe {
+    width: 390px;
+    margin: 16px 0;
+    height: calc(100% - 32px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+  }
+}
+@media (max-width: 699px) {
+  .page-preview-bar button > span,
+  .page-preview-bar a > span {
+    display: none;
+  }
 }
 .files-editor-surface {
   border: 1px solid var(--border);

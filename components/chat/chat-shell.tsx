@@ -87,6 +87,23 @@ export function ChatShell({
   // A page an answer produced, opened from its inline card. Its own column on a
   // wide screen; the same drawer as the panel on a narrow one.
   const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
+  // Where the workspace's pages are served, read when a preview first opens:
+  // the panel then shows the page as written, with every file it links to,
+  // and can open it full screen. See lib/files/preview-link.ts.
+  const [previewBase, setPreviewBase] = useState('');
+  useEffect(() => {
+    if (!artifact || previewBase) return;
+    let live = true;
+    void fetch('/api/workspace/files', { credentials: 'same-origin' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { preview?: string } | null) => {
+        if (live && payload?.preview) setPreviewBase(payload.preview);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [artifact, previewBase]);
 
   // On a narrow screen the two side panels are drawers over the conversation
   // rather than strips above and below it, which is what left the conversation
@@ -227,6 +244,7 @@ export function ChatShell({
         {artifact && (
           <ArtifactPanel
             files={artifact}
+            previewBase={previewBase || undefined}
             onClose={() => setArtifact(null)}
             onEdit={() => {
               // The files are rows already, written by the tool that made them,
