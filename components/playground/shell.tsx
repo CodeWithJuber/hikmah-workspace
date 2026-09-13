@@ -36,6 +36,7 @@ import { RuntimeHome } from './runtime-home';
 import { TerminalPage } from '@/components/workbench/terminal-page';
 import { McpServers } from '@/components/settings/mcp-servers';
 import { Knowledge } from './knowledge';
+import { useMemory } from '@/hooks/use-memory';
 import { Settings } from './settings';
 import { WorkspaceAdmin } from './admin';
 import { Meaning } from './meaning';
@@ -100,12 +101,13 @@ function ShellContent() {
   const {
     openSettings,
     preferences,
-    knowledge,
     storageMessage,
     restoreFailed,
     workspacePage: page,
     setWorkspacePage: setPage,
   } = usePlayground();
+  // The memories table, not the blob: the counts every answer's store agrees with.
+  const { counts: memoryCounts } = useMemory();
   const { setOpenMobile } = useSidebar();
   const [lab, setLab] = useState('');
   return (
@@ -166,10 +168,7 @@ function ShellContent() {
             }}
           >
             <BookOpen size={20} />
-            Memory{' '}
-            <span className="nav-count">
-              {knowledge.filter((k) => k.status !== 'suggested' && k.enabled).length}
-            </span>
+            Memory <span className="nav-count">{memoryCounts.saved}</span>
           </button>
           <button
             className={'knowledge-nav' + (page === 'learning' ? ' selected' : '')}
@@ -179,10 +178,7 @@ function ShellContent() {
             }}
           >
             <BrainCircuit size={20} />
-            Learning{' '}
-            <span className="nav-count">
-              {knowledge.filter((k) => k.status === 'suggested').length || ''}
-            </span>
+            Learning <span className="nav-count">{memoryCounts.suggested || ''}</span>
           </button>
           <button
             className={'co-model-nav' + (page === 'kernel' ? ' selected' : '')}

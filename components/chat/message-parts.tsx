@@ -396,6 +396,10 @@ export function MessageParts({
     if (part.type === 'data-compare')
       return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
+    // Which saved memories the prompt carried. The receipt below the answer
+    // reads it; here it would be a line above the answer saying the same.
+    if (part.type === 'data-memories') return null;
+
     // A step boundary in a multi-step run. It carries no content of its
     // own; the tool cards around it already show what happened.
     if (part.type === 'step-start') return null;
@@ -421,7 +425,8 @@ export function MessageParts({
     message.role === 'assistant' &&
     settled &&
     !hasText &&
-    rest.length === 0 &&
+    // The memories bookkeeping part renders nothing, so it cannot fill the hole.
+    rest.filter((part) => part.type !== 'data-memories').length === 0 &&
     !(showActivity && working.length > 0);
 
   return (

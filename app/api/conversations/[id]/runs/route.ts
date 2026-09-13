@@ -18,6 +18,8 @@ import { candidatesFrom } from '@/lib/context-model/candidates';
 import { createCandidateStore } from '@/lib/context-model/candidate-store';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { knowledgeForRun } from '@/lib/knowledge/run-knowledge';
+import { createMemoryStore } from '@/lib/memory/store';
+import type { UsedMemory } from '@/lib/runs/service';
 import { composePrompt } from '@/lib/ai/compose-prompt';
 import { principleDigest } from '@/lib/kernel/principles';
 
@@ -280,9 +282,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         instructions: composePrompt({
           base: parsed.instructions,
           principles: principleDigest(),
-          knowledge: saved,
+          knowledge: saved.block,
           contextNotes,
         }),
+        // What the answer drew on, so the run can say so where the person is
+        // reading. The ids are counted as used at creation, not when the
+        // answer lands: a run resumed after a restart still used them.
+        memories: saved.used,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,
@@ -345,19 +351,34 @@ async function contextBriefFor(userId: string, messages: UIMessage[]): Promise<s
  * after the tab closed has no page to ask. Never throws — a lookup that fails
  * costs the aid, not the answer.
  */
-async function knowledgeFor(userId: string, messages: UIMessage[]): Promise<string> {
+async function knowledgeFor(
+  userId: string,
+  messages: UIMessage[],
+): Promise<{ block: string; used: UsedMemory[] }> {
+  const none = { block: '', used: [] };
   try {
     const storage = getStorage();
     const query = recentUserText(messages, 1);
-    if (!query.trim()) return '';
+    if (!query.trim()) return none;
+    let used: UsedMemory[] = [];
     const block = await knowledgeForRun({
       sources: createKnowledgeSources(storage.raw, storage.BUCKET),
       userId,
       query,
+      onSelected: (items) => {
+        used = items.map((item) => ({ id: item.id, title: item.title, kind: item.kind }));
+      },
     });
-    return block ? '\n' + block : '';
+    if (used.length) {
+      // Best effort: a count that did not move is not worth a failed answer.
+      createMemoryStore(storage.raw).markUsed(
+        userId,
+        used.map((item) => item.id),
+      );
+    }
+    return { block: block ? '\n' + block : '', used };
   } catch (error) {
     console.error('[hikmah] knowledge skipped:', error instanceof Error ? error.message : error);
-    return '';
+    return none;
   }
 }

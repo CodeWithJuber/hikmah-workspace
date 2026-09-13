@@ -336,6 +336,45 @@ workspace, which nothing else reads and no program runs; a file written here has
 no effect until someone asks for one. `bash` and `ssh_exec` are gated because
 they act on a machine.
 
+## Memory
+
+What a person has saved, what the model has suggested, and what an answer drew
+on, in one table: `memories` (`drizzle/0014_memories.sql`), read and written
+through `lib/memory/store.ts`. Personal knowledge used to live inside the
+workspace JSON blob, which only the browser may write — a run writing it would
+race the open workspace tab's revision and stop it saving for good — so no run
+could ever remember anything, and the tool that suggested memories went with
+the browser run loop. The table is the place a run can write to.
+
+**Retrieval is lexical and transparent**, not embeddings: `retrieveKnowledge`
+in `lib/playground/knowledge.ts` over the person's saved rows plus the
+operator's published `shared_knowledge`, with the tokeniser in
+`lib/text/normalise.ts`. That tokeniser treats combining marks as part of a
+word and strips Arabic harakat and tatweel, folding Urdu and Arabic letter
+forms together — the previous `[\p{L}\p{N}]+` split Hindi at the virama and
+Arabic at the harakat, so a vowelled Qur'anic phrase never matched its plain
+form. Preferences always travel, capped to the six most used; references
+travel when the question shares their terms; eight items and 8,000
+characters at most. The ids chosen are counted as used and written onto the
+run as `memories`, and the driver streams one `data-memories` part right
+after the message opens so the receipt can say _used N memories_. That part
+is bookkeeping: `answered()` and the closing step both leave it out of the
+"did the turn say anything" test.
+
+**Provenance decides trust.** Every memory is `quote` (the person's own words,
+written or approved by them), `source` (read from the named source, only as
+reliable as it) or `inference` (the model's own unverified conclusion). The
+prompt preamble states the three so the model keeps _you said_, _a page said_
+and _I inferred_ apart. Only a `quote` may be saved without review, and only
+a preference; everything else is `suggested` until the person accepts it.
+Deleting or disabling a memory is always the person's action; there is no
+`forget` tool.
+
+**The screen** is `components/chat/memory-panel.tsx`, the fourth tab of the
+chat's workspace panel and the body of the `/workspace` Memory screen, over
+`/api/memory` (`getChatGPTUser` on reads, `Origin` on writes). To review,
+saved, and recently used, each with its provenance chip.
+
 ## Compare
 
 Compare mode answers the same question twice: once through the full agent, and
@@ -422,10 +461,12 @@ Stated so nobody goes looking:
   encrypted store.
 - **No second app replica.** See the worker limit above.
 - **The workspace blob is still there.** `workspace_states` no longer holds
-  conversations, but two things live only in it: the provider connection, which
-  `components/chat/chat-preview.tsx` reads to know which model to talk to, and
-  personal knowledge, which has no table of its own. Retiring the blob means
-  giving those two a home first.
+  conversations or personal knowledge — memories have their own table (see
+  _Memory_ above) — but the provider connection still lives only in it, which
+  `components/chat/chat-preview.tsx` reads as a fallback. Retiring the blob
+  means giving that one a home first. Anyone's knowledge still in the blob is
+  copied into `memories` the first time their memory is read, once, keeping
+  its ids.
 - **Some of the browser MCP client survives.** `lib/playground/mcp-client.ts` is
   still reached from the workspace provider and the admin screen, and it is the
   only caller of `/api/mcp` and `lib/server/mcp-relay.ts`. Runs use

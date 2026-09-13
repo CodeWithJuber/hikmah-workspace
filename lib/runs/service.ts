@@ -67,7 +67,13 @@ export type RunConfig = {
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
   compare?: { model?: string };
+  /** The saved memories this run's prompt drew on, decided at creation. Streamed
+   * as a `data-memories` part so the answer can say what it used. */
+  memories?: UsedMemory[];
 };
+
+/** One memory an answer drew on, as the receipt names it. */
+export type UsedMemory = { id: string; title: string; kind: 'preference' | 'reference' };
 
 /**
  * Drive one run with the same agent the request-scoped chat route uses.
@@ -194,6 +200,7 @@ async function driveWithAgent({
             // tool result and no words — the small free models' habit that
             // reached the owner as "stopped without writing an answer". See
             // lib/ai/closing-step.ts.
+            let started = false;
             for await (const chunk of withClosingStep(stream as AsyncIterable<UIMessageChunk>, {
               model,
               tools: agent.tools,
@@ -206,8 +213,18 @@ async function driveWithAgent({
                   '[hikmah] closing step failed:',
                   error instanceof Error ? error.message : error,
                 ),
-            }))
+            })) {
               push(chunk);
+              // Right after the message opens, so the fold has a message to
+              // attach it to: which memories this answer was written with.
+              // Not an answer in itself — failure.ts and the closing step both
+              // leave it out of the "did the turn say anything" test.
+              if (!started && chunk.type === 'start') {
+                started = true;
+                if (config.memories?.length)
+                  push({ type: 'data-memories', id: 'memories', data: { used: config.memories } });
+              }
+            }
           })(),
           config.compare
             ? runComparison({

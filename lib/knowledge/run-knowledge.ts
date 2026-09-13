@@ -29,10 +29,16 @@ const MAX_BLOB_BYTES = 4_000_000;
 const MAX_SHARED = 500;
 
 export type KnowledgeSources = {
-  /** Reads `workspace_states.body` for this owner, or null. */
+  /** Reads `workspace_states.body` for this owner, or null. Still read once per
+   * person, to copy what the blob holds into the memories table; after that
+   * `memories` is the store and this is never consulted again. */
   personal(userId: string): Promise<string | null>;
   /** Reads every published `shared_knowledge` row. */
   shared(): Promise<string[]>;
+  /** The person's memories from their own table — saved, suggested and
+   * disabled alike; retrieval decides which travel. Absent on a source built
+   * before the table existed, in which case the blob is read as it always was. */
+  memories?(userId: string): Promise<KnowledgeItem[]>;
 };
 
 /**
@@ -49,14 +55,22 @@ export async function collectKnowledge(
 ): Promise<KnowledgeItem[]> {
   const items: KnowledgeItem[] = [];
 
-  try {
-    const body = await sources.personal(userId);
-    if (body && body.length <= MAX_BLOB_BYTES) {
-      const parsed = JSON.parse(body) as { knowledge?: unknown };
-      items.push(...parseKnowledge(parsed.knowledge));
+  if (sources.memories) {
+    try {
+      items.push(...(await sources.memories(userId)));
+    } catch {
+      /* a table this run cannot read is a lookup that finds nothing */
     }
-  } catch {
-    /* a blob this run cannot read is a lookup that finds nothing, not a failure */
+  } else {
+    try {
+      const body = await sources.personal(userId);
+      if (body && body.length <= MAX_BLOB_BYTES) {
+        const parsed = JSON.parse(body) as { knowledge?: unknown };
+        items.push(...parseKnowledge(parsed.knowledge));
+      }
+    } catch {
+      /* a blob this run cannot read is a lookup that finds nothing, not a failure */
+    }
   }
 
   try {
@@ -89,12 +103,17 @@ export async function knowledgeForRun(options: {
   /** What the person just asked. References must share a term with it;
    * preferences are included regardless, which is the existing rule. */
   query: string;
+  /** Told which items were chosen, so the route can count them as used and
+   * the answer can say what it drew on. */
+  onSelected?: (items: KnowledgeItem[]) => void;
 }): Promise<string> {
   if (!options.query.trim()) return '';
   try {
     const items = await collectKnowledge(options.sources, options.userId);
     if (!items.length) return '';
-    return knowledgePrompt(retrieveKnowledge(items, options.query));
+    const selected = retrieveKnowledge(items, options.query);
+    if (selected.length) options.onSelected?.(selected);
+    return knowledgePrompt(selected);
   } catch {
     return '';
   }

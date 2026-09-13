@@ -139,3 +139,96 @@ test('both stores are read from the real tables, including a blob held as a poin
   assert.deepEqual(found.map((x) => x.id).sort(), ['p1', 's1']);
   db.close();
 });
+
+// The table, not the blob. A run used to read personal knowledge out of the
+// workspace JSON blob — a store only the browser could write. These read the
+// memories table through the real sources, and the one-time copy across.
+const blobRow = (db, userId, knowledge) =>
+  db
+    .prepare(
+      'INSERT OR REPLACE INTO workspace_states (user_id, body, revision, updated_at) VALUES (?,?,?,?)',
+    )
+    .run(userId, JSON.stringify({ version: 1, knowledge }), 1, '2026-01-01T00:00:00Z');
+
+test('a memory saved from one conversation is recalled in another', async (t) => {
+  const db = new DatabaseSync(':memory:');
+  applySchema(db);
+  t.after(() => db.close());
+  const { createMemoryStore } = await import('../lib/memory/store.ts');
+  createMemoryStore(db).add('u1', {
+    kind: 'reference',
+    title: 'Mumbai cap',
+    content: 'The Mumbai cap is 7500, NOT 5000.',
+    provenance: 'quote',
+    source: 'You · Wheat contract',
+    sourceConversationId: 'conv_A',
+    status: 'saved',
+  });
+  const sources = createKnowledgeSources(db);
+  // Nothing about the query names conversation A; the memory is the person's,
+  // not the conversation's.
+  const block = await knowledgeForRun({ sources, userId: 'u1', query: 'what is the Mumbai cap?' });
+  assert.match(block, /7500/);
+  assert.match(block, /"provenance":"quote"/);
+  assert.equal(
+    await knowledgeForRun({ sources, userId: 'u2', query: 'what is the Mumbai cap?' }),
+    '',
+    'and never another person’s',
+  );
+});
+
+test('the blob’s knowledge is copied across once, then the table is the store', async (t) => {
+  const db = new DatabaseSync(':memory:');
+  applySchema(db);
+  t.after(() => db.close());
+  blobRow(db, 'u1', [item({ id: 'from-blob' })]);
+  const sources = createKnowledgeSources(db);
+  const first = await knowledgeForRun({ sources, userId: 'u1', query: 'Mumbai wheat cap' });
+  assert.match(first, /7500/, 'reachable on the first run');
+  const { createMemoryStore } = await import('../lib/memory/store.ts');
+  const store = createMemoryStore(db);
+  assert.equal(store.get('u1', 'from-blob')?.provenance, 'quote', 'in the table, id kept');
+  assert.equal(store.imported('u1'), true);
+  // The blob changing afterwards changes nothing: it is no longer read.
+  blobRow(db, 'u1', [item({ id: 'from-blob' }), item({ id: 'later', content: 'Later item.' })]);
+  assert.equal(store.get('u1', 'later'), null);
+});
+
+test('a large blob is imported whole, not skipped', async (t) => {
+  const db = new DatabaseSync(':memory:');
+  applySchema(db);
+  t.after(() => db.close());
+  // Past the 4 MB guard the run applies to its own blob reads. That guard
+  // skipping an import would have silently lost every item in it.
+  const padding = item({ id: 'pad', content: 'x'.repeat(12_000) });
+  blobRow(db, 'u1', [
+    ...Array.from({ length: 400 }, (_, i) => ({ ...padding, id: 'pad' + i })),
+    item({ id: 'keep' }),
+  ]);
+  const sources = createKnowledgeSources(db);
+  await knowledgeForRun({ sources, userId: 'u1', query: 'Mumbai wheat cap' });
+  const { createMemoryStore } = await import('../lib/memory/store.ts');
+  assert.ok(createMemoryStore(db).get('u1', 'keep'), 'the item survived the import');
+});
+
+test('the route learns which items were used', async (t) => {
+  const db = new DatabaseSync(':memory:');
+  applySchema(db);
+  t.after(() => db.close());
+  const { createMemoryStore } = await import('../lib/memory/store.ts');
+  const { id } = createMemoryStore(db).add('u1', {
+    kind: 'preference',
+    title: 'Language',
+    content: 'Answer in simple Hindi.',
+    provenance: 'quote',
+    status: 'saved',
+  });
+  let used = [];
+  await knowledgeForRun({
+    sources: createKnowledgeSources(db),
+    userId: 'u1',
+    query: 'anything',
+    onSelected: (items) => (used = items.map((x) => x.id)),
+  });
+  assert.deepEqual(used, [id]);
+});
