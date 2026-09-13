@@ -233,6 +233,9 @@ export function ChatView({
   // the agent's machinery is actually buying. Held here rather than in the run
   // configuration because it is a per-turn choice, not a setting.
   const [compare, setCompare] = useState(false);
+  // Deep research, per turn for the same reason — and because on a free key a
+  // fan-out of lanes can be most of the day's request allowance in one go.
+  const [deepResearch, setDeepResearch] = useState(false);
   // The "learn this in the background" dialog. Opened from the `+` menu and
   // rendered outside it, because a menu unmounts its content when it closes.
   const [learning, setLearning] = useState(false);
@@ -246,8 +249,8 @@ export function ChatView({
     setRetried(false);
   }
   useEffect(() => {
-    transport.setConfig({ ...run, compare: compare ? {} : undefined });
-  }, [transport, run, compare]);
+    transport.setConfig({ ...run, compare: compare ? {} : undefined, deepResearch });
+  }, [transport, run, compare, deepResearch]);
 
   // Remember, by hand: your own message is saved as your words; an answer is
   // filed as the model's inference and waits for review. The route names the
@@ -535,6 +538,15 @@ export function ChatView({
                   onSelect={(event) => event.preventDefault()}
                 >
                   Also answer without tools
+                </DropdownMenuCheckboxItem>
+                {/* Sub-agents fanned out over the question, each reading its
+                    own sources. A choice for a question, not a setting. */}
+                <DropdownMenuCheckboxItem
+                  checked={deepResearch}
+                  onCheckedChange={setDeepResearch}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  Research deeply
                 </DropdownMenuCheckboxItem>
                 {/* A task is handed off, not sent: it becomes its own
                     conversation and this one stays free to type in. */}

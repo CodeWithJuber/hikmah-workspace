@@ -26,6 +26,7 @@ export type GroupedParts<T extends TranscriptPart = TranscriptPart> = {
 const LIVE = new Set([
   'data-plan',
   'data-compare',
+  'data-research',
   'file',
   'source-url',
   'source-document',
@@ -107,6 +108,7 @@ const PLAIN: Record<string, string> = {
   interpret_meaning: 'parsed a sentence locally',
   update_plan: 'updated the plan',
   remember: 'saved a memory',
+  deep_research: 'researched in parallel',
 };
 
 /**

@@ -437,6 +437,39 @@ written report — what it learned, the exact sources it read, what it could
 not verify — because a run that ends with tool calls and no words is recorded
 as no answer, and a learner that only filed memories is exactly that.
 
+## Deep research
+
+_Research deeply_ in the composer's `+` menu offers the run one more tool for
+that turn: `deep_research` (`lib/ai/tools/deep-research.ts`). It is the AI
+SDK's own multi-agent shape — a sub-agent as a tool — fanned out: one
+`generateText` plans sub-questions (a numbered list, not a JSON schema, because
+most free models write the first and not the second), one `ToolLoopAgent` per
+sub-question runs with the research tools and the run's auto-approved server
+tools, and the findings come back with the URLs each lane actually opened.
+Search snippets are leads; `read_webpage` calls are the record.
+
+Three constraints set the numbers. A lane is built from the parent's already
+filtered tool set, minus everything that reads a person — so it is an
+unattended run by construction and shares the parent's MCP connections rather
+than opening its own. On a free OpenRouter key (20 requests a minute, 50 a
+day) five lanes of eight steps is the day in one message, so under `freeOnly`
+the lanes run one at a time, at most two, and the first 429 stops the rest
+from launching. The whole call is bounded at 240 s by a referenced timer (not
+`AbortSignal.timeout`, whose unref'd timer cannot keep a process alive to
+fire), and no lane launches past a token budget across the call.
+
+Progress is one `data-research` part, republished whole on lane state changes
+— the `data-compare` replace semantics — routed through the run's stream so
+it is persisted on the message and replays to a reconnecting tab. The card
+(`ResearchCard` in `message-parts.tsx`) shows a row per lane; a finished lane
+opens to its finding and the pages it read. The card is bookkeeping, like
+`data-memories`: `answered()` and the closing step both leave it out, so five
+lanes and no prose is still no answer and the closing step is asked to write.
+Each lane's tokens are recorded as their own usage row against the run
+(`recordLaneUsage`), because the message's metadata carries only the parent's
+and the lanes would otherwise be the one thing the run did that nobody was
+charged for.
+
 ## Compare
 
 Compare mode answers the same question twice: once through the full agent, and

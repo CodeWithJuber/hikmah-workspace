@@ -78,6 +78,11 @@ export const NO_ANSWER =
  * Text or a file counts. Media arrives as a file part, and a picture with no
  * words is a real answer.
  */
+/** Data parts that record how a turn was worked, not what it said: which
+ * memories the prompt carried, and the research lanes' progress. A turn that
+ * fanned out five lanes and then wrote nothing still wrote nothing. */
+const BOOKKEEPING = new Set(['data-memories', 'data-research']);
+
 export function answered(parts: readonly { type?: string; text?: string }[]): boolean {
   return parts.some(
     (part) =>
@@ -86,7 +91,7 @@ export function answered(parts: readonly { type?: string; text?: string }[]): bo
       // A data part is an answer — a plan, a comparison — except the one that
       // only records which memories the prompt carried. A turn that said
       // nothing but was written with two memories still said nothing.
-      (part?.type?.startsWith('data-') === true && part.type !== 'data-memories'),
+      (part?.type?.startsWith('data-') === true && !BOOKKEEPING.has(part.type)),
   );
 }
 

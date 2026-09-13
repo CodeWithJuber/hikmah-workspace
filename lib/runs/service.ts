@@ -70,6 +70,8 @@ export type RunConfig = {
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
   compare?: { model?: string };
+  /** Offer `deep_research` this turn. */
+  deepResearch?: boolean;
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
    * as a `data-memories` part so the answer can say what it used. */
   memories?: UsedMemory[];
@@ -128,6 +130,11 @@ async function driveWithAgent({
   };
   const model = createLanguageModel(provider);
 
+  // Where a tool's data parts go. Until the stream is open they can only be
+  // logged; once it is, `push` below routes them into the fold as well, so the
+  // research card is persisted on the message and not only replayed.
+  let sink: (chunk: unknown) => void = emit;
+
   const agent = buildRunAgent({
     provider,
     model,
@@ -142,6 +149,12 @@ async function driveWithAgent({
     // Emitted as a chunk, it joins the durable log like any other: it replays
     // to a reconnecting tab and persists on the finished message.
     onPlan: (steps) => emit({ type: 'data-plan', id: 'plan', data: { steps } }),
+    onData: (chunk) => sink(chunk),
+    // Each research lane is its own agent with its own usage; the message's
+    // metadata carries only the parent's, so without this the lanes would be
+    // the one thing the run did that nobody was charged for.
+    onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
+    deepResearch: config.deepResearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
     enabledTools: config.enabledTools ?? [],
@@ -212,6 +225,7 @@ async function driveWithAgent({
           emit(chunk);
           controller.enqueue(chunk);
         };
+        sink = push;
         // The comparison runs alongside rather than after: the point of the
         // mode is watching the two answers arrive together, and running them in
         // sequence would double the wait for no gain.
@@ -396,6 +410,32 @@ function recordRunUsage(
     });
   } catch (error) {
     console.error('[hikmah] usage not recorded:', error instanceof Error ? error.message : error);
+  }
+}
+
+/** One usage row for one finished research lane. Best effort, as above. */
+function recordLaneUsage(
+  run: { id: string; user_id?: string },
+  config: RunConfig,
+  usage: { inputTokens: number; outputTokens: number },
+): void {
+  if (!run.user_id) return;
+  if (usage.inputTokens <= 0 && usage.outputTokens <= 0) return;
+  try {
+    createBillingStore(getStorage().raw).recordUsage({
+      id: 'use_' + randomUUID(),
+      userId: run.user_id,
+      runId: run.id,
+      model: config.model,
+      metered: config.metered === true,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
+  } catch (error) {
+    console.error(
+      '[hikmah] lane usage not recorded:',
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 

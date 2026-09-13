@@ -19,6 +19,12 @@ import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
 import { rememberTools, type MemoryToolContext } from './tools/memory.ts';
+import {
+  deepResearchTools,
+  RESEARCH_PART_ID,
+  type LaneUsage,
+  type ResearchView,
+} from './tools/deep-research.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 
 export type RunAgentOptions = {
@@ -32,6 +38,17 @@ export type RunAgentOptions = {
   meaningModel: Model;
   savedSearchKey?: () => Promise<string>;
   onPlan?: (steps: PlanStep[]) => void;
+  /** Writes a data part into the run's stream: the research progress card. */
+  onData?: (chunk: { type: string; id: string; data: unknown }) => void;
+  /** A research lane finished, and this is what it cost. */
+  onLaneUsage?: (lane: string, usage: LaneUsage) => void;
+  /**
+   * Offer `deep_research` this turn. Off by default and switched on per turn
+   * from the composer, because a fan-out of sub-agents is not a tool every
+   * question should have within reach — on a free key it can be the day's
+   * request allowance in one message.
+   */
+  deepResearch?: boolean;
   signal: AbortSignal;
   /** Tool names the owner has switched off for this run. */
   disabledTools?: readonly string[];
@@ -103,6 +120,10 @@ export type RunAgentOptions = {
   model?: LanguageModel;
 };
 
+/** The built-in tools a research lane may use: what reads, nothing that
+ * writes to the workspace or reaches a machine. */
+const LANE_TOOLS = new Set(['search_web', 'search_reference', 'read_webpage', 'research_quran']);
+
 export function buildRunAgent(options: RunAgentOptions) {
   const disabled = new Set(options.disabledTools ?? []);
   const all = {
@@ -141,6 +162,34 @@ export function buildRunAgent(options: RunAgentOptions) {
         !(options.unattended && wouldWait(name)),
     ),
   );
+  // The fan-out, over the run's own model. Its lanes get the research tools
+  // and the auto-approved server tools from the set above — never a tool that
+  // would wait on a person, and never itself — so a lane is an unattended run
+  // by construction, sharing the parent's connections rather than opening its
+  // own.
+  if (options.deepResearch && !disabled.has('deep_research')) {
+    const model = options.model ?? createLanguageModel(options.provider);
+    const laneTools = Object.fromEntries(
+      Object.entries(tools).filter(
+        ([name]) =>
+          LANE_TOOLS.has(name) ||
+          (name.startsWith('mcp__') && options.mcp?.approval.get(name) === 'auto'),
+      ),
+    );
+    Object.assign(
+      tools,
+      deepResearchTools({
+        model,
+        tools: laneTools,
+        instructions: options.instructions,
+        signal: options.signal,
+        freeOnly: options.provider.freeOnly === true,
+        publish: (view: ResearchView) =>
+          options.onData?.({ type: 'data-' + RESEARCH_PART_ID, id: RESEARCH_PART_ID, data: view }),
+        onLaneUsage: options.onLaneUsage,
+      }),
+    );
+  }
   // What actually fits, from this model's own window, minus the system prompt
   // and the tool schemas this run is about to send. Computed after `tools` so
   // the count is the real one — an owner with the Qur'an server enabled offers

@@ -12,6 +12,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { answered as answeredParts } from '../lib/runs/failure.ts';
 
 const root = process.cwd();
 const dir = await mkdtemp(join(tmpdir(), 'hikmah-receipt-'));
@@ -125,4 +126,56 @@ test('the receipt says when the turn remembered something, from the tool’s own
     ]),
   );
   assert.match(html, /remembered 1 — see Memory/, 'the refused call is not counted');
+});
+
+const research = (data) => ({ type: 'data-research', id: 'research', data });
+
+test('the research card lists every lane, and a finished lane opens to its finding and the pages it read', () => {
+  const html = render(
+    answered([
+      research({
+        status: 'done',
+        question: 'q',
+        lanes: [
+          {
+            question: 'What does the Hanafi school say?',
+            status: 'done',
+            summary: 'Not combined in time.',
+            sources: ['https://example.org/hanafi'],
+          },
+          {
+            question: 'And the Shafi‘i?',
+            status: 'failed',
+            error: 'Rate-limited by the provider.',
+          },
+        ],
+        gaps: ['And the Shafi‘i?'],
+      }),
+      { type: 'text', text: 'Answer.' },
+    ]),
+  );
+  assert.match(html, /Deep research · 2 lanes/);
+  assert.match(html, /1 of 2 answered/);
+  assert.match(html, /What does the Hanafi school say\?/);
+  assert.match(html, /1 page read/);
+  assert.match(html, /Not combined in time\./);
+  assert.match(html, /href="https:\/\/example\.org\/hanafi"/);
+  assert.match(html, /Rate-limited by the provider\./);
+  assert.match(html, /Not answered: 1 sub-question/);
+});
+
+test('a research card with no words after it is still no answer', () => {
+  // The card records how the turn was worked. Five lanes and no answer is no
+  // answer: the run is recorded as silent and the closing step is asked to
+  // write, rather than the card counting as what the person asked for.
+  const parts = [
+    research({
+      status: 'done',
+      question: 'q',
+      lanes: [{ question: 'x', status: 'done', summary: 's', sources: [] }],
+      gaps: [],
+    }),
+  ];
+  assert.equal(answeredParts(parts), false);
+  assert.equal(answeredParts([...parts, { type: 'text', text: 'Answer.' }]), true);
 });
