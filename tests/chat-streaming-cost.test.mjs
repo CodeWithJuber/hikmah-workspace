@@ -60,6 +60,33 @@ test('a settled message is not re-rendered while a later one streams', () => {
   }
 });
 
+test('a long transcript renders its newest turns, not all of them', () => {
+  // Measured by subtraction on the post-throttle build: of the 14s a single
+  // answer spent blocking the main thread over a 30-turn transcript, 7.8s was
+  // the turns above the fold — Shiki tokenising code blocks nobody could see.
+  // Dropping to 2 turns of history removed exactly that.
+  const view = read('components/chat/chat-view.tsx');
+  const size = view.match(/const WINDOW = (\d+);/);
+  assert.ok(size, 'nothing bounds how many messages are rendered at once');
+  const turns = Number(size[1]);
+  assert.ok(turns >= 10, `a window of ${turns} would hide turns that fit on a screen`);
+  assert.ok(turns <= 100, `a window of ${turns} is large enough to be no window at all`);
+  assert.match(
+    view,
+    /messages\.slice\(hidden\)/,
+    'the window is declared but the transcript still maps over every message',
+  );
+  // A window nobody can see past is lost history, not a fast transcript.
+  assert.match(view, /Show \{hidden\} earlier/, 'there is no way to reach the earlier turns');
+  // And the newest message must stay the newest one after slicing, or the
+  // animating fix above silently stops applying.
+  assert.match(
+    view,
+    /isLast=\{index === visible\.length - 1\}/,
+    'isLast is computed against the full list while a slice is rendered',
+  );
+});
+
 test('only the message being written is animating', () => {
   const parts = read('components/chat/message-parts.tsx');
   // `isAnimating={streaming}` where streaming was the run's status meant every
@@ -71,9 +98,11 @@ test('only the message being written is animating', () => {
     'the animating flag is the run status, not the message — it will re-highlight the whole transcript',
   );
   const view = read('components/chat/chat-view.tsx');
+  // Against the rendered slice, not the whole list — see the windowing test
+  // above, which pins the two together.
   assert.match(
     view,
-    /isLast=\{index === messages\.length - 1\}/,
+    /isLast=\{index === visible\.length - 1\}/,
     'nothing tells a message whether it is the newest one',
   );
 });

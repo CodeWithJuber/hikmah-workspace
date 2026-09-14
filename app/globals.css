@@ -9176,3 +9176,28 @@ button.cursor-pointer.p-1 {
   max-width: 720px;
   font-size: 13px;
 }
+
+/* The rest of a long conversation, one button away.
+ *
+ * Only the newest turns are rendered: every message on screen costs a markdown
+ * render, and a code block in one costs a Shiki tokenisation, so a hundred-turn
+ * transcript spent most of an answer's main-thread time on text that was
+ * scrolled out of view. This is how the rest is asked for.
+ *
+ * Tokens only, and no new colour: it is a quiet control that should read as
+ * part of the transcript rather than an action competing with the answer. */
+.chat-earlier {
+  align-self: center;
+  min-height: 36px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.chat-earlier:hover {
+  border-color: var(--primary);
+  color: var(--foreground);
+}

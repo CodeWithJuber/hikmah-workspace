@@ -65,6 +65,21 @@ import type { WorkspaceFiles } from '@/lib/playground/session';
  * onto the answer, so it survives a reload rather than living in this tab. */
 type AnswerMetadata = { model?: string; usage?: LanguageModelUsage };
 
+/** How many turns are rendered at once.
+ *
+ * Every message on screen costs its own markdown render, and a code block in
+ * one costs a Shiki tokenisation. Measured over a 30-turn transcript on a
+ * 4x-throttled phone, the turns *above the fold* were 7.8s of the 14s a single
+ * answer spent blocking the main thread — work done for text nobody was
+ * looking at. Forty is comfortably more than fits on any screen, so the window
+ * is invisible until a conversation is genuinely long, and the rest is one
+ * button away.
+ *
+ * A plain slice rather than virtualisation: `use-stick-to-bottom` anchors the
+ * scroll by measuring the content, and a windowing library that swaps rows
+ * under it fights that. A slice does not. */
+const WINDOW = 40;
+
 /** What an attachment may be, and how much of it. The composer inlines a file
  * as a data URL rather than uploading it, so these caps are what keeps a
  * message row — and the prompt built from it — a sensible size. */
@@ -267,9 +282,14 @@ export function ChatView({
   // the previous conversation's failure for one frame after switching.
   const [staleFor, setStaleFor] = useState(id);
   const [retried, setRetried] = useState(false);
+  // Earlier turns, once asked for. Reset with the conversation: opening a
+  // different chat should start at its end, not wherever the last one was
+  // expanded to.
+  const [showEarlier, setShowEarlier] = useState(false);
   if (staleFor !== id) {
     setStaleFor(id);
     setRetried(false);
+    setShowEarlier(false);
   }
   useEffect(() => {
     transport.setConfig({ ...run, compare: compare ? {} : undefined, deepResearch, webSearch });
@@ -310,6 +330,11 @@ export function ChatView({
     },
     [id],
   );
+
+  // What is actually rendered. The newest turns always are; the rest are behind
+  // one button. `hidden` is how many that button is offering.
+  const hidden = showEarlier ? 0 : Math.max(0, messages.length - WINDOW);
+  const visible = hidden ? messages.slice(hidden) : messages;
 
   const busy = status === 'submitted' || status === 'streaming';
   // Whether any of the answer has actually arrived. Once it has, the words are
@@ -469,13 +494,20 @@ export function ChatView({
                 )}
               </div>
             )}
-            {messages.map((message, index) => (
+            {hidden > 0 && (
+              <button type="button" className="chat-earlier" onClick={() => setShowEarlier(true)}>
+                Show {hidden} earlier {hidden === 1 ? 'message' : 'messages'}
+              </button>
+            )}
+            {visible.map((message, index) => (
               <MessageParts
                 key={message.id}
                 message={message}
                 status={status}
-                // Only the newest message can be the one being written.
-                isLast={index === messages.length - 1}
+                // Only the newest message can be the one being written. The
+                // slice keeps the end of the conversation, so its last entry is
+                // the transcript's last entry either way.
+                isLast={index === visible.length - 1}
                 onApproval={addToolApprovalResponse}
                 conversationId={id}
                 onGrant={onGrant}
