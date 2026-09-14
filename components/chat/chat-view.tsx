@@ -230,6 +230,15 @@ export function ChatView({
     id,
     transport,
     messages: initialMessages,
+    // One commit per frame rather than one per chunk.
+    //
+    // Unthrottled, every `UIMessageChunk` produced a new messages array and a
+    // full React commit — measured at 28,000 DOM mutations and 49s of blocking
+    // time for a single answer on a 4x-throttled phone. A provider streaming at
+    // 100 chunks/s cannot be rendered 100 times a second on a phone, and a
+    // reader cannot see it either. 50ms is under the ~16ms-per-frame budget's
+    // notice and divides the commits by roughly the chunk rate.
+    throttle: 50,
     // Rejoin an answer that was still being written when this tab last left.
     resume: true,
     // A tool that needs the owner's say-so pauses the run mid-step. Once every
@@ -372,6 +381,24 @@ export function ChatView({
     if (composer.current) composer.current.value = '';
   }, []);
 
+  // The three handlers the transcript needs, each created once.
+  //
+  // They used to be arrows built inside `messages.map`, so every message got a
+  // new function on every render and `React.memo` on MessageParts could never
+  // hit. Taking the message as an argument is what makes them stable.
+  const answerQuestion = useCallback(
+    ({ toolCallId, answer }: { toolCallId: string; answer: string }) =>
+      // The answer is written into the message as the tool's output, which is
+      // what the run resumes from. The tool name has to match the call:
+      // addToolOutput routes by it.
+      addToolOutput({ tool: 'ask_user', toolCallId, output: answer }),
+    [addToolOutput],
+  );
+  const regenerateMessage = useCallback(
+    (messageId: string) => void regenerate({ messageId }),
+    [regenerate],
+  );
+
   const submit = useCallback(
     ({ text, files }: { text?: string; files?: FileUIPart[] }) => {
       const trimmed = (text ?? '').trim();
@@ -447,15 +474,17 @@ export function ChatView({
                 key={message.id}
                 message={message}
                 status={status}
+                // Only the newest message can be the one being written.
+                isLast={index === messages.length - 1}
                 onApproval={addToolApprovalResponse}
                 conversationId={id}
                 onGrant={onGrant}
-                // The answer is written into the message as the tool's output,
-                // which is what the run resumes from. The tool name has to match
-                // the call: addToolOutput routes by it.
-                onQuestion={({ toolCallId, answer }) =>
-                  addToolOutput({ tool: 'ask_user', toolCallId, output: answer })
-                }
+                // Every handler below is stable across renders, and that is the
+                // point: MessageParts is memoised, and a fresh arrow per message
+                // per render would defeat it entirely — which is what the three
+                // inline closures here used to do. They take the message (or its
+                // id) instead of closing over it.
+                onAnswer={answerQuestion}
                 showActivity={showActivity}
                 onArtifact={onArtifact}
                 onRemember={remember}
@@ -463,16 +492,13 @@ export function ChatView({
                 // truncates from the message being replayed, so an earlier one
                 // rewinds the conversation to that point rather than corrupting
                 // it. The tooltip says so, because it is not reversible.
-                onRegenerate={
-                  !busy && !editing && message.role === 'assistant'
-                    ? () => void regenerate({ messageId: message.id })
-                    : undefined
-                }
-                onEdit={
-                  !busy && !editing && message.role === 'user'
-                    ? () => beginEdit(message)
-                    : undefined
-                }
+                //
+                // A boolean rather than an absent handler: `undefined` when busy
+                // was a prop that changed identity on every status change, and a
+                // memoised child needs a value it can compare.
+                actionsReady={!busy && !editing}
+                onRegenerateMessage={regenerateMessage}
+                onEditMessage={beginEdit}
               />
             ))}
             {/* Something on the screen while the work happens.

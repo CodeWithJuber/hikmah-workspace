@@ -8,7 +8,7 @@
  * unhandled one must degrade to something visible rather than vanish.
  */
 import { isToolUIPart, type UIMessage } from 'ai';
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -373,18 +373,20 @@ function sourceParts(message: UIMessage) {
   );
 }
 
-export function MessageParts({
+function MessagePartsInner({
   message,
   status,
   conversationId,
   onApproval,
   onGrant,
-  onQuestion,
-  onRegenerate,
-  onEdit,
+  onAnswer,
+  actionsReady = true,
+  onRegenerateMessage,
+  onEditMessage,
   onArtifact,
   onRemember,
   showActivity = true,
+  isLast = false,
 }: {
   message: UIMessage;
   status: ChatStatus;
@@ -393,24 +395,44 @@ export function MessageParts({
   onApproval?: RespondToApproval;
   /** Remembers a yes with a scope; see the approval card. */
   onGrant?: GrantHandler;
-  onQuestion?: RespondToQuestion;
+  onAnswer?: RespondToQuestion;
   /** Whether the run's own working is shown. Off hides the tool cards and the
    * reasoning; it never hides a tool waiting on the owner, because a question
    * nobody can see is a run that never finishes. */
   showActivity?: boolean;
-  /** Offered on the answer it would replace. Absent while a run is in flight. */
-  onRegenerate?: () => void;
-  /** Offered on a question worth asking differently. Absent while a run is in
-   * flight, for the same reason regenerate is: both rewrite the transcript. */
-  onEdit?: () => void;
+  /** Whether the transcript may be rewritten right now. False while a run is
+   * in flight or another message is being edited — both of the actions below
+   * rewrite history, and neither is safe mid-run.
+   *
+   * A boolean rather than an absent handler, because this component is
+   * memoised and a value it can compare is worth more than a prop that is
+   * sometimes a function and sometimes `undefined`. */
+  actionsReady?: boolean;
+  /** Answer again, replacing this message and everything after it. Takes the
+   * id rather than closing over it, so one function serves every message. */
+  onRegenerateMessage?: (messageId: string) => void;
+  /** Ask this question differently. Takes the message, for the same reason. */
+  onEditMessage?: (message: UIMessage) => void;
   /** Opens a produced page in the side panel. */
   onArtifact?: (files: WorkspaceFiles) => void;
   /** Saves this message to memory. */
   onRemember?: RememberMessage;
+  /** The newest message in the transcript — the only one a run can be writing
+   * into. Everything above it is finished, whatever the run is doing. */
+  isLast?: boolean;
 }) {
-  const streaming = status === 'streaming';
-  const sources = sourceParts(message);
+  // Only the message actually being written is animating.
+  //
+  // This was `status === 'streaming'`, which is a property of the *run*, not of
+  // a message — so starting an answer flipped `isAnimating` from false to true
+  // on all thirty settled turns at once, and finishing it flipped them back.
+  // MessageResponse memoises on `children` and `isAnimating` together, so each
+  // flip re-rendered every Streamdown in the transcript and re-ran Shiki over
+  // every code block in it. Profiled on a 4x-throttled phone: the TextMate
+  // regex engine was 61% of all CPU during one answer.
+  const streaming = status === 'streaming' && isLast;
   const settled = status !== 'streaming' && status !== 'submitted';
+  const sources = useMemo(() => sourceParts(message), [message]);
   const answered = message.role === 'assistant' && settled;
   // Copy, read aloud and answer again all act on the text of an answer. A turn
   // that stopped to ask permission has no text yet, so the row was three
@@ -420,19 +442,41 @@ export function MessageParts({
     (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
   );
   const asked = message.role === 'user' && settled;
+  // Both rewrite the transcript from this message on, so both are offered only
+  // when nothing else is in flight. Derived here rather than passed in, so the
+  // parent hands down one stable function instead of one closure per message.
+  const canRegenerate = actionsReady && !!onRegenerateMessage && message.role === 'assistant';
+  const canEdit = actionsReady && !!onEditMessage && message.role === 'user';
   // Only once the answer has settled: a page assembled from a half-written file
   // would render as a broken preview and then change under the reader.
-  const artifact = answered ? messageArtifact(message) : null;
+  //
+  // Memoised because it is the most expensive thing on this path: it runs a
+  // regex with a lazy `[\s\S]*?` against an anchored terminator over the whole
+  // message, which backtracks hard when a fence is unclosed or the language is
+  // one it does not match.
+  const artifact = useMemo(() => (answered ? messageArtifact(message) : null), [answered, message]);
   const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
   // Sorted before it is rendered, so the answer, the working and anything
   // still asking the reader are three things instead of one interleaved
   // column. See lib/chat/working.ts for why.
-  const { working } = groupParts(message.parts);
-  const summary = describeWorking(working);
-  // Original order for everything that is not the working: a plan card
-  // belongs where the model put it, before the answer it introduces.
-  const rest = message.parts.filter((part) => !working.includes(part));
+  //
+  // All three derive from `message.parts` alone, so they are computed once per
+  // message rather than once per render — which, during a stream, is once per
+  // commit for every message on screen.
+  const { working, summary, rest } = useMemo(() => {
+    const groups = groupParts(message.parts);
+    // A Set, not `!working.includes(part)`: that was O(parts²) by identity, and
+    // a long agent turn carries 30-80 parts.
+    const inWorking = new Set(groups.working);
+    return {
+      working: groups.working,
+      summary: describeWorking(groups.working),
+      // Original order for everything that is not the working: a plan card
+      // belongs where the model put it, before the answer it introduces.
+      rest: message.parts.filter((part) => !inWorking.has(part)),
+    };
+  }, [message.parts]);
   const renderPart = (part: (typeof message.parts)[number], index: number) => {
     const key = message.id + '-' + index;
 
@@ -469,7 +513,7 @@ export function MessageParts({
               key={key}
               value={{
                 ...asked,
-                resolve: (answer) => onQuestion?.({ toolCallId: part.toolCallId, answer }),
+                resolve: (answer) => onAnswer?.({ toolCallId: part.toolCallId, answer }),
               }}
             />
           );
@@ -670,10 +714,10 @@ export function MessageParts({
                   component replaces with a spoken note rather than reciting. */}
               <ReadAloud text={messageText(message)} />
               {onRemember && <RememberAction message={message} onRemember={onRemember} />}
-              {onRegenerate && (
+              {canRegenerate && (
                 <MessageAction
                   tooltip="Answer again, replacing everything after this"
-                  onClick={onRegenerate}
+                  onClick={() => onRegenerateMessage?.(message.id)}
                 >
                   <RefreshCw size={15} />
                 </MessageAction>
@@ -688,13 +732,13 @@ export function MessageParts({
           the bubble now, out of the way until wanted: revealed on hover with a
           pointer, always there on a touch screen, where there is no hover to
           reveal it with. */}
-      {asked && (onEdit || onRemember) && (
+      {asked && (canEdit || onRemember) && (
         <div className="chat-ask-actions">
           {onRemember && <RememberAction message={message} onRemember={onRemember} />}
-          {onEdit && (
+          {canEdit && (
             <MessageAction
               tooltip="Edit and ask again, replacing everything after this"
-              onClick={onEdit}
+              onClick={() => onEditMessage?.(message)}
             >
               <Pencil size={15} />
             </MessageAction>
@@ -704,6 +748,24 @@ export function MessageParts({
     </Message>
   );
 }
+
+/**
+ * One message, rendered once per change rather than once per streamed chunk.
+ *
+ * Without this, every chunk of an answer re-rendered every message in the
+ * transcript: 30 settled turns, each re-grouping its parts, re-scanning itself
+ * for an artifact and re-highlighting its code, a hundred times a second.
+ * Measured on a 4x-throttled phone before this landed: one answer cost 49
+ * seconds of blocking time, the worst single task 33 seconds.
+ *
+ * The comparison is deliberately shallow. Every prop above is either a scalar
+ * or a function the parent creates once — which is why `onRegenerateMessage`
+ * and `onEditMessage` take the message instead of closing over it, and why
+ * `actionsReady` is a boolean rather than a handler that is sometimes absent.
+ * A settled message's `parts` array keeps its identity across a stream, so a
+ * settled message re-renders only when it actually changes.
+ */
+export const MessageParts = memo(MessagePartsInner);
 
 /** The answer as text, which is what someone copying it wants — not the tool
  * receipts and reasoning that sit between the text parts. */
