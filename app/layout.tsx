@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Hikmah Workspace',
   description:
     'Your connected AI workspace for conversations, coding, agent tools and experimental research.',
+  // Declared, because the icon is an SVG and there is no favicon.ico: without
+  // this every page load asked for /favicon.ico and logged a 404.
+  icons: { icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }] },
 };
 
 export default async function RootLayout({
