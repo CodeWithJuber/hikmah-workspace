@@ -120,6 +120,19 @@ Free space if needed (`docker image ls hikmah-workspace` and remove old tags, de
 
 No provider key is baked into the container. Configure it in the app after login, under Settings → Connection: OpenRouter, OpenAI, Anthropic, Kimi, Gemini, DeepSeek, Groq, Mistral, xAI, or any OpenAI-compatible endpoint, each with its own saved key. Keep free-only enabled if you only want free OpenRouter models. Free providers can still rate-limit requests or run out of capacity.
 
+**What the public pages say about you.** Two optional variables in
+`/opt/hikmah/.env`, both read at request time, so a restart is enough:
+
+| Variable                 | Effect                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HIKMAH_PRICE_PRO_LABEL` | The amount printed on the paid plan's card, as a person reads it (`$19 a month`). Unset, the card says _Price at checkout_ rather than nothing. |
+| `HIKMAH_CONTACT_EMAIL`   | The address the privacy and terms pages tell people to write to. Unset, they point at the operator without naming an address.                   |
+
+The free plan's `$0` is fixed in `server/plans.mjs` and needs no configuration.
+The amount charged is still whatever the Stripe price behind
+`STRIPE_PRICE_PRO` says; this label is only what the page prints, so set the
+two together.
+
 **Ollama on the same server.** Install Ollama on the host and pull a model (`ollama pull llama3.2`). The app runs in Docker, so it reaches the host as `host.docker.internal` (mapped in `compose.yml`); add `HIKMAH_PROVIDER_ALLOW_PRIVATE=host.docker.internal` to `/opt/hikmah/.env`, restart the app, then choose _Ollama (local)_ under Settings → Connection with the endpoint `http://host.docker.internal:11434/v1`. The model list fills from what is installed, every model counts as free, and no key is involved.
 
 References: [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting), [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/), [Docker on Debian](https://docs.docker.com/engine/install/debian/), [Compose health dependencies](https://docs.docker.com/compose/how-tos/startup-order/), [GitHub Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [Better Auth SQLite](https://better-auth.com/docs/adapters/sqlite).

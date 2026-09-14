@@ -122,9 +122,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={MIN_PASSWORD}
+          aria-describedby="password-hint"
           disabled={busy}
         />
-        <p className="auth-hint">At least {MIN_PASSWORD} characters.</p>
+        <p className="auth-hint" id="password-hint">
+          At least {MIN_PASSWORD} characters.
+        </p>
         {error && (
           <p role="alert" className="auth-error">
             {error}
