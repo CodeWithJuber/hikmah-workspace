@@ -159,9 +159,15 @@ export function runStream(options: {
             throw new Error(message ?? 'The run could not be read.');
           }
 
-          attempt = 0;
           let received = false;
           for await (const frame of readEvents(response.body, options.signal)) {
+            // A frame actually arrived, so the run is producing output and the
+            // backoff starts again from the top. This used to be reset at the
+            // top of every iteration instead, including iterations that
+            // received nothing — so `attempt` was always 0, the delay below was
+            // always RETRY_DELAYS[0], and a run that had stopped producing was
+            // asked for 200 times at 4 requests a second.
+            if (!received) attempt = 0;
             received = true;
             if (frame.id !== null) cursor = frame.id;
             try {
@@ -269,12 +275,27 @@ export function createDurableChatTransport(options: DurableTransportOptions): Du
   };
 }
 
-/** Stop a run on the server. Closing the socket no longer stops anything. */
+/** How long Stop waits before giving up on being told it worked. */
+const CANCEL_TIMEOUT_MS = 10_000;
+
+/** Stop a run on the server. Closing the socket no longer stops anything.
+ *
+ * Bounded, because this is the button someone presses *because* something is
+ * stuck: an unbounded cancel meant Stop could itself hang, which is the worst
+ * possible moment for it to. Failing here is not serious — the run is also
+ * bounded server-side — so a timeout answers `false` rather than throwing into
+ * a click handler. */
 export async function cancelRun(runId: string, doFetch = globalThis.fetch): Promise<boolean> {
-  const response = await doFetch(`/api/runs/${encodeURIComponent(runId)}/cancel`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  let response: Response;
+  try {
+    response = await doFetch(`/api/runs/${encodeURIComponent(runId)}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(CANCEL_TIMEOUT_MS),
+    });
+  } catch {
+    return false;
+  }
   if (!response.ok) return false;
   const { stopped } = (await response.json().catch(() => ({}))) as { stopped?: boolean };
   return Boolean(stopped);

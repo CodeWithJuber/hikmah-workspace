@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { clientFetch } from '@/lib/client/request';
 
 export function LearnTaskDialog({
   open,
@@ -41,7 +42,7 @@ export function LearnTaskDialog({
     if (!text || busy) return;
     setBusy(true);
     try {
-      const response = await fetch('/api/conversations/tasks', {
+      const response = await clientFetch('/api/conversations/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...run, brief: text }),

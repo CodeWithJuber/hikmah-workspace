@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from '@/lib/chat/settings';
+import { clientFetch } from '@/lib/client/request';
 
 export function useChatSettings() {
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
@@ -20,7 +21,7 @@ export function useChatSettings() {
 
   useEffect(() => {
     let live = true;
-    void fetch('/api/chat-settings', { credentials: 'same-origin' })
+    void clientFetch('/api/chat-settings')
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
         if (live && payload?.settings) setSettings(payload.settings as ChatSettings);
@@ -37,9 +38,8 @@ export function useChatSettings() {
   }, []);
 
   const change = useCallback(async (patch: Partial<ChatSettings>) => {
-    const response = await fetch('/api/chat-settings', {
+    const response = await clientFetch('/api/chat-settings', {
       method: 'PUT',
-      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });

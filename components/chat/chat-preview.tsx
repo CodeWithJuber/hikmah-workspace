@@ -24,6 +24,7 @@ import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { GrantHandler } from './approval-card';
+import { clientFetch } from '@/lib/client/request';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
@@ -87,7 +88,7 @@ async function loadConfig(): Promise<RunConfig> {
   // and an owner who never opened the workspace got the keyless fallback and a
   // run that failed against the provider.
   try {
-    const response = await fetch('/api/chat-settings', { credentials: 'same-origin' });
+    const response = await clientFetch('/api/chat-settings');
     if (response.ok) {
       const saved = ((await response.json()) as { settings?: { connection?: SavedConnection } })
         .settings?.connection;
@@ -106,7 +107,7 @@ async function loadConfig(): Promise<RunConfig> {
   // Then the workspace, so an owner who configured it there before this panel
   // existed is not asked to do it again.
   try {
-    const response = await fetch('/api/workspace-state', { credentials: 'same-origin' });
+    const response = await clientFetch('/api/workspace-state');
     if (!response.ok) return FALLBACK;
     const payload = (await response.json()) as { session?: string };
     if (!payload?.session) return FALLBACK;
@@ -142,11 +143,9 @@ async function loadMessages(
   conversationId: string,
 ): Promise<{ messages: UIMessage[]; error?: string }> {
   try {
-    const response = await fetch(
+    const response = await clientFetch(
       `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
-      {
-        credentials: 'same-origin',
-      },
+      {},
     );
     if (!response.ok) return { messages: [] };
     const payload = (await response.json()) as { messages?: UIMessage[]; error?: string };

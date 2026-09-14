@@ -8,6 +8,7 @@
  * to a different provider.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { clientFetch } from '@/lib/client/request';
 
 export type Agent = {
   id: string;
@@ -57,7 +58,7 @@ export function AgentsPanel({
 
   useEffect(() => {
     let live = true;
-    void fetch('/api/agents', { credentials: 'same-origin' })
+    void clientFetch('/api/agents')
       .then((response) => (response.ok ? response.json() : { agents: [], tools: [] }))
       .then((payload: { agents?: Agent[]; tools?: string[] }) => {
         if (!live) return;
@@ -87,7 +88,7 @@ export function AgentsPanel({
   }, []);
 
   const save = useCallback(async () => {
-    const response = await fetch('/api/agents', {
+    const response = await clientFetch('/api/agents', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editing ? { ...draft, id: editing.id } : draft),
@@ -106,7 +107,7 @@ export function AgentsPanel({
 
   const remove = useCallback(
     async (agent: Agent) => {
-      const response = await fetch(`/api/agents?id=${encodeURIComponent(agent.id)}`, {
+      const response = await clientFetch(`/api/agents?id=${encodeURIComponent(agent.id)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });

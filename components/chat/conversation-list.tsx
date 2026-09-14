@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { clientFetch } from '@/lib/client/request';
 
 /** How often the list asks again while a background task is working. */
 const TASK_POLL_MS = 5000;
@@ -62,7 +63,7 @@ export function ConversationList({
     // The effect owns the fetch and drops a reply that arrives after this list
     // has moved on, so a slow response cannot overwrite a newer one.
     let live = true;
-    void fetch('/api/conversations', { credentials: 'same-origin' })
+    void clientFetch('/api/conversations')
       .then((response) => (response.ok ? response.json() : { conversations: [] }))
       .then((payload: { conversations?: ConversationSummary[] }) => {
         if (live) setConversations(payload.conversations ?? []);
@@ -78,7 +79,7 @@ export function ConversationList({
   const startNew = useCallback(async () => {
     setBusy(true);
     try {
-      const response = await fetch('/api/conversations', {
+      const response = await clientFetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -93,7 +94,7 @@ export function ConversationList({
 
   const remove = useCallback(
     async (id: string) => {
-      const response = await fetch(`/api/conversations/${encodeURIComponent(id)}`, {
+      const response = await clientFetch(`/api/conversations/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });

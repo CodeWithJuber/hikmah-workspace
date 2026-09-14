@@ -60,6 +60,7 @@ import { ToolsMenu } from './tools-menu';
 import { MessageParts, messageText } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
+import { clientFetch } from '@/lib/client/request';
 
 /** What the run recorded about itself when it finished. Written by the worker
  * onto the answer, so it survives a reload rather than living in this tab. */
@@ -304,9 +305,8 @@ export function ChatView({
       const content = messageText(message);
       if (!content) return null;
       try {
-        const response = await fetch('/api/memory', {
+        const response = await clientFetch('/api/memory', {
           method: 'POST',
-          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content,
