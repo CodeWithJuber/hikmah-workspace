@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { PublicAuthConfig } from '@/lib/auth/public-config';
-import type { Plan } from '@/lib/billing/plans';
+import { priceLabelFor, type Plan } from '@/lib/billing/plans';
 
 /** What it does for the work most people actually bring: writing, questions,
  * research, learning. Listed first, because a visitor who does not write code
@@ -96,6 +96,9 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
   const start = config.signUpOpen ? '/sign-up' : '/sign-in';
   return (
     <div className="landing">
+      <a href="#content" className="landing-skip">
+        Skip to content
+      </a>
       <header className="landing-bar">
         <span className="landing-logo">
           <HikmahIcon name="orbit" size={28} />
@@ -107,7 +110,7 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
         </nav>
       </header>
 
-      <section className="landing-hero">
+      <section className="landing-hero" id="content" tabIndex={-1}>
         <p className="landing-eyebrow">YOUR SPACE TO THINK &amp; CREATE</p>
         <h1>
           A workspace that keeps
@@ -170,6 +173,15 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
           {plans.map((plan) => (
             <article key={plan.id} className={plan.tier === 'managed' ? 'is-featured' : undefined}>
               <h3>{plan.name}</h3>
+              {/* A card that named no amount at all was the loudest thing a
+                  public audit found: the page asks whose key the models run on
+                  and then would not say what the answer costs. */}
+              <p className="landing-price">
+                {priceLabelFor(plan) || (
+                  <span className="landing-price-tbd">Price at checkout</span>
+                )}
+              </p>
+              {plan.priceNote && <p className="landing-pricenote">{plan.priceNote}</p>}
               <p className="landing-tagline">{plan.tagline}</p>
               <ul>
                 {plan.features.map((feature) => (
@@ -210,6 +222,8 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
         <nav>
           <Link href="/sign-in">Sign in</Link>
           {config.signUpOpen && <Link href="/sign-up">Create an account</Link>}
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
         </nav>
       </footer>
     </div>

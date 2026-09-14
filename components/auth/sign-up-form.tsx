@@ -62,7 +62,9 @@ export function SignUpForm({ config }: { config: PublicAuthConfig }) {
     <>
       {config.google && <GoogleButton label="Continue with Google" />}
       <form onSubmit={submit}>
-        <label htmlFor="name">Your name</label>
+        {/* Not required by the server, and a form that does not say so makes
+            people guess. */}
+        <label htmlFor="name">Your name (optional)</label>
         <input
           id="name"
           type="text"
@@ -91,9 +93,12 @@ export function SignUpForm({ config }: { config: PublicAuthConfig }) {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={MIN_PASSWORD}
+          aria-describedby="password-hint"
           disabled={busy}
         />
-        <p className="auth-hint">At least {MIN_PASSWORD} characters.</p>
+        <p className="auth-hint" id="password-hint">
+          At least {MIN_PASSWORD} characters.
+        </p>
         {error && (
           <p role="alert" className="auth-error">
             {error}

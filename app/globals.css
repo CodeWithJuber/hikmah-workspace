@@ -6257,6 +6257,10 @@ body {
   font-size: 26px;
   font-weight: 650;
   letter-spacing: -0.8px;
+}
+/* The brand is wrapped in a banner landmark, so the gap under it belongs to
+   the wrapper; on the link it would collapse inside a flex parent. */
+.auth-card > header {
   margin-bottom: 38px;
 }
 .auth-eyebrow {
@@ -6275,7 +6279,9 @@ body {
 }
 .auth-subtitle {
   font-size: 14px;
-  color: #718078;
+  /* Was #718078: 4.15:1 on the card, under the 4.5 a 14px text needs. The
+     landing page's own soft ink reads 5.9:1 and is already in this file. */
+  color: #55695f;
   line-height: 1.7;
   margin-bottom: 28px;
 }
@@ -6325,7 +6331,7 @@ body {
 }
 .auth-note {
   font-size: 12px;
-  color: #89948d;
+  color: #55695f;
   text-align: center;
   line-height: 1.6;
   margin-top: 22px;
@@ -6336,8 +6342,9 @@ body {
   padding-top: 16px;
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
-  color: #96a097;
+  /* 10px at 2.7:1 was neither legible nor passing. */
+  font-size: 11px;
+  color: #567265;
 }
 .auth-back {
   display: block;
@@ -6369,7 +6376,7 @@ a.auth-brand {
   gap: 12px;
   margin: 18px 0 4px;
   font-size: 11px;
-  color: #96a097;
+  color: #567265;
 }
 .auth-divider::before,
 .auth-divider::after {
@@ -6380,7 +6387,7 @@ a.auth-brand {
 }
 .auth-hint {
   font-size: 12px;
-  color: #7d8a80;
+  color: #55695f;
   margin-top: -4px;
 }
 .auth-links {
@@ -6394,7 +6401,12 @@ a.auth-brand {
   color: #567265;
   line-height: 1.6;
 }
-.auth-links a {
+.auth-links a,
+a.auth-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
   text-decoration: underline;
 }
 .auth-links .auth-note {
@@ -8457,6 +8469,22 @@ button.cursor-pointer.p-1 {
    sees before choosing anything, so it commits to a single look instead of
    following a theme they have not set yet. Phone-first — a landing page that
    breaks at 400px sells nothing. */
+/* Straight to the content, for anyone arriving on the keyboard: off-screen
+   until it takes focus, then the first thing in the page. */
+.landing-skip {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 20;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+}
+.landing-skip:focus-visible {
+  left: 20px;
+}
 .landing {
   --ink: #16261f;
   --ink-soft: #55695f;
@@ -8494,6 +8522,14 @@ button.cursor-pointer.p-1 {
   align-items: center;
   font-size: 14px;
   color: var(--ink-soft);
+}
+/* Nav links are targets, not prose. They measured 41x21 on a phone; the text
+   stays where it is and the box grows around it. */
+.landing-bar nav a,
+.landing-foot nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 .landing-bar nav a:hover,
 .landing-foot nav a:hover {
@@ -8630,6 +8666,64 @@ button.cursor-pointer.p-1 {
 .landing-plans h3 {
   font-size: 19px;
   font-weight: 580;
+}
+/* Privacy and terms: the landing's palette, one readable column. */
+.landing-legal {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+.landing-legal h1 {
+  font-size: clamp(28px, 5vw, 40px);
+  letter-spacing: -1.4px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.landing-legal h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin: 32px 0 8px;
+}
+.landing-legal p,
+.landing-legal li {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+.landing-legal ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 20px;
+  list-style: disc;
+}
+.landing-legal strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.landing-legal a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* The amount, above the tagline: the first thing to find on a plan card. */
+.landing-price {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin-top: 4px;
+}
+.landing-price-tbd {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--ink-soft);
+}
+.landing-pricenote {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
 }
 .landing-tagline {
   font-size: 14px;

@@ -25,10 +25,14 @@ export function AuthShell({
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <Link href="/" className="auth-brand" aria-label="Hikmah home">
-          <HikmahIcon name="orbit" size={38} />
-          <span>Hikmah</span>
-        </Link>
+        {/* A banner landmark, so these four pages are not a main and a footer
+            with the brand loose inside the main. */}
+        <header>
+          <Link href="/" className="auth-brand" aria-label="Hikmah home">
+            <HikmahIcon name="orbit" size={38} />
+            <span>Hikmah</span>
+          </Link>
+        </header>
         <p className="auth-eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
         {subtitle && <p className="auth-subtitle">{subtitle}</p>}

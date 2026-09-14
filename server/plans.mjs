@@ -8,7 +8,10 @@
  *
  * Prices live in Stripe. Only the price ids are named here, and only through
  * the environment, so a test-mode and a live deployment differ by configuration
- * rather than by code.
+ * rather than by code. What a card *shows* comes the same way: `priceEnv` names
+ * the variable holding the amount as a person should read it ("$19 a month").
+ * A plan with no amount says so rather than showing a blank where the price
+ * belongs — a public audit found the paid card carried no price at all.
  */
 
 export const PLANS = [
@@ -17,6 +20,9 @@ export const PLANS = [
     name: 'Free',
     tagline: 'Bring your own key. Everything else included.',
     tier: 'byok',
+    // Not from the environment: this plan takes no money, on any deployment.
+    price: '$0',
+    priceNote: 'Forever. You pay your model provider directly.',
     trialDays: 0,
     monthlyTokenCap: null,
     // Which provider is a setup detail, not a selling point. Naming one here
@@ -39,6 +45,8 @@ export const PLANS = [
     tier: 'managed',
     priceIdEnv: 'STRIPE_PRICE_PRO',
     annualPriceIdEnv: 'STRIPE_PRICE_PRO_ANNUAL',
+    priceEnv: 'HIKMAH_PRICE_PRO_LABEL',
+    priceNote: '14 days free, then billed monthly. Cancel any time.',
     trialDays: 14,
     monthlyTokenCap: 5_000_000,
     features: [
@@ -61,6 +69,15 @@ export function planById(id) {
 export function priceIdFor(plan, annual = false) {
   const key = annual ? plan.annualPriceIdEnv : plan.priceIdEnv;
   return (key && process.env[key]) || '';
+}
+
+/** The amount to print on a plan's card, or '' when this deployment has not
+ * named one. The card then says where the price appears instead of showing a
+ * gap, which is what a visitor reads as "they will not tell me". */
+export function priceLabelFor(plan) {
+  if (plan.price) return plan.price;
+  const named = plan.priceEnv && process.env[plan.priceEnv];
+  return typeof named === 'string' ? named.trim().slice(0, 40) : '';
 }
 
 /** Whether this deployment can take money at all. */

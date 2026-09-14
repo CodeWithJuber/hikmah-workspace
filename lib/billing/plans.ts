@@ -10,6 +10,7 @@ import {
   billingConfigured,
   planById as rawPlanById,
   priceIdFor as rawPriceIdFor,
+  priceLabelFor as rawPriceLabelFor,
 } from '@/server/plans.mjs';
 
 /** What a person is allowed to do, named from where the money comes.
@@ -32,6 +33,12 @@ export type Plan = {
   tier: Exclude<Tier, 'owner'>;
   priceIdEnv?: string;
   annualPriceIdEnv?: string;
+  /** An amount fixed for every deployment, such as the free plan's zero. */
+  price?: string;
+  /** The variable holding this plan's amount, when it is a deployment's to set. */
+  priceEnv?: string;
+  /** The line under the amount: what the money buys and how it recurs. */
+  priceNote?: string;
   /** Days of free trial Stripe should grant. Zero means none. */
   trialDays: number;
   /** Tokens per calendar month on the deployment's key. Null means the plan
@@ -48,6 +55,11 @@ export function planById(id: string): Plan | undefined {
 
 export function priceIdFor(plan: Plan, annual = false): string {
   return rawPriceIdFor(plan, annual) as string;
+}
+
+/** What the card prints where the price goes. Empty when unset. */
+export function priceLabelFor(plan: Plan): string {
+  return rawPriceLabelFor(plan) as string;
 }
 
 export { billingConfigured };

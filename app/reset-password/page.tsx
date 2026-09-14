@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { ResetPasswordForm } from '@/components/auth/password-reset-forms';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Set a new password · Hikmah',
+  description: 'Choose a new password for your Hikmah account.',
+};
 
 // The token arrives in the query string of the emailed link. Read on the server
 // so it never has to round-trip through client state.

@@ -11,6 +11,22 @@ export const metadata: Metadata = {
   // Declared, because the icon is an SVG and there is no favicon.ico: without
   // this every page load asked for /favicon.ico and logged a 404.
   icons: { icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }] },
+  // A link to this workspace pasted into a chat rendered as a bare URL with no
+  // name, no summary and no mark. Titles are per page; these carry across.
+  applicationName: 'Hikmah',
+  openGraph: {
+    type: 'website',
+    siteName: 'Hikmah',
+    title: 'Hikmah Workspace',
+    description:
+      'Chat, code, a terminal and your own tools in one place. Runs happen on the server, so an answer is not something you have to sit and watch.',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Hikmah Workspace',
+    description:
+      'Chat, code, a terminal and your own tools in one place. Runs happen on the server, so an answer is not something you have to sit and watch.',
+  },
 };
 
 export default async function RootLayout({
