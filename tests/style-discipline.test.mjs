@@ -309,6 +309,9 @@ const CONVERTED = {
   'app/styles/billing.css': ['colour', 'type', 'radius'],
   'app/styles/workspace.css': ['colour'],
   'app/styles/chat.css': ['colour'],
+  'app/styles/base.css': ['colour'],
+  'app/styles/auth.css': ['colour'],
+  'app/styles/memory.css': ['colour'],
 };
 
 /** Each dimension as a matcher plus a predicate.
