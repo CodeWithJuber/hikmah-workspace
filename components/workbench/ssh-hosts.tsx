@@ -11,6 +11,7 @@ import { Fingerprint, Loader2, Plus, ServerCog, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { clientFetch } from '@/lib/client/request';
 
 type Host = {
   id: string;
@@ -50,7 +51,7 @@ function readable(fingerprint: string): string {
 }
 
 async function send(body: object) {
-  const response = await fetch('/api/ssh-hosts', {
+  const response = await clientFetch('/api/ssh-hosts', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -75,7 +76,7 @@ export function SshHosts() {
 
   useEffect(() => {
     let live = true;
-    fetch('/api/ssh-hosts')
+    clientFetch('/api/ssh-hosts')
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? 'Could not load saved hosts.');
@@ -137,7 +138,7 @@ export function SshHosts() {
   const remove = async (host: Host) => {
     setBusy(true);
     try {
-      const response = await fetch(`/api/ssh-hosts?id=${encodeURIComponent(host.id)}`, {
+      const response = await clientFetch(`/api/ssh-hosts?id=${encodeURIComponent(host.id)}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error((await response.json()).error);

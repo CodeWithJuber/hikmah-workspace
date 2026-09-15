@@ -55,6 +55,7 @@ import {
 import { validateMcpUrl } from '@/lib/playground/mcp-client';
 import { mediaModels, type MediaKind, type MediaModel } from '@/lib/playground/media-client';
 import { toast } from 'sonner';
+import { clientFetch } from '@/lib/client/request';
 export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: string }) {
   const {
     workspace,
@@ -83,7 +84,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
   const effectiveKey = onOpenRouter ? provider.apiKey : '';
   useEffect(() => {
     if (tab === 'plan' && !plan)
-      void fetch('/research/product-plan.md')
+      void clientFetch('/research/product-plan.md')
         .then((r) => {
           if (!r.ok) throw Error('Plan unavailable');
           return r.text();

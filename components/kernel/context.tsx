@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { initialKernel, activeModel, type KernelState, type KernelAction } from '@/lib/kernel/core';
 import { usePlayground } from '@/components/playground/context';
+import { clientFetch } from '@/lib/client/request';
 type Value = {
   state: KernelState;
   ready: boolean;
@@ -51,9 +52,8 @@ export function KernelProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     setAccess('loading');
     try {
-      const response = await fetch('/api/kernel', {
+      const response = await clientFetch('/api/kernel', {
         cache: 'no-store',
-        signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
         setAccess(
@@ -99,7 +99,7 @@ export function KernelProvider({ children }: { children: ReactNode }) {
       .then(async () => {
         setBusy(true);
         try {
-          const response = await fetch('/api/kernel', {
+          const response = await clientFetch('/api/kernel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ revision: revision.current, action }),

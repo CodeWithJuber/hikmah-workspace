@@ -30,6 +30,7 @@ import type { FieldModel, Sentence } from '@/lib/context-model/field-model';
 import { parseConllu, type ParseProblem } from '@/lib/context-model/conllu';
 import { MAX_CORPUS, MAX_SUBMISSION } from '@/lib/context-model/training';
 import { downloadJson } from '@/components/playground/common';
+import { clientFetch } from '@/lib/client/request';
 type Evaluation = { las: number; uas: number; posAccuracy: number; tokenCount: number };
 type ModelReport = {
   language: string;
@@ -105,7 +106,7 @@ const reviewedSample = [
 ];
 const percent = (n: number) => (Number.isFinite(n) ? (n * 100).toFixed(1) + '%' : 'Not measured');
 async function jsonRequest(url: string, body?: unknown) {
-  const r = await fetch(
+  const r = await clientFetch(
     url,
     body
       ? {
@@ -303,12 +304,12 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
     setActive(x.active as { language: string; version_id: string }[]);
   };
   useEffect(() => {
-    void fetch('/research/v6/models/manifest.json')
+    void clientFetch('/research/v6/models/manifest.json')
       .then((r) => r.json())
       .then((x) => setReports((x as { languages: ModelReport[] }).languages))
       .catch(() => setError('Evaluation report could not load.'));
     void refresh().catch((e) => setError(e.message));
-    void fetch('/research/v6/formal-graph-fixtures.json')
+    void clientFetch('/research/v6/formal-graph-fixtures.json')
       .then((r) => r.json())
       .then((x) => setFormal((x as { records: FormalRecord[] }).records))
       .catch(() => {});
@@ -487,7 +488,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
     try {
       const parsed = JSON.parse(rows);
       const [source, released, previous] = await Promise.all([
-        fetch('/research/v6/data/ud-pud-' + trainLanguage + '.json').then((r) => {
+        clientFetch('/research/v6/data/ud-pud-' + trainLanguage + '.json').then((r) => {
           if (!r.ok) throw Error('Training data unavailable.');
           return r.json() as Promise<{ sentences: Sentence[] }>;
         }),

@@ -40,6 +40,7 @@ import type { McpConnection } from '@/lib/playground/workspace-config';
 import { connectMcp, type McpTool } from '@/lib/playground/mcp-client';
 import { readWorkspaceSession, saveWorkspaceSession } from '@/lib/playground/storage';
 import { canPublishTheme, themeCookie } from '@/lib/theme';
+import { clientFetch } from '@/lib/client/request';
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type AppContext = {
   prepareRunConnections: (
@@ -103,7 +104,7 @@ export function PlaygroundProvider({
 }) {
   const [sharedKnowledge, setSharedKnowledge] = useState<KnowledgeItem[]>([]);
   const refreshSharedKnowledge = async () => {
-    const r = await fetch('/api/shared-knowledge', {
+    const r = await clientFetch('/api/shared-knowledge', {
       cache: 'no-store',
       signal: AbortSignal.timeout(15000),
     });
@@ -250,7 +251,7 @@ export function PlaygroundProvider({
     if (!loaded) return;
     let current = true;
     const refresh = () => {
-      void fetch('/api/runtime', { signal: AbortSignal.timeout(4000), cache: 'no-store' })
+      void clientFetch('/api/runtime', { timeoutMs: 4000, cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (current && data?.configured)
@@ -344,7 +345,7 @@ export function PlaygroundProvider({
   useEffect(() => {
     let mounted = true;
     void (async () => {
-      const response = await fetch('/api/workspace-state', { cache: 'no-store' });
+      const response = await clientFetch('/api/workspace-state', { cache: 'no-store' });
       const data = (await response.json()) as {
         session?: string;
         revision: number;
@@ -457,7 +458,7 @@ export function PlaygroundProvider({
         } catch {
           /* Device quota must not block authenticated cloud persistence. */
         }
-        const response = await fetch('/api/workspace-state', {
+        const response = await clientFetch('/api/workspace-state', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session: serialized, revision: cloudRevision.current }),

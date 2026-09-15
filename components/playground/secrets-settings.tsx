@@ -4,6 +4,7 @@ import { KeyRound, LoaderCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { clientFetch } from '@/lib/client/request';
 import {
   SECRET_SERVICES,
   type SecretMetadata,
@@ -23,8 +24,7 @@ function useSecrets() {
       const controller = new AbortController();
       current = controller;
       try {
-        const response = await fetch('/api/secrets', {
-          credentials: 'same-origin',
+        const response = await clientFetch('/api/secrets', {
           cache: 'no-store',
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
         });
@@ -120,11 +120,10 @@ export function SecretsSettings() {
     setFailure('');
     setMessage('');
     try {
-      const response = await fetch(
+      const response = await clientFetch(
         '/api/secrets' + (method === 'DELETE' ? '?name=' + encodeURIComponent(variable) : ''),
         {
           method,
-          credentials: 'same-origin',
           headers: method === 'PUT' ? { 'Content-Type': 'application/json' } : undefined,
           body:
             method === 'PUT'

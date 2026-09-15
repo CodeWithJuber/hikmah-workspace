@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { createAuthClient } from 'better-auth/react';
 import { stripeClient } from '@better-auth/stripe/client';
 import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
+import { clientFetch } from '@/lib/client/request';
 
 const auth = createAuthClient({ plugins: [stripeClient({ subscription: true })] });
 
@@ -44,7 +45,7 @@ export function BillingPanel() {
 
   useEffect(() => {
     let live = true;
-    void fetch('/api/billing', { credentials: 'same-origin' })
+    void clientFetch('/api/billing', {})
       .then((r) => (r.ok ? r.json() : null))
       .then((payload) => {
         if (live && payload) setData(payload as Billing);

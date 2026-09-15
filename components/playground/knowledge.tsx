@@ -26,6 +26,7 @@ import { MemoryPanel } from '@/components/chat/memory-panel';
 import { type KnowledgeItem, parseKnowledge } from '@/lib/playground/knowledge';
 import { toast } from 'sonner';
 import { useKernel } from '@/components/kernel/context';
+import { clientFetch } from '@/lib/client/request';
 export function KnowledgeEditor({
   value,
   onClose,
@@ -99,7 +100,7 @@ export function KnowledgeEditor({
                 { ...draft, status: 'saved', updatedAt: new Date().toISOString() },
               ]);
               if (shared) {
-                const r = await fetch('/api/shared-knowledge', {
+                const r = await clientFetch('/api/shared-knowledge', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(next[0]),
@@ -111,9 +112,8 @@ export function KnowledgeEditor({
                 // Into the memories table — the store every answer reads — not
                 // the workspace blob, which no answer has read since the
                 // browser run loop was retired.
-                const r = await fetch('/api/memory', {
+                const r = await clientFetch('/api/memory', {
                   method: 'POST',
-                  credentials: 'same-origin',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     title: next[0].title,
@@ -253,7 +253,7 @@ export function Knowledge() {
                           aria-label={'Forget ' + item.title}
                           onClick={async () => {
                             try {
-                              const r = await fetch(
+                              const r = await clientFetch(
                                 '/api/shared-knowledge?id=' + encodeURIComponent(item.id),
                                 { method: 'DELETE' },
                               );
