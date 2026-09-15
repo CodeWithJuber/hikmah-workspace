@@ -8,37 +8,14 @@
  * Imported by app/globals.css, which is the only place the order is set. */
 @layer components {
   :root {
-    --background: #ffffff;
-    --foreground: #171717;
-    --card: #ffffff;
-    --card-foreground: #171717;
-    --popover: #ffffff;
-    --popover-foreground: #171717;
-    --primary: #171717;
-    --primary-foreground: #fafafa;
-    --secondary: #f5f5f5;
-    --secondary-foreground: #171717;
-    --muted: #f5f5f5;
-    --muted-foreground: #737373;
-    --accent: #f5f5f5;
-    --accent-foreground: #171717;
     --destructive: #e7000b;
-    --border: #e5e5e5;
-    --input: #e5e5e5;
-    --ring: #a1a1a1;
     --chart-1: #f54900;
     --chart-2: #009689;
     --chart-3: #104e64;
     --chart-4: #ffb900;
     --chart-5: #fe9a00;
-    --radius: 0.625rem;
-    --sidebar: #fafafa;
-    --sidebar-foreground: #171717;
     --sidebar-primary: #171717;
     --sidebar-primary-foreground: #fafafa;
-    --sidebar-accent: #f5f5f5;
-    --sidebar-accent-foreground: #171717;
-    --sidebar-border: #e5e5e5;
     --sidebar-ring: #a1a1a1;
   }
 
@@ -47,25 +24,6 @@
    itself was blue, so the two halves of the same product did not look related.
    Green wins because it is the brand: the logo and the front door already wear
    it. #285d46 on white is 8.9:1, so it carries text as well as fills. */
-  :root {
-    --foreground: #17212b;
-    --card-foreground: #17212b;
-    --primary: #285d46;
-    --primary-foreground: #fff;
-    --secondary: #f4f7f5;
-    --muted: #f4f7f5;
-    --muted-foreground: #64756c;
-    --accent: #e8f2ec;
-    --border: #dee5e0;
-    --input: #bccbc2;
-    --ring: #3d8a67;
-    --sidebar: #f4f7f5;
-    --sidebar-foreground: #17212b;
-    --sidebar-accent: #e8f2ec;
-    --sidebar-accent-foreground: #1f4b39;
-    --sidebar-border: #dee5e0;
-    --radius: 0.375rem;
-  }
   * {
     box-sizing: border-box;
   }
@@ -641,52 +599,18 @@
 
   /* Hikmah workspace — shared product tokens */
   :root {
-    --background: #fff;
-    --foreground: #172033;
-    --card: #fff;
     --card-foreground: #172033;
-    --popover: #fff;
     --popover-foreground: #172033;
-    --primary: #285d46;
-    --primary-foreground: #fff;
-    --secondary: #f5f7fa;
     --secondary-foreground: #35425c;
-    --muted: #f5f7fa;
-    --muted-foreground: #687791;
-    --accent: #e8f2ec;
-    --accent-foreground: #1f4b39;
-    --border: #dde3eb;
-    --input: #d3dbe8;
-    --ring: #3d8a67;
-    --sidebar: #172033;
-    --sidebar-foreground: #dbe5f5;
-    --sidebar-accent: #2b3447;
-    --sidebar-accent-foreground: #fff;
-    --sidebar-border: #232e43;
-    --radius: 0.65rem;
-    --user-bubble: #eceef3;
     --error-bg: #fff5f3;
     --error-text: #a43b34;
     --success-bg: #e8f2ec;
     --success-text: #286b4b;
   }
   :root[data-theme='dark'] {
-    --background: #111827;
-    --foreground: #e8edf6;
-    --card: #172033;
     --card-foreground: #e8edf6;
-    --popover: #232e43;
     --popover-foreground: #e8edf6;
-    --secondary: #232e43;
     --secondary-foreground: #d4dcee;
-    --muted: #232e43;
-    --muted-foreground: #a1afc6;
-    --accent: #22392f;
-    --accent-foreground: #b6dfc9;
-    --border: #303b51;
-    --input: #45536f;
-    --ring: #6fc39c;
-    --user-bubble: #232e43;
     --error-bg: #35232b;
     --error-text: #ffb0a7;
     --success-bg: #20352e;

@@ -195,13 +195,15 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *             in 3,393 characters it was blanking. The file never grew
  *   -> 143    73 rules no source file refers to were deleted
  *   -> 149    the check began following the @import graph and reading hex out
- *             of .tsx markup. Six more were already there: one in the vendored
+ *             of .tsx markup.
+ *   -> 138    79 token declarations a later :root block already overrode were
+ *             deleted — dead by source order, and with them 11 colours Six more were already there: one in the vendored
  *             shadcn sheet, four xterm fallbacks in terminal-panel.tsx, and
  *             the diagram strokes in playground/sound.tsx and maths.tsx
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 149, repeated: 94, extra: 132, paletteColours: 87 };
+const BASELINE = { colours: 138, repeated: 94, extra: 132, paletteColours: 87 };
 const actual = {
   colours: colours.size,
   repeated: repeated.length,
@@ -233,7 +235,12 @@ const slack = Object.entries(BASELINE).filter(([key, limit]) => actual[key] < li
 if (slack.length && process.argv.includes('--update')) {
   const next = readFileSync(new URL(import.meta.url), 'utf8').replace(
     /const BASELINE = \{[^}]*\};/,
-    `const BASELINE = { colours: ${actual.colours}, repeated: ${actual.repeated}, extra: ${actual.extra} };`,
+    // Every key, built from `actual` rather than listed by hand: the first
+    // version of this line named three of them, so `--update` silently dropped
+    // paletteColours from the baseline and stopped enforcing it.
+    `const BASELINE = { ${Object.keys(actual)
+      .map((key) => `${key}: ${actual[key]}`)
+      .join(', ')} };`,
   );
   writeFileSync(fileURLToPath(import.meta.url), next);
   console.info('Baseline lowered to', actual);
