@@ -22,7 +22,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--font-size-base);
     font-weight: 600;
   }
   .memory-panel h3 {
@@ -104,7 +104,7 @@
   }
   .memory-source {
     color: var(--muted-foreground);
-    font-size: 11px;
+    font-size: var(--font-size-sm);
     overflow-wrap: anywhere;
   }
   .memory-actions {
@@ -127,7 +127,7 @@
    paragraph can be read at. */
   .knowledge-personal .memory-panel {
     max-width: 720px;
-    font-size: 13px;
+    font-size: var(--font-size-base);
   }
 
   /* A panel that could not load says so, rather than showing its empty state.

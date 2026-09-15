@@ -20,7 +20,7 @@
     margin-bottom: 12px;
   }
   .auth-card h1 {
-    font-size: 27px;
+    font-size: var(--font-size-3xl);
     line-height: 1.25;
     letter-spacing: -0.9px;
     font-weight: 550;
@@ -80,7 +80,7 @@
   }
   .auth-error {
     color: var(--error-text);
-    font-size: 13px;
+    font-size: var(--font-size-base);
   }
   .auth-note {
     font-size: var(--font-size-sm);
@@ -96,14 +96,14 @@
     display: flex;
     justify-content: space-between;
     /* 10px at 2.7:1 was neither legible nor passing. */
-    font-size: 11px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
   }
   .auth-back {
     display: block;
     text-align: center;
     margin-top: 20px;
-    font-size: 13px;
+    font-size: var(--font-size-base);
     text-decoration: underline;
   }
   /* The brand is a link home now that there is a page to go home to, so it must
@@ -128,7 +128,7 @@
     align-items: center;
     gap: 12px;
     margin: 18px 0 4px;
-    font-size: 11px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
   }
   .auth-divider::before,
@@ -150,7 +150,7 @@
     align-items: center;
     text-align: center;
     margin-top: 22px;
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
     line-height: 1.6;
   }
@@ -178,7 +178,7 @@
     color: var(--foreground);
     background: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: calc(var(--radius) + 4px);
     padding: 22px 20px;
   }
   .auth-sent strong {
@@ -192,7 +192,7 @@
       padding: 28px 24px;
     }
     .auth-card h1 {
-      font-size: 25px;
+      font-size: var(--font-size-2xl);
     }
   }
 

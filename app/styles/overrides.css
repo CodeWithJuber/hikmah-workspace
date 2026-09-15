@@ -21,7 +21,7 @@
     --sidebar-width: 220px;
   }
   .train-input {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     min-height: 210px;
   }
   @media (max-width: 1100px) {
@@ -31,7 +31,7 @@
   }
   @media (max-width: 767px) {
     h1 {
-      font-size: 27px;
+      font-size: var(--font-size-3xl);
     }
   }
   .studio-shell.app-shell {
@@ -74,15 +74,15 @@
   }
   @media (max-width: 767px) {
     .workspace-header h1 {
-      font-size: 17px;
-      font-size: 16px;
-      font-size: 15px;
+      font-size: var(--font-size-lg);
+      font-size: var(--font-size-lg);
+      font-size: var(--font-size-base);
     }
   }
   @media (max-width: 767px) {
     .welcome h2 {
-      font-size: 26px;
-      font-size: 27px;
+      font-size: var(--font-size-2xl);
+      font-size: var(--font-size-3xl);
     }
   }
   @media (max-width: 767px) {
@@ -93,7 +93,7 @@
   }
   @media (max-width: 767px) {
     .lab-header h1 {
-      font-size: 25px;
+      font-size: var(--font-size-2xl);
     }
   }
   .header-actions .icon-button {
@@ -121,19 +121,19 @@
     max-width: calc(100vw - 24px);
   }
   .fine-print {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     margin-top: 16px;
   }
   @media (max-width: 767px) {
     .has-artifact .welcome h2 {
-      font-size: 29px;
+      font-size: var(--font-size-3xl);
     }
   }
   .annotation-editor {
-    font-size: 13px;
+    font-size: var(--font-size-base);
   }
   .provider-explanation .markdown-content {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     line-height: 1.7;
   }
   .co-model-nav {
@@ -141,10 +141,10 @@
     padding: 12px;
   }
   .co-model-nav small {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
   .composer textarea {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     padding: 20px 22px;
     line-height: 1.6;
   }
@@ -153,13 +153,13 @@
     height: 40px;
   }
   .provider-explanation .message-content {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
   .knowledge-editor {
     max-width: 580px;
   }
   .workspace-sidebar-footer button {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
   @media (max-width: 699px) {
     .composer textarea {

@@ -82,7 +82,7 @@
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    font-size: 21px;
+    font-size: var(--font-size-xl);
     font-weight: 650;
     letter-spacing: -0.7px;
   }
@@ -123,13 +123,13 @@
   .landing-hero h1 {
     /* Scales with the viewport rather than at a breakpoint, so there is no width
      at which it is either cramped or absurd. */
-    font-size: clamp(30px, 6.4vw, 54px);
+    font-size: clamp(var(--font-size-3xl), 6.4vw, var(--font-size-5xl));
     line-height: 1.1;
     letter-spacing: -1.8px;
     font-weight: 550;
   }
   .landing-lede {
-    font-size: clamp(15px, 2.1vw, 17.5px);
+    font-size: clamp(var(--font-size-base), 2.1vw, var(--font-size-lg));
     line-height: 1.65;
     color: var(--muted-foreground);
     max-width: 60ch;
@@ -149,7 +149,7 @@
     min-height: 48px;
     padding: 0 24px;
     border-radius: var(--radius);
-    font-size: 15px;
+    font-size: var(--font-size-base);
     font-weight: 500;
   }
   .landing-primary {
@@ -168,7 +168,7 @@
     color: var(--foreground);
   }
   .landing-fineprint {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   /* 340px rather than 260px on purpose: at the 1020px container that gives two
@@ -183,7 +183,7 @@
   .landing-grid article {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: calc(var(--radius) + 4px);
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -193,7 +193,7 @@
     color: var(--primary);
   }
   .landing-grid h2 {
-    font-size: 16.5px;
+    font-size: var(--font-size-lg);
     font-weight: 580;
     letter-spacing: -0.3px;
   }
@@ -212,7 +212,7 @@
   }
   .landing-pricing h2,
   .landing-faq h2 {
-    font-size: clamp(23px, 3.6vw, 32px);
+    font-size: clamp(var(--font-size-2xl), 3.6vw, var(--font-size-4xl));
     letter-spacing: -1px;
     font-weight: 550;
   }
@@ -227,7 +227,7 @@
   .landing-plans article {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: calc(var(--radius) + 4px);
     padding: 26px;
     display: flex;
     flex-direction: column;
@@ -238,7 +238,7 @@
     box-shadow: 0 18px 50px var(--shadow);
   }
   .landing-plans h3 {
-    font-size: 19px;
+    font-size: var(--font-size-xl);
     font-weight: 580;
   }
   /* Privacy and terms: the landing's palette, one readable column. */
@@ -248,20 +248,20 @@
     padding: 24px 0 40px;
   }
   .landing-legal h1 {
-    font-size: clamp(28px, 5vw, 40px);
+    font-size: clamp(var(--font-size-3xl), 5vw, var(--font-size-5xl));
     letter-spacing: -1.4px;
     font-weight: 600;
     margin-bottom: 10px;
   }
   .landing-legal h2 {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     font-weight: 600;
     letter-spacing: -0.4px;
     margin: 32px 0 8px;
   }
   .landing-legal p,
   .landing-legal li {
-    font-size: 15px;
+    font-size: var(--font-size-base);
     line-height: 1.75;
     color: var(--muted-foreground);
   }
@@ -283,7 +283,7 @@
 
   /* The amount, above the tagline: the first thing to find on a plan card. */
   .landing-price {
-    font-size: 30px;
+    font-size: var(--font-size-3xl);
     font-weight: 600;
     letter-spacing: -1px;
     margin-top: 4px;
@@ -295,7 +295,7 @@
     color: var(--muted-foreground);
   }
   .landing-pricenote {
-    font-size: 12.5px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     margin-top: 2px;
   }
@@ -328,10 +328,10 @@
     align-items: center;
     min-height: 44px;
     padding: 0 20px;
-    border-radius: 11px;
+    border-radius: var(--radius);
     border: 1px solid var(--border);
     background: var(--card);
-    font-size: 14.5px;
+    font-size: var(--font-size-base);
   }
   /* The featured plan's button inherits the white card button above and then
    `.landing-primary`'s white text: white on white, an empty box where "Start
@@ -345,12 +345,12 @@
     margin: 18px auto 0;
     max-width: 560px;
     text-align: center;
-    font-size: 13.5px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   .landing-section-title {
     margin: 36px 0 -8px;
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
     font-weight: 640;
     letter-spacing: -0.01em;
   }
@@ -365,7 +365,7 @@
   }
   .landing-faq dt {
     font-weight: 570;
-    font-size: 15px;
+    font-size: var(--font-size-base);
     margin-bottom: 6px;
   }
   .landing-faq dd {
