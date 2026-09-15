@@ -21,7 +21,15 @@
  * if anything fails, the files are still where they were and the next boot will
  * try again.
  */
-import { lchownSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  lchownSync,
+  lstatSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { SLOTS_DIR, SLOTS_FILE, type Slot } from './slots.ts';
 
@@ -35,6 +43,8 @@ export type Migration = { moved: string[]; slot: string } | null;
 
 export type MigrateFs = {
   list(path: string): string[];
+  /** Take an entry over so that it can be moved at all. See the call site. */
+  claim(path: string): void;
   move(from: string, to: string): void;
   chownRecursive(path: string, uid: number, gid: number): void;
   exists(path: string): boolean;
@@ -66,6 +76,16 @@ export function migrateSharedWorkspace(workspace: string, slot: Slot, fs: Migrat
 
   const moved: string[] = [];
   for (const name of entries) {
+    // Claim first, and per entry rather than all of them up front, so a failure
+    // partway through leaves the rest untouched instead of half re-owned.
+    //
+    // Renaming a *directory* rewrites its `..`, so the kernel demands write
+    // permission on the directory being moved — not only on the two parents.
+    // Everything here belongs to uid 1000 and the supervisor holds no
+    // DAC_OVERRIDE, so without this every directory is EACCES while loose files
+    // move fine: the workspace arrives in the slot with its files and none of
+    // its folders, which is the worst possible half-migration.
+    fs.claim(join(workspace, name));
     // rename, not copy: it is the same filesystem, so this is atomic per entry
     // and cannot half-write a large file. A failure leaves the entry where it
     // was, and the next boot — which still finds no marker — tries again.
@@ -89,6 +109,23 @@ export const realMigrateFs: MigrateFs = {
       return [];
     }
   },
+  claim: (path) => {
+    const stats = lstatSync(path);
+    // lchown, not chown, for the reason chownOne gives below: a link pointing
+    // outside the workspace must not have its *target* re-owned by the one part
+    // of this service that runs as root.
+    lchownSync(path, 0, 0);
+    if (!stats.isDirectory()) return;
+    const mode = stats.mode & 0o7777;
+    // Owning it is not always enough — a directory with no owner-write bit
+    // still cannot be renamed, and the supervisor holds no CAP_FOWNER to set
+    // the mode on something it does not own, which is why this follows the
+    // chown. Widening only, only the owner's own bits, and only when they are
+    // missing: a workspace made by shell commands never reaches this line, and
+    // a deliberately read-only directory arrives one chmod away from how it
+    // was, rather than not arriving at all.
+    if ((mode & 0o700) !== 0o700) chmodSync(path, mode | 0o700);
+  },
   move: (from, to) => renameSync(from, to),
   writeMarker: (path) => writeFileSync(path, new Date().toISOString() + '\n', { mode: 0o600 }),
   exists: (path) => {
@@ -99,25 +136,42 @@ export const realMigrateFs: MigrateFs = {
       return false;
     }
   },
-  chownRecursive: (path, uid, gid) => {
-    const walk = (current: string) => {
-      chownOne(current, uid, gid);
-      let children: string[] = [];
-      try {
-        children = readdirSync(current, { withFileTypes: true }).map((entry) =>
-          entry.isDirectory() ? join(current, entry.name) + '/' : join(current, entry.name),
-        );
-      } catch {
-        return;
-      }
-      for (const child of children) {
-        if (child.endsWith('/')) walk(child.slice(0, -1));
-        else chownOne(child, uid, gid);
-      }
-    };
-    walk(path);
-  },
+  chownRecursive: (path, uid, gid) => visitDepthFirst(path, (entry) => chownOne(entry, uid, gid)),
 };
+
+/**
+ * Visit everything under `path`, children before their parent.
+ *
+ * The order is the entire point, and it is not a matter of taste. The
+ * supervisor holds CAP_CHOWN but no DAC_OVERRIDE, so the moment it chowns a
+ * 0700 directory to a slot user it can no longer list it. Walking parent-first
+ * therefore re-owns the slot directory, gets EACCES from the very next
+ * `readdir`, and returns — leaving every file inside still owned by whoever had
+ * it before. Nothing throws and the migration reports success; the owner opens
+ * their workspace and finds it read-only, which is the failure the migration
+ * exists to prevent.
+ *
+ * Exported so the order can be asserted without root, which is the only way CI
+ * can see it: `lchown` fails there for unrelated reasons, so a test of the
+ * chown itself would prove nothing.
+ */
+export function visitDepthFirst(path: string, visit: (entry: string) => void): void {
+  let children;
+  try {
+    children = readdirSync(path, { withFileTypes: true });
+  } catch {
+    // Not a directory, or one that cannot be listed. Either way it is a leaf.
+    visit(path);
+    return;
+  }
+  for (const child of children) {
+    // `isDirectory` on a Dirent does not follow symlinks, so a link pointing at
+    // a directory is a leaf here rather than a way to walk out of the slot.
+    if (child.isDirectory()) visitDepthFirst(join(path, child.name), visit);
+    else visit(join(path, child.name));
+  }
+  visit(path);
+}
 
 /** lchown, not chown: a symlink in someone's workspace is retargeted rather
  * than followed, so a link pointing outside the slot cannot make this change

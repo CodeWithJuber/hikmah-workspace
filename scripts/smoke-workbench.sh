@@ -31,11 +31,29 @@ fail() { echo "$1" >&2; exit 1; }
 # distinction is not cosmetic: the supervisor holds CHOWN but not DAC_OVERRIDE,
 # so if the root of the volume belonged to uid 1000 it could not create the
 # slot parent inside it, no slot would resolve, and nothing would migrate.
+#
+# Four shapes, because each one fails differently and a loose file — the easiest
+# case — is the only one that ever worked by accident:
+#   notes.md   a loose file; moves with no ceremony
+#   project/   a directory owned by someone else. Renaming a directory rewrites
+#              its `..`, so the kernel wants write permission on the directory
+#              ITSELF, which the supervisor does not have. CI saw exactly this:
+#              notes.md arrived in the slot and project/ did not.
+#   readonly/  the same, with no owner-write bit either, so taking ownership is
+#              not enough on its own.
+#   link       a symlink out of the workspace. chown follows symlinks; if this
+#              migration used it instead of lchown, /etc/passwd would be handed
+#              to a slot user by the one part of the service that runs as root.
 docker volume create "$volume" >/dev/null
 docker run --rm -v "$volume":/workspace --user 0:0 "$image" \
-  sh -c 'mkdir -p /workspace/project && echo mine > /workspace/notes.md &&
+  sh -c 'mkdir -p /workspace/project /workspace/readonly &&
+         echo mine > /workspace/notes.md &&
          echo "export {}" > /workspace/project/app.ts &&
-         chown -R 1000:1000 /workspace/notes.md /workspace/project &&
+         echo locked > /workspace/readonly/file.txt &&
+         ln -s /etc/passwd /workspace/link &&
+         chown -R 1000:1000 /workspace/notes.md /workspace/project /workspace/readonly &&
+         chown -h 1000:1000 /workspace/link &&
+         chmod 0555 /workspace/readonly &&
          chown 0:0 /workspace && chmod 0755 /workspace' >/dev/null
 
 
@@ -82,10 +100,25 @@ docker exec "$container" test -f "/workspace/u/hk01/notes.md" || {
 }
 docker exec "$container" test -f "/workspace/u/hk01/project/app.ts" \
   || fail 'The migration did not carry nested directories.'
+docker exec "$container" test -f /workspace/u/hk01/readonly/file.txt \
+  || fail 'The migration left behind a directory its owner had made read-only.'
+docker exec "$container" test -L /workspace/u/hk01/link \
+  || fail 'The migration did not carry a symlink, or replaced it with its target.'
+passwd_uid=$(docker exec "$container" stat -c '%u' /etc/passwd)
+[[ $passwd_uid == 0 ]] \
+  || fail "The migration followed a symlink: /etc/passwd is now owned by $passwd_uid."
 docker exec "$container" test -e /workspace/notes.md \
   && fail 'The migration left a copy at the top of the volume.'
 owner_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/notes.md)
 [[ $owner_uid == 3001 ]] || fail "Migrated files are owned by $owner_uid, expected the slot uid 3001."
+# One level down, specifically. Re-owning the slot directory is the last thing
+# the supervisor can do to it — after that it cannot even list it — so a walk
+# that starts at the top re-owns nothing inside and says nothing about it.
+nested_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/project/app.ts)
+[[ $nested_uid == 3001 ]] \
+  || fail "A migrated file inside a folder is owned by $nested_uid: the re-own stopped at the top."
+locked_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/readonly)
+[[ $locked_uid == 3001 ]] || fail "The read-only directory is still owned by $locked_uid."
 
 # --- the slot users exist and the service's source is beyond them ---------
 docker exec "$container" id hk01 >/dev/null || fail 'The image has no slot users.'

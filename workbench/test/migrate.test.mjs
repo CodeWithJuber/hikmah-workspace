@@ -13,10 +13,23 @@
 // Run: node --test test/migrate.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MIGRATED_FILE, migrateSharedWorkspace, realMigrateFs } from '../src/migrate.ts';
+import {
+  MIGRATED_FILE,
+  migrateSharedWorkspace,
+  realMigrateFs,
+  visitDepthFirst,
+} from '../src/migrate.ts';
 
 /** A workspace as it looks on a deployment that has never seen slots. */
 function seeded(entries = { 'notes.md': 'mine', 'project/src/app.ts': 'export {}' }) {
@@ -31,10 +44,15 @@ function seeded(entries = { 'notes.md': 'mine', 'project/src/app.ts': 'export {}
   return { workspace, slot };
 }
 
-/** chown needs root, and CI is not. Everything else is real. */
+/** chown needs root, and CI is not — which is both `chownRecursive` and the
+ * `lchown` inside `claim`. Everything else is real. */
 function testFs(chowns = []) {
   return {
-    fs: { ...realMigrateFs, chownRecursive: (path, uid, gid) => chowns.push([path, uid, gid]) },
+    fs: {
+      ...realMigrateFs,
+      claim: () => {},
+      chownRecursive: (path, uid, gid) => chowns.push([path, uid, gid]),
+    },
     chowns,
   };
 }
@@ -113,6 +131,7 @@ test('a failure leaves the files where they were, to be retried', async () => {
   let moves = 0;
   const fs = {
     ...realMigrateFs,
+    claim: () => {},
     chownRecursive: () => {},
     move: (from, to) => {
       if (moves++ === 1) throw new Error('disk full');
@@ -127,4 +146,97 @@ test('a failure leaves the files where they were, to be retried', async () => {
   const everywhere = [...readdirSync(workspace), ...readdirSync(slot.home)];
   assert.ok(everywhere.includes('a.md'));
   assert.ok(everywhere.includes('b.md'));
+});
+
+test('a directory is taken over before it is moved, or nothing moves', async () => {
+  // Renaming a directory rewrites its `..`, so the kernel demands write
+  // permission on the directory *being moved* — not just on the two parents.
+  // Everything in a pre-slots workspace belongs to uid 1000, and the supervisor
+  // holds no DAC_OVERRIDE, so every directory renamed straight away is EACCES
+  // while loose files move fine. That is exactly what CI saw: notes.md arrived
+  // in the slot and project/ did not.
+  //
+  // Measured under the deployed capability set (CAP_CHOWN, no DAC_OVERRIDE,
+  // no FOWNER), against a workspace owned by uid 1000:
+  //
+  //   rename straight away          notes.md moved · project EACCES
+  //   lchown to root, then rename   all four moved
+  //
+  // So the order is pinned here: claim, then move, for every entry.
+  const { workspace, slot } = seeded({ 'notes.md': 'mine', 'project/src/app.ts': 'export {}' });
+  const calls = [];
+  const fs = {
+    ...realMigrateFs,
+    chownRecursive: () => {},
+    claim: (path) => calls.push('claim:' + path.split('/').pop()),
+    move: (from, to) => (calls.push('move:' + from.split('/').pop()), realMigrateFs.move(from, to)),
+  };
+
+  migrateSharedWorkspace(workspace, slot, fs);
+
+  // Pairwise, not claim-them-all-then-move-them-all: a failure partway through
+  // must leave the remaining entries untouched rather than half re-owned.
+  assert.deepEqual(calls, ['claim:notes.md', 'move:notes.md', 'claim:project', 'move:project']);
+});
+
+test('a symlink is claimed as a link, never as what it points at', async () => {
+  // chown follows symlinks; lchown does not. A link in someone's workspace
+  // pointing at /etc/passwd would otherwise have its *target* handed to a slot
+  // user by the one part of this service that still runs as root.
+  //
+  // What can be asserted without root is that the link itself is what gets
+  // claimed and moved. That lchown is the call used is asserted where it can
+  // be: scripts/smoke-workbench.sh, in the container, as root.
+  const { workspace, slot } = seeded({ 'notes.md': 'mine' });
+  const elsewhere = mkdtempSync(join(tmpdir(), 'hikmah-outside-'));
+  const outside = join(elsewhere, 'theirs.txt');
+  writeFileSync(outside, 'not yours', 'utf8');
+  symlinkSync(outside, join(workspace, 'link'));
+
+  const claimed = [];
+  const result = migrateSharedWorkspace(workspace, slot, {
+    ...realMigrateFs,
+    chownRecursive: () => {},
+    claim: (path) => claimed.push(lstatSync(path).isSymbolicLink() ? 'symlink' : 'real'),
+  });
+
+  assert.ok(claimed.includes('symlink'), 'the link itself was claimed');
+  assert.ok(result.moved.includes('link'), 'and moved like any other entry');
+  // It is still a link afterwards — not a copy of what it pointed at.
+  assert.equal(lstatSync(join(slot.home, 'link')).isSymbolicLink(), true);
+  assert.equal(readFileSync(outside, 'utf8'), 'not yours', 'and its target is untouched');
+});
+
+test('the slot is re-owned from the inside out, or nothing inside is re-owned', async () => {
+  // The supervisor holds CAP_CHOWN and no DAC_OVERRIDE, so chowning a 0700
+  // directory to a slot user is the last thing it can do to it — the next
+  // readdir is EACCES. A parent-first walk therefore re-owns the slot directory,
+  // loses the ability to list it, and silently leaves every file inside owned by
+  // whoever had it before. Measured: after a migration that way,
+  // project/src/app.ts was still 1000:1000 inside a slot owned by 3001, and
+  // nothing threw.
+  //
+  // So: children before parents, asserted here because CI cannot assert the
+  // chown itself.
+  const root = mkdtempSync(join(tmpdir(), 'hikmah-walk-'));
+  mkdirSync(join(root, 'project/src'), { recursive: true });
+  writeFileSync(join(root, 'project/src/app.ts'), 'export {}', 'utf8');
+  writeFileSync(join(root, 'notes.md'), 'mine', 'utf8');
+  symlinkSync('/etc/passwd', join(root, 'link'));
+
+  const seen = [];
+  visitDepthFirst(root, (entry) => seen.push(entry.slice(root.length) || '/'));
+
+  const at = (name) => seen.indexOf(name);
+  assert.ok(at('/project/src/app.ts') < at('/project/src'), 'a file before its directory');
+  assert.ok(at('/project/src') < at('/project'), 'and that directory before its own parent');
+  assert.ok(at('/project') < at('/'), 'and everything before the slot root');
+  assert.equal(seen[seen.length - 1], '/', 'the root is handed over last of all');
+  // The link is visited, but not walked through: it points outside the slot.
+  assert.ok(seen.includes('/link'));
+  assert.deepEqual(
+    seen.filter((e) => e.startsWith('/link/')),
+    [],
+  );
+  assert.ok(seen.includes('/notes.md'));
 });
