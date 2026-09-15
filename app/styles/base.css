@@ -131,7 +131,7 @@
   [data-slot='dialog-content'] {
     max-height: 88vh;
     overflow: auto;
-    border-radius: 8px;
+    border-radius: var(--radius-element);
   }
   [data-slot='sidebar-inner'] {
     background: var(--muted);
@@ -154,7 +154,7 @@
   }
   .page-header p {
     color: var(--muted-foreground);
-    font-size: 17px;
+    font-size: var(--font-size-lg);
     margin-top: 5px;
   }
   .page-header > button {
@@ -179,7 +179,7 @@
     max-width: 100%;
   }
   .field label {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     color: var(--foreground);
     font-weight: 500;
   }
@@ -233,7 +233,7 @@
   .meaning-graph text {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
     fill: var(--foreground);
-    font-size: 17px;
+    font-size: var(--font-size-lg);
   }
   .meaning-graph .role-label {
     font-family: Arial, Helvetica, sans-serif;
@@ -273,14 +273,14 @@
     padding: 0 14px;
   }
   .comparison-result p {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
   .notice {
     border-left: 3px solid var(--primary);
     background: var(--muted);
     padding: 12px 16px;
     margin-top: 16px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     line-height: 1.6;
   }
   .notice.error {
@@ -302,7 +302,7 @@
     margin-bottom: 16px;
   }
   .json-view {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     max-height: 400px;
     overflow: auto;
     padding: 14px;
@@ -337,12 +337,12 @@
   }
   .formula {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    font-size: 17px;
+    font-size: var(--font-size-lg);
     overflow-x: auto;
     white-space: pre-wrap;
   }
   .equation p {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
     margin-top: 8px;
     max-width: 85ch;
@@ -351,7 +351,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     padding: 5px 0;
     /* For the ::after that grows its target to 24px; see below. */
     position: relative;
@@ -433,7 +433,7 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     display: grid;
     place-items: center;
   }
@@ -455,7 +455,7 @@
   .chart-caption {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     margin-top: 7px;
   }
@@ -477,7 +477,7 @@
     gap: 8px;
   }
   .number-row output {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-family: ui-monospace, monospace;
   }
   .audio-upload {
@@ -498,7 +498,7 @@
   }
   .source-list {
     padding-left: 20px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
   .source-list li {
     margin: 9px 0;
@@ -512,7 +512,7 @@
   }
   .message pre {
     background: var(--muted);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     padding: 14px;
     border: 1px solid var(--border);
     margin: 14px 0;
@@ -533,7 +533,7 @@
     padding-top: 12px;
   }
   .math-flow p {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   @media (min-width: 1600px) {
@@ -595,14 +595,14 @@
       gap: 9px;
     }
     .actions > [data-slot='button'] {
-      font-size: 14px;
+      font-size: var(--font-size-base);
       padding-inline: 14px;
     }
     .metric-row {
       gap: 20px;
     }
     .metric strong {
-      font-size: 24px;
+      font-size: var(--font-size-2xl);
     }
     .chat-toolbar .field {
       flex: 1;
@@ -699,7 +699,7 @@
   }
   .field label {
     color: var(--foreground);
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: 500;
   }
   .field {
@@ -710,7 +710,7 @@
   }
   [data-slot='button'] {
     height: 40px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: 500;
     border-radius: 9px;
     padding-inline: 15px;
@@ -792,7 +792,7 @@
     backdrop-filter: blur(3px);
   }
   [data-slot='dialog-content'] {
-    border-radius: 16px;
+    border-radius: calc(var(--radius) + 4px);
     background: var(--card);
     color: var(--foreground);
   }
@@ -863,7 +863,7 @@
     min-height: 46px;
     padding: 0 15px;
     border: 1px solid var(--primary);
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: var(--primary);
     color: var(--primary-foreground);
     font-size: 15px;
@@ -914,7 +914,7 @@
     gap: 4px !important;
   }
   .local-save {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     padding: 10px 14px 0;
   }
@@ -1090,7 +1090,7 @@
   .code-host .code-host-save {
     height: 30px;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     padding: 0 9px;
     color: var(--muted-foreground);
   }
@@ -1167,7 +1167,7 @@
     min-width: 0;
   }
   .error-card strong {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: 600;
     line-height: 1.5;
     display: block;
@@ -1178,12 +1178,12 @@
     margin-top: 6px;
   }
   .error-code {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     display: inline-block;
     padding: 3px 6px;
     background: color-mix(in srgb, var(--error-text) 8%, transparent);
     margin-top: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-inner);
     overflow-wrap: anywhere;
   }
   .error-actions {
@@ -1194,7 +1194,7 @@
   }
   .error-actions [data-slot='button'] {
     height: 32px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     padding-inline: 7px;
   }
   .run-settings-body .model-picker {
@@ -1206,7 +1206,7 @@
     padding-top: 23px;
   }
   .run-settings-body .small-note {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     line-height: 1.65;
     margin-top: 9px;
   }
@@ -1228,7 +1228,7 @@
     min-width: 0;
   }
   .setting-switch strong {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: 500;
   }
   .setting-switch span {
@@ -1264,11 +1264,11 @@
     padding: 25px 28px 19px;
   }
   .settings-heading [data-slot='dialog-title'] {
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     letter-spacing: -0.6px;
   }
   .settings-heading [data-slot='dialog-description'] {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     margin-top: 5px;
   }
   .settings-tabs {
@@ -1292,7 +1292,7 @@
     height: 51px;
     border-radius: 0;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     padding: 0 7px;
     box-shadow: none;
     border: 0;
@@ -1351,7 +1351,7 @@
     flex-shrink: 0;
   }
   .optional-label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 400;
     color: var(--muted-foreground);
     margin-left: 7px;
@@ -1365,7 +1365,7 @@
     gap: 12px;
   }
   .settings-footer > span {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
   }
   .theme-options {
@@ -1486,7 +1486,7 @@
     flex: 1;
   }
   .lab-directory h2 {
-    font-size: 20px;
+    font-size: var(--font-size-xl);
     margin: 0 0 6px;
   }
   .lab-directory p {
@@ -1495,7 +1495,7 @@
   }
   .lab-directory > button:hover {
     background: var(--accent);
-    border-radius: 12px;
+    border-radius: var(--radius);
   }
   .lab-switcher {
     display: flex;
@@ -1561,7 +1561,7 @@
       min-width: 110px;
       max-width: 145px;
       height: 37px;
-      font-size: 12px;
+      font-size: var(--font-size-sm);
       padding-inline: 10px;
     }
     .header-actions .icon-button {
@@ -1648,7 +1648,7 @@
       font-size: 15px;
     }
     .settings-section-title p {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
     }
     .settings-footer {
       padding: 13px 17px;
@@ -1660,7 +1660,7 @@
       font-size: 13px;
     }
     .error-card p {
-      font-size: 12px;
+      font-size: var(--font-size-sm);
     }
     .error-actions [data-slot='button'] {
       min-height: 36px;
@@ -1679,7 +1679,7 @@
       font-size: 19px;
     }
     .lab-directory p {
-      font-size: 14px;
+      font-size: var(--font-size-base);
     }
     .lab-switcher {
       gap: 15px;
@@ -1699,7 +1699,7 @@
       margin-bottom: 12px;
     }
     .welcome h2 {
-      font-size: 24px;
+      font-size: var(--font-size-2xl);
     }
     .composer [data-slot='textarea'] {
       min-height: 60px;

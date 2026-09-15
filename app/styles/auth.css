@@ -13,7 +13,7 @@
     margin-bottom: 38px;
   }
   .auth-eyebrow {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     letter-spacing: 1.4px;
     font-weight: 600;
     color: var(--muted-foreground);
@@ -27,7 +27,7 @@
     margin-bottom: 12px;
   }
   .auth-subtitle {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     /* Was #718078: 4.15:1 on the card, under the 4.5 a 14px text needs. The
      landing page's own soft ink reads 5.9:1 and is already in this file. */
     color: var(--muted-foreground);
@@ -40,13 +40,13 @@
     gap: 10px;
   }
   .auth-card label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 600;
   }
   .auth-card input {
     height: 44px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) - 2px);
     padding: 0 14px;
     background: var(--background);
     margin-bottom: 8px;
@@ -67,11 +67,11 @@
      * exists to have pressed. The token is the colour that belongs on the fill
      * in whichever mode it is. */
     color: var(--primary-foreground);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) - 2px);
     min-height: 44px;
     margin-top: 12px;
     width: 100%;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     cursor: pointer;
   }
   .auth-card button:disabled {
@@ -83,7 +83,7 @@
     font-size: 13px;
   }
   .auth-note {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     text-align: center;
     line-height: 1.6;
@@ -139,7 +139,7 @@
     background: var(--accent);
   }
   .auth-hint {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     margin-top: -4px;
   }
@@ -173,7 +173,7 @@
     align-items: center;
     gap: 12px;
     text-align: center;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     line-height: 1.65;
     color: var(--foreground);
     background: var(--muted);
@@ -245,7 +245,7 @@
       flex: 1;
       max-width: unset;
       min-width: 0;
-      font-size: 17px;
+      font-size: var(--font-size-lg);
     }
     .studio-shell .header-actions .chat-memory-button {
       display: none;
