@@ -201,12 +201,15 @@ export function createRunStore(
     appendEvent: db.prepare(
       'INSERT INTO run_events (run_id, seq, payload, created_at) VALUES (?, ?, ?, ?)',
     ),
-    // Claimed from the run rather than counted from run_events: that table is
+    // Read from the run rather than counted from run_events: that table is
     // pruned at the end of every step, and deriving the number from it made a
     // resumed run restart at 0 and its output vanish behind a stale cursor.
-    nextEventSeq: db.prepare(
-      'UPDATE runs SET event_seq = event_seq + 1 WHERE id = ? RETURNING event_seq - 1 AS next',
-    ),
+    //
+    // A SELECT and an UPDATE rather than one UPDATE ... RETURNING, because the
+    // cursor is now claimed in memory for a whole batch and written back once
+    // per flush. See `appendEvent`.
+    eventSeq: db.prepare('SELECT event_seq AS next FROM runs WHERE id = ?'),
+    setEventSeq: db.prepare('UPDATE runs SET event_seq = ? WHERE id = ?'),
     countQueued: db.prepare("SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'"),
     countActive: db.prepare(
       `SELECT COUNT(*) AS n FROM runs
@@ -236,6 +239,84 @@ export function createRunStore(
   };
 
   const one = <T>(value: unknown): T | null => (value ?? null) as T | null;
+
+  /* Streamed chunks, written in batches rather than one at a time.
+   *
+   * `emit` in lib/runs/worker.ts ran two statements per chunk on the single Node
+   * thread that also answers every panel's fetch: an UPDATE ... RETURNING to
+   * claim a sequence number, and an INSERT. Measured on a WAL database with
+   * node:sqlite's defaults, 2,000 chunks cost 623 ms — 312 us each, so a
+   * 3,000-chunk answer spent roughly a second of the event loop writing, and
+   * every fetch issued during it waited. In transactions of 50 the same 2,000
+   * chunks cost 18 ms: 34x.
+   *
+   * What that trades is durability inside the flush window. It is bounded on
+   * purpose:
+   *
+   *  - Connected clients never read this table. They are served from the bus, in
+   *    memory, with the sequence number this function hands out — so batching is
+   *    invisible to a stream that stays up.
+   *  - Every reader of run_events or of `runs.event_seq` flushes first, so a
+   *    RECONNECTING client cannot be handed a gap. That is `getRun`,
+   *    `eventsAfter`, `countEventsAfter`, `finish` and `pruneEvents`; none of
+   *    them is called per chunk.
+   *  - A crash inside the window loses at most 25 ms of chunks — and loses the
+   *    sequence numbers with them, because the cursor is written in the same
+   *    transaction. `requeueRunning` puts the run back on boot and it replays
+   *    from a consistent point rather than from a cursor pointing past rows that
+   *    were never written.
+   */
+  const FLUSH_MS = 25;
+  const FLUSH_ROWS = 50;
+  let buffered: { runId: string; seq: number; payload: string; at: string }[] = [];
+  /** The next sequence number for a run with chunks in flight. Seeded from the
+   * row once per flush window, not read per chunk. */
+  const claimed = new Map<string, number>();
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flushEvents(): void {
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (!buffered.length) return;
+    const cursors = [...claimed];
+    claimed.clear();
+    /* A run can be deleted while its answer is still streaming — someone
+     * deletes the conversation from the list, and ON DELETE CASCADE takes the
+     * run and its events with it. Unbatched, the row was already written and
+     * went with the cascade. Buffered, it arrives afterwards and fails the
+     * foreign key, which would take down the whole transaction and with it the
+     * chunks of every OTHER run in the same flush.
+     *
+     * So a vanished run's chunks are dropped here rather than written. One
+     * existence check per run per flush window, not per chunk. Found by
+     * tests/runs-store.test.mjs, which has asserted since it was written that
+     * deleting a conversation takes its events with it. */
+    const alive = new Set();
+    for (const runId of new Set(buffered.map((row) => row.runId)))
+      if (statements.getRun.get(runId)) alive.add(runId);
+    const rows = buffered.filter((row) => alive.has(row.runId));
+    buffered = [];
+    if (!rows.length) return;
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const row of rows) statements.appendEvent.run(row.runId, row.seq, row.payload, row.at);
+      // In the same transaction as the rows it counts. A cursor that outran its
+      // rows would make a resumed run skip the chunks in between.
+      for (const [runId, next] of cursors)
+        if (alive.has(runId)) statements.setEventSeq.run(next, runId);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      // Put them back so the next flush retries rather than dropping an answer
+      // on a transient busy timeout.
+      buffered = rows.concat(buffered);
+      for (const [runId, next] of cursors)
+        if (alive.has(runId) && !claimed.has(runId)) claimed.set(runId, next);
+      throw error;
+    }
+  }
 
   return {
     createConversation(input: {
@@ -375,6 +456,10 @@ export function createRunStore(
     },
 
     getRun(id: string): RunRow | null {
+      // `event_seq` on this row is what lib/runs/sse.ts numbers a failure
+      // notice with, and what lib/runs/resume.ts compares a client's cursor
+      // against. Both would be wrong by however many chunks are still buffered.
+      flushEvents();
       return one<RunRow>(statements.getRun.get(id));
     },
 
@@ -424,6 +509,10 @@ export function createRunStore(
       status: Extract<RunStatus, 'done' | 'failed' | 'cancelled'>,
       error?: string,
     ) {
+      // The last chunks of the answer go in before the run is marked ended, or
+      // a client reconnecting on the end notice replays a transcript missing its
+      // final tokens.
+      flushEvents();
       statements.finish.run(status, error ?? null, now(), id);
       const run = one<RunRow>(statements.getRun.get(id));
       if (run) statements.setActiveRun.run(null, now(), run.conversation_id);
@@ -432,19 +521,59 @@ export function createRunStore(
     /** Reclaim runs stranded by a crash or a restart. Returns nothing useful; it
      * is called for effect on boot and on SIGTERM. */
     requeueRunning() {
+      flushEvents();
       statements.requeueRunning.run();
     },
 
+    /** Buffer a streamed chunk and return the sequence number it will carry.
+     *
+     * Returns synchronously and immediately, because the caller hands the same
+     * number straight to the bus — a connected client sees the chunk before it
+     * is on disk, and that is the point. See the comment above `flushEvents`
+     * for what that trades and what bounds it. */
     appendEvent(runId: string, payload: unknown): number {
-      const claimed = statements.nextEventSeq.get(runId) as { next: number } | undefined;
-      if (!claimed) throw new Error('No such run: ' + runId);
-      const seq = claimed.next;
-      statements.appendEvent.run(runId, seq, JSON.stringify(payload), now());
+      let seq = claimed.get(runId);
+      if (seq === undefined) {
+        const row = statements.eventSeq.get(runId) as { next: number } | undefined;
+        if (!row) throw new Error('No such run: ' + runId);
+        seq = row.next;
+      }
+      claimed.set(runId, seq + 1);
+      buffered.push({ runId, seq, payload: JSON.stringify(payload), at: now() });
+      if (buffered.length >= FLUSH_ROWS) flushEvents();
+      else if (!flushTimer) {
+        flushTimer = setTimeout(() => {
+          flushTimer = null;
+          // Swallowed here and nowhere else. A throw inside a timer is an
+          // uncaught exception with no caller to answer to, and the catch in
+          // `flushEvents` has already put the rows back — so the next chunk
+          // re-arms this, and a reader-path flush (which has a caller) is
+          // where a real write failure surfaces. Found by a test whose
+          // database closed with a flush still pending.
+          try {
+            flushEvents();
+          } catch {
+            /* retried on the next chunk, or by the next reader */
+          }
+        }, FLUSH_MS);
+        // A pending flush must not hold the process open at shutdown; the
+        // paths that matter flush explicitly.
+        (flushTimer as unknown as { unref?: () => void }).unref?.();
+      }
       return seq;
     },
 
+    /** Write anything buffered, now.
+     *
+     * Public so the worker can flush on SIGTERM, when 25 ms is longer than the
+     * process has left. */
+    flushEvents,
+
     /** Replay buffer for a reconnecting client, from the last seq it saw. */
     eventsAfter(runId: string, after: number): { seq: number; payload: unknown }[] {
+      // Before the read, or a reconnecting client is handed a gap where the
+      // buffered chunks should be.
+      flushEvents();
       return (
         statements.eventsAfter.all(runId, after) as Array<{ seq: number; payload: string }>
       ).map((row) => ({ seq: row.seq, payload: JSON.parse(row.payload) }));
@@ -459,6 +588,7 @@ export function createRunStore(
      * the same read again. One pass per connect instead of two, and this one
      * touches no payloads at all. */
     countEventsAfter(runId: string, after: number): number {
+      flushEvents();
       return (statements.countEventsAfter.get(runId, after) as { n: number }).n;
     },
 
@@ -537,6 +667,9 @@ export function createRunStore(
     },
 
     pruneEvents(runId: string) {
+      // Before the delete, not after: a buffered chunk written afterwards would
+      // resurrect the step this is clearing.
+      flushEvents();
       statements.pruneEvents.run(runId);
     },
 
