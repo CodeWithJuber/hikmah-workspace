@@ -43,9 +43,16 @@ function atMost(actual, ceiling, what, detail = '') {
 
 test('!important, which is what fighting your own cascade looks like', () => {
   // 126 of these existed before app/globals.css was put in a layer, and most of
-  // them were there to beat unlayered rules that had already won. Layers made
-  // them unnecessary rather than removing them; the surface PRs remove them.
-  // Target: 0.
+  // them were there to beat unlayered rules that had already won. Target: 0.
+  //
+  // But they are not free to delete, which was worth finding out before a
+  // surface PR assumed otherwise. All 120 were stripped at once and the result
+  // measured across 1,964 elements on six surfaces in both themes: **120
+  // declarations changed** — near enough one per `!important`. Every page
+  // heading's size and leading moved, and the workspace sidebar's padding went
+  // from 26px to 8px. So each is currently load-bearing, and they come out one
+  // rule at a time, by making that rule win on its own, with the audit run each
+  // time. A blanket strip is a redesign nobody asked for.
   atMost(
     (css.match(/!important/g) ?? []).length,
     120,
@@ -94,13 +101,36 @@ test('colour comes from a token, or from mixing two', () => {
   atMost(literal.length, 178, 'declarations naming a colour literally', '');
 });
 
-test('three breakpoints, not thirteen', () => {
-  const widths = new Set([...css.matchAll(/@media[^{]*?(\d+)px/g)].map((m) => Number(m[1])));
-  // 480, 600, 650, 699, 700, 760, 767, 900, 1100, 1179, 1180, 1350, 1600 — and
-  // 699/700 and 1179/1180 are the same boundary written twice, once as `max-`
-  // and once as `min-`, four times over. A layout that changes at thirteen
-  // widths was not designed at any of them. Target: 3.
-  atMost(widths.size, 13, 'distinct @media widths', [...widths].sort((a, b) => a - b).join(' '));
+test('the layout changes at as few widths as possible', () => {
+  /* Counted as BOUNDARIES, not as numbers in the file, because the first
+   * version of this check counted both wrong.
+   *
+   * It matched any `<digits>px` after `@media`, so `@media (max-height: 650px)`
+   * — a rule about short windows, not narrow ones — was counted as a
+   * breakpoint. And it counted `max-width: 699px` and `min-width: 700px` as two
+   * boundaries when they are the standard way to write ONE: complementary, no
+   * overlap, no gap. "699/700 is the same boundary written twice" was in the
+   * commit message and it was wrong.
+   *
+   * What is left after fixing both is the real number, and it is still too
+   * many: 480 600 700 760 767 900 1100 1179 1350 1600. A layout that changes at
+   * ten widths was not designed at any of them. But merging them is a design
+   * decision per surface, not a sweep — 900 belongs to the chat PR, 480 to
+   * auth — so this walks down with those rather than in one step. */
+  const boundaries = new Set();
+  for (const [, query] of css.matchAll(/@media([^{]*)\{/g)) {
+    for (const [, kind, size] of query.matchAll(/(min|max)-width:\s*(\d+)px/g)) {
+      // A max-width of N-1 and a min-width of N are one boundary, named for the
+      // min-width side.
+      boundaries.add(kind === 'max' ? Number(size) + 1 : Number(size));
+    }
+  }
+  atMost(
+    boundaries.size,
+    10,
+    'distinct layout boundaries',
+    [...boundaries].sort((a, b) => a - b).join(' '),
+  );
 });
 
 test('[data-slot=] belongs in one file', () => {
@@ -187,4 +217,34 @@ test('icons come from one scale', () => {
   };
   for (const dir of ['app', 'components']) walk(join(root, dir));
   assert.deepEqual(off, [], 'icon sizes outside the scale');
+});
+
+test('a control is one of five heights', () => {
+  // Twenty-five distinct heights on things you press or type into, between a
+  // 25px span and a 46px field: 25, 26, 28, 30, 31, 34, 35, 38, 39, 42, 43, 45,
+  // 46 and the five real ones. Four of them differed from a neighbour by a
+  // single pixel, which nobody chose and nobody can see — but the composer's
+  // send button being 38 in one file and 42 in another is the reason a row
+  // never quite lined up.
+  //
+  // 24/32/36/40/44. The range is deliberate: below 20px is a hidden file input
+  // or a slider track, and 47px and up is a card, a tab bar or a multi-line
+  // field, whose height is a layout decision rather than a place on this scale.
+  const SCALE = new Set([24, 32, 36, 40, 44]);
+  const CONTROL =
+    /button|\[data-slot|input|select|textarea|\.icon-button|trigger|tab\b|chip|pill|toggle/i;
+  const off = [];
+  for (const file of styleFiles()) {
+    if (file.path.startsWith('vendor/') || file.text.includes('@generated')) continue;
+    for (const [, selector, body] of strip(file.text).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const where = selector.trim().replace(/\s+/g, ' ');
+      if (where.startsWith('@') || !CONTROL.test(where)) continue;
+      for (const [, size] of body.matchAll(/(?:^|[;\s])(?:min-|max-)?height:\s*([0-9.]+)px/g)) {
+        const height = Number(size);
+        if (height < 20 || height > 46 || SCALE.has(height)) continue;
+        off.push(`${file.path} ${where.slice(0, 50)} — ${height}px`);
+      }
+    }
+  }
+  assert.deepEqual(off, [], 'control heights off the scale');
 });

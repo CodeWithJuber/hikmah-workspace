@@ -77,7 +77,7 @@
     gap: 8px;
     font-size: 14px;
     color: var(--foreground);
-    height: 39px;
+    height: 40px;
   }
   .header-actions .model-picker {
     font-size: 14px;
@@ -141,11 +141,11 @@
     border: 1px solid var(--input);
     border-radius: 9px;
     padding-inline: 12px;
-    height: 43px;
+    height: 44px;
   }
   .model-directory [data-slot='command-input'] {
     font-size: 15px;
-    height: 42px;
+    height: 40px;
   }
   .model-filters {
     display: flex;
@@ -851,7 +851,7 @@
     }
     .admin-page .workspace-header button {
       font-size: 12px;
-      height: 35px;
+      height: 36px;
       padding-inline: 10px;
     }
     .admin-page .workspace-header button svg {
@@ -1035,7 +1035,7 @@
   }
   .message-actions .icon-button {
     width: 34px;
-    height: 34px;
+    height: 32px;
   }
   .composer {
     border: 1px solid #ccd5e4;
@@ -1064,7 +1064,7 @@
     margin-left: auto;
     border-radius: 11px;
     width: 38px;
-    height: 38px;
+    height: 36px;
     background: var(--primary);
     color: white;
     box-shadow: none;
@@ -1288,7 +1288,7 @@
     font-size: 12px;
     color: var(--muted-foreground);
     width: 25px;
-    height: 25px;
+    height: 24px;
     background: var(--secondary);
     border-radius: 6px;
     flex-shrink: 0;
@@ -1822,12 +1822,12 @@
       min-height: 80px;
     }
     .composer-controls .icon-button {
-      height: 42px;
+      height: 40px;
       width: 38px;
     }
     .composer .send-button {
       width: 42px;
-      height: 42px;
+      height: 40px;
     }
     .message-actions .icon-button {
       height: 40px;
@@ -2126,7 +2126,7 @@
     background: var(--card);
     color: var(--foreground);
     font-size: 14px;
-    min-height: 43px;
+    min-height: 44px;
     max-width: 100%;
   }
   .context-input-card textarea {
@@ -2156,7 +2156,7 @@
     border: 1px solid var(--border);
     border-radius: 7px;
     font-size: 13px;
-    min-height: 35px;
+    min-height: 36px;
   }
   .context-input-footer button:hover {
     background: var(--accent);
@@ -2518,7 +2518,10 @@
       padding: 17px;
     }
   }
-  @media (max-width: 700px) {
+  /* 699, not 700: chat.css carries `min-width: 700px`, so a `max-width: 700px`
+   here means both fire at exactly 700px wide. A boundary cannot be inclusive
+   on both sides. */
+  @media (max-width: 699px) {
     .context-intro h2 {
       font-size: 27px;
     }
@@ -2603,7 +2606,7 @@
     max-width: 260px;
     min-width: 100px;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .comparison-toolbar .model-picker {
       max-width: 100%;
     }
@@ -2729,7 +2732,7 @@
     font-size: 13px;
     color: var(--muted-foreground);
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .corpus-controls {
       flex-direction: column;
     }
@@ -2870,7 +2873,7 @@
   .composer .send-button {
     border-radius: 14px !important;
     width: 42px !important;
-    height: 42px !important;
+    height: 40px !important;
     background: #3155d9 !important;
     color: white !important;
   }
@@ -3143,7 +3146,7 @@
   }
   @media (max-width: 1100px) {
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .studio-shell .workspace-header {
       height: 62px;
       padding: 0 14px;
@@ -3879,7 +3882,10 @@
     background: #22392f;
     color: #b3d9c6;
   }
-  @media (max-width: 1180px) {
+  /* 1179, not 1180: two other blocks already use it, and a boundary that
+   differs by one pixel from another is two boundaries to maintain and one
+   width nobody can tell apart. */
+  @media (max-width: 1179px) {
     .agent-grid,
     .runtime-grid,
     .connection-paths {
@@ -3889,7 +3895,7 @@
       min-height: 0;
     }
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .destination-scroll {
       padding: 20px 18px 45px;
     }

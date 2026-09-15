@@ -44,7 +44,7 @@
     font-weight: 600;
   }
   .auth-card input {
-    height: 46px;
+    height: 44px;
     border: 1px solid #dee5e0;
     border-radius: 10px;
     padding: 0 14px;
@@ -64,7 +64,7 @@
     background: #285d46;
     color: white;
     border-radius: 10px;
-    min-height: 46px;
+    min-height: 44px;
     margin-top: 12px;
     width: 100%;
     font-size: 14px;
@@ -236,7 +236,7 @@
     max-width: 100%;
     overflow-x: auto;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .studio-shell .workspace-header h1 {
       flex: 1;
       max-width: unset;
