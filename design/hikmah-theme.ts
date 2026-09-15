@@ -39,18 +39,20 @@ export const hikmahTheme = defineTheme({
    * default step and reads calmly at this size. */
   typography: {
     scale: { base: 14, ratio: 1.2 },
-    /* The stack the app RENDERS in, which is not the one it names.
+    /* Inter, which the app now actually loads.
      *
-     * base.css asks for `Inter, Arial, Helvetica, sans-serif` and nothing ever
-     * loads Inter — no next/font, no @font-face, no stylesheet link — so on any
-     * device without it locally the site has always drawn in the fallback. What
-     * it actually gets is Tailwind's `font-sans`, the system UI stack.
+     * This comment used to say the opposite, and it was right at the time:
+     * base.css asked for `Inter` and nothing anywhere loaded it — no next/font,
+     * no @font-face, no stylesheet link — so every device without it installed
+     * drew in the fallback, and naming a family here would only have changed
+     * what Astryx's own rules asked for, not what appeared. Written
+     * `Arial, Helvetica` on one attempt and measured, that changed the typeface
+     * of the whole site.
      *
-     * Naming a family here does not load it either; it sets what Astryx's own
-     * rules ask for. Written as `Arial, Helvetica` the first time, and measured,
-     * that changed the typeface of the whole site — Arial instead of the system
-     * font, on every device without Inter. So this mirrors what is on screen
-     * today, and changing the typeface stays a deliberate change of its own. */
+     * app/layout.tsx loads it now, self-hosted from a pinned package, so the
+     * name and the pixels agree for the first time. The fallbacks below are
+     * what a device sees before the 48 KB arrives and if it never does.
+     */
     body: {
       family: 'Inter',
       fallbacks: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
