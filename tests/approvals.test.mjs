@@ -20,7 +20,11 @@ import {
   withoutGrant,
 } from '../lib/chat/approvals.ts';
 import { parseChatSettings } from '../lib/chat/settings.ts';
-import { shellApprovalPolicy } from '../lib/ai/tools/shell.ts';
+import {
+  READ_ONLY_COMMANDS,
+  isReadOnlyCommand,
+  shellApprovalPolicy,
+} from '../lib/ai/tools/shell.ts';
 import { mcpToolApproval } from '../lib/mcp/run-context.ts';
 import { buildRunAgent } from '../lib/ai/run-agent.ts';
 
@@ -198,4 +202,40 @@ test('on the real agent, a granted command runs and a program with a grant runs'
     ]),
   );
   assert.equal(asked.state, 'approval-requested', 'without a grant it still asks');
+});
+
+test('printing the environment is not something that runs unasked', () => {
+  // `env` was on the auto-approved list, and the workbench spawned commands with
+  // the whole of `process.env` — so `env` printed HIKMAH_WORKBENCH_TOKEN, the
+  // workbench's entire authentication, with nobody's say-so. The spawn is
+  // filtered now (workbench/src/env.ts), which is the real fix; this is the
+  // second half of it, because "reads nothing that matters" was never true of a
+  // command whose whole job is to print the process's secrets.
+  assert.equal(isReadOnlyCommand('env'), false);
+  assert.equal(isReadOnlyCommand('printenv'), false, 'and its other spelling was never listed');
+  assert.ok(!READ_ONLY_COMMANDS.includes('env'));
+});
+
+test('find asks when it is told to change something', () => {
+  // `find` is on the list because it reads. But `find` is also a way to run
+  // arbitrary commands and to delete a tree, and neither spelling needs a
+  // separator — so `find /workspace -delete` was auto-approved as a read, and
+  // `-exec … {} +` slipped past the separator check too, since `+` is not one.
+  assert.equal(isReadOnlyCommand('find . -name "*.ts"'), true, 'an ordinary find still runs');
+  assert.equal(isReadOnlyCommand('find /workspace -type f'), true);
+
+  for (const command of [
+    'find /workspace -delete',
+    'find . -name "*.log" -delete',
+    'find . -exec rm -rf {} +',
+    'find . -execdir touch x +',
+    'find . -ok rm {} +',
+    'find . -fprint /workspace/out.txt',
+    'find . -fls /workspace/out.txt',
+  ]) {
+    assert.equal(isReadOnlyCommand(command), false, `${command} must ask`);
+  }
+
+  // The flag has to be its own word: a file called "-delete-notes" is not one.
+  assert.equal(isReadOnlyCommand('find . -name deleted'), true, 'a substring is not a flag');
 });

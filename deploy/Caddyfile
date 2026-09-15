@@ -7,15 +7,32 @@
     -Server
   }
   # The terminal socket, before the app route: Next.js cannot serve a
-  # WebSocket, so /ws/* belongs to the workbench. stream_timeout keeps a long
-  # idle session alive and stream_close_delay stops a config reload from
+  # WebSocket, so this one path belongs to the workbench. stream_timeout keeps a
+  # long idle session alive and stream_close_delay stops a config reload from
   # dropping every open terminal.
   #
-  # handle_path, not handle: the plain form matches the prefix and forwards it
-  # unchanged, so the workbench received /ws/terminal and rejected the upgrade.
-  # The workbench now accepts both spellings, but it should still be given the
-  # path it documents.
-  handle_path /ws/* {
+  # /ws/terminal*, not /ws/*: the wide form published the *whole* workbench,
+  # including `POST /runs` — the endpoint that executes the assistant's shell
+  # commands — so `POST https://<domain>/ws/runs` reached it with nothing in
+  # front but one shared bearer token. The browser needs exactly one thing from
+  # this service; the app reaches /runs over the Compose network, which is not
+  # published at all.
+  #
+  # `handle`, not `handle_path`, and this is the part that is easy to get wrong:
+  # handle_path strips the *matched* prefix, so `handle_path /ws/terminal*` would
+  # strip `/ws/terminal` and hand the workbench `/`, which it rejects — the
+  # terminal would break in exactly the way it broke before. Measured against
+  # caddy 2.8.4 rather than reasoned about:
+  #
+  #   handle_path /ws/*          /ws/terminal -> /terminal      /ws/runs -> /runs
+  #   handle_path /ws/terminal*  /ws/terminal -> /              /ws/runs -> the app
+  #   handle      /ws/terminal*  /ws/terminal -> /ws/terminal   /ws/runs -> the app
+  #
+  # The last is the only row that is both narrow and working. It relies on the
+  # workbench accepting `/ws/terminal` as well as `/terminal`, which it already
+  # does (workbench/src/server.ts, TERMINAL_PATHS) — added so that a proxy change
+  # could not break this again, and this is that change.
+  handle /ws/terminal* {
     reverse_proxy workbench:3001 {
       stream_timeout 24h
       stream_close_delay 5m

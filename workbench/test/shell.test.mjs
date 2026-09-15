@@ -221,3 +221,47 @@ test('snippets are written inside the workspace, not somewhere the owner cannot 
   const files = await readdir(join(root, '.runs'));
   assert.ok(files.some((name) => name.endsWith('.mjs')));
 });
+
+test('a command inherits only what a shell needs, never the service’s token', async (t) => {
+  // The human terminal has filtered this since it was written (`src/terminal.ts`,
+  // asserted by name in `terminal.test.mjs`). The model's path did not:
+  // `runCommand` spawned with `{ ...process.env }`, so the whole environment —
+  // `HIKMAH_WORKBENCH_TOKEN` included — reached every command. And `env` was on
+  // the app's auto-approved list, so printing it needed nobody's say-so.
+  //
+  // That token is the workbench's entire authentication: anything holding it can
+  // POST a command to /runs. It has no business being readable by the commands
+  // it authorises.
+  const root = await workspace(t);
+  const session = createSessions(root).for('conv-1');
+  process.env.HIKMAH_WORKBENCH_TOKEN = 'token-that-must-not-leak';
+  process.env.HIKMAH_VAULT_KEY = 'key-that-must-not-leak';
+  t.after(() => {
+    delete process.env.HIKMAH_WORKBENCH_TOKEN;
+    delete process.env.HIKMAH_VAULT_KEY;
+  });
+
+  const result = await run(session, 'env', root);
+  assert.doesNotMatch(result.stdout, /HIKMAH_/, 'no HIKMAH_* variable reaches a command');
+  assert.doesNotMatch(result.stdout, /must-not-leak/, 'and neither do their values');
+  // The filter has to leave a working shell behind, or it just moves the bug.
+  assert.match(result.stdout, /(^|\n)PATH=/, 'PATH still crosses, or nothing runs');
+});
+
+test('a snippet is spawned through the same filter as a command', async (t) => {
+  // sandbox_run reaches the same spawn, so a filter applied only to `bash` would
+  // leave `sandbox_run` printing the token with a two-line Python program.
+  const root = await workspace(t);
+  const session = createSessions(root).for('conv-1');
+  process.env.HIKMAH_WORKBENCH_TOKEN = 'token-that-must-not-leak';
+  t.after(() => {
+    delete process.env.HIKMAH_WORKBENCH_TOKEN;
+  });
+  const result = await runSnippet(
+    session,
+    'python',
+    'import os; print("SEEN", [k for k in os.environ if k.startswith("HIKMAH_")])',
+    { workspace: root },
+  );
+  assert.match(result.stdout, /SEEN \[\]/, 'a snippet sees no HIKMAH_* either');
+});

@@ -37,7 +37,6 @@ export const READ_ONLY_COMMANDS = [
   'df',
   'date',
   'whoami',
-  'env',
   'which',
   'echo',
   'diff',
@@ -45,6 +44,19 @@ export const READ_ONLY_COMMANDS = [
 
 /** Characters that turn one command into several, or redirect its output. */
 const SEPARATORS = /[;&|`$><\n\r\\]/;
+
+/**
+ * `find` actions that write, delete or run something.
+ *
+ * `find` earns its place on the list above by reading, but it is also a way to
+ * delete a tree and a way to run an arbitrary command — and neither spelling
+ * needs a separator, so both were auto-approved: `find /workspace -delete` has
+ * no separator at all, and `find . -exec rm -rf {} +` terminates with `+`,
+ * which is not one of the characters above.
+ *
+ * Matched as whole words, so a file named `deleted` is not an action.
+ */
+const FIND_ACTIONS = /(^|\s)-(delete|exec|execdir|ok|okdir|fprint|fprintf|fprint0|fls)(\s|$)/;
 
 /**
  * May this command run without asking?
@@ -57,7 +69,9 @@ export function isReadOnlyCommand(command: string): boolean {
   const trimmed = command.trim();
   if (!trimmed || SEPARATORS.test(trimmed)) return false;
   const [name] = trimmed.split(/\s+/);
-  return READ_ONLY_COMMANDS.includes(name);
+  if (!READ_ONLY_COMMANDS.includes(name)) return false;
+  if (name === 'find' && FIND_ACTIONS.test(trimmed)) return false;
+  return true;
 }
 
 export type ShellToolContext = {

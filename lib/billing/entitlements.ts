@@ -10,17 +10,6 @@
  */
 import { planById, type Tier } from './plans.ts';
 
-/** Tools that reach a machine the deployment owns.
- *
- * The workbench is one container with one /workspace volume shared by every
- * conversation on the deployment (workbench/src/server.ts). With one person
- * that is a feature. With two it is a shared filesystem and a shell handed to
- * whoever signed up last, so these stay with the operator until execution is
- * per-tenant. Named here rather than in the run agent so the list and the
- * reason live together.
- */
-export const EXECUTION_TOOLS = ['bash', 'sandbox_run', 'ssh_exec', 'list_ssh_hosts'];
-
 export type Entitlements = {
   tier: Tier;
   /** May a run fall back to the deployment's own provider key when the person

@@ -18,6 +18,7 @@ import { initialModel } from '../playground/session.ts';
 import { ASK_USER_PART } from './resume.ts';
 import { answered, NO_ANSWER } from './failure.ts';
 import { mediaKeyFor } from './media.ts';
+import { executionAllowed } from './execution.ts';
 import { createMemoryStore } from '../memory/store.ts';
 import { recentUserText } from '../context-model/run-brief.ts';
 import type { MemoryToolContext } from '../ai/tools/memory.ts';
@@ -116,10 +117,10 @@ async function driveWithAgent({
   emit: (chunk: unknown) => number;
 }) {
   const config = JSON.parse(run.config) as RunConfig;
-  // Absent on runs written before tiers existed, and on a single-owner
-  // deployment that has never had a second account. Both mean the run behaves
-  // as it always did.
-  const execution = config.execution !== false;
+  // Absent means no. This read used to be `!== false`, so a config that simply
+  // did not carry the key was granted the workbench shell and SSH — a gate
+  // failing in the one direction a gate must not. See lib/runs/execution.ts.
+  const execution = executionAllowed(config);
   // Connected per run and released in the finally below. A worker that lives
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
