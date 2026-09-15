@@ -39,7 +39,7 @@ import { prepareConnectors } from '@/lib/playground/run-preparation';
 import type { McpConnection } from '@/lib/playground/workspace-config';
 import { connectMcp, type McpTool } from '@/lib/playground/mcp-client';
 import { readWorkspaceSession, saveWorkspaceSession } from '@/lib/playground/storage';
-import { themeCookie } from '@/lib/theme';
+import { canPublishTheme, themeCookie } from '@/lib/theme';
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type AppContext = {
   prepareRunConnections: (
@@ -368,12 +368,16 @@ export function PlaygroundProvider({
     };
   }, []);
   useEffect(() => {
+    // Not before the saved session arrives: see canPublishTheme. Until then
+    // `preferences` is the default object and its theme is `light`, which would
+    // overwrite what the layout stamped from the cookie and then persist.
+    if (!canPublishTheme({ loaded, restoreFailed: restoreError })) return;
     document.documentElement.dataset.theme = preferences.theme;
     // Mirrored into a cookie so the server can stamp the same theme on the next
     // page load, before anything paints, and so /chat picks it up without
     // mounting this provider.
     document.cookie = themeCookie(preferences.theme);
-  }, [preferences.theme]);
+  }, [loaded, restoreError, preferences.theme]);
   useEffect(() => {
     catalogAbort.current?.abort();
     setModels([]);

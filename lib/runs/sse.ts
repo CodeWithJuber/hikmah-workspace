@@ -63,6 +63,8 @@ export function runEventStream(options: {
 }): ReadableStream<Uint8Array> {
   const { runId, after, store, bus } = options;
   const encoder = new TextEncoder();
+  /** Set once `start` has built one; `cancel` may fire before or after. */
+  let cleanup: (() => void) | undefined;
 
   return new ReadableStream<Uint8Array>({
     start(controller) {
@@ -141,6 +143,17 @@ export function runEventStream(options: {
       // A run that already finished has nothing to tail.
       const run = store.getRun(runId);
       if (!run || store.isTerminal(run.status)) finish();
+
+      // The consumer can drop the stream without the request signal ever
+      // aborting — a runtime that discards the response body, a caller that
+      // cancels the reader. The abort path above covers a browser going away;
+      // this covers the rest, and both funnel into the same cleanup, so the
+      // keepalive interval and the bus subscription cannot outlive the reader
+      // whichever way it ends.
+      cleanup = finish;
+    },
+    cancel() {
+      cleanup?.();
     },
   });
 }

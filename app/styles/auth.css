@@ -1,0 +1,279 @@
+/* Sign-in, sign-up, the brand banner and what happens after.
+ *
+ * One run of what was app/globals.css, cut contiguously so the cascade is
+ * unchanged: two rules of equal specificity are decided by source order, so
+ * regrouping them would rewrite that for any pair matching the same element.
+ * A rule is therefore where the file grew, not always where it belongs.
+ *
+ * Imported by app/globals.css, which is the only place the order is set. */
+@layer components {
+  /* The brand is wrapped in a banner landmark, so the gap under it belongs to
+   the wrapper; on the link it would collapse inside a flex parent. */
+  .auth-card > header {
+    margin-bottom: 38px;
+  }
+  .auth-eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    font-weight: 600;
+    color: #567265;
+    margin-bottom: 12px;
+  }
+  .auth-card h1 {
+    font-size: 27px;
+    line-height: 1.25;
+    letter-spacing: -0.9px;
+    font-weight: 550;
+    margin-bottom: 12px;
+  }
+  .auth-subtitle {
+    font-size: 14px;
+    /* Was #718078: 4.15:1 on the card, under the 4.5 a 14px text needs. The
+     landing page's own soft ink reads 5.9:1 and is already in this file. */
+    color: #55695f;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+  .auth-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .auth-card label {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .auth-card input {
+    height: 46px;
+    border: 1px solid #dee5e0;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: #fff;
+    margin-bottom: 8px;
+    outline: none;
+  }
+  .auth-card input:focus {
+    border-color: #35765b;
+    box-shadow: 0 0 0 3px #35765b15;
+  }
+  .auth-card button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #285d46;
+    color: white;
+    border-radius: 10px;
+    min-height: 46px;
+    margin-top: 12px;
+    width: 100%;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .auth-card button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+  .auth-error {
+    color: #a43b34;
+    font-size: 13px;
+  }
+  .auth-note {
+    font-size: 12px;
+    color: #55695f;
+    text-align: center;
+    line-height: 1.6;
+    margin-top: 22px;
+  }
+  .auth-card footer {
+    margin-top: 32px;
+    border-top: 1px solid #e8f2ec;
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    /* 10px at 2.7:1 was neither legible nor passing. */
+    font-size: 11px;
+    color: #567265;
+  }
+  .auth-back {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    text-decoration: underline;
+  }
+  /* The brand is a link home now that there is a page to go home to, so it must
+   not inherit the underline every other link in the card has. */
+  a.auth-brand {
+    color: inherit;
+    text-decoration: none;
+  }
+  /* Google, above the password form. Outlined rather than filled: the primary
+   action in this card is the one that submits it. */
+  .auth-social {
+    background: #fff !important;
+    color: #20352e !important;
+    border: 1px solid #d6ded7;
+    font-weight: 500;
+  }
+  .auth-social:hover {
+    background: #f4f7f5 !important;
+  }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 4px;
+    font-size: 11px;
+    color: #567265;
+  }
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e8f2ec;
+  }
+  .auth-hint {
+    font-size: 12px;
+    color: #55695f;
+    margin-top: -4px;
+  }
+  .auth-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    text-align: center;
+    margin-top: 22px;
+    font-size: 13px;
+    color: #567265;
+    line-height: 1.6;
+  }
+  .auth-links a,
+  a.auth-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    text-decoration: underline;
+  }
+  .auth-links .auth-note {
+    margin-top: 0;
+  }
+  /* The one screen in the pair that has no form: what happens after a signup or
+   a reset request, where the only useful thing to say is "go and look". */
+  .auth-sent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #37544a;
+    background: #f4f7f5;
+    border: 1px solid #dee5e0;
+    border-radius: 14px;
+    padding: 22px 20px;
+  }
+  .auth-sent strong {
+    font-weight: 600;
+    word-break: break-all;
+  }
+  /* The auth cards used their own ring colour too. The one at the top of the
+   file already covers them. */
+  @media (max-width: 480px) {
+    .auth-card {
+      padding: 28px 24px;
+    }
+    .auth-card h1 {
+      font-size: 25px;
+    }
+  }
+
+  /* Keep the conversation readable while tools and optional panels are active. */
+  .studio-shell .conversation-content {
+    width: 100%;
+    margin-inline: auto;
+    overflow-wrap: anywhere;
+  }
+  .studio-shell .primary-response {
+    width: 100%;
+    min-width: 0;
+  }
+  .studio-shell .execution-progress {
+    margin-top: 16px;
+    max-width: 100%;
+  }
+  .studio-shell .working-label {
+    min-width: 0;
+    max-width: 70%;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .studio-shell .working-label svg {
+    flex-shrink: 0;
+  }
+  .studio-shell .completed-files {
+    margin-top: 16px;
+  }
+  .studio-shell .composer-dock {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+  }
+  .studio-shell .composer textarea {
+    max-height: min(180px, 26dvh);
+    overflow-y: auto;
+  }
+  .studio-shell .message-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .studio-shell .markdown-content pre,
+  .studio-shell .markdown-content table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  @media (max-width: 700px) {
+    .studio-shell .workspace-header h1 {
+      flex: 1;
+      max-width: unset;
+      min-width: 0;
+      font-size: 17px;
+    }
+    .studio-shell .header-actions .chat-memory-button {
+      display: none;
+    }
+    .studio-shell .header-actions .model-picker {
+      min-width: 0;
+      max-width: 145px;
+    }
+    .studio-shell .conversation-content {
+      padding: 22px 16px;
+    }
+    .studio-shell .composer-remember,
+    .studio-shell .composer-run-mode,
+    .studio-shell .composer-hint {
+      display: none;
+    }
+    .studio-shell .composer-controls {
+      gap: 3px;
+    }
+    .studio-shell .composer-controls .send-button {
+      margin-left: auto;
+      min-width: 40px;
+      min-height: 40px;
+    }
+    .studio-shell .agent-selector {
+      margin-bottom: 6px;
+    }
+    .studio-shell .agent-selector select {
+      max-width: calc(100vw - 85px);
+    }
+    .studio-shell .chat-message.user .chat-message-inner {
+      max-width: 94%;
+    }
+  }
+}

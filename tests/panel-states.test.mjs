@@ -17,10 +17,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { allStyles } from './stylesheet.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(join(root, file), 'utf8');
-const css = read('app/globals.css');
+// The rules moved into app/styles/*; allStyles follows the import graph.
+const css = allStyles();
 
 const PANELS = [
   ['components/chat/conversation-list.tsx', 'conversations'],
@@ -84,8 +86,11 @@ test('row actions are reachable on a touch screen', () => {
   // `opacity: 0` plus `:hover` is unreachable on a phone, and these three
   // panels are drawers on a phone.
   for (const selector of ['.conversation-delete', '.files-delete']) {
-    const start = css.indexOf(`\n${selector} {`);
-    assert.ok(start > -1, `${selector} has no rule`);
+    // Found by pattern rather than at column zero: globals.css wraps its rules
+    // in `@layer components`, so every selector in it is now indented.
+    const found = new RegExp(`\n\\s*\\${selector} \\{`).exec(css);
+    assert.ok(found, `${selector} has no rule`);
+    const start = found.index;
     const block = css.slice(start, css.indexOf('}', start));
     assert.doesNotMatch(
       block,

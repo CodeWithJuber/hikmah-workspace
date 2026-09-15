@@ -13,6 +13,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { allStyles } from './stylesheet.mjs';
 
 const dir = await mkdtemp(join(tmpdir(), 'hikmah-chat-'));
 await build({
@@ -30,7 +31,9 @@ test.after(async () => rm(dir, { recursive: true, force: true }));
 const layout = await readFile('app/layout.tsx', 'utf8');
 const context = await readFile('components/playground/context.tsx', 'utf8');
 const shell = await readFile('components/chat/chat-shell.tsx', 'utf8');
-const css = await readFile('app/globals.css', 'utf8');
+// Every rule lives in a file globals.css imports; reading globals.css alone
+// would find none of them and quietly pass.
+const css = allStyles();
 
 test('only the two real themes are accepted from the cookie', () => {
   assert.equal(isTheme('dark'), true);

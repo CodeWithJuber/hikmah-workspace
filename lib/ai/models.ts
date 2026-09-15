@@ -19,7 +19,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { providerFor } from './providers.ts';
 import type { LanguageModel } from 'ai';
 import { assertModelAllowed, resolveProviderBaseUrl } from './endpoint.ts';
-import { withIdleTimeout } from './watchdog.ts';
+import { providerMaxMs, withIdleTimeout } from './watchdog.ts';
 
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
@@ -44,7 +44,9 @@ export function createLanguageModel(request: ModelRequest): LanguageModel {
   const baseUrl = resolveProviderBaseUrl(request.baseUrl);
   const model = request.model.trim();
   assertModelAllowed({ baseUrl, model, freeOnly: request.freeOnly });
-  const fetchWithWatchdog = withIdleTimeout();
+  // Read per call, not at import: a deployment sets HIKMAH_RUN_MAX_MS in its
+  // environment, and the tests set it around individual cases.
+  const fetchWithWatchdog = withIdleTimeout(undefined, undefined, providerMaxMs());
 
   if (baseUrl === OPENROUTER_BASE_URL) {
     const openrouter = createOpenRouter({

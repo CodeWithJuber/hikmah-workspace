@@ -3,7 +3,7 @@
 // Run: node --test tests/ai-watchdog.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withIdleTimeout } from '../lib/ai/watchdog.ts';
+import { providerMaxMs, withIdleTimeout } from '../lib/ai/watchdog.ts';
 
 const read = async (response) => {
   const reader = response.body.getReader();
@@ -89,4 +89,65 @@ test('response status and headers survive the wrapper', async () => {
   assert.equal(response.status, 201);
   assert.equal(response.headers.get('content-type'), 'text/event-stream');
   assert.equal(await read(response), 'ok');
+});
+
+test('a provider that trickles forever is still given up on', { timeout: 15000 }, async () => {
+  // The idle deadline resets on every byte, deliberately: a long reasoning
+  // response is healthy and a silent socket is dead. But that means one byte
+  // every few seconds keeps a run — and a worker slot — alive with no end, and
+  // nothing else in the system bounds it. So there is a second, much larger
+  // bound on the whole response, far above any healthy answer.
+  //
+  // The trickle here is finite (400 chunks, ~2s) so that without the cap this
+  // test fails in two seconds rather than hanging: a stream that never ends
+  // makes a bad test, whatever it proves.
+  let sent = 0;
+  const trickle = new ReadableStream({
+    async pull(controller) {
+      if (sent >= 400) return controller.close();
+      sent += 1;
+      controller.enqueue(new TextEncoder().encode('.'));
+      // Always faster than the idle deadline, so the idle path never fires.
+      await new Promise((r) => setTimeout(r, 5));
+    },
+  });
+  const fetchBounded = withIdleTimeout(async () => new Response(trickle), 1_000, 200);
+  const response = await fetchBounded('https://example.test');
+  const reader = response.body.getReader();
+  await assert.rejects(
+    (async () => {
+      for (;;) {
+        const { done } = await reader.read();
+        if (done) return;
+      }
+    })(),
+    /still sending/,
+    'a response past the cap must end with a real message, not run to completion',
+  );
+  assert.ok(sent > 1, 'the stream really was flowing, so this is not the idle path');
+});
+
+test('a response that finishes inside the cap is untouched', async () => {
+  const fetchBounded = withIdleTimeout(
+    async () => new Response(new TextEncoder().encode('all of it')),
+    1_000,
+    10_000,
+  );
+  const response = await fetchBounded('https://example.test');
+  assert.equal(await response.text(), 'all of it');
+});
+
+test('the deployment can set the cap, and nonsense does not remove it', () => {
+  // A safety bound that an empty or mistyped environment variable silently
+  // turns off is worse than no bound, because it reads as if it is there.
+  assert.equal(providerMaxMs({ HIKMAH_RUN_MAX_MS: '90000' }), 90_000);
+  // The default is named here rather than imported: a test that compares a
+  // constant to itself would pass whatever the number became.
+  assert.equal(providerMaxMs({}), 20 * 60_000, 'unset means twenty minutes');
+  for (const bad of ['', '0', '-1', 'soon', 'NaN', 'Infinity'])
+    assert.equal(
+      providerMaxMs({ HIKMAH_RUN_MAX_MS: bad }),
+      20 * 60_000,
+      `${JSON.stringify(bad)} must fall back to the default, not disable the cap`,
+    );
 });

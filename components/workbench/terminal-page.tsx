@@ -8,7 +8,9 @@ export function TerminalPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       <header className="flex items-start gap-3 border-b px-4 py-3">
-        <SidebarTrigger />
+        {/* size-9, because the vendored default is size-7 — 28px, under any
+            comfortable touch target. tailwind-merge lets the call site win. */}
+        <SidebarTrigger className="size-9" />
         <div>
           <h1 className="text-base font-medium">Terminal</h1>
           <p className="text-sm text-muted-foreground">

@@ -374,3 +374,26 @@ test('a background task is listed as one, with what it left to review', async (t
   assert.equal(store.latestChat('u1')?.id, 'c1', 'the landing skips the task');
   assert.equal(store.latestChat('u2'), null);
 });
+
+test('counting missed events does not read them', async (t) => {
+  // The stream route asks "is there anything to send?" before deciding between
+  // a 204 and an open connection. It used to ask `eventsAfter(...).length`,
+  // which reads every payload off disk and JSON.parses it — a whole answer's
+  // worth — and then the stream immediately did the same read again. Two full
+  // passes per connect, on the one thread that also answers every panel fetch.
+  const { store } = await freshStore(t);
+  store.createRun({ id: 'r1', conversationId: 'c1', userId: 'u1', config: {} });
+  for (let i = 0; i < 5; i += 1) store.appendEvent('r1', { type: 'text-delta', delta: 'x' });
+
+  assert.equal(store.countEventsAfter('r1', -1), 5, 'everything, from the start');
+  assert.equal(store.countEventsAfter('r1', 2), 2, 'and only what comes after a cursor');
+  assert.equal(store.countEventsAfter('r1', 99), 0);
+  // It agrees with the read it replaces — that is the whole contract.
+  for (const after of [-1, 0, 2, 4, 99])
+    assert.equal(
+      store.countEventsAfter('r1', after),
+      store.eventsAfter('r1', after).length,
+      `the count and the read disagree after ${after}`,
+    );
+  assert.equal(store.countEventsAfter('nonexistent', -1), 0, 'an unknown run is not an error');
+});

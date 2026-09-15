@@ -667,7 +667,7 @@ export function ChatView({
               <Toggle
                 pressed={webSearch}
                 onPressedChange={setWebSearch}
-                className="chat-turn-toggle"
+                className="chat-turn-toggle rounded-full"
                 aria-label="Search the web for this message"
                 title="Search the web for this message"
               >
@@ -679,7 +679,7 @@ export function ChatView({
               <Toggle
                 pressed={deepResearch}
                 onPressedChange={setDeepResearch}
-                className="chat-turn-toggle"
+                className="chat-turn-toggle rounded-full"
                 aria-label="Research deeply: sub-agents read sources in parallel"
                 title="Research deeply: sub-agents read sources in parallel"
               >
