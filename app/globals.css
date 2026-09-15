@@ -113,7 +113,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: Arial, Helvetica, sans-serif;
+  /* next/font builds this in app/layout.tsx: the loaded Inter, then the
+     Arial fallback it size-adjusts to Inter's metrics, then the system stack.
+     Every Tailwind `font-sans` reads it, so one line moves the utilities too. */
+  --font-sans: var(--font-inter);
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;

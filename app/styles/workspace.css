@@ -3537,13 +3537,7 @@
   }
 
   body {
-    font-family:
-      Inter,
-      ui-sans-serif,
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      sans-serif;
+    font-family: var(--font-inter);
     letter-spacing: -0.012em;
   }
   .hikmah-brand {
