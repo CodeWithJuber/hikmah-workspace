@@ -161,8 +161,15 @@ export function createSlots(options: {
      * Creating the directory is part of resolving the slot rather than a
      * separate step, so there is no window in which a slot is assigned and its
      * directory is missing or owned by the wrong uid.
+     *
+     * `beforeHandover` runs while the directory is still root's, after its mode
+     * is set and before it is given to the slot user. That window exists for
+     * exactly one caller — the one-time migration of a pre-slots workspace,
+     * which has to move files *into* the directory. Once it belongs to the slot
+     * user the supervisor cannot write there at all (no DAC_OVERRIDE), so there
+     * is no later moment at which that move could happen.
      */
-    for(userKey: string): Slot {
+    for(userKey: string, beforeHandover?: (slot: Slot) => void): Slot {
       if (!isUserKey(userKey))
         throw new SlotError('This request did not say which account it is for.', 400);
       const state = load();
@@ -185,30 +192,30 @@ export function createSlots(options: {
         save();
       }
       const slot = describe(index);
-      // mkdir, then chmod, then chown — and in that order, which is not a
-      // style choice.
+      // mkdir, take it back, set the mode, let the caller write, hand it over —
+      // and every step of that order is forced by the capability set.
       //
-      // `chmod` requires owning the file or holding CAP_FOWNER, and the
-      // supervisor deliberately holds neither once the directory belongs to the
-      // slot user. Chowning first therefore gives away the ability to set the
-      // mode, and the chmod fails with EPERM — leaving the directory at the
-      // 0755 mkdir made it. That is not a cosmetic failure: a 0755 slot is
-      // readable by every other slot, so the boundary this whole module exists
-      // for would not be there at all. CI caught it; measured under the real
-      // capability set (cap_drop ALL, cap_add SETUID/SETGID/CHOWN):
+      // `chmod` needs ownership or CAP_FOWNER, and the supervisor holds neither
+      // once the directory belongs to the slot user; so the mode must be set
+      // while root still owns it, which means chowning back first to make this
+      // idempotent for a directory that already belongs to someone.
       //
-      //   mkdir -> chown -> chmod    chmod EPERM, left at 0755
-      //   mkdir -> chmod -> chown    0700
+      // Writing into the directory needs the same thing, which is why
+      // `beforeHandover` sits here rather than after: a 0700 directory owned by
+      // hk01 is one the supervisor cannot rename a file into.
       //
-      // The chown back to root first is what makes it idempotent: re-resolving
-      // a slot the user already owns has to take it back before it can correct
-      // the mode. CAP_CHOWN allows that; nothing else here would.
+      // Measured under cap_drop ALL + cap_add SETUID/SETGID/CHOWN. Two earlier
+      // orderings failed in CI, each silently:
+      //   mkdir -> chown -> chmod          chmod EPERM, left world-readable
+      //   ...then migrate after handover   rename EACCES, nothing moved
       try {
         fs.mkdir(slot.home);
         fs.chown(slot.home, 0, 0);
         fs.chmod(slot.home, 0o700);
+        beforeHandover?.(slot);
         fs.chown(slot.home, slot.uid, slot.gid);
       } catch (error) {
+        if (error instanceof SlotError) throw error;
         const code = (error as NodeJS.ErrnoException).code;
         // What an operator meets if the volume was restored from a backup, or
         // came from a release before `chown 0:0 workbench-data`.

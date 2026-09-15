@@ -18,7 +18,7 @@ import { TicketError, pruneSeen, verifyTicket } from './ticket.ts';
 import { createTerminal as defaultCreateTerminal, type TerminalSession } from './terminal.ts';
 import { RunRequestError, parseRunRequest, readJsonBody, writeRunStream } from './runs.ts';
 import { SlotError, createSlots, type Slot } from './slots.ts';
-import { migrateSharedWorkspace, realMigrateFs } from './migrate.ts';
+import { migrateSharedWorkspace, realMigrateFs, type Migration } from './migrate.ts';
 import { bridgeServerId, createBridgePool, handleBridgeRequest } from './mcp-bridge.ts';
 import type { sshExec } from './ssh.ts';
 
@@ -66,20 +66,31 @@ export function createWorkbench(options: WorkbenchOptions) {
       // needs `entitlements.execution`, which is owner-only — so their files
       // move into it. See migrate.ts for why that assumption is load-bearing.
       const untouched = pool.assigned === 0;
-      const slot = pool.for(userKey);
-      if (!untouched) return slot;
+      // The migration runs inside `for`, in the window where the directory is
+      // still root's: it moves files INTO the slot, and once the slot user owns
+      // it the supervisor cannot write there at all.
+      // A holder rather than a plain `let`: TypeScript cannot know the callback
+      // below runs synchronously, so it narrows a `let` to `null` and then
+      // refuses to read the result.
+      const migration: { done: Migration } = { done: null };
+      let slot;
       try {
-        const done = migrateSharedWorkspace(options.workspace, slot, realMigrateFs);
-        if (done)
-          console.info(
-            `[workbench] moved ${done.moved.length} existing entr${done.moved.length === 1 ? 'y' : 'ies'} into ${done.slot}: ${done.moved.join(', ')}`,
-          );
+        slot = pool.for(userKey, (fresh) => {
+          if (!untouched) return;
+          migration.done = migrateSharedWorkspace(options.workspace, fresh, realMigrateFs);
+        });
       } catch (error) {
+        if (error instanceof SlotError) throw error;
         // Refused, not served: handing someone an empty workspace while their
         // files sit unreachable at the top of the volume reads as data loss.
         console.error('[workbench] could not migrate the existing workspace:', error);
         throw new SlotError('This workspace could not be prepared. Check the workbench log.', 500);
       }
+      const moved = migration.done;
+      if (moved)
+        console.info(
+          `[workbench] moved ${moved.moved.length} existing entr${moved.moved.length === 1 ? 'y' : 'ies'} into ${moved.slot}: ${moved.moved.join(', ')}`,
+        );
       return slot;
     });
   // stdio MCP servers hosted here, because the app container cannot run npx.

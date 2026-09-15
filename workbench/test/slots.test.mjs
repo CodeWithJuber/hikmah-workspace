@@ -251,3 +251,48 @@ test('a failure that is not a permission problem is not disguised as one', () =>
     'the original error survives',
   );
 });
+
+test('the migration window is open only while root still owns the directory', () => {
+  // Three orderings have now been wrong, each failing silently in a different
+  // way, and all three are the same mistake: an operation the supervisor may
+  // only do while it owns the directory, attempted after it has given it away.
+  //
+  //   mkdir -> chown -> chmod              chmod EPERM, slot left 0755
+  //   ...and migrating after the handover  rename EACCES, nothing moved
+  //
+  // So the order is pinned here rather than left to be rediscovered: the mode
+  // is set, then the caller gets its window, then the directory is handed over.
+  const state = fakeFs();
+  const calls = [];
+  const fs = {
+    ...state.fs,
+    mkdir: (p) => (calls.push('mkdir'), state.fs.mkdir(p)),
+    chmod: (p, m) => (calls.push('chmod'), state.fs.chmod(p, m)),
+    chown: (p, u, g) => (
+      calls.push(u === 0 ? 'chown:root' : 'chown:slot'),
+      state.fs.chown(p, u, g)
+    ),
+  };
+  const slots = createSlots({ workspace: '/workspace', fs });
+
+  let ownerDuringWindow;
+  const slot = slots.for(KEY_A, (fresh) => {
+    calls.push('window');
+    ownerDuringWindow = state.dirs.get(fresh.home).uid;
+  });
+
+  assert.deepEqual(calls, ['mkdir', 'chown:root', 'chmod', 'window', 'chown:slot']);
+  assert.equal(ownerDuringWindow, 0, 'root still owns it while the caller writes');
+  assert.equal(state.dirs.get(slot.home).uid, slot.uid, 'and the slot owns it afterwards');
+  assert.equal(state.dirs.get(slot.home).mode, 0o700, 'at the mode set before the handover');
+});
+
+test('a slot resolved without a migration needs no window', () => {
+  // Every call after the first passes no callback; the ordering must not depend
+  // on one being there.
+  const state = fakeFs();
+  const slots = createSlots({ workspace: '/workspace', fs: state.fs });
+  const slot = slots.for(KEY_A);
+  assert.equal(state.dirs.get(slot.home).mode, 0o700);
+  assert.equal(state.dirs.get(slot.home).uid, slot.uid);
+});
