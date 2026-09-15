@@ -27,3 +27,21 @@ export function isTheme(value: unknown): value is Theme {
 export function themeCookie(theme: Theme): string {
   return `${THEME_COOKIE}=${theme}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
+
+/**
+ * Whether the workspace may write the theme out yet.
+ *
+ * The workspace provider holds a whole session object, and until the saved one
+ * arrives that object is the default — whose theme is `light`. Writing it
+ * unconditionally on mount overwrote the `data-theme` the layout above had
+ * already stamped from the cookie, and then wrote `light` back into the cookie,
+ * so an owner who preferred dark and opened /workspace was flipped to light on
+ * every surface until they set it again. It was not a flash; it persisted.
+ *
+ * A restore that failed is the same situation with no ending: there is no
+ * preference to publish, and the cookie already holds the last known truth, so
+ * leaving it alone is right.
+ */
+export function canPublishTheme(state: { loaded: boolean; restoreFailed: boolean }): boolean {
+  return state.loaded && !state.restoreFailed;
+}
