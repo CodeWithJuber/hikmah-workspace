@@ -188,9 +188,26 @@ export function createSlots(options: {
       // Idempotent, and re-applied every time: a directory restored from a
       // backup, or created by an older release, must end up at the right owner
       // and mode rather than staying readable by everyone.
-      fs.mkdir(slot.home);
-      fs.chown(slot.home, slot.uid, slot.gid);
-      fs.chmod(slot.home, 0o700);
+      try {
+        fs.mkdir(slot.home);
+        fs.chown(slot.home, slot.uid, slot.gid);
+        fs.chmod(slot.home, 0o700);
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        // The supervisor holds CHOWN but deliberately not DAC_OVERRIDE, so a
+        // workspace root owned by anyone else stops it dead — and the bare
+        // EACCES says nothing about which of several steps failed. This is what
+        // an operator sees if the volume was restored from a backup, or came
+        // from a release before `chown 0:0 workbench-data`.
+        if (code === 'EACCES' || code === 'EPERM')
+          throw new SlotError(
+            `The workspace volume is not writable by this service. ` +
+              `Its root must be owned by root (\`chown 0:0\` on the mounted directory); ` +
+              `each account's own directory inside it is then created for them.`,
+            500,
+          );
+        throw error;
+      }
       return slot;
     },
 

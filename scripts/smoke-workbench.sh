@@ -25,10 +25,18 @@ fail() { echo "$1" >&2; exit 1; }
 # Seed a pre-slots workspace: files at the top of the volume owned by the uid
 # the old image used. The migration has to move these into the owner's slot, or
 # an existing deployment upgrades into a read-only workspace.
+#
+# The CONTENTS are uid 1000; the volume root stays root-owned, which is exactly
+# what deploy/release.sh leaves behind (`chown 0:0 workbench-data`). That
+# distinction is not cosmetic: the supervisor holds CHOWN but not DAC_OVERRIDE,
+# so if the root of the volume belonged to uid 1000 it could not create the
+# slot parent inside it, no slot would resolve, and nothing would migrate.
 docker volume create "$volume" >/dev/null
 docker run --rm -v "$volume":/workspace --user 0:0 "$image" \
   sh -c 'mkdir -p /workspace/project && echo mine > /workspace/notes.md &&
-         echo "export {}" > /workspace/project/app.ts && chown -R 1000:1000 /workspace' >/dev/null
+         echo "export {}" > /workspace/project/app.ts &&
+         chown -R 1000:1000 /workspace/notes.md /workspace/project &&
+         chown 0:0 /workspace && chmod 0755 /workspace' >/dev/null
 
 
 # Exactly the grant deploy/compose.yml gives: root, so it can drop to a slot
@@ -59,12 +67,19 @@ curl -sf -H "authorization: Bearer $token" http://127.0.0.1:3211/health | grep -
 # It runs when the first slot is assigned, not at boot, so a run has to happen
 # first. That is also the real code path: the app posts exactly this.
 user_key=$(printf 'o%.0s' $(seq 1 32))
-curl -s -o /dev/null -H "authorization: Bearer $token" -H 'content-type: application/json' \
+run_reply=$(curl -s -H "authorization: Bearer $token" -H 'content-type: application/json' \
   -d "{\"tool\":\"bash\",\"sessionId\":\"smoke\",\"userKey\":\"$user_key\",\"command\":\"pwd\"}" \
-  http://127.0.0.1:3211/runs
-# The owner's files are in the owner's slot and owned by it.
-docker exec "$container" test -f "/workspace/u/hk01/notes.md" \
-  || { docker logs "$container"; fail 'The existing workspace was not migrated into the owner slot.'; }
+  http://127.0.0.1:3211/runs)
+# The owner's files are in the owner's slot and owned by it. On failure, say
+# what the run itself answered and what the service logged — the first version
+# of this check printed neither, and "not migrated" on its own says nothing
+# about which of the four steps did not happen.
+docker exec "$container" test -f "/workspace/u/hk01/notes.md" || {
+  echo "--- the run replied ---"; echo "$run_reply"
+  echo "--- the volume holds ---"; docker exec "$container" ls -la /workspace /workspace/u 2>&1 || true
+  echo "--- the service logged ---"; docker logs "$container"
+  fail 'The existing workspace was not migrated into the owner slot.'
+}
 docker exec "$container" test -f "/workspace/u/hk01/project/app.ts" \
   || fail 'The migration did not carry nested directories.'
 docker exec "$container" test -e /workspace/notes.md \

@@ -180,3 +180,50 @@ test('a user key is opaque and cannot be a path or a flag', () => {
   for (const bad of ['../../etc/passwd', '-rf', 'a/b', 'a b', 'a'.repeat(15), 'a'.repeat(65), ''])
     assert.equal(isUserKey(bad), false, bad);
 });
+
+test('a workspace the service cannot write says so, and says what to do', () => {
+  // The supervisor holds CHOWN but deliberately not DAC_OVERRIDE, so a volume
+  // root owned by anyone else stops it dead. That is the right failure — but
+  // the bare EACCES names none of the four things it could have been, and this
+  // is exactly what an operator meets after restoring a backup or deploying
+  // from before `chown 0:0 workbench-data`. It cost a CI run to find.
+  const { fs } = fakeFs();
+  const denied = {
+    ...fs,
+    mkdir: () => {
+      const error = new Error('EACCES: permission denied');
+      error.code = 'EACCES';
+      throw error;
+    },
+  };
+  const slots = createSlots({ workspace: '/workspace', fs: denied });
+  assert.throws(
+    () => slots.for(KEY_A),
+    (error) => {
+      assert.ok(error instanceof SlotError);
+      assert.equal(error.status, 500);
+      assert.match(error.message, /owned by root/, 'the message names the fix');
+      assert.match(error.message, /chown 0:0/, 'and the command that applies it');
+      return true;
+    },
+  );
+});
+
+test('a failure that is not a permission problem is not disguised as one', () => {
+  // Turning every mkdir error into "chown your volume" would send an operator
+  // after the wrong thing when the disk is full.
+  const { fs } = fakeFs();
+  const full = {
+    ...fs,
+    mkdir: () => {
+      const error = new Error('ENOSPC: no space left on device');
+      error.code = 'ENOSPC';
+      throw error;
+    },
+  };
+  assert.throws(
+    () => createSlots({ workspace: '/workspace', fs: full }).for(KEY_A),
+    /ENOSPC/,
+    'the original error survives',
+  );
+});
