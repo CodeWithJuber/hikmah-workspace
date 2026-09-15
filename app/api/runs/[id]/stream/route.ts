@@ -35,7 +35,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (
     nothingToSend(
       run,
-      worker.store.eventsAfter(id, after).length,
+      worker.store.countEventsAfter(id, after),
       worker.store.isTerminal(run.status),
       after,
     )

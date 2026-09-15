@@ -8,10 +8,22 @@
  */
 export const PROVIDER_IDLE_MS = 300_000;
 
+/** A second bound, on the whole response rather than the gap between bytes.
+ *
+ * The idle deadline above resets on every byte, which is right — but it means
+ * a provider dripping one token every few seconds holds a run, and one of the
+ * worker's slots, for as long as it likes. Nothing else in the system ends it.
+ * Twenty minutes is far above any healthy answer, including long reasoning
+ * ones, so this only ever fires on something that has genuinely gone wrong. */
+export const PROVIDER_MAX_MS = 20 * 60_000;
+
 export type WatchdogFetch = typeof fetch;
 
 const idleMessage = (idleMs: number) =>
   `The model provider stopped sending data for ${Math.round(idleMs / 1000)} seconds. The request was cancelled; any answer received so far is preserved.`;
+
+const overrunMessage = (maxMs: number) =>
+  `The model provider was still sending after ${Math.round(maxMs / 60_000)} minutes. The request was cancelled; any answer received so far is preserved.`;
 
 /**
  * Wrap `fetch` so a response that stalls is abandoned.
@@ -28,8 +40,14 @@ const idleMessage = (idleMs: number) =>
 export function withIdleTimeout(
   inner: WatchdogFetch = fetch,
   idleMs = PROVIDER_IDLE_MS,
+  maxMs = PROVIDER_MAX_MS,
 ): WatchdogFetch {
   return async (input, init) => {
+    // Started before the request, not at the first byte: a provider that takes
+    // an hour to answer at all is the same problem as one that takes an hour
+    // to finish answering.
+    const startedAt = Date.now();
+    const overrun = () => Date.now() - startedAt >= maxMs;
     const controller = new AbortController();
     const caller = init?.signal ?? undefined;
     const relay = () => controller.abort();
@@ -70,6 +88,16 @@ export function withIdleTimeout(
         try {
           const winner = await Promise.race([reader.read(), deadline()]);
           clear();
+          // Checked after the read rather than on a timer of its own: one more
+          // chunk past the cap is harmless, and a second timer would have to be
+          // cleaned up on every path this function already gets right.
+          if (winner !== 'idle' && !winner.done && overrun()) {
+            controller.abort();
+            void reader.cancel().catch(() => {});
+            release();
+            target.error(new Error(overrunMessage(maxMs)));
+            return;
+          }
           if (winner === 'idle') {
             controller.abort();
             void reader.cancel().catch(() => {});

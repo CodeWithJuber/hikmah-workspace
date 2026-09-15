@@ -229,6 +229,9 @@ export function createRunStore(
     eventsAfter: db.prepare(
       'SELECT seq, payload FROM run_events WHERE run_id = ? AND seq > ? ORDER BY seq',
     ),
+    countEventsAfter: db.prepare(
+      'SELECT COUNT(*) AS n FROM run_events WHERE run_id = ? AND seq > ?',
+    ),
     pruneEvents: db.prepare('DELETE FROM run_events WHERE run_id = ?'),
   };
 
@@ -445,6 +448,18 @@ export function createRunStore(
       return (
         statements.eventsAfter.all(runId, after) as Array<{ seq: number; payload: string }>
       ).map((row) => ({ seq: row.seq, payload: JSON.parse(row.payload) }));
+    },
+
+    /** How many events a reconnecting client has missed.
+     *
+     * The stream route only needs to know whether there are any, to decide
+     * between a 204 and holding a connection open. It used to ask `eventsAfter`
+     * and take `.length`, which reads every payload off disk and JSON.parses
+     * it — a whole answer's worth — and then `runEventStream` immediately did
+     * the same read again. One pass per connect instead of two, and this one
+     * touches no payloads at all. */
+    countEventsAfter(runId: string, after: number): number {
+      return (statements.countEventsAfter.get(runId, after) as { n: number }).n;
     },
 
     /** Runs waiting for the worker, across all owners. Reported by /api/health

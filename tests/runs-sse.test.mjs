@@ -135,3 +135,45 @@ test('the resume cursor is read from Last-Event-ID or the query, and bad input i
   }
   assert.equal(resumeCursor(at({})), -1);
 });
+
+test('cancelling the reader unsubscribes and stops the keepalive', async (t) => {
+  // A browser going away aborts the request signal, and that path was already
+  // handled. This is the other way a stream ends: the consumer drops the reader
+  // without the signal ever firing — a runtime discarding the response body, a
+  // caller cancelling. Nothing cleaned up there, so the 15s keepalive interval
+  // and the bus subscription outlived the reader.
+  //
+  // Unsubscribing is the observable: `finish` clears the interval and
+  // unsubscribes together, so the one witnesses the other.
+  const { store, bus } = await harness(t);
+  store.appendEvent('r1', { delta: 'a' });
+
+  let subscribes = 0;
+  let unsubscribes = 0;
+  const watched = {
+    subscribe(runId, onEvent, onEnd) {
+      subscribes += 1;
+      const off = bus.subscribe(runId, onEvent, onEnd);
+      return () => {
+        unsubscribes += 1;
+        off();
+      };
+    },
+    emit: (runId, event) => bus.emit(runId, event),
+    end: (runId) => bus.end(runId),
+  };
+
+  const stream = runEventStream({ runId: 'r1', after: -1, store, bus: watched, keepaliveMs: 20 });
+  const reader = stream.getReader();
+  await reader.read();
+  assert.equal(subscribes, 1, 'subscribed while the reader is live');
+  assert.equal(unsubscribes, 0, 'and still subscribed before the reader is dropped');
+
+  await reader.cancel();
+
+  assert.equal(unsubscribes, 1, 'dropping the reader must unsubscribe from the bus');
+  // And an event afterwards reaches nobody rather than throwing into a closed
+  // controller, which is what an interval still ticking would eventually do.
+  watched.emit('r1', { seq: 99, payload: { delta: 'late' } });
+  await new Promise((r) => setTimeout(r, 60));
+});
