@@ -3945,6 +3945,9 @@
   .release-label a {
     text-decoration: underline;
     text-underline-offset: 3px;
+    /* For the ::after in base.css that grows this 35x16 link to a 24px-tall
+     * target without moving it. */
+    position: relative;
   }
   .auth-page {
     min-height: 100dvh;
