@@ -17,17 +17,41 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FIRST_ID, POOL_SIZE, SlotError, createSlots, isUserKey, slotName } from '../src/slots.ts';
 
-/** An in-memory SlotFs that records what it was asked to do. */
+/** An in-memory SlotFs that records what it was asked to do.
+ *
+ * It models ONE kernel rule beyond bookkeeping, because leaving it out let a
+ * real defect through: `chmod` requires owning the file. The supervisor holds
+ * CAP_CHOWN but not CAP_FOWNER, so once a directory belongs to a slot user it
+ * can no longer set the mode on it — and the first version of `createSlots`
+ * chowned before chmodding, which left every slot directory at the 0755 mkdir
+ * made it. A fake that let any chmod succeed said that was fine. */
 function fakeFs() {
   const files = new Map();
   const dirs = new Map();
+  const SUPERVISOR = 0;
   return {
     files,
     dirs,
     fs: {
-      mkdir: (path) => dirs.set(path, { ...(dirs.get(path) ?? {}), made: true }),
+      mkdir: (path) =>
+        dirs.set(path, {
+          made: true,
+          uid: SUPERVISOR,
+          gid: SUPERVISOR,
+          mode: 0o755,
+          ...(dirs.get(path) ?? {}),
+        }),
+      // CAP_CHOWN: the supervisor may change any owner, including back to itself.
       chown: (path, uid, gid) => dirs.set(path, { ...(dirs.get(path) ?? {}), uid, gid }),
-      chmod: (path, mode) => dirs.set(path, { ...(dirs.get(path) ?? {}), mode }),
+      chmod: (path, mode) => {
+        const entry = dirs.get(path) ?? {};
+        if (entry.uid !== undefined && entry.uid !== SUPERVISOR) {
+          const error = new Error('EPERM: operation not permitted, chmod');
+          error.code = 'EPERM';
+          throw error;
+        }
+        dirs.set(path, { ...entry, mode });
+      },
       readFile: (path) => files.get(path) ?? null,
       writeFile: (path, body, mode) => files.set(path, body) && files.set(path + ':mode', mode),
     },

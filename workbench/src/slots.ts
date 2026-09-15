@@ -185,20 +185,33 @@ export function createSlots(options: {
         save();
       }
       const slot = describe(index);
-      // Idempotent, and re-applied every time: a directory restored from a
-      // backup, or created by an older release, must end up at the right owner
-      // and mode rather than staying readable by everyone.
+      // mkdir, then chmod, then chown — and in that order, which is not a
+      // style choice.
+      //
+      // `chmod` requires owning the file or holding CAP_FOWNER, and the
+      // supervisor deliberately holds neither once the directory belongs to the
+      // slot user. Chowning first therefore gives away the ability to set the
+      // mode, and the chmod fails with EPERM — leaving the directory at the
+      // 0755 mkdir made it. That is not a cosmetic failure: a 0755 slot is
+      // readable by every other slot, so the boundary this whole module exists
+      // for would not be there at all. CI caught it; measured under the real
+      // capability set (cap_drop ALL, cap_add SETUID/SETGID/CHOWN):
+      //
+      //   mkdir -> chown -> chmod    chmod EPERM, left at 0755
+      //   mkdir -> chmod -> chown    0700
+      //
+      // The chown back to root first is what makes it idempotent: re-resolving
+      // a slot the user already owns has to take it back before it can correct
+      // the mode. CAP_CHOWN allows that; nothing else here would.
       try {
         fs.mkdir(slot.home);
-        fs.chown(slot.home, slot.uid, slot.gid);
+        fs.chown(slot.home, 0, 0);
         fs.chmod(slot.home, 0o700);
+        fs.chown(slot.home, slot.uid, slot.gid);
       } catch (error) {
         const code = (error as NodeJS.ErrnoException).code;
-        // The supervisor holds CHOWN but deliberately not DAC_OVERRIDE, so a
-        // workspace root owned by anyone else stops it dead — and the bare
-        // EACCES says nothing about which of several steps failed. This is what
-        // an operator sees if the volume was restored from a backup, or came
-        // from a release before `chown 0:0 workbench-data`.
+        // What an operator meets if the volume was restored from a backup, or
+        // came from a release before `chown 0:0 workbench-data`.
         if (code === 'EACCES' || code === 'EPERM')
           throw new SlotError(
             `The workspace volume is not writable by this service. ` +
