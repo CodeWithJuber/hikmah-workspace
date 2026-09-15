@@ -15,6 +15,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { PagePreview } from './page-preview';
+import { clientFetch } from '@/lib/client/request';
 
 // Dynamic, and without SSR: CodeMirror is a large chunk and has no business in
 // the first paint of a conversation.
@@ -57,7 +58,7 @@ export function FilesPanel({ revision }: { revision: number }) {
   // writing something unrelated.
   useEffect(() => {
     let live = true;
-    void fetch('/api/workspace/files', { credentials: 'same-origin' })
+    void clientFetch('/api/workspace/files')
       .then((response) => (response.ok ? response.json() : { files: [] }))
       .then((payload: { files?: Entry[]; preview?: string }) => {
         if (!live) return;
@@ -73,9 +74,7 @@ export function FilesPanel({ revision }: { revision: number }) {
   }, [revision, changed]);
 
   const load = useCallback(async (path: string) => {
-    const response = await fetch(`/api/workspace/files?path=${encodeURIComponent(path)}`, {
-      credentials: 'same-origin',
-    });
+    const response = await clientFetch(`/api/workspace/files?path=${encodeURIComponent(path)}`, {});
     if (!response.ok) return;
     const { file } = (await response.json()) as { file?: { body?: string } };
     setOpen(path);
@@ -86,7 +85,7 @@ export function FilesPanel({ revision }: { revision: number }) {
 
   const save = useCallback(async () => {
     if (!open) return;
-    const response = await fetch('/api/workspace/files', {
+    const response = await clientFetch('/api/workspace/files', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: open, content: body }),
@@ -103,7 +102,7 @@ export function FilesPanel({ revision }: { revision: number }) {
 
   const remove = useCallback(
     async (path: string) => {
-      const response = await fetch(`/api/workspace/files?path=${encodeURIComponent(path)}`, {
+      const response = await clientFetch(`/api/workspace/files?path=${encodeURIComponent(path)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });

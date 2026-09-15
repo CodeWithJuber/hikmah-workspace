@@ -16,6 +16,7 @@ import { useChatSettings } from '@/hooks/use-chat-settings';
 import { withGrant, type Grant } from '@/lib/chat/approvals';
 import { providerDestination } from '@/lib/ai/endpoint';
 import { Toaster } from 'sonner';
+import { clientFetch } from '@/lib/client/request';
 
 /** Narrow enough that a 240px list and a 260px panel would leave the
  * conversation with less room than either of them. Matches the breakpoint the
@@ -65,7 +66,7 @@ export function ChatShell({
   const [managedKey, setManagedKey] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
-    void fetch('/api/billing', { credentials: 'same-origin' })
+    void clientFetch('/api/billing')
       .then((response) => (response.ok ? response.json() : null))
       .then((payload: { managedKey?: boolean } | null) => {
         if (live) setManagedKey(Boolean(payload?.managedKey));
@@ -95,7 +96,7 @@ export function ChatShell({
   useEffect(() => {
     if (!artifact || previewBase) return;
     let live = true;
-    void fetch('/api/workspace/files', { credentials: 'same-origin' })
+    void clientFetch('/api/workspace/files')
       .then((response) => (response.ok ? response.json() : null))
       .then((payload: { preview?: string } | null) => {
         if (live && payload?.preview) setPreviewBase(payload.preview);

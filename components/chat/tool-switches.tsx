@@ -12,6 +12,7 @@
  * `chat_settings`, so the two screens agree by construction.
  */
 import { useEffect, useState } from 'react';
+import { clientFetch } from '@/lib/client/request';
 
 export type Availability = { name: string; available: boolean; reason?: string };
 
@@ -51,7 +52,7 @@ export function useToolAvailability() {
   const [tools, setTools] = useState<Availability[]>([]);
   useEffect(() => {
     let live = true;
-    void fetch('/api/agents', { credentials: 'same-origin' })
+    void clientFetch('/api/agents')
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
         if (!live || !payload) return;

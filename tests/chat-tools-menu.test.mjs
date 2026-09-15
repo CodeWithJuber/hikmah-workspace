@@ -94,7 +94,7 @@ test('both screens switch tools through the same list and the same store', () =>
 test('the shared list is what reads the server\u2019s own tool list', () => {
   // Availability has to travel with the names, or a screen offers a switch for
   // something this deployment cannot run.
-  assert.match(menu, /fetch\('\/api\/agents'/);
+  assert.match(menu, /\bclientFetch\('\/api\/agents'/);
   assert.match(menu, /payload\.availability/);
 });
 

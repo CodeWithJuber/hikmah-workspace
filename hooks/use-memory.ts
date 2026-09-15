@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { Memory, MemoryKind, MemoryStatus } from '@/lib/memory/store';
+import { clientFetch } from '@/lib/client/request';
 
 export type MemoryCounts = Record<MemoryStatus, number>;
 
@@ -24,7 +25,7 @@ export function useMemory() {
 
   useEffect(() => {
     let live = true;
-    void fetch('/api/memory', { credentials: 'same-origin' })
+    void clientFetch('/api/memory')
       .then((response) => (response.ok ? response.json() : null))
       .then((payload: { memories?: Memory[]; counts?: MemoryCounts; recent?: string[] } | null) => {
         if (!live) return;
@@ -44,9 +45,8 @@ export function useMemory() {
 
   const send = useCallback(
     async (method: 'POST' | 'PUT' | 'DELETE', url: string, body?: unknown) => {
-      const response = await fetch(url, {
+      const response = await clientFetch(url, {
         method,
-        credentials: 'same-origin',
         headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
       });

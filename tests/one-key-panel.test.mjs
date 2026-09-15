@@ -42,7 +42,7 @@ test('no screen offers a key field that only lasts until the tab reloads', () =>
 
 test('the one panel that takes a key writes it to the vault', () => {
   const panel = readFileSync(join(root, 'components/chat/connection-settings.tsx'), 'utf8');
-  assert.match(panel, /fetch\('\/api\/secrets'/, 'saved through the secrets API');
+  assert.match(panel, /\bclientFetch\('\/api\/secrets'/, 'saved through the secrets API');
   assert.match(panel, /providerDestination\(/, 'under the destination the run route resolves');
   assert.doesNotMatch(panel, /localStorage|sessionStorage/, 'and nowhere in the browser');
 });

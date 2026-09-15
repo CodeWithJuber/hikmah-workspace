@@ -36,6 +36,7 @@ import { listModels } from '@/lib/playground/transport';
 import { defaultProvider } from '@/lib/playground/session';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { ModelPicker, type PickerModel } from './model-picker';
+import { clientFetch } from '@/lib/client/request';
 
 export function ConnectionSettings({
   connection,
@@ -70,7 +71,7 @@ export function ConnectionSettings({
 
   useEffect(() => {
     let live = true;
-    void fetch('/api/secrets', { credentials: 'same-origin' })
+    void clientFetch('/api/secrets')
       .then((response) => (response.ok ? response.json() : { secrets: [] }))
       .then((payload: { secrets?: { name: string }[] }) => {
         if (live) setSaved(new Set((payload.secrets ?? []).map((secret) => secret.name)));
@@ -168,9 +169,8 @@ export function ConnectionSettings({
           'That endpoint needs no key. A local or private address is reached direct.',
         );
       if (typed) {
-        const response = await fetch('/api/secrets', {
+        const response = await clientFetch('/api/secrets', {
           method: 'PUT',
-          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: secretName,

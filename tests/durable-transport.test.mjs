@@ -253,3 +253,31 @@ test('a cancel the server refuses is reported as not stopped', async () => {
   const { fetch } = scripted([async () => json({ error: 'Run not found.' }, 404)]);
   assert.equal(await cancelRun('run_9', fetch), false);
 });
+
+test('a run that stops producing is backed off, not hammered', async () => {
+  // The backoff used to be reset at the top of every iteration, including
+  // iterations that received nothing — so `attempt` was always 0, the delay was
+  // always the first one (250ms), and a stream that opened but yielded no
+  // frames was re-opened 200 times at four requests a second. Each of those
+  // re-reads the run's whole event log on a server that writes SQLite
+  // synchronously, so the client's retry loop was making the stall worse.
+  let calls = 0;
+  const fetch = async () => {
+    calls += 1;
+    // 200 with a body that ends immediately: the run exists, but nothing came.
+    return new Response(new ReadableStream({ start: (c) => c.close() }), { status: 200 });
+  };
+
+  const controller = new AbortController();
+  const stream = runStream({ runId: 'r1', fetch, signal: controller.signal });
+  const reader = stream.getReader();
+  const draining = reader.read().catch(() => {});
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  controller.abort();
+  await draining;
+
+  // 250 + 500 + 1000 + 2000 means four attempts inside two seconds. The old
+  // behaviour made eight.
+  assert.ok(calls <= 5, `re-opened the stream ${calls} times in 2s; the backoff is not engaging`);
+  assert.ok(calls >= 2, 'it should still be retrying at all');
+});
