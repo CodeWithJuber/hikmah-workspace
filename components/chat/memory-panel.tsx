@@ -91,10 +91,10 @@ export function MemoryPanel() {
             />
             <div className="memory-form-actions">
               <Button type="submit" size="sm">
-                <Check size={14} /> Save
+                <Check size={16} /> Save
               </Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                <X size={14} /> Cancel
+                <X size={16} /> Cancel
               </Button>
             </div>
           </form>
@@ -130,7 +130,7 @@ export function MemoryPanel() {
               size="sm"
               onClick={() => void attempt(() => update(memory.id, { status: 'saved' }))}
             >
-              <Check size={14} /> Accept
+              <Check size={16} /> Accept
             </Button>
           )}
           <Button
@@ -139,7 +139,7 @@ export function MemoryPanel() {
             aria-label={'Edit ' + memory.title}
             onClick={() => setEditing(memory)}
           >
-            <Pencil size={14} /> Edit
+            <Pencil size={16} /> Edit
           </Button>
           <Button
             size="sm"
@@ -155,7 +155,7 @@ export function MemoryPanel() {
               )
             }
           >
-            <Trash2 size={14} /> Forget
+            <Trash2 size={16} /> Forget
           </Button>
         </div>
       </li>
@@ -167,7 +167,7 @@ export function MemoryPanel() {
       <h2>
         Memory
         <Button size="sm" variant="outline" onClick={() => setAdding((open) => !open)}>
-          <BookmarkPlus size={14} /> Remember something
+          <BookmarkPlus size={16} /> Remember something
         </Button>
       </h2>
       {adding && (

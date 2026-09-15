@@ -29,3 +29,7 @@ package-lock.json
 
 # Workbench dependencies (its own npm install).
 workbench/node_modules/
+
+# Compiled from design/hikmah-theme.ts by `npm run design:build`. Formatting it
+# would make every regeneration a diff against the formatter.
+app/styles/palette.generated.css

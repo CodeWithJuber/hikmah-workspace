@@ -78,7 +78,6 @@ export function LearnTaskDialog({
           placeholder="A topic, a question, or what you want it to read up on…"
           rows={5}
           maxLength={4000}
-          autoFocus
         />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

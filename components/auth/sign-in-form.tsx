@@ -68,13 +68,13 @@ export function SignInForm({ config }: { config: PublicAuthConfig }) {
         <button type="submit" disabled={busy}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={18} />
+              <LoaderCircle className="spin" size={20} />
               Signing in…
             </>
           ) : (
             <>
               Enter your workspace
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </>
           )}
         </button>

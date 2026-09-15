@@ -49,6 +49,10 @@ const ALLOW = [
   /^lib\/context-model\/train-worker\.ts$/,
   // Build inputs and one-shot operator scripts, not application code.
   /^scripts\//,
+  // The design language. Compiled to app/styles/palette.generated.css by
+  // `npm run design:build`; the CLI reads it, nothing imports it, and that is
+  // the point — no Astryx code reaches the browser.
+  /^design\//,
   // Test-only helpers live beside their tests.
   /^tests\//,
   // Configuration and generated declarations. Read by the toolchain rather than

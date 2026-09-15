@@ -19,6 +19,78 @@ const eslintConfig = defineConfig([
     'public/sandbox-worker.js',
   ]),
   {
+    // The rest of eslint-plugin-jsx-a11y.
+    //
+    // The plugin is already here: eslint-config-next ships it and turns on six
+    // of its rules. These are the other twenty-odd from its recommended set —
+    // label-has-associated-control, click-events-have-key-events,
+    // tabindex-no-positive and the like — enabled by name rather than by
+    // spreading the plugin's own config, because eslint-config-next has already
+    // registered the plugin and a second registration makes ESLint refuse to
+    // run at all ("Cannot redefine plugin"). That failure reports zero
+    // problems, which reads exactly like a clean pass.
+    //
+    // Static analysis catches about half of what matters and nothing about
+    // focus order or whether a label makes sense; the browser checks in
+    // scripts/ and a keyboard are the other half.
+    files: ['app/**/*.tsx', 'components/**/*.tsx'],
+    rules: {
+      'jsx-a11y/anchor-has-content': 'error',
+      'jsx-a11y/anchor-is-valid': 'error',
+      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
+      'jsx-a11y/aria-role': 'error',
+      'jsx-a11y/autocomplete-valid': 'error',
+      'jsx-a11y/click-events-have-key-events': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/html-has-lang': 'error',
+      'jsx-a11y/iframe-has-title': 'error',
+      'jsx-a11y/img-redundant-alt': 'error',
+      'jsx-a11y/interactive-supports-focus': 'error',
+      // depth 4, not the default 2. This app writes the accessible pattern — the
+      // label WRAPS its control, which associates them implicitly — and puts the
+      // text in a <span><strong>…</strong></span> beside it. At the default
+      // depth the rule cannot see text that far in, and reported 26 correct
+      // labels as missing. Raised, it still catches the real case: a label with
+      // no control and no text at all.
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        {
+          // The app writes the accessible pattern: the label WRAPS its control,
+          // which associates them implicitly. Two defaults hid that from the
+          // rule, and between them they reported 26 correct labels as missing.
+          //
+          // depth 4, not 2: the text sits in a <span><strong>…</strong></span>
+          // beside the control, which the default depth cannot see.
+          depth: 4,
+          // And the control is often a React component, not a bare <input>, so
+          // the rule has no way to know it renders one.
+          controlComponents: [
+            'Checkbox',
+            'Switch',
+            'Input',
+            'Textarea',
+            'Slider',
+            'RadioGroupItem',
+            'Select',
+          ],
+        },
+      ],
+      'jsx-a11y/media-has-caption': 'error',
+      'jsx-a11y/mouse-events-have-key-events': 'error',
+      'jsx-a11y/no-access-key': 'error',
+      'jsx-a11y/no-autofocus': 'error',
+      'jsx-a11y/no-distracting-elements': 'error',
+      'jsx-a11y/no-interactive-element-to-noninteractive-role': 'error',
+      'jsx-a11y/no-noninteractive-element-interactions': 'error',
+      'jsx-a11y/no-noninteractive-element-to-interactive-role': 'error',
+      'jsx-a11y/no-noninteractive-tabindex': 'error',
+      'jsx-a11y/no-redundant-roles': 'error',
+      'jsx-a11y/no-static-element-interactions': 'error',
+      'jsx-a11y/scope': 'error',
+      'jsx-a11y/tabindex-no-positive': 'error',
+    },
+  },
+  {
     // React Compiler advisories that predate this branch, in the five legacy
     // components that the chat and runs rework replaces. Held at "warn" rather
     // than silenced so they stay visible, and scoped to these exact files so
@@ -45,6 +117,15 @@ const eslintConfig = defineConfig([
       '@typescript-eslint/no-unused-vars': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/set-state-in-effect': 'off',
+      // Same reason, for the a11y rules turned on above. input-group.tsx puts a
+      // click handler on the wrapper so that tapping the padding focuses the
+      // input, and pagination.tsx builds its link content from props; both are
+      // upstream's shape, and editing them here makes the next
+      // `npx shadcn add --overwrite` a manual merge. Any wrapper of these that
+      // Site code writes is still held to the rules.
+      'jsx-a11y/click-events-have-key-events': 'off',
+      'jsx-a11y/no-noninteractive-element-interactions': 'off',
+      'jsx-a11y/anchor-has-content': 'off',
     },
   },
   {
@@ -61,6 +142,11 @@ const eslintConfig = defineConfig([
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/component-hook-factories': 'off',
       'react-hooks/static-components': 'off',
+      // And the a11y rules turned on above, for the same reason. The one
+      // finding is PromptInputTabLabel, an <h3> whose content arrives through
+      // {...props}; upstream carries its own oxlint disable comment on that
+      // line saying exactly that.
+      'jsx-a11y/heading-has-content': 'off',
     },
   },
 ]);

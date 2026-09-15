@@ -52,7 +52,7 @@ export function RuntimeHome() {
         <SidebarTrigger />
         <h1>Tools & runtimes</h1>
         <Button variant="outline" onClick={() => setWorkspacePage('admin/connectors')}>
-          Manage connections <ArrowUpRight size={15} />
+          Manage connections <ArrowUpRight size={16} />
         </Button>
       </header>
       <div className="destination-scroll">
@@ -96,12 +96,12 @@ export function RuntimeHome() {
             </div>
             {busy ? (
               <Button onClick={() => abort.current?.abort()} variant="outline">
-                <Square size={15} />
+                <Square size={16} />
                 Stop
               </Button>
             ) : (
               <Button onClick={() => void run()} disabled={!code.trim()}>
-                <Play size={15} />
+                <Play size={16} />
                 Run code
               </Button>
             )}
@@ -125,7 +125,7 @@ export function RuntimeHome() {
         <h3 className="section-label">Connect your environment</h3>
         <div className="connection-paths">
           <section>
-            <HikmahIcon name="terminal" size={25} />
+            <HikmahIcon name="terminal" size={24} />
             <h3>Python, Node & SSH</h3>
             <p>
               Run Python and Node in disposable containers on your own server. Expose only SSH
@@ -136,11 +136,11 @@ export function RuntimeHome() {
               Download runtime starter
             </a>
             <a href="/runtime/README.md" target="_blank" rel="noreferrer">
-              Setup guide <ArrowUpRight size={14} />
+              Setup guide <ArrowUpRight size={16} />
             </a>
           </section>
           <section>
-            <HikmahIcon name="browser" size={25} />
+            <HikmahIcon name="browser" size={24} />
             <h3>Browser & web search</h3>
             <p>
               Connect Playwright, browser automation, or a search MCP service. Tool discovery shows
@@ -151,7 +151,7 @@ export function RuntimeHome() {
             </Button>
           </section>
           <section>
-            <HikmahIcon name="voice" size={25} />
+            <HikmahIcon name="voice" size={24} />
             <h3>Voice, video & operations</h3>
             <p>
               Use chat dictation and read-aloud. For phone calls, CRM actions and media rendering,

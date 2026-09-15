@@ -287,7 +287,7 @@ export function ConnectionSettings({
               <>
                 {' '}
                 <a href={preset.keyUrl} target="_blank" rel="noreferrer noopener">
-                  Get a key <ExternalLink size={11} aria-hidden="true" />
+                  Get a key <ExternalLink size={12} aria-hidden="true" />
                 </a>
               </>
             )}
@@ -349,7 +349,7 @@ export function ConnectionSettings({
 
       <div className="chat-connection-actions">
         <Button onClick={() => void save()} disabled={busy}>
-          {busy && <LoaderCircle size={15} className="spin" />}
+          {busy && <LoaderCircle size={16} className="spin" />}
           Save connection
         </Button>
         <Button

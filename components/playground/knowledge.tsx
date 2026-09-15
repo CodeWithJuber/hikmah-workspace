@@ -173,14 +173,14 @@ export function Knowledge() {
         <h1>Memory</h1>
         {scope === 'shared' && owner && (
           <Button onClick={() => setDraft(newKnowledge())}>
-            <Plus size={17} />
+            <Plus size={16} />
             Publish knowledge
           </Button>
         )}
       </header>
       <div className="knowledge-body">
         <div className="knowledge-intro">
-          <BookOpen size={30} />
+          <BookOpen size={32} />
           <div>
             <h2>A little context goes a long way.</h2>
             <p>Save preferences, project facts and useful references. You choose what stays.</p>
@@ -215,7 +215,7 @@ export function Knowledge() {
         ) : (
           <>
             <div className="knowledge-search">
-              <Search size={18} />
+              <Search size={20} />
               <Input
                 aria-label="Search knowledge"
                 placeholder="Search shared knowledge"
@@ -228,7 +228,7 @@ export function Knowledge() {
               {visible.map((item) => (
                 <article key={item.id} className="knowledge-card">
                   <header>
-                    <BookOpen size={18} />
+                    <BookOpen size={20} />
                     <h3>{item.title}</h3>
                     <span className="status-pill">Owner published</span>
                   </header>
@@ -274,7 +274,7 @@ export function Knowledge() {
             </div>
             {!visible.length && (
               <div className="knowledge-empty">
-                <BookOpen size={34} />
+                <BookOpen size={32} />
                 <h3>{search ? 'No matching knowledge' : 'Shared knowledge starts with review'}</h3>
                 <p>The owner can publish approved facts and references here.</p>
               </div>
@@ -282,7 +282,7 @@ export function Knowledge() {
           </>
         )}
         <div className="learning-separation">
-          <BrainCircuit size={23} />
+          <BrainCircuit size={24} />
           <div>
             <strong>Memory & learning are connected</strong>
             <p>

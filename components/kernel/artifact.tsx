@@ -98,9 +98,9 @@ export function ArtifactPanel({
               onClick={() => setRun(!run)}
             >
               {run ? (
-                <Square size={15} aria-hidden="true" />
+                <Square size={16} aria-hidden="true" />
               ) : (
-                <Play size={15} aria-hidden="true" />
+                <Play size={16} aria-hidden="true" />
               )}
               <span>{run ? 'Stop' : 'Run'}</span>
             </Button>
@@ -111,7 +111,7 @@ export function ArtifactPanel({
                 title="Open full page"
                 onClick={() => setFull(true)}
               >
-                <Maximize2 size={15} aria-hidden="true" />
+                <Maximize2 size={16} aria-hidden="true" />
                 <span>Full page</span>
               </Button>
             )}
@@ -121,7 +121,7 @@ export function ArtifactPanel({
               title="Edit in workspace"
               onClick={onEdit}
             >
-              <PencilLine size={15} aria-hidden="true" />
+              <PencilLine size={16} aria-hidden="true" />
               <span>Edit</span>
             </Button>
           </div>

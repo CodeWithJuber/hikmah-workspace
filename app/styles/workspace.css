@@ -7,53 +7,6 @@
  *
  * Imported by app/globals.css, which is the only place the order is set. */
 @layer components {
-  /* The application workspace: calm navigation, one model control, focused tools. */
-  :root {
-    --background: #fff;
-    --foreground: #172033;
-    --primary: #285d46;
-    --primary-foreground: #fff;
-    --card: #fff;
-    --popover: #fff;
-    --secondary: #f4f7f5;
-    --muted: #f4f7f5;
-    --muted-foreground: #657181;
-    --accent: #e8f2ec;
-    --accent-foreground: #1f4b39;
-    --border: #dde3eb;
-    --input: #d3dbe8;
-    --ring: #3d8a67;
-    --sidebar: #f4f7f5;
-    --sidebar-foreground: #172033;
-    --sidebar-accent: #e8f2ec;
-    --sidebar-border: #dde3eb;
-    --user-bubble: #f5f7fa;
-  }
-  :root[data-theme='dark'] {
-    --background: #11151b;
-    --foreground: #e8f2ec;
-    --card: #161c22;
-    --popover: #17212b;
-    --secondary: #202832;
-    --muted: #202832;
-    --muted-foreground: #a4b3ab;
-    --accent: #22392f;
-    --accent-foreground: #b6dfc9;
-    --border: #303c37;
-    --input: #43524b;
-    --ring: #6fc39c;
-    /* Inverted rather than darkened: the brand green on this background is 2.6:1,
-     which fails as a button. A light fill with dark ink is 9:1 and still reads
-     as the same colour. */
-    --primary: #7fd3aa;
-    --primary-foreground: #10241b;
-    --sidebar: #161c22;
-    --sidebar-foreground: #e8f2ec;
-    --sidebar-accent: #22392f;
-    --sidebar-accent-foreground: #b6dfc9;
-    --sidebar-border: #303c37;
-    --user-bubble: #232f2a;
-  }
   .studio-shell.app-shell {
     --sidebar-width: 232px !important;
   }
@@ -911,31 +864,6 @@
     line-height: 1.5;
   }
 
-  /* Hikmah v5 — unified workspace and owned intelligence layer.
-   This block outranks every plain :root below it, because :not() adds
-   specificity that source order cannot beat. That is why the accent has to be
-   set here and not only at the top: several palettes accumulated in this file
-   over time, and the app wore whichever one happened to win. They now all name
-   the same green, so the cascade cannot change the answer. */
-  :root:not([data-theme='dark']) {
-    --background: #fff;
-    --foreground: #182230;
-    --card: #fff;
-    --card-foreground: #182230;
-    --sidebar: #f4f7f5;
-    --sidebar-foreground: #182230;
-    --muted: #f5f7fa;
-    --muted-foreground: #596579;
-    --secondary: #f4f7f5;
-    --accent: #e8f2ec;
-    --accent-foreground: #1f4b39;
-    --primary: #285d46;
-    --primary-foreground: #fff;
-    --border: #dde3eb;
-    --input: #aab4c3;
-    --user-bubble: #e8f2ec;
-    --ring: #3d8a67;
-  }
   .studio-shell {
     font-size: 16px;
     line-height: 1.6;
@@ -2823,19 +2751,6 @@
       min-width: 50%;
     }
   }
-  /* v7: a calm, task-first workspace with progressive disclosure. */
-  :root {
-    --hk-accent: #285d46;
-    --hk-surface: #fff;
-    --hk-muted: #647084;
-    --hk-border: #e8edf6;
-  }
-  [data-theme='dark'] {
-    --hk-accent: #9baeff;
-    --hk-surface: #131720;
-    --hk-muted: #aab4c3;
-    --hk-border: #303847;
-  }
   .studio-shell {
     font-size: 16px;
   }
@@ -3411,6 +3326,54 @@
     color: var(--muted-foreground);
     margin-top: 5px;
   }
+  /* The owner's performance panel. Tokens only — no colour is named here, which
+   * is the rule every new rule is held to now. */
+  .vitals-panel {
+    margin: 30px 0;
+  }
+  .vitals-panel h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .vitals-panel h3 [data-slot='button'] {
+    margin-inline-start: auto;
+  }
+  /* Its own scroller, so five columns on a 360px screen scroll the table
+   * rather than the page. */
+  .vitals-table {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .vitals-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .vitals-table th,
+  .vitals-table td {
+    padding: 8px 12px;
+    text-align: start;
+    white-space: nowrap;
+  }
+  .vitals-table thead th {
+    color: var(--muted-foreground);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .vitals-table tbody tr + tr td {
+    border-top: 1px solid var(--border);
+  }
+  /* Over Google's own threshold for that metric. Weight as well as colour: a
+   * number that is only red is invisible to anyone who cannot see red. */
+  .vitals-table td[data-poor] {
+    color: var(--error-text);
+    font-weight: 650;
+  }
   .learning-live-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3570,16 +3533,6 @@
     color: inherit;
   }
 
-  /* Hikmah workspace v9: a compact, consistent action and navigation language. */
-  :root {
-    --radius: 0.75rem;
-    --primary: #285d46;
-    --primary-foreground: #fff;
-    --ring: #3d8a67;
-    --accent: #e8f2ec;
-    --sidebar-accent: #e8f2ec;
-    --sidebar-accent-foreground: #1f4b39;
-  }
   body {
     font-family:
       Inter,
@@ -3589,10 +3542,6 @@
       'Segoe UI',
       sans-serif;
     letter-spacing: -0.012em;
-  }
-  .studio-shell .workspace-sidebar {
-    --sidebar: #f4f7f5;
-    --sidebar-border: #dee5e0;
   }
   .hikmah-brand {
     letter-spacing: -1px !important;
@@ -3916,10 +3865,6 @@
   [data-theme='dark'] .status-pill {
     background: #22392f;
     color: #b3d9c6;
-  }
-  [data-theme='dark'] .studio-shell .workspace-sidebar {
-    --sidebar: #171e1b;
-    --sidebar-border: #303c37;
   }
   [data-theme='dark'] .studio-shell .primary-nav button.selected,
   [data-theme='dark'] .studio-shell .knowledge-nav.selected {

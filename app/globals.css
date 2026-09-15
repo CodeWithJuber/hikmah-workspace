@@ -1,3 +1,13 @@
+/* Layer order, declared before anything defines a layer, because the first
+ * mention is what fixes it. Astryx names three layers of its own; unnamed
+ * here they would sort AFTER Tailwind's and beat this app's own rules —
+ * measured, that was 1,376 computed declarations changing, mostly its
+ * element reset winning over rules written for these screens. Named first,
+ * its tokens are available and its opinions are not.
+ *
+ * A @layer statement may precede @import; only @charset may come before it. */
+@layer reset, astryx-base, astryx-theme, theme, base, components, utilities;
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '../vendor/shadcn-tailwind-4.13.0.css';
@@ -14,6 +24,17 @@
  *
  * scripts/check-styles.mjs follows this graph, so a file is counted from the
  * moment it is imported here, and one nobody imports does not ship. */
+/* The design language, compiled from design/hikmah-theme.ts. Generated, and
+ * committed: if Astryx breaks or is abandoned, the escape is to delete two
+ * devDependencies and keep this file.
+ *
+ * Almost all of it is inside `@scope ([data-astryx-theme="hikmah"])`, so it
+ * defines nothing until <html> carries that attribute — which it does not
+ * yet. The exception is three unscoped `color-scheme` rules, which do apply;
+ * see the commit for what that changes. */
+@import './styles/palette.generated.css';
+@import './styles/tokens.css';
+
 @import './styles/base.css';
 @import './styles/workspace.css';
 @import './styles/auth.css';

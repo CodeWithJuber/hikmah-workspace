@@ -92,14 +92,14 @@ export function Settings({
                   variant={preferences.theme === 'light' ? 'default' : 'outline'}
                   onClick={() => setPreferences((p) => ({ ...p, theme: 'light' }))}
                 >
-                  <Sun size={19} />
+                  <Sun size={20} />
                   Light
                 </Button>
                 <Button
                   variant={preferences.theme === 'dark' ? 'default' : 'outline'}
                   onClick={() => setPreferences((p) => ({ ...p, theme: 'dark' }))}
                 >
-                  <Moon size={19} />
+                  <Moon size={20} />
                   Dark
                 </Button>
               </div>

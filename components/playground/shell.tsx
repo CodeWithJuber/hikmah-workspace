@@ -80,7 +80,7 @@ const labs = [
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className={'hikmah-brand' + (compact ? ' compact' : '')}>
-      <HikmahIcon name="orbit" size={30} />
+      <HikmahIcon name="orbit" size={32} />
       {!compact && <span>Hikmah</span>}
     </span>
   );
@@ -119,7 +119,7 @@ function ShellContent() {
               that owns them. A second list here, over the workspace blob, would
               be a second set of conversations that could never hold an answer. */}
           <Link className="new-chat" href="/chat">
-            <HikmahIcon name="compose" size={19} />
+            <HikmahIcon name="compose" size={20} />
             New chat
           </Link>
         </SidebarHeader>
@@ -310,12 +310,12 @@ function ShellContent() {
                 <div className="lab-directory">
                   {labs.map((l) => (
                     <button key={l.id} onClick={() => setLab(l.id)}>
-                      <l.icon size={26} />
+                      <l.icon size={24} />
                       <div>
                         <h2>{l.name}</h2>
                         <p>{l.description}</p>
                       </div>
-                      <ArrowUpRight size={18} />
+                      <ArrowUpRight size={20} />
                     </button>
                   ))}
                 </div>

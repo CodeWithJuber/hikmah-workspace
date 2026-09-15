@@ -29,7 +29,7 @@ export function AuthShell({
             with the brand loose inside the main. */}
         <header>
           <Link href="/" className="auth-brand" aria-label="Hikmah home">
-            <HikmahIcon name="orbit" size={38} />
+            <HikmahIcon name="orbit" size={32} />
             <span>Hikmah</span>
           </Link>
         </header>

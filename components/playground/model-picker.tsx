@@ -122,7 +122,7 @@ export function ModelPicker({
             disabled={modelsLoading || !(provider.apiKey || provider.apiKeySecret)}
             onClick={() => void refreshModels()}
           >
-            {modelsLoading ? <LoaderCircle size={17} className="spin" /> : <RefreshCw size={17} />}
+            {modelsLoading ? <LoaderCircle size={16} className="spin" /> : <RefreshCw size={16} />}
           </Button>
         </div>
         <Command>
@@ -144,7 +144,7 @@ export function ModelPicker({
               aria-pressed={toolsOnly}
               onClick={() => setToolsOnly(!toolsOnly)}
             >
-              <Wrench size={14} />
+              <Wrench size={16} />
               Tools
             </button>
           </div>
@@ -218,19 +218,19 @@ export function ModelPicker({
                     <span>{contextLabel(m.max_output_tokens)} output</span>
                     {m.tools && (
                       <span>
-                        <Wrench size={13} />
+                        <Wrench size={12} />
                         Tools
                       </span>
                     )}
                     {m.reasoning && (
                       <span>
-                        <BrainCircuit size={13} />
+                        <BrainCircuit size={12} />
                         Reasoning
                       </span>
                     )}
                   </div>
                 </div>
-                {selectedId === m.id && <Check className="model-selected-check" size={19} />}
+                {selectedId === m.id && <Check className="model-selected-check" size={20} />}
               </CommandItem>
             ))}
           </CommandList>

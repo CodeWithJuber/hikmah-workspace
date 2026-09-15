@@ -220,7 +220,7 @@ export function SoundLab() {
         ].map((c) => (
           <div className="field" key={c.label}>
             <div className="number-row">
-              <label>{c.label}</label>
+              <span>{c.label}</span>
               <output>{c.value} Hz</output>
             </div>
             <Slider
@@ -236,7 +236,7 @@ export function SoundLab() {
         ))}
         <div className="field">
           <div className="number-row">
-            <label>Duration</label>
+            <span>Duration</span>
             <output>
               {uploaded
                 ? (uploaded.samples.length / uploaded.sampleRateHz).toFixed(3)

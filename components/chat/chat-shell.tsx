@@ -168,7 +168,7 @@ export function ChatShell({
             aria-label="Conversations"
             onClick={() => setDrawer(drawer === 'list' ? null : 'list')}
           >
-            <PanelLeft size={18} />
+            <PanelLeft size={20} />
           </button>
         )}
         <span className="chat-topbar-brand">
@@ -182,10 +182,10 @@ export function ChatShell({
             one. */}
         <nav className={'chat-topbar-links' + (narrow ? ' is-compact' : '')} aria-label="Workspace">
           <Link href="/workspace" title="Workspace" aria-label="Workspace">
-            {narrow ? <Blocks size={17} /> : 'Workspace'}
+            {narrow ? <Blocks size={16} /> : 'Workspace'}
           </Link>
           <Link href="/billing" title="Plan and usage" aria-label="Plan and usage">
-            {narrow ? <CreditCard size={17} /> : 'Plan'}
+            {narrow ? <CreditCard size={16} /> : 'Plan'}
           </Link>
           {/* Not on a phone: an unlabelled sign-out icon beside the workspace
               and plan icons was one thumb-slip from losing the session. On a
@@ -204,7 +204,7 @@ export function ChatShell({
             aria-label="Files and agents"
             onClick={() => setDrawer(drawer === 'panel' ? null : 'panel')}
           >
-            <LayoutGrid size={18} />
+            <LayoutGrid size={20} />
           </button>
         )}
       </header>
@@ -310,7 +310,7 @@ export function ChatShell({
                   aria-label="Close"
                   onClick={() => setDrawer(null)}
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               )}
             </div>

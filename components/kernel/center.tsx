@@ -149,7 +149,7 @@ export function KernelCenter({
         <>
           <div className="kernel-hero">
             <div className="kernel-orb">
-              <HikmahIcon name="orbit" size={46} />
+              <HikmahIcon name="orbit" size={48} />
             </div>
             <div>
               <span className="status-pill">
@@ -718,7 +718,7 @@ export function KernelCenter({
                   : 'Owner access is unavailable.'}
               </p>
             </div>
-            <HikmahIcon name="ownerAdmin" size={28} />
+            <HikmahIcon name="ownerAdmin" size={32} />
           </div>
           <p>
             Training runs when reviewed experience arrives; there is no autonomous background

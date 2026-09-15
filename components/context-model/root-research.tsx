@@ -31,7 +31,7 @@ export function RootResearch() {
               <span>{e.contextual_sense_label}</span>
               <a href={e.morphology_source_url} target="_blank" rel="noreferrer">
                 {e.word_location}
-                <ArrowUpRight size={14} />
+                <ArrowUpRight size={16} />
               </a>
             </header>
             <p>{e.source_observation}</p>

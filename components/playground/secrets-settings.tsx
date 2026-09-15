@@ -156,7 +156,7 @@ export function SecretsSettings() {
   return (
     <section className="secrets-settings">
       <div className="settings-section-title">
-        <KeyRound size={22} />
+        <KeyRound size={20} />
         <div>
           <h3>Workspace secrets</h3>
           <p>Save once. Reuse a named variable in your workspace’s connections and tools.</p>

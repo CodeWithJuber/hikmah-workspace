@@ -43,7 +43,7 @@ export function LegalShell({ title, children }: { title: string; children: React
       </a>
       <header className="landing-bar">
         <Link href="/" className="landing-logo">
-          <HikmahIcon name="orbit" size={28} />
+          <HikmahIcon name="orbit" size={32} />
           Hikmah
         </Link>
         <nav>
@@ -98,6 +98,14 @@ export function PrivacyBody() {
           <strong>What runs cost.</strong> Token counts per run, which is what an allowance is
           measured against.
         </li>
+        <li>
+          <strong>How fast the pages were.</strong> Five standard timing measurements taken by your
+          own browser — how long the main content took to appear, how quickly the page answered a
+          tap, how much it moved while loading — with the page they came from, and whether the
+          window was narrow. No address, no browser name, no session. They are kept here, in the
+          same database as everything else, and they are how a slow page gets noticed without
+          somebody having to report it.
+        </li>
       </ul>
 
       <h2>Who else sees it</h2>
@@ -117,6 +125,8 @@ export function PrivacyBody() {
         </li>
         <li>
           <strong>Nobody else.</strong> Your work is not sold, and it is not shared for advertising.
+          There is no analytics company here: the timing measurements above are sent to this
+          deployment and nowhere else, which is why they are five numbers rather than a profile.
         </li>
       </ul>
 

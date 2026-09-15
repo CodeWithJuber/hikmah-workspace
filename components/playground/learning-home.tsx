@@ -17,6 +17,7 @@ import { usePlayground } from './context';
 import { useMemory } from '@/hooks/use-memory';
 import { useKernel } from '@/components/kernel/context';
 import { KnowledgeEditor, newKnowledge } from './knowledge';
+import { VitalsPanel } from '@/components/settings/vitals-panel';
 import type { KnowledgeItem } from '@/lib/playground/knowledge';
 
 export function OwnerAccess({ children }: { children: ReactNode }) {
@@ -190,10 +191,11 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
                 <strong>{l.title}</strong>
                 <p>{l.text}</p>
               </div>
-              <ArrowUpRight size={19} />
+              <ArrowUpRight size={20} />
             </button>
           ))}
         </div>
+        {owner && <VitalsPanel />}
         <div className="learning-live-grid">
           <section>
             <h3>What runs in real time</h3>
@@ -254,7 +256,7 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
               ))
             ) : (
               <div className="learning-empty">
-                <BrainCircuit size={28} />
+                <BrainCircuit size={32} />
                 <p>
                   No updates yet. Save a memory, review an example or rate a completed response.
                 </p>
@@ -274,7 +276,7 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
             disabled={kernel.access === 'loading'}
             onClick={() => void kernel.refresh()}
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={16} />
             Refresh learning
           </Button>
         </div>

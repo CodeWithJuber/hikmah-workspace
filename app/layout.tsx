@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { isTheme, THEME_COOKIE, type Theme } from '@/lib/theme';
 import { savedTheme } from '@/lib/server/saved-theme';
+import { VitalsReporter } from '@/components/vitals-reporter';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -45,8 +46,14 @@ export default async function RootLayout({
   const cookie = (await cookies()).get(THEME_COOKIE)?.value;
   const theme: Theme = isTheme(cookie) ? cookie : await savedTheme();
   return (
-    <html lang="en" data-theme={theme}>
-      <body className="antialiased">{children}</body>
+    <html lang="en" data-theme={theme} data-astryx-theme="hikmah">
+      <body className="antialiased">
+        {children}
+        {/* Renders nothing. It is here rather than per surface because the two
+            pages a stranger judges the product on — the landing page and
+            sign-in — are the two nobody would have remembered to instrument. */}
+        <VitalsReporter />
+      </body>
     </html>
   );
 }

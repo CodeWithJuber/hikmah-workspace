@@ -59,7 +59,24 @@ function stylesheetGraph(from) {
 }
 
 const sheets = stylesheetGraph(entry);
-const css = sheets.map((s) => s.text).join('\n');
+
+/* A hex inside a generated file is not drift.
+ *
+ * `app/styles/palette.generated.css` is a seeded ramp with a receipt: 87
+ * colours derived from two seeds by `npm run design:build`, regenerated whole,
+ * never edited. Counting them with the hand-written ones would bury the number
+ * this check exists to drive to zero under an order of magnitude more that
+ * nobody should touch. They are counted, and reported, separately — so a
+ * palette that doubles in size is still visible. */
+const GENERATED = /@generated\b/;
+const authored = sheets.filter((s) => !GENERATED.test(s.text.slice(0, 400)));
+const generated = sheets.filter((s) => GENERATED.test(s.text.slice(0, 400)));
+const css = authored.map((s) => s.text).join('\n');
+const paletteColours = new Set(
+  generated.flatMap((s) =>
+    [...s.text.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase()),
+  ),
+);
 /** Blank out comments, leaving the file's length and line structure intact.
  *
  * Not a regex, because `/*` also occurs inside strings: every `@source` glob
@@ -178,14 +195,30 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *             in 3,393 characters it was blanking. The file never grew
  *   -> 143    73 rules no source file refers to were deleted
  *   -> 149    the check began following the @import graph and reading hex out
- *             of .tsx markup. Six more were already there: one in the vendored
+ *             of .tsx markup.
+ *   -> 138    79 token declarations a later :root block already overrode were
+ *             deleted — dead by source order, and with them 11 colours Six more were already there: one in the vendored
  *             shadcn sheet, four xterm fallbacks in terminal-panel.tsx, and
  *             the diagram strokes in playground/sound.tsx and maths.tsx
+ *   -> 106    the nine remaining :root blocks collapsed into app/styles/tokens.css
+ *             and re-pointed at the generated palette, which is where the last
+ *             hand-picked greys and the leftover blue accent lived
+ *
+ * paletteColours went 87 -> 88 in that same change, and only because three
+ * surface colours moved from derived to pinned in design/hikmah-theme.ts: the
+ * generator's own ramp put a card DARKER than the page in dark mode, because
+ * the body was pinned and the surfaces were not. The file did not grow by a
+ * decision anyone made about colour.
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 149, repeated: 94, extra: 132 };
-const actual = { colours: colours.size, repeated: repeated.length, extra };
+const BASELINE = { colours: 106, repeated: 93, extra: 131, paletteColours: 88 };
+const actual = {
+  colours: colours.size,
+  repeated: repeated.length,
+  extra,
+  paletteColours: paletteColours.size,
+};
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
 if (grown.length) {
@@ -211,14 +244,19 @@ const slack = Object.entries(BASELINE).filter(([key, limit]) => actual[key] < li
 if (slack.length && process.argv.includes('--update')) {
   const next = readFileSync(new URL(import.meta.url), 'utf8').replace(
     /const BASELINE = \{[^}]*\};/,
-    `const BASELINE = { colours: ${actual.colours}, repeated: ${actual.repeated}, extra: ${actual.extra} };`,
+    // Every key, built from `actual` rather than listed by hand: the first
+    // version of this line named three of them, so `--update` silently dropped
+    // paletteColours from the baseline and stopped enforcing it.
+    `const BASELINE = { ${Object.keys(actual)
+      .map((key) => `${key}: ${actual[key]}`)
+      .join(', ')} };`,
   );
   writeFileSync(fileURLToPath(import.meta.url), next);
   console.info('Baseline lowered to', actual);
 } else {
   console.info(
-    `styles: ${actual.colours} colours, ${actual.repeated} selectors defined more than once ` +
-      `(${actual.extra} extra)` +
+    `styles: ${actual.colours} authored colours, ${actual.paletteColours} generated, ` +
+      `${actual.repeated} selectors defined more than once (${actual.extra} extra)` +
       (slack.length ? ' — below baseline; run with --update to lock it in' : ''),
   );
 }
