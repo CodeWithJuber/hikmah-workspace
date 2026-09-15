@@ -71,7 +71,7 @@ test('one type scale, not thirty-nine sizes', () => {
   // already this app's dominant size. Every literal here is a size somebody
   // chose in one place without knowing what the next screen used — which is how
   // 17px, 19px and 21px all came to exist. Target: 0, every size a token.
-  atMost(sizes.size, 39, 'distinct literal font sizes', [...sizes].sort().join(' '));
+  atMost(sizes.size, 36, 'distinct literal font sizes', [...sizes].sort().join(' '));
 });
 
 test('one radius scale', () => {
@@ -89,7 +89,7 @@ test('one radius scale', () => {
   );
   // The palette has six: none, inner, element, container, page, full. The file
   // has these. Target: 0.
-  atMost(radii.size, 22, 'distinct literal border radii', [...radii].sort().join(' '));
+  atMost(radii.size, 18, 'distinct literal border radii', [...radii].sort().join(' '));
 });
 
 test('colour comes from a token, or from mixing two', () => {
@@ -311,7 +311,7 @@ const CONVERTED = {
   'app/styles/chat.css': ['colour'],
   'app/styles/base.css': ['colour'],
   'app/styles/auth.css': ['colour'],
-  'app/styles/memory.css': ['colour'],
+  'app/styles/memory.css': ['colour', 'radius'],
 };
 
 /** Each dimension as a matcher plus a predicate.

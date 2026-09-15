@@ -15,7 +15,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
   .memory-panel h2 {
     display: flex;
@@ -27,7 +27,7 @@
   }
   .memory-panel h3 {
     margin: 8px 0 4px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--muted-foreground);
   }
@@ -64,7 +64,7 @@
     gap: 4px;
     padding: 8px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-element);
   }
   .memory-item.is-suggested {
     border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
@@ -93,10 +93,10 @@
   .memory-chip {
     flex-shrink: 0;
     padding: 1px 6px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: var(--muted);
     color: var(--muted-foreground);
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     white-space: nowrap;
   }
   .memory-chip.is-quote {
@@ -147,10 +147,10 @@
     min-height: 32px;
     padding: 0 12px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: var(--card);
     color: var(--foreground);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     cursor: pointer;
   }
 }
