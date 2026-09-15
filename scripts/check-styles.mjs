@@ -100,9 +100,10 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
 /* 131 until the comment scanner above was fixed. The file never had 131
  * colours: 13 of them sat in the 3,393 characters this check could not see,
  * and both the pre-layer and post-layer file measure 144 once it can. Raised
- * because the measurement was wrong, not because the file grew — the only
- * reason a ratchet may ever go up. */
-const BASELINE = { colours: 144, repeated: 100, extra: 138 };
+ * to 144 because the measurement was wrong, not because the file grew — the
+ * only reason a ratchet may ever go up — and then lowered to 143/95/133 by
+ * deleting 73 rules no source file refers to. */
+const BASELINE = { colours: 143, repeated: 95, extra: 133 };
 const actual = { colours: colours.size, repeated: repeated.length, extra };
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
