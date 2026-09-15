@@ -1,0 +1,180 @@
+/* Plans, usage and the receipt.
+ *
+ * One run of what was app/globals.css, cut contiguously so the cascade is
+ * unchanged: two rules of equal specificity are decided by source order, so
+ * regrouping them would rewrite that for any pair matching the same element.
+ * A rule is therefore where the file grew, not always where it belongs.
+ *
+ * Imported by app/globals.css, which is the only place the order is set. */
+@layer components {
+  .billing-head h1 {
+    font-size: 26px;
+    letter-spacing: -0.7px;
+    font-weight: 560;
+    margin-top: 14px;
+  }
+  .billing-back {
+    display: inline-flex;
+    align-items: center;
+    /* A standalone link, not one inside a sentence, so it carries its own
+     height rather than the 20px its 13px text happened to give it. */
+    min-height: 24px;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+  .billing-back:hover {
+    color: var(--foreground);
+  }
+  .billing-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    padding: 64px 0;
+    color: var(--muted-foreground);
+    font-size: 14px;
+  }
+  .billing-eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+  .billing-current {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--card);
+  }
+  .billing-current h2 {
+    font-size: 20px;
+    font-weight: 560;
+    letter-spacing: -0.4px;
+  }
+  .billing-usage-line {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+  }
+  .billing-meter {
+    height: 8px;
+    border-radius: 99px;
+    background: var(--muted);
+    overflow: hidden;
+  }
+  .billing-meter > span {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--primary);
+  }
+  .billing-current button,
+  .billing-plan button {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 18px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .billing-current button:disabled,
+  .billing-plan button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+  /* One column on a phone, two where there is room. The plans are read top to
+   bottom either way, so nothing depends on them sitting side by side. */
+  .billing-plans {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+  .billing-plan {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--card);
+  }
+  .billing-plan.is-current {
+    border-color: var(--primary);
+  }
+  .billing-plan h3 {
+    font-size: 17px;
+    font-weight: 560;
+  }
+  .billing-tagline {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+  }
+  .billing-plan ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .billing-plan li {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+  }
+  .billing-plan li svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--primary);
+  }
+  .billing-note {
+    font-size: 12.5px;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+  }
+
+  /* The landing page.
+   Its own palette rather than the app tokens: this is the one surface a visitor
+   sees before choosing anything, so it commits to a single look instead of
+   following a theme they have not set yet. Phone-first — a landing page that
+   breaks at 400px sells nothing. */
+  /* Straight to the content, for anyone arriving on the keyboard: off-screen
+   until it takes focus, then the first thing in the page. */
+  .landing-skip {
+    position: absolute;
+    left: -9999px;
+    top: 8px;
+    z-index: 20;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 14px;
+  }
+  .landing-skip:focus-visible {
+    left: 20px;
+  }
+  .landing {
+    --ink: #16261f;
+    --ink-soft: #55695f;
+    --line: #dee5e0;
+    --accent: #285d46;
+    background: radial-gradient(ellipse at 20% -5%, #e8f2ec, transparent 60%), #fff;
+    color: var(--ink);
+    min-height: 100dvh;
+    padding: 0 20px 72px;
+  }
+  .landing > * {
+    max-width: 1020px;
+    margin: 0 auto;
+  }
+}

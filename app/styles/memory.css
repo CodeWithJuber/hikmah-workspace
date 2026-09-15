@@ -1,0 +1,355 @@
+/* The memory and training panels.
+ *
+ * One run of what was app/globals.css, cut contiguously so the cascade is
+ * unchanged: two rules of equal specificity are decided by source order, so
+ * regrouping them would rewrite that for any pair matching the same element.
+ * A rule is therefore where the file grew, not always where it belongs.
+ *
+ * Imported by app/globals.css, which is the only place the order is set. */
+@layer components {
+  /* Something is happening.
+   A spinner inside the send button told the person their click registered and
+   nothing told them the work was still going, so a slow turn — or a tool that
+   runs a while before writing a word — read as the app having stopped. Three
+   dots in the transcript, where the answer will appear, and gone the moment it
+   does. */
+  .chat-thinking {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
+  .chat-thinking-dots {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .chat-thinking-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.35;
+    animation: chat-thinking-pulse 1.2s ease-in-out infinite;
+  }
+  .chat-thinking-dots i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .chat-thinking-dots i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  @keyframes chat-thinking-pulse {
+    0%,
+    80%,
+    100% {
+      opacity: 0.25;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
+  /* Someone who has asked for less motion gets the label and no animation; the
+   information is in the words, not the movement. */
+  @media (prefers-reduced-motion: reduce) {
+    .chat-thinking-dots i {
+      animation: none;
+      opacity: 0.5;
+    }
+  }
+
+  /* A run stopped and is asking.
+   Never inside a disclosure: this is the one control the run is blocked on,
+   so it is a block in the transcript with the request in plain words, the
+   literal command, and two buttons — reachable without a tap to reveal it.
+   The left rule and the tint pick it out from the working around it without
+   shouting; an approval is a question, not an alarm. */
+  .chat-approval {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 6px 0 14px;
+    padding: 14px 16px;
+    border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+    border-inline-start-width: 4px;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--primary) 6%, var(--card));
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+  .chat-approval-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .chat-approval-head svg {
+    flex-shrink: 0;
+    color: var(--primary);
+  }
+  .chat-approval-source {
+    color: var(--muted-foreground);
+    font-weight: 400;
+  }
+  .chat-approval-why {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .chat-approval-command {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 40vh;
+    overflow: auto;
+  }
+  .chat-approval-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .chat-approval-actions [data-slot='button'] {
+    min-height: 40px;
+  }
+  /* The scopes of a remembered yes. A command is shown under its choice in
+   full, because the choice is about that exact command. */
+  .chat-approval-menu {
+    max-width: min(360px, 92vw);
+  }
+  .chat-approval-menu code {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* What runs without asking, in Settings. */
+  .chat-permissions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .chat-permissions li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .chat-permissions li > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .chat-permissions li > code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+  }
+  .chat-permissions .chat-settings-choices {
+    flex-shrink: 0;
+    margin: 0;
+  }
+  .chat-permissions-remove {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    cursor: pointer;
+  }
+  @media (max-width: 600px) {
+    /* Two full-width targets, thumb-sized, rather than two small buttons in a
+     corner of the card. */
+    .chat-approval-actions [data-slot='button'] {
+      flex: 1 1 0;
+      min-height: 44px;
+    }
+  }
+
+  /* Memory, as the fourth tab of the workspace panel.
+   The same list grammar as the files and agents tabs — one card per memory,
+   the controls on the card — with one addition: every card names where the
+   memory came from, because that is what decides how far to trust it. */
+  .memory-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .memory-panel h2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .memory-panel h3 {
+    margin: 8px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+  .memory-panel ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .memory-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .memory-form textarea {
+    min-height: 72px;
+  }
+  .memory-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .memory-kind {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted-foreground);
+  }
+  .memory-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .memory-item.is-suggested {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    background: color-mix(in oklab, var(--primary) 5%, var(--card));
+  }
+  .memory-item header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .memory-item header strong {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .memory-item p {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    margin: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .memory-chip {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .memory-chip.is-quote {
+    color: var(--primary);
+  }
+  .memory-source {
+    color: var(--muted-foreground);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  .memory-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .memory-recent li {
+    padding: 2px 0;
+    color: var(--muted-foreground);
+  }
+  .memory-empty {
+    padding: 4px 0;
+    color: var(--muted-foreground);
+  }
+  .memory-note {
+    color: var(--destructive);
+  }
+  .chat-receipt-memories {
+    color: var(--primary);
+  }
+  /* The same panel on the wide workspace screen: room to breathe, and a width a
+   paragraph can be read at. */
+  .knowledge-personal .memory-panel {
+    max-width: 720px;
+    font-size: 13px;
+  }
+
+  /* The rest of a long conversation, one button away.
+ *
+ * Only the newest turns are rendered: every message on screen costs a markdown
+ * render, and a code block in one costs a Shiki tokenisation, so a hundred-turn
+ * transcript spent most of an answer's main-thread time on text that was
+ * scrolled out of view. This is how the rest is asked for.
+ *
+ * Tokens only, and no new colour: it is a quiet control that should read as
+ * part of the transcript rather than an action competing with the answer. */
+  .chat-earlier {
+    align-self: center;
+    min-height: 36px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .chat-earlier:hover {
+    border-color: var(--primary);
+    color: var(--foreground);
+  }
+
+  /* A panel that could not load says so, rather than showing its empty state.
+ *
+ * Several panels caught a failed request into an empty array, so a network
+ * failure rendered as "No conversations yet." — a false statement about
+ * someone's own data, and the more confident-sounding of the two. */
+  .conversation-failed,
+  .files-failed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .conversation-failed button,
+  .files-failed button {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 12px;
+    cursor: pointer;
+  }
+}

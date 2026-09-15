@@ -17,10 +17,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { allStyles } from './stylesheet.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(join(root, file), 'utf8');
-const css = read('app/globals.css');
+// The rules moved into app/styles/*; allStyles follows the import graph.
+const css = allStyles();
 
 const PANELS = [
   ['components/chat/conversation-list.tsx', 'conversations'],

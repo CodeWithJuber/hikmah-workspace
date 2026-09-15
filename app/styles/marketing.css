@@ -1,0 +1,390 @@
+/* The signed-out landing page.
+ *
+ * One run of what was app/globals.css, cut contiguously so the cascade is
+ * unchanged: two rules of equal specificity are decided by source order, so
+ * regrouping them would rewrite that for any pair matching the same element.
+ * A rule is therefore where the file grew, not always where it belongs.
+ *
+ * Imported by app/globals.css, which is the only place the order is set. */
+@layer components {
+  .landing-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 0;
+    flex-wrap: wrap;
+  }
+  .landing-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 21px;
+    font-weight: 650;
+    letter-spacing: -0.7px;
+  }
+  .landing-bar nav,
+  .landing-foot nav {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  /* Nav links are targets, not prose. They measured 41x21 on a phone; the text
+   stays where it is and the box grows around it. */
+  .landing-bar nav a,
+  .landing-foot nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+  }
+  .landing-bar nav a:hover,
+  .landing-foot nav a:hover {
+    color: var(--ink);
+  }
+  .landing-hero {
+    padding: 56px 0 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .landing-eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  .landing-hero h1 {
+    /* Scales with the viewport rather than at a breakpoint, so there is no width
+     at which it is either cramped or absurd. */
+    font-size: clamp(30px, 6.4vw, 54px);
+    line-height: 1.1;
+    letter-spacing: -1.8px;
+    font-weight: 550;
+  }
+  .landing-lede {
+    font-size: clamp(15px, 2.1vw, 17.5px);
+    line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 60ch;
+  }
+  .landing-cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 6px;
+  }
+  .landing-primary,
+  .landing-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 0 24px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .landing-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .landing-primary:hover {
+    background: #1f4b39;
+  }
+  .landing-secondary {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+  }
+  .landing-fineprint {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  /* 340px rather than 260px on purpose: at the 1020px container that gives two
+   columns, so four cards are a 2x2 block instead of a row of three and a
+   stranded fourth. One column on a phone, as before. */
+  .landing-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    padding: 44px 0;
+  }
+  .landing-grid article {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .landing-grid svg {
+    color: var(--accent);
+  }
+  .landing-grid h2 {
+    font-size: 16.5px;
+    font-weight: 580;
+    letter-spacing: -0.3px;
+  }
+  .landing-grid p {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .landing-pricing {
+    padding: 36px 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .landing-pricing h2,
+  .landing-faq h2 {
+    font-size: clamp(23px, 3.6vw, 32px);
+    letter-spacing: -1px;
+    font-weight: 550;
+  }
+  .landing-plans {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+    width: 100%;
+    margin-top: 20px;
+    text-align: left;
+  }
+  .landing-plans article {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .landing-plans article.is-featured {
+    border-color: var(--accent);
+    box-shadow: 0 18px 50px #243b2e12;
+  }
+  .landing-plans h3 {
+    font-size: 19px;
+    font-weight: 580;
+  }
+  /* Privacy and terms: the landing's palette, one readable column. */
+  .landing-legal {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 0 40px;
+  }
+  .landing-legal h1 {
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -1.4px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .landing-legal h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    margin: 32px 0 8px;
+  }
+  .landing-legal p,
+  .landing-legal li {
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--ink-soft);
+  }
+  .landing-legal ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 20px;
+    list-style: disc;
+  }
+  .landing-legal strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .landing-legal a {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  /* The amount, above the tagline: the first thing to find on a plan card. */
+  .landing-price {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -1px;
+    margin-top: 4px;
+  }
+  .landing-price-tbd {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    color: var(--ink-soft);
+  }
+  .landing-pricenote {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+  .landing-tagline {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .landing-plans ul {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 14px;
+    line-height: 1.5;
+    flex: 1;
+  }
+  .landing-plans li {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+  }
+  .landing-plans li svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--accent);
+  }
+  .landing-plans article > a {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 20px;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-size: 14.5px;
+  }
+  /* The featured plan's button inherits the white card button above and then
+   `.landing-primary`'s white text: white on white, an empty box where "Start
+   14 days free" belonged. Filled, like the hero's. */
+  .landing-plans article > a.landing-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .landing-providers {
+    margin: 18px auto 0;
+    max-width: 560px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .landing-section-title {
+    margin: 36px 0 -8px;
+    font-size: 22px;
+    font-weight: 640;
+    letter-spacing: -0.01em;
+  }
+  .landing-faq {
+    padding: 32px 0;
+  }
+  .landing-faq dl {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    margin-top: 22px;
+  }
+  .landing-faq dt {
+    font-weight: 570;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+  .landing-faq dd {
+    font-size: 14px;
+    line-height: 1.68;
+    color: var(--ink-soft);
+  }
+  .landing-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+    margin-top: 12px;
+  }
+  /* Likewise the landing page. */
+
+  /* The phone.
+ *
+ * This surface had no breakpoint below 600px at all: the only responsive
+ * decision anywhere in the chat block was the 900px drawer switch, so every
+ * value used at 390px was the value chosen for 899px. The arithmetic that
+ * follows from that, measured at 360px CSS width:
+ *
+ *   .chat-preview pads 16px a side and ConversationContent adds p-4, so 32px a
+ *   side goes to gutters and the text column is 281px — about 34 characters a
+ *   line. The composer's row is 302px of usable width holding controls that
+ *   measure about 411px.
+ *
+ * So the gutter is halved and the row is allowed to be a row. */
+  @media (max-width: 600px) {
+    .chat-preview {
+      padding: 0 8px env(safe-area-inset-bottom);
+    }
+    /* The scroller's own padding, on top of the gutter above. */
+    .chat-preview [data-slot='conversation-content'] {
+      padding-inline: 4px;
+      /* 24px between turns is a desktop rhythm. On a phone it is a quarter of
+       the visible transcript spent on nothing. */
+      gap: 16px;
+    }
+    /* The bubble caps itself at 95%, and that sliver buys nothing on a phone
+     where a bubble is told apart by its background rather than by the gap
+     beside it. (The class, not a data-slot: this element carries neither
+     `data-slot` nor an id, only `is-user` / `is-assistant`.) */
+    .chat-preview .is-user,
+    .chat-preview .is-assistant {
+      max-width: 100%;
+    }
+    /* The word "Tools" gives up its room: the icon and the count still say what
+     that button is. */
+    .chat-tools-label {
+      display: none;
+    }
+    /* The picker is a dialog now, so its trigger can be small: the name is read
+     in the dialog, where it has the whole screen, not on the row. */
+    .chat-composer-row .chat-model-select {
+      max-width: 34vw;
+    }
+    /* Five icon buttons in a 360px bar with about 7px to spare, and they were
+     `width: 38px` rather than `min-width`, with no `flex-shrink: 0` — so they
+     compressed into 18px slivers inside 38px boxes rather than staying square.
+     Their intrinsic minimum is the icon, which is why they could. */
+    .chat-topbar-toggle,
+    .chat-topbar-links.is-compact a {
+      min-width: 38px;
+      flex-shrink: 0;
+    }
+    .chat-topbar-brand {
+      min-width: 0;
+      flex-shrink: 1;
+      overflow: hidden;
+    }
+  }
+
+  /* A turn that produced nothing at all.
+   Quiet rather than alarming — the model stopping without writing is a
+   disappointment, not a fault in the workspace — but present, because a blank
+   space where an answer belongs reads as the app being broken. */
+  .chat-blank-turn {
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-style: italic;
+    margin: 4px 0;
+  }
+}

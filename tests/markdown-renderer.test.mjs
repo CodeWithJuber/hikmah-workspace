@@ -6,8 +6,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { allStyles, globals } from './stylesheet.mjs';
 
-const css = await readFile('app/globals.css', 'utf8');
+// globals.css itself for the import order — that is a fact about this file.
+const css = globals();
 const playground = await readFile('components/playground/message-content.tsx', 'utf8');
 const elements = await readFile('components/ai-elements/message.tsx', 'utf8');
 
@@ -50,8 +52,12 @@ test('the answer no longer hides a long code block behind a disclosure', () => {
 });
 
 test('the hand-rolled code block and table wrapper leave no dead CSS behind', () => {
+  // Across every stylesheet, not just globals.css. After the split that file
+  // holds no rules at all, so a prohibition reading it alone would pass whatever
+  // the rest of them said — the quiet way a check stops checking.
+  const everywhere = allStyles();
   for (const dead of ['.code-block', '.markdown-table']) {
-    assert.ok(!css.includes(dead), `${dead} is styled but nothing renders it`);
+    assert.ok(!everywhere.includes(dead), `${dead} is styled but nothing renders it`);
   }
 });
 
