@@ -11,6 +11,7 @@ import { Loader2, Plug, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { clientFetch } from '@/lib/client/request';
 
 type Server = {
   id: string;
@@ -37,7 +38,7 @@ const STATUS: Record<string, string> = {
 };
 
 async function send(method: string, body?: object, query = '') {
-  const response = await fetch(`/api/mcp-servers${query}`, {
+  const response = await clientFetch(`/api/mcp-servers${query}`, {
     method,
     headers: body ? { 'content-type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -60,7 +61,7 @@ export function McpServers() {
 
   useEffect(() => {
     let live = true;
-    fetch('/api/mcp-servers')
+    clientFetch('/api/mcp-servers')
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? 'Could not load MCP servers.');

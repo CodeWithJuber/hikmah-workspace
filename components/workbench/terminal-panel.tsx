@@ -12,6 +12,7 @@ import '@xterm/xterm/css/xterm.css';
 import { RotateCw, TerminalSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { closeReason, controlFrame, encodeInput, refusedReason } from '@/lib/workbench/protocol';
+import { clientFetch } from '@/lib/client/request';
 
 type Status =
   | { state: 'connecting' }
@@ -67,7 +68,7 @@ export function TerminalPanel({ className }: { className?: string }) {
     const start = async () => {
       let url: string;
       try {
-        const response = await fetch('/api/workbench/ticket', { method: 'POST' });
+        const response = await clientFetch('/api/workbench/ticket', { method: 'POST' });
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error ?? 'Could not open a terminal.');
         url = body.url;

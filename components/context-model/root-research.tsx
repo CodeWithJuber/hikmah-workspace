@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ArrowUpRight, BookOpen, LoaderCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import seed from '@/public/research/v6/root-context-seed-contrasts.json';
+import { clientFetch } from '@/lib/client/request';
 const examples = seed.examples;
 const roots = [...new Set(examples.map((e) => e.root_arabic))];
 export function RootResearch() {
@@ -85,7 +86,7 @@ export function CorpusExplorer() {
     setBusy(true);
     setError('');
     try {
-      const r = await fetch('/research/v6/original/ayah-ledger.jsonl');
+      const r = await clientFetch('/research/v6/original/ayah-ledger.jsonl', { timeoutMs: 60_000 });
       if (!r.ok) throw Error('Corpus ledger could not load.');
       const data = (await r.text())
         .trim()
