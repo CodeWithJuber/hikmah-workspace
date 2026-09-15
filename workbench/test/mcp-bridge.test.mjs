@@ -209,3 +209,29 @@ test('stopping the pool leaves nothing running', async (t) => {
   bridge.stopAll();
   assert.equal(bridge.size, 0);
 });
+
+test('a stdio MCP server gets its own variables, not the service’s secrets', async (t) => {
+  // These children are the ones that already hold decrypted credentials, and
+  // they were spawned with the whole of process.env — so HIKMAH_WORKBENCH_TOKEN
+  // went with them. The same defect shell.ts had, in the worst place for it.
+  //
+  // A real child that reports what it can see, as the rest of this file does.
+  process.env.HIKMAH_WORKBENCH_TOKEN = 'token-that-must-not-leak';
+  t.after(() => {
+    delete process.env.HIKMAH_WORKBENCH_TOKEN;
+  });
+
+  const config = serverScript(
+    "if (message.method === 'env') { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: message.id, result: { hikmah: Object.keys(process.env).filter((k) => k.startsWith('HIKMAH_')), mine: process.env.MY_SERVER_TOKEN, path: Boolean(process.env.PATH) } }) + '\\n'); continue; }",
+  );
+  const instance = pool(t);
+  const reply = await instance.call(
+    's-env',
+    { ...config, env: { MY_SERVER_TOKEN: 'theirs' } },
+    request(1, 'env'),
+  );
+
+  assert.deepEqual(reply.result.hikmah, [], 'no HIKMAH_* reaches a stdio MCP server');
+  assert.equal(reply.result.mine, 'theirs', 'its own configured variables still do');
+  assert.equal(reply.result.path, true, 'and it can still find its interpreter');
+});

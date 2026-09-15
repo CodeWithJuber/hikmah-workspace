@@ -29,7 +29,7 @@ const run = (session, command, root, options = {}) =>
 
 test('a command runs and its output and exit code come back', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'echo hello', root);
   assert.equal(result.stdout, 'hello\n', 'the command\u2019s own newline is its output');
   assert.equal(result.exitCode, 0);
@@ -39,7 +39,7 @@ test('a command runs and its output and exit code come back', async (t) => {
 test('a failing command reports its code rather than throwing', async (t) => {
   // The output is what explains the failure; an exception would discard it.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'echo oops >&2; exit 3', root);
   assert.equal(result.exitCode, 3);
   assert.match(result.stderr, /oops/);
@@ -48,7 +48,7 @@ test('a failing command reports its code rather than throwing', async (t) => {
 test('the shell is a shell: pipes, redirects and && all work', async (t) => {
   // The model writes shell. Re-implementing one badly would be the alternative.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'printf "b\\na\\n" | sort | tr -d "\\n" && echo " ok"', root);
   assert.equal(result.stdout, 'ab ok\n');
 });
@@ -56,8 +56,8 @@ test('the shell is a shell: pipes, redirects and && all work', async (t) => {
 test('a directory change carries to the next command in the session', async (t) => {
   // This is why sessions exist at all: cd then ls is two calls, not one.
   const root = await workspace(t);
-  const sessions = createSessions(root);
-  const session = sessions.for('conv-1');
+  const sessions = createSessions();
+  const session = sessions.for('conv-1', root);
   await run(session, 'mkdir -p project/src', root);
   await run(session, 'cd project/src', root);
   const result = await run(session, 'pwd', root);
@@ -67,18 +67,18 @@ test('a directory change carries to the next command in the session', async (t) 
 
 test('two conversations do not share a working directory', async (t) => {
   const root = await workspace(t);
-  const sessions = createSessions(root);
-  await run(sessions.for('conv-1'), 'mkdir -p a && cd a', root);
-  const other = await run(sessions.for('conv-2'), 'pwd', root);
+  const sessions = createSessions();
+  await run(sessions.for('conv-1', root), 'mkdir -p a && cd a', root);
+  const other = await run(sessions.for('conv-2', root), 'pwd', root);
   assert.equal(other.stdout.trim(), root, 'a second conversation starts at the top');
 });
 
 test('resetting a session forgets where it was', async (t) => {
   const root = await workspace(t);
-  const sessions = createSessions(root);
-  await run(sessions.for('conv-1'), 'mkdir -p a && cd a', root);
-  sessions.reset('conv-1');
-  const result = await run(sessions.for('conv-1'), 'pwd', root);
+  const sessions = createSessions();
+  await run(sessions.for('conv-1', root), 'mkdir -p a && cd a', root);
+  sessions.reset('conv-1', root);
+  const result = await run(sessions.for('conv-1', root), 'pwd', root);
   assert.equal(result.stdout.trim(), root);
 });
 
@@ -86,7 +86,7 @@ test('a command that leaves the workspace does not strand the session there', as
   // Not a security boundary — the container is that — but a stray `cd /` would
   // otherwise make every later command in the conversation run from the root.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   await run(session, 'cd /', root);
   assert.equal(session.cwd, root);
 });
@@ -107,7 +107,7 @@ test('the cwd marker never shows up in the output', async (t) => {
   // It is an implementation detail of getting the directory back; a user seeing
   // it would be seeing a bug.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'echo visible', root);
   assert.equal(result.stdout, 'visible\n');
   assert.equal(result.stdout.includes('hikmah_cwd'), false);
@@ -115,7 +115,7 @@ test('the cwd marker never shows up in the output', async (t) => {
 
 test('output streams during the command rather than only at the end', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const seen = [];
   await run(session, 'echo one; echo two', root, {
     onOutput: (stream, chunk) => seen.push([stream, chunk]),
@@ -129,7 +129,7 @@ test('output streams during the command rather than only at the end', async (t) 
 test('very long output is capped, flagged, and kept in a log', async (t) => {
   // Dropping it entirely would mean the assistant cannot go and look.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(
     session,
     `head -c ${MAX_INLINE_OUTPUT * 2} /dev/zero | tr "\\0" "x"`,
@@ -144,7 +144,7 @@ test('very long output is capped, flagged, and kept in a log', async (t) => {
 
 test('a command that outruns its limit is stopped and said to be', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'sleep 30', root, { timeoutMs: 300 });
   assert.equal(result.timedOut, true);
   assert.notEqual(result.exitCode, 0);
@@ -154,14 +154,14 @@ test('a command that reads stdin fails rather than hanging until the deadline', 
   // Nothing is ever typed into these; an open stdin would make `cat` look like
   // a slow command instead of a mistake.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'cat', root, { timeoutMs: 5_000 });
   assert.notEqual(result.timedOut, true);
 });
 
 test('cancelling stops the command', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const controller = new AbortController();
   const pending = run(session, 'sleep 30', root, { signal: controller.signal });
   setTimeout(() => controller.abort(), 100);
@@ -171,7 +171,7 @@ test('cancelling stops the command', async (t) => {
 
 test('a default timeout applies when none is given', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await run(session, 'echo quick', root);
   assert.equal(result.exitCode, 0);
   assert.ok(DEFAULT_TIMEOUT_MS > 0);
@@ -180,7 +180,7 @@ test('a default timeout applies when none is given', async (t) => {
 test('a python snippet runs without the model quoting anything', async (t) => {
   // The code goes in on a file precisely so quoting is not the model's problem.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await runSnippet(session, 'python', 'print("it\'s \\"quoted\\"")', {
     workspace: root,
   });
@@ -190,14 +190,14 @@ test('a python snippet runs without the model quoting anything', async (t) => {
 
 test('a node snippet runs too', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await runSnippet(session, 'node', 'console.log(1 + 1);', { workspace: root });
   assert.equal(result.stdout, '2\n');
 });
 
 test('a snippet that throws reports the error, not a crash', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   const result = await runSnippet(session, 'python', 'raise SystemExit("bad")', {
     workspace: root,
   });
@@ -207,7 +207,7 @@ test('a snippet that throws reports the error, not a crash', async (t) => {
 
 test('an unknown language is refused by name', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   await assert.rejects(
     runSnippet(session, 'ruby', 'puts 1', { workspace: root }),
     (error) => error instanceof ShellError && /python or node/.test(error.message),
@@ -216,7 +216,7 @@ test('an unknown language is refused by name', async (t) => {
 
 test('snippets are written inside the workspace, not somewhere the owner cannot see', async (t) => {
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   await runSnippet(session, 'node', 'console.log("x");', { workspace: root });
   const files = await readdir(join(root, '.runs'));
   assert.ok(files.some((name) => name.endsWith('.mjs')));
@@ -233,7 +233,7 @@ test('a command inherits only what a shell needs, never the service’s token', 
   // POST a command to /runs. It has no business being readable by the commands
   // it authorises.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   process.env.HIKMAH_WORKBENCH_TOKEN = 'token-that-must-not-leak';
   process.env.HIKMAH_VAULT_KEY = 'key-that-must-not-leak';
   t.after(() => {
@@ -252,7 +252,7 @@ test('a snippet is spawned through the same filter as a command', async (t) => {
   // sandbox_run reaches the same spawn, so a filter applied only to `bash` would
   // leave `sandbox_run` printing the token with a two-line Python program.
   const root = await workspace(t);
-  const session = createSessions(root).for('conv-1');
+  const session = createSessions().for('conv-1', root);
   process.env.HIKMAH_WORKBENCH_TOKEN = 'token-that-must-not-leak';
   t.after(() => {
     delete process.env.HIKMAH_WORKBENCH_TOKEN;

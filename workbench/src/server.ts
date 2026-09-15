@@ -17,6 +17,8 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { TicketError, pruneSeen, verifyTicket } from './ticket.ts';
 import { createTerminal as defaultCreateTerminal, type TerminalSession } from './terminal.ts';
 import { RunRequestError, parseRunRequest, readJsonBody, writeRunStream } from './runs.ts';
+import { SlotError, createSlots, type Slot } from './slots.ts';
+import { migrateSharedWorkspace, realMigrateFs, type Migration } from './migrate.ts';
 import { bridgeServerId, createBridgePool, handleBridgeRequest } from './mcp-bridge.ts';
 import type { sshExec } from './ssh.ts';
 
@@ -44,10 +46,53 @@ export type WorkbenchOptions = {
   createTerminal?: typeof defaultCreateTerminal;
   /** Injected by the tests so they do not need a real SSH server. */
   exec?: typeof sshExec;
+  /** Injected by the tests, which cannot create users or chown: in production
+   * this is `createSlots(...).for`, resolving an account to its own uid and
+   * directory. */
+  slots?: (userKey: string) => import('./slots.ts').Slot;
 };
 
 export function createWorkbench(options: WorkbenchOptions) {
   const createTerminal = options.createTerminal ?? defaultCreateTerminal;
+  // One registry for both entry points, so the model's commands and the owner's
+  // terminal land in the same directory rather than two.
+  const pool = createSlots({ workspace: options.workspace });
+  const resolveSlot =
+    options.slots ??
+    ((userKey: string) => {
+      // A volume that predates slots holds the owner's files at the top, owned
+      // by the uid the old image used, which no slot user can write. The first
+      // slot ever assigned here is the owner's — reaching the workbench at all
+      // needs `entitlements.execution`, which is owner-only — so their files
+      // move into it. See migrate.ts for why that assumption is load-bearing.
+      const untouched = pool.assigned === 0;
+      // The migration runs inside `for`, in the window where the directory is
+      // still root's: it moves files INTO the slot, and once the slot user owns
+      // it the supervisor cannot write there at all.
+      // A holder rather than a plain `let`: TypeScript cannot know the callback
+      // below runs synchronously, so it narrows a `let` to `null` and then
+      // refuses to read the result.
+      const migration: { done: Migration } = { done: null };
+      let slot;
+      try {
+        slot = pool.for(userKey, (fresh) => {
+          if (!untouched) return;
+          migration.done = migrateSharedWorkspace(options.workspace, fresh, realMigrateFs);
+        });
+      } catch (error) {
+        if (error instanceof SlotError) throw error;
+        // Refused, not served: handing someone an empty workspace while their
+        // files sit unreachable at the top of the volume reads as data loss.
+        console.error('[workbench] could not migrate the existing workspace:', error);
+        throw new SlotError('This workspace could not be prepared. Check the workbench log.', 500);
+      }
+      const moved = migration.done;
+      if (moved)
+        console.info(
+          `[workbench] moved ${moved.moved.length} existing entr${moved.moved.length === 1 ? 'y' : 'ies'} into ${moved.slot}: ${moved.moved.join(', ')}`,
+        );
+      return slot;
+    });
   // stdio MCP servers hosted here, because the app container cannot run npx.
   const bridge = createBridgePool({ workspace: options.workspace });
   const heartbeatMs = options.heartbeatMs ?? HEARTBEAT_MS;
@@ -94,6 +139,7 @@ export function createWorkbench(options: WorkbenchOptions) {
           signal: controller.signal,
           exec: options.exec,
           workspace: options.workspace,
+          slots: resolveSlot,
         });
       })();
       return;
@@ -145,19 +191,30 @@ export function createWorkbench(options: WorkbenchOptions) {
       return reject(401, 'Unauthorized');
     }
     if (payload.scope !== 'terminal') return reject(403, 'Forbidden');
+    // Which account's shell this is. A ticket that names none used to open a pty
+    // in the shared workspace — the same defect as the model's path, inverted:
+    // there, one uid for everyone; here, one directory for everyone.
+    let slot;
+    try {
+      slot = resolveSlot(payload.userKey ?? '');
+    } catch (error) {
+      if (!(error instanceof SlotError)) throw error;
+      return reject(error.status === 503 ? 503 : 403, error.message);
+    }
     spentTickets.set(payload.nonce, payload.expiresAt);
 
-    wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+    wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request, slot));
   });
 
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection', (ws: WebSocket, _request: IncomingMessage, slot: Slot) => {
     let alive = true;
     ws.on('pong', () => {
       alive = true;
     });
 
     const session = createTerminal({
-      cwd: options.workspace,
+      cwd: slot.home,
+      slot,
       onData: (data) => {
         if (ws.readyState === ws.OPEN) ws.send(data);
       },

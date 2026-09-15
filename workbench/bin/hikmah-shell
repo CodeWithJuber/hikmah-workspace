@@ -1,0 +1,12 @@
+#!/bin/bash
+# An interactive login shell for the terminal panel, as one slot user.
+#
+#   $1  the working directory
+#
+# The same cd-after-drop rule as hikmah-run, for the same reason: node-pty also
+# chdir's before it setuid's. The bounds are looser than a command's because a
+# person is watching this one and a shell they are typing into should not die
+# at 150 CPU-seconds.
+ulimit -u 96 -f 2097152 -n 256 -c 0
+cd "$1" || { echo "hikmah-shell: cannot enter $1" >&2; exit 1; }
+exec bash -l

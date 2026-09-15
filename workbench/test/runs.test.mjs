@@ -4,9 +4,10 @@
 // Run: node --test test/runs.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_TIMEOUT_MS,
   MAX_TIMEOUT_MS,
@@ -16,6 +17,11 @@ import {
 } from '../src/runs.ts';
 import { HostKeyMismatch } from '../src/ssh.ts';
 import { resetSessions } from '../src/runs.ts';
+
+/** An account key, in the shape the app mints (an HMAC, base64url). Local runs
+ * are refused without one now: there is no shared slot to fall back to. */
+const USER = 'u'.repeat(32);
+const OTHER_USER = 'v'.repeat(32);
 import { createWorkbench } from '../src/server.ts';
 
 const TOKEN = 'r'.repeat(48);
@@ -176,6 +182,37 @@ test('the command and host reach the connector unchanged', async () => {
 /** A workspace per test file run, so local commands cannot touch the real one. */
 const workspaceRoot = mkdtempSync(join(tmpdir(), 'hikmah-runs-'));
 
+/**
+ * Slots, without the uids.
+ *
+ * In production a slot is a real Unix user and a 0700 directory, and resolving
+ * one chowns it — which needs root, which CI is not. So these tests get a slot
+ * that is only a directory: the accounting (one directory per account, refused
+ * without an account) is what is under test here, and the kernel half — that
+ * slot A really cannot read slot B — is asserted in the container by
+ * scripts/smoke-workbench.sh, where there are real users to drop to.
+ */
+function fakeSlots(root) {
+  const seen = new Map();
+  return (userKey) => {
+    if (!seen.has(userKey)) {
+      const index = seen.size + 1;
+      const name = 'hk' + String(index).padStart(2, '0');
+      const home = join(root, 'u', name);
+      mkdirSync(home, { recursive: true });
+      // The current uid, not a slot uid: setuid to yourself is a permitted
+      // no-op, so the real spawn path — the wrapper, the cd after the drop, the
+      // filtered environment — is exercised without needing root.
+      seen.set(userKey, { index, name, uid: process.getuid(), gid: process.getgid(), home });
+    }
+    return seen.get(userKey);
+  };
+}
+
+// The wrapper lives at /usr/local/bin in the image. Here it is the copy in the
+// repo, which is the same file the Dockerfile installs.
+process.env.HIKMAH_RUN_WRAPPER = fileURLToPath(new URL('../bin/hikmah-run', import.meta.url));
+
 /** Start a workbench whose SSH is faked, and return how to reach it. */
 async function start(t, execOptions) {
   resetSessions();
@@ -185,6 +222,7 @@ async function start(t, execOptions) {
     appOrigin: 'https://app.test',
     workspace: workspaceRoot,
     exec,
+    slots: fakeSlots(workspaceRoot),
     createTerminal: () => ({ pid: 1, write() {}, resize() {}, kill() {} }),
   });
   const port = await workbench.listen(0);
@@ -291,7 +329,12 @@ test('a bash request needs a command and a session', () => {
   ]) {
     assert.throws(() => parseRunRequest(bad), RunRequestError, JSON.stringify(bad));
   }
-  const parsed = parseRunRequest({ tool: 'bash', sessionId: 'conv-1', command: 'ls' });
+  const parsed = parseRunRequest({
+    tool: 'bash',
+    sessionId: 'conv-1',
+    userKey: USER,
+    command: 'ls',
+  });
   assert.equal(parsed.tool, 'bash');
   assert.equal(parsed.timeoutMs, DEFAULT_TIMEOUT_MS);
 });
@@ -300,6 +343,7 @@ test('a bash request may ask for a fresh working directory', () => {
   const parsed = parseRunRequest({
     tool: 'bash',
     sessionId: 'conv-1',
+    userKey: USER,
     command: 'pwd',
     reset: true,
   });
@@ -309,14 +353,22 @@ test('a bash request may ask for a fresh working directory', () => {
 test('sandbox_run only accepts a language the image actually has', () => {
   for (const language of [undefined, 'ruby', 'perl', 'bash', '']) {
     assert.throws(
-      () => parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language, code: 'x' }),
+      () =>
+        parseRunRequest({
+          tool: 'sandbox_run',
+          sessionId: 'c',
+          userKey: USER,
+          language,
+          code: 'x',
+        }),
       RunRequestError,
       String(language),
     );
   }
   for (const language of ['python', 'node']) {
     assert.equal(
-      parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language, code: 'x' }).language,
+      parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', userKey: USER, language, code: 'x' })
+        .language,
       language,
     );
   }
@@ -325,7 +377,14 @@ test('sandbox_run only accepts a language the image actually has', () => {
 test('sandbox_run needs code, and not an unbounded amount of it', () => {
   for (const code of [undefined, '', '  ', 'x'.repeat(100_001)]) {
     assert.throws(
-      () => parseRunRequest({ tool: 'sandbox_run', sessionId: 'c', language: 'python', code }),
+      () =>
+        parseRunRequest({
+          tool: 'sandbox_run',
+          sessionId: 'c',
+          userKey: USER,
+          language: 'python',
+          code,
+        }),
       RunRequestError,
     );
   }
@@ -336,6 +395,7 @@ test('a local command streams its output and reports where it left the shell', a
   const response = await post(port, {
     tool: 'bash',
     sessionId: 'conv-local-1',
+    userKey: USER,
     command: 'echo streamed',
   });
   assert.equal(response.status, 200);
@@ -351,11 +411,25 @@ test('a directory change survives between two requests', async (t) => {
   // The session is what makes `cd` then `ls` behave like a shell rather than
   // like two unrelated commands.
   const { port } = await start(t);
-  await post(port, { tool: 'bash', sessionId: 'conv-local-2', command: 'mkdir -p sub && cd sub' });
+  // Drained, not just awaited. `post` resolves when the response HEADERS
+  // arrive; the frames stream afterwards, so awaiting it alone does not mean
+  // the command finished — and this test's whole premise is that the first
+  // request completes before the second begins. It passed for as long as the
+  // first command happened to win that race, and started failing on CI the
+  // moment commands went through the slot wrapper and got slower.
+  await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-2',
+      userKey: USER,
+      command: 'mkdir -p sub && cd sub',
+    }),
+  );
   const second = await frames(
     await post(port, {
       tool: 'bash',
       sessionId: 'conv-local-2',
+      userKey: USER,
       command: 'pwd',
     }),
   );
@@ -364,15 +438,21 @@ test('a directory change survives between two requests', async (t) => {
 
 test('a reset sends the session back to the top of the workspace', async (t) => {
   const { port } = await start(t);
-  await post(port, {
-    tool: 'bash',
-    sessionId: 'conv-local-3',
-    command: 'mkdir -p deep && cd deep',
-  });
+  // Drained for the same reason as above: without it this test passes whether
+  // or not `reset` does anything, because the session never moved.
+  await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-3',
+      userKey: USER,
+      command: 'mkdir -p deep && cd deep',
+    }),
+  );
   const after = await frames(
     await post(port, {
       tool: 'bash',
       sessionId: 'conv-local-3',
+      userKey: USER,
       command: 'pwd',
       reset: true,
     }),
@@ -386,6 +466,7 @@ test('a snippet runs and its output comes back', async (t) => {
     await post(port, {
       tool: 'sandbox_run',
       sessionId: 'conv-local-4',
+      userKey: USER,
       language: 'node',
       code: 'console.log(6 * 7);',
     }),
@@ -397,6 +478,83 @@ test('a snippet runs and its output comes back', async (t) => {
 test('a local command without the shared token is refused', async (t) => {
   // The same gate as SSH: nothing runs here on an unauthenticated request.
   const { port } = await start(t);
-  const response = await post(port, { tool: 'bash', sessionId: 'c', command: 'echo no' }, {});
+  const response = await post(
+    port,
+    { tool: 'bash', sessionId: 'c', userKey: USER, command: 'echo no' },
+    {},
+  );
   assert.equal(response.status, 401);
+});
+
+test('a local run that names no account is refused, not given a shared slot', async (t) => {
+  // The point of the whole change: there is no shared slot to fall back to, so
+  // defaulting would silently re-create the one /workspace everybody shared.
+  const { port } = await start(t);
+  for (const body of [
+    { tool: 'bash', sessionId: 'c', command: 'echo hi' },
+    { tool: 'bash', sessionId: 'c', userKey: '', command: 'echo hi' },
+    { tool: 'bash', sessionId: 'c', userKey: '../etc', command: 'echo hi' },
+    { tool: 'sandbox_run', sessionId: 'c', language: 'node', code: 'console.log(1)' },
+  ]) {
+    const response = await post(port, body);
+    assert.equal(response.status, 400, JSON.stringify(body));
+    const { error } = await response.json();
+    assert.match(error, /which account/, 'and says what is missing');
+  }
+});
+
+test('two accounts in the same conversation do not share a directory', async (t) => {
+  // `sessionId` is the app's conversation id. It used to be the only key, so
+  // two accounts using one id landed on one remembered directory.
+  const { port } = await start(t);
+  const mine = await frames(
+    await post(port, { tool: 'bash', sessionId: 'shared-id', userKey: USER, command: 'pwd' }),
+  );
+  const theirs = await frames(
+    await post(port, { tool: 'bash', sessionId: 'shared-id', userKey: OTHER_USER, command: 'pwd' }),
+  );
+  assert.notEqual(mine[0].data.trim(), theirs[0].data.trim(), 'one id, two directories');
+});
+
+test('a command starts in its own slot, not at the top of the volume', async (t) => {
+  const { port } = await start(t);
+  const received = await frames(
+    await post(port, { tool: 'bash', sessionId: 'conv-slot', userKey: USER, command: 'pwd' }),
+  );
+  assert.match(received[0].data.trim(), /\/u\/hk\d\d$/, 'the slot directory is where it begins');
+});
+
+test('a command cannot be left standing in another slot', async (t) => {
+  // The cwd comes back from the shell itself, so `cd` somewhere else used to
+  // move the session there for good. It is clamped to the slot now.
+  const { port } = await start(t);
+  const escaped = await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-escape',
+      userKey: USER,
+      command: 'cd / && pwd',
+    }),
+  );
+  assert.equal(escaped.at(-1).cwd.endsWith('/'), false, 'not left at the filesystem root');
+  const next = await frames(
+    await post(port, { tool: 'bash', sessionId: 'conv-escape', userKey: USER, command: 'pwd' }),
+  );
+  assert.match(next[0].data.trim(), /\/u\/hk\d\d$/, 'the next command is back in the slot');
+});
+
+test('a snippet is written inside the slot, not a shared .runs directory', async (t) => {
+  // /workspace/.runs held every account's programs, readable by all of them.
+  const { port } = await start(t);
+  const received = await frames(
+    await post(port, {
+      tool: 'sandbox_run',
+      sessionId: 'conv-snippet-slot',
+      userKey: USER,
+      language: 'node',
+      code: 'console.log(import.meta.url);',
+    }),
+  );
+  const printed = received.map((frame) => frame.data ?? '').join('');
+  assert.match(printed, /\/u\/hk\d\d\/\.runs\//, 'the program lives in its own slot');
 });

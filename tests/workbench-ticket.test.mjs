@@ -13,6 +13,8 @@ import {
   workbenchToken,
 } from '../lib/workbench/ticket.ts';
 import { verifyTicket } from '../workbench/src/ticket.ts';
+import { isUserKey } from '../workbench/src/slots.ts';
+import { workbenchUserKey } from '../lib/workbench/user-key.ts';
 
 const SECRET = 's'.repeat(48);
 
@@ -68,4 +70,29 @@ test('the socket URL keeps the app origin so the workbench can check it', () => 
 
 test('a local http deployment gets ws, not wss', () => {
   assert.match(terminalUrl('http://localhost:3000', 't'), /^ws:\/\/localhost:3000\/ws\/terminal/);
+});
+
+test('the account crosses the boundary, in the shape the slot pool accepts', () => {
+  // The terminal's half of per-user isolation. A ticket used to name only a
+  // scope, so every terminal opened a pty in the one shared /workspace — the
+  // inverse of the defect on the assistant's path, where every command ran as
+  // one uid. The workbench resolves this value to a Unix user and a directory,
+  // so the two sides have to agree on it exactly.
+  const userKey = workbenchUserKey('user_abc', SECRET);
+  const payload = verifyTicket(issueTicket({ scope: 'terminal', userKey }, SECRET), SECRET);
+  assert.equal(payload.userKey, userKey, 'it arrives unchanged');
+  assert.equal(isUserKey(payload.userKey), true, 'and the slot pool will accept it');
+});
+
+test('the workbench is told which account, never which user', () => {
+  // It holds no sessions and does nothing with identity; it is also the one
+  // container that hands out shells. A keyed hash gives it what it needs to
+  // keep directories apart and nothing else.
+  const key = workbenchUserKey('user_abc', SECRET);
+  assert.equal(key.includes('user_abc'), false, 'the id is not recoverable by reading it');
+  assert.equal(workbenchUserKey('user_abc', SECRET), key, 'stable, so files are kept');
+  assert.notEqual(workbenchUserKey('user_abd', SECRET), key, 'and different per account');
+  // Keyed by the shared token: knowing someone's account id is not enough to
+  // forge a request that lands in their directory.
+  assert.notEqual(workbenchUserKey('user_abc', 'another-secret'), key);
 });

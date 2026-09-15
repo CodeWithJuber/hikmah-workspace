@@ -19,6 +19,7 @@ import {
   type Language,
   type ShellResult,
 } from './shell.ts';
+import { SlotError, createSlots, isUserKey } from './slots.ts';
 
 /** A request body larger than this is not a command, it is a mistake. */
 const MAX_BODY_BYTES = 64_000;
@@ -42,10 +43,12 @@ export type SshRunRequest = {
   timeoutMs: number;
 };
 
-/** A command in this container, on the workspace volume. */
+/** A command in this container, in the caller's own slot. */
 export type ShellRunRequest = {
   tool: 'bash';
   sessionId: string;
+  /** Which account this is for, as an opaque HMAC the app minted. */
+  userKey: string;
   command: string;
   timeoutMs: number;
   /** Forget this session's directory before running. */
@@ -56,6 +59,8 @@ export type ShellRunRequest = {
 export type SnippetRunRequest = {
   tool: 'sandbox_run';
   sessionId: string;
+  /** Which account this is for, as an opaque HMAC the app minted. */
+  userKey: string;
   language: Language;
   code: string;
   timeoutMs: number;
@@ -125,6 +130,19 @@ export function parseRunRequest(raw: unknown): RunRequest {
   };
 }
 
+/**
+ * Which account a local run belongs to.
+ *
+ * Refused rather than defaulted. There is deliberately no shared slot to fall
+ * back to: defaulting would re-create the single shared /workspace this whole
+ * change exists to remove, and it would do it silently.
+ */
+function userKey(value: unknown): string {
+  if (!isUserKey(value))
+    throw new RunRequestError('This request did not say which account it is for.');
+  return value;
+}
+
 /** A session id is a key in a map, not a path; it still has to be a plain word
  * so it cannot end up in a log line looking like something else. */
 function sessionId(value: unknown): string {
@@ -149,6 +167,7 @@ function parseLocalRequest(value: Record<string, unknown>): RunRequest {
     return {
       tool: 'bash',
       sessionId: sessionId(value.sessionId),
+      userKey: userKey(value.userKey),
       command,
       timeoutMs: timeout(value.timeoutMs),
       ...(value.reset === true ? { reset: true } : {}),
@@ -164,6 +183,7 @@ function parseLocalRequest(value: Record<string, unknown>): RunRequest {
   return {
     tool: 'sandbox_run',
     sessionId: sessionId(value.sessionId),
+    userKey: userKey(value.userKey),
     language: language as Language,
     code,
     timeoutMs: timeout(value.timeoutMs),
@@ -209,21 +229,31 @@ export type RunFrame =
       actual?: string;
     };
 
-/** Working directories, one per conversation, for the life of the process.
+/** Working directories, one per conversation per slot, for the life of the
+ * process.
  *
  * Deliberately in memory: a session is only a remembered path, and rebuilding
  * it after a restart by guessing where a conversation had got to would be worse
- * than starting at the top of the workspace again. */
+ * than starting at the top of the slot again. The slot assignment itself is not
+ * in memory — that one is persisted, because losing it would hand someone a new
+ * empty directory and orphan the one holding their work. */
 let sessions: ReturnType<typeof createSessions> | undefined;
+let slots: ReturnType<typeof createSlots> | undefined;
 
-function sessionsFor(workspace: string) {
-  sessions ??= createSessions(workspace);
+function sessionsFor() {
+  sessions ??= createSessions();
   return sessions;
 }
 
-/** Reset the remembered directories. Used by the tests. */
+function slotsFor(workspace: string) {
+  slots ??= createSlots({ workspace });
+  return slots;
+}
+
+/** Reset the remembered directories and slot registry. Used by the tests. */
 export function resetSessions(): void {
   sessions = undefined;
+  slots = undefined;
 }
 
 async function runLocal(
@@ -231,15 +261,22 @@ async function runLocal(
   options: {
     signal?: AbortSignal;
     workspace?: string;
+    /** Injected by the tests, which cannot create users or chown. */
+    slots?: (userKey: string) => import('./slots.ts').Slot;
     onOutput: (stream: 'stdout' | 'stderr', data: string) => void;
   },
 ): Promise<ShellResult> {
   const workspace = options.workspace ?? process.env.HIKMAH_WORKSPACE_DIR ?? '/workspace';
-  const registry = sessionsFor(workspace);
-  if (request.tool === 'bash' && request.reset) registry.reset(request.sessionId);
-  const session = registry.for(request.sessionId);
+  // Resolving the slot is what creates the directory, at the right owner and
+  // mode, so there is no ordering in which a command runs before its slot
+  // exists. A key with no free slot throws here rather than sharing one.
+  const slot = options.slots?.(request.userKey) ?? slotsFor(workspace).for(request.userKey);
+  const registry = sessionsFor();
+  if (request.tool === 'bash' && request.reset) registry.reset(request.sessionId, slot.home);
+  const session = registry.for(request.sessionId, slot.home);
   const shellOptions = {
     workspace,
+    slot,
     timeoutMs: request.timeoutMs,
     signal: options.signal,
     onOutput: options.onOutput,
@@ -257,7 +294,12 @@ async function runLocal(
  */
 export async function* runFrames(
   request: RunRequest,
-  options: { signal?: AbortSignal; exec?: typeof sshExec; workspace?: string } = {},
+  options: {
+    signal?: AbortSignal;
+    exec?: typeof sshExec;
+    workspace?: string;
+    slots?: (userKey: string) => import('./slots.ts').Slot;
+  } = {},
 ): AsyncGenerator<RunFrame> {
   const exec = options.exec ?? sshExec;
   // Output arrives on a callback while the command runs, but this is a
@@ -346,7 +388,12 @@ const SSE_HEADERS = {
 export async function writeRunStream(
   response: ServerResponse,
   request: RunRequest,
-  options: { signal?: AbortSignal; exec?: typeof sshExec; workspace?: string } = {},
+  options: {
+    signal?: AbortSignal;
+    exec?: typeof sshExec;
+    workspace?: string;
+    slots?: (userKey: string) => import('./slots.ts').Slot;
+  } = {},
 ): Promise<void> {
   response.writeHead(200, SSE_HEADERS);
   try {

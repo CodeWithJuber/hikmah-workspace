@@ -17,6 +17,7 @@
  * through `bash`, so this grants nothing new.
  */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { commandEnvironment } from './env.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 /** A child with nothing to do for this long is shut down. */
@@ -134,9 +135,15 @@ export function createBridgePool(
     if (children.size >= MAX_SERVERS)
       throw new BridgeError('Too many MCP servers are running here already.', 503);
 
+    // The allowlist, not `process.env`. A stdio MCP server is a child process
+    // the model can reach, and this spread handed it HIKMAH_WORKBENCH_TOKEN
+    // along with the decrypted credentials it is meant to have — the same
+    // defect `shell.ts` had, in the one place whose children already hold
+    // secrets. The server's own configured variables are added on top, because
+    // those are what it is for.
     const process_ = spawnProcess(config.command, config.args, {
       cwd: options.workspace ?? process.env.HIKMAH_WORKSPACE_DIR ?? '/workspace',
-      env: { ...process.env, ...config.env },
+      env: { ...commandEnvironment(process.env), ...config.env },
     }) as ChildProcessWithoutNullStreams;
 
     const child: Child = {

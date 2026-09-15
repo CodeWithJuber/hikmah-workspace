@@ -26,13 +26,39 @@ LABEL org.opencontainers.image.title="Hikmah Workbench" \
 RUN apt-get update \
   && apt-get install -y --no-install-recommends bash git curl ca-certificates procps less python3 \
   && rm -rf /var/lib/apt/lists/*
-COPY --from=build --chown=node:node /workbench/node_modules ./node_modules
-COPY --chown=node:node package.json ./
-COPY --chown=node:node src ./src
-# The workspace volume is mounted over this; the directory exists so that a run
-# without a volume still starts somewhere the shell user can write.
-RUN mkdir -p /workspace && chown node:node /workspace
-USER node
+# root:root, deliberately. The assistant's commands used to run as the same uid
+# that owned this source, so a command could overwrite src/server.ts and own the
+# service on the next restart. No slot user can write any of it now.
+COPY --from=build --chown=root:root /workbench/node_modules ./node_modules
+COPY --chown=root:root package.json ./
+COPY --chown=root:root src ./src
+RUN chmod -R a-w /workbench/src /workbench/package.json
+
+# One Unix user per account: hk01..hk32, uid and gid 3001..3032. Pre-created in
+# the image rather than grown on demand, because creating users at run time
+# needs a writable /etc, and a service that can rewrite /etc/passwd is a larger
+# thing than one that cannot. No login shell and no supplementary groups: these
+# exist to own files and run commands, not to be logged into.
+RUN for i in $(seq 1 32); do \
+      n=$(printf 'hk%02d' "$i"); \
+      id=$((3000 + i)); \
+      groupadd -g "$id" "$n"; \
+      useradd -M -N -s /usr/sbin/nologin -u "$id" -g "$id" "$n"; \
+    done
+
+# Every command the assistant runs goes through this. Root-owned and
+# world-executable, so a slot user can run it and none can edit it.
+COPY --chown=root:root bin/hikmah-run /usr/local/bin/hikmah-run
+COPY --chown=root:root bin/hikmah-shell /usr/local/bin/hikmah-shell
+RUN chmod 0755 /usr/local/bin/hikmah-run /usr/local/bin/hikmah-shell
+
+# The workspace volume is mounted over this. 0755 root-owned: the supervisor
+# lists it and creates slot directories under u/, and each slot directory is
+# 0700 owned by its own uid (src/slots.ts).
+RUN mkdir -p /workspace/u && chown -R root:root /workspace && chmod 0755 /workspace /workspace/u
+# No USER: the supervisor starts as root so it can drop to a slot uid before
+# exec. It holds only SETUID, SETGID and CHOWN (deploy/compose.yml) — notably
+# not DAC_OVERRIDE, so it cannot read a slot user's files either.
 EXPOSE 3001
 # /health needs the shared token, so the healthcheck reads it from the same
 # environment the service does rather than opening an unauthenticated path.

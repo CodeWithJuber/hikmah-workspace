@@ -1,6 +1,7 @@
 import { getChatGPTUser } from '../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { WorkbenchError, issueTicket, terminalUrl, workbenchToken } from '@/lib/workbench/ticket';
+import { workbenchUserKey } from '@/lib/workbench/user-key';
 import { entitlementsForUser } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +25,11 @@ export async function POST(request: Request) {
       { status: 403, headers },
     );
 
-  // The workbench is one container with one /workspace volume shared by every
-  // account on the deployment, so a terminal is a shell on the operator's box
-  // rather than on the person's own. Until execution is per-tenant it belongs
-  // to the operator alone — the same rule the run tools follow.
+  // Each account now has its own Unix user and its own directory in the
+  // workbench (workbench/src/slots.ts), so a terminal is no longer a shell in
+  // everybody's workspace. Opening it beyond the operator is still a separate
+  // product decision and not one a security change gets to make on its own, so
+  // the gate stays where it was — the same rule the run tools follow.
   if (!entitlementsForUser(user).execution)
     return Response.json(
       { error: 'The terminal is available to the workspace operator only.' },
@@ -35,7 +37,13 @@ export async function POST(request: Request) {
     );
 
   try {
-    const ticket = issueTicket({ scope: 'terminal' }, workbenchToken());
+    const token = workbenchToken();
+    // Named, not anonymous: the workbench gives each account its own Unix user
+    // and directory, and a ticket that says nothing lands nowhere.
+    const ticket = issueTicket(
+      { scope: 'terminal', userKey: workbenchUserKey(user.userId, token) },
+      token,
+    );
     return Response.json({ url: terminalUrl(publicOrigin(request), ticket) }, { headers });
   } catch (error) {
     if (error instanceof WorkbenchError)

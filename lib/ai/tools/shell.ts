@@ -77,6 +77,10 @@ export function isReadOnlyCommand(command: string): boolean {
 export type ShellToolContext = {
   /** Groups commands into one shell session, so `cd` carries between calls. */
   conversationId: string;
+  /** Which account this runs as, in the workbench: an opaque HMAC, not the user
+   * id. The workbench resolves it to a Unix user and a directory, and refuses a
+   * request that carries none — there is no shared slot to fall back to. */
+  userKey: string;
   /** True when this deployment has a workbench to run them in. */
   available: boolean;
   onOutput?: (frame: RunFrame) => void;
@@ -106,7 +110,7 @@ export function shellTools(context: ShellToolContext) {
     const frames: RunFrame[] = [];
     try {
       for await (const frame of stream(
-        { ...request, sessionId: context.conversationId },
+        { ...request, sessionId: context.conversationId, userKey: context.userKey },
         { signal: context.signal },
       )) {
         frames.push(frame);
