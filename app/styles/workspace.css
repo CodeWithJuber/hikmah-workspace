@@ -95,7 +95,7 @@
   }
   .composer {
     border-radius: 17px;
-    box-shadow: 0 3px 14px #223a6b06;
+    box-shadow: 0 3px 14px color-mix(in srgb, var(--foreground) 4%, transparent);
     border-color: var(--input);
   }
   .composer [data-slot='textarea'] {
@@ -121,7 +121,7 @@
     border: 1px solid var(--border);
     border-radius: 15px;
     background: var(--popover);
-    box-shadow: 0 14px 50px #1a2a481c;
+    box-shadow: 0 14px 50px color-mix(in srgb, var(--foreground) 11%, transparent);
     overflow: hidden;
     padding: 0 !important;
   }
@@ -212,9 +212,9 @@
     white-space: nowrap;
   }
   .price-label.free {
-    color: #147250;
-    background: #edf9f1;
-    border-color: #bce5ca;
+    color: var(--success-text);
+    background: var(--success-bg);
+    border-color: var(--border);
   }
   .catalog-model-id {
     display: block;
@@ -321,7 +321,7 @@
     margin: 12px 0;
   }
   .plan-step.completed > svg {
-    color: #15845f;
+    color: var(--success-text);
   }
   .plan-step.in_progress {
     color: var(--primary);
@@ -963,13 +963,13 @@
   }
   .co-model-nav.selected {
     background: var(--accent);
-    border-color: #cbdcf8;
+    border-color: var(--border);
   }
   .live-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #27977c;
+    background: var(--primary);
     display: inline-block;
     flex-shrink: 0;
   }
@@ -978,7 +978,7 @@
     font-size: 11px;
     letter-spacing: 0.2px;
     color: var(--primary);
-    border: 1px solid #cbdcf8;
+    border: 1px solid var(--border);
     background: var(--accent);
     border-radius: 5px;
     padding: 1px 5px;
@@ -1038,21 +1038,21 @@
     height: 32px;
   }
   .composer {
-    border: 1px solid #ccd5e4;
+    border: 1px solid var(--border);
     border-radius: 20px;
     background: var(--card);
     box-shadow:
-      0 4px 24px #172c4b08,
-      0 1px 3px #172c4b06;
+      0 4px 24px color-mix(in srgb, var(--foreground) 5%, transparent),
+      0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent);
     transition:
       box-shadow 180ms ease,
       border-color 180ms ease;
   }
   .composer:focus-within {
-    border-color: #9cb8e9;
+    border-color: var(--ring);
     box-shadow:
-      0 4px 24px #235bd609,
-      0 0 0 3px #235bd608;
+      0 4px 24px color-mix(in srgb, var(--foreground) 6%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--foreground) 5%, transparent);
   }
   .composer [data-slot='textarea'] {
     font-size: 16px;
@@ -1066,7 +1066,7 @@
     width: 38px;
     height: 36px;
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     box-shadow: none;
     flex-shrink: 0;
   }
@@ -1094,7 +1094,7 @@
     overflow: hidden;
     background: var(--card);
     margin: 22px 0;
-    box-shadow: 0 3px 14px #18223004;
+    box-shadow: 0 3px 14px color-mix(in srgb, var(--foreground) 2%, transparent);
   }
   .inline-artifact > header {
     display: flex;
@@ -1245,13 +1245,13 @@
   }
   .clarification-card {
     padding: 22px;
-    /* Was #cedcf2. The card only ever rendered on the light playground; on the
+    /* Was #dbe5f5. The card only ever rendered on the light playground; on the
      chat surface it has to follow the saved theme like everything else. */
     border: 1px solid var(--border);
     border-radius: 15px;
     margin: 18px 0;
     background: var(--card);
-    box-shadow: 0 3px 18px #235bd605;
+    box-shadow: 0 3px 18px color-mix(in srgb, var(--foreground) 3%, transparent);
   }
   .clarification-title {
     display: flex;
@@ -1388,7 +1388,7 @@
     place-items: center;
     width: 85px;
     height: 85px;
-    border: 1px solid #dbe5f5;
+    border: 1px solid var(--border);
     border-radius: 22px;
     background: var(--card);
     color: var(--primary);
@@ -1414,9 +1414,9 @@
     font-weight: 500;
     display: inline-flex;
     align-items: center;
-    border: 1px solid #cbdcf8;
+    border: 1px solid var(--border);
     background: var(--accent);
-    color: var(--primary);
+    color: var(--accent-foreground);
     border-radius: 6px;
     padding: 2px 7px;
     white-space: nowrap;
@@ -1742,11 +1742,11 @@
     align-items: center;
     gap: 15px;
     padding: 15px 19px;
-    border: 1px solid #eac8bc;
-    background: #fff5f3;
+    border: 1px solid var(--destructive);
+    background: var(--error-bg);
     border-radius: 10px;
     font-size: 14px;
-    color: #873e28;
+    color: var(--error-text);
     margin: 0 0 20px;
   }
   @media (max-width: 1350px) {
@@ -1949,7 +1949,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #a3acba;
+    background: var(--muted-foreground);
     display: inline-block;
     flex-shrink: 0;
   }
@@ -2087,7 +2087,7 @@
     border-radius: 17px;
     padding: 24px;
     margin-bottom: 22px;
-    box-shadow: 0 3px 14px #17223003;
+    box-shadow: 0 3px 14px color-mix(in srgb, var(--foreground) 2%, transparent);
   }
   .context-studio h3 {
     font-size: 18px;
@@ -2406,8 +2406,8 @@
     margin-top: 20px;
   }
   .training-receipt.passed {
-    border-color: #64a899;
-    background: #64a89912;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--foreground) 7%, transparent);
   }
   .training-receipt p {
     font-size: 14px;
@@ -2758,7 +2758,7 @@
     font-size: 16px;
   }
   .studio-shell .workspace-sidebar {
-    background: #f5f7fa;
+    background: var(--muted);
   }
   .studio-shell .workspace-sidebar-header {
     padding: 25px 18px 16px;
@@ -2776,8 +2776,8 @@
   }
   .studio-shell .primary-nav button.selected,
   .knowledge-nav.selected {
-    background: #e9edfc;
-    color: #304fc5;
+    background: var(--accent);
+    color: var(--accent-foreground);
     font-weight: 600;
   }
   .knowledge-nav {
@@ -2834,7 +2834,7 @@
     gap: 22px;
     padding: 20px;
     min-height: 124px;
-    background: #f5f7fa;
+    background: var(--muted);
     border: 1px solid var(--hk-border);
     border-radius: 16px;
     font-size: 14px;
@@ -2845,25 +2845,25 @@
       border-color 0.15s;
   }
   .studio-shell .starter-prompts button:hover {
-    background: #f0f3fb;
-    border-color: #b9c6f6;
+    background: var(--muted);
+    border-color: var(--ring);
   }
   .studio-shell .composer-dock {
     padding: 14px 24px 16px;
     background: linear-gradient(0deg, var(--hk-surface) 85%, transparent);
   }
   .studio-shell .composer {
-    border: 1px solid #d3dbe8;
+    border: 1px solid var(--border);
     border-radius: 22px;
-    box-shadow: 0 6px 28px #18386708;
+    box-shadow: 0 6px 28px color-mix(in srgb, var(--foreground) 5%, transparent);
     overflow: visible;
     transition:
       border-color 0.15s,
       box-shadow 0.15s;
   }
   .studio-shell .composer:focus-within {
-    border-color: #91a5eb;
-    box-shadow: 0 0 0 3px #3155d90a;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 6%, transparent);
   }
   .composer textarea {
     font-size: 16px !important;
@@ -2874,8 +2874,8 @@
     border-radius: 14px !important;
     width: 42px !important;
     height: 40px !important;
-    background: #3155d9 !important;
-    color: white !important;
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
   }
   .studio-shell .conversation-content {
     max-width: 940px;
@@ -2888,7 +2888,7 @@
     padding-left: 16px;
   }
   .chat-message.user .chat-message-inner {
-    background: #f0f3fb;
+    background: var(--muted);
     border-radius: 20px;
   }
   .message-content {
@@ -2923,7 +2923,7 @@
     margin-bottom: 30px;
   }
   .knowledge-intro > svg {
-    color: #4465d6;
+    color: var(--primary);
   }
   .knowledge-intro h2 {
     font-size: 26px;
@@ -2983,7 +2983,7 @@
     min-width: 0;
   }
   .knowledge-card.suggested {
-    background: #fffcf1;
+    background: var(--ax-data-yellow-1);
   }
   .knowledge-card header {
     display: flex;
@@ -3023,8 +3023,8 @@
   .knowledge-empty {
     padding: 45px 20px;
     text-align: center;
-    background: #fff;
-    border: 1px dashed #dde3eb;
+    background: var(--card);
+    border: 1px dashed var(--border);
     border-radius: 18px;
   }
   .knowledge-empty > svg {
@@ -3045,7 +3045,7 @@
     display: flex;
     gap: 16px;
     align-items: center;
-    background: #f5f7fa;
+    background: var(--muted);
     padding: 22px;
     border-radius: 16px;
     margin-top: 30px;
@@ -3118,32 +3118,9 @@
    so painting it here did nothing but disagree with the token below it
    (#131720 blue-grey against the token's green-grey). The token is what the
    panel reads; this just makes the 1px the panel does not cover match. */
-  [data-theme='dark'] .workspace-sidebar {
-    background: var(--sidebar);
-  }
   /* .new-chat is deliberately not in this list: it is the primary action and
    wears the primary token in both themes, which is what stopped the two from
    disagreeing about its text colour. */
-  [data-theme='dark'] .studio-shell .starter-prompts button,
-  [data-theme='dark'] .execution-stage,
-  [data-theme='dark'] .provider-explanation,
-  [data-theme='dark'] .comparison-toolbar,
-  [data-theme='dark'] .knowledge-empty,
-  [data-theme='dark'] .learning-separation,
-  [data-theme='dark'] .connect-banner {
-    background: #182230 !important;
-    color: #e8edf6 !important;
-  }
-  [data-theme='dark'] .knowledge-card.suggested {
-    background: #302d21;
-  }
-  [data-theme='dark'] .chat-message.user .chat-message-inner {
-    background: #232e43;
-  }
-  [data-theme='dark'] .knowledge-nav.selected {
-    background: #293f33;
-    color: #c8dfcf;
-  }
   @media (max-width: 1100px) {
   }
   @media (max-width: 699px) {
@@ -3226,8 +3203,13 @@
       scroll-behavior: auto !important;
     }
   }
+  /* The active tab fills with the brand and says what colour its label is.
+     It wore #3155d9 — the orphaned blue — with no colour at all, so the label
+     was whatever it inherited: near-black on a saturated blue. Taking the token
+     without naming the pair would only have changed which contrast it failed. */
   .knowledge-tabs [data-slot='button'][data-state='active'] {
-    background: #3155d9;
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
   .knowledge-editor [data-slot='dialog-description'] {
     font-size: 14px;
@@ -3279,7 +3261,7 @@
     grid-row: 2;
   }
   .learning-status-grid svg {
-    color: #316ce7;
+    color: var(--primary);
     grid-column: 2;
     grid-row: 1 / 3;
   }
@@ -3308,11 +3290,11 @@
   }
   .learning-links button:hover {
     background: var(--accent);
-    border-color: #819cdb;
+    border-color: var(--ring);
   }
   .learning-links button > svg {
     flex-shrink: 0;
-    color: #316ce7;
+    color: var(--primary);
   }
   .learning-links button > svg:last-child {
     margin-left: auto;
@@ -3451,7 +3433,7 @@
     display: inline-block;
     margin-top: 16px;
     font-size: 14px;
-    color: #316ce7;
+    color: var(--primary);
   }
   .memory-review-banner {
     display: flex;
@@ -3546,8 +3528,8 @@
     gap: 11px !important;
   }
   .hikmah-brand > svg {
-    color: #326857;
-    background: #e8f2ec;
+    color: var(--accent-foreground);
+    background: var(--accent);
     padding: 5px;
     border-radius: 11px;
     box-sizing: content-box;
@@ -3562,36 +3544,40 @@
   }
   .studio-shell .primary-nav button.selected,
   .studio-shell .knowledge-nav.selected {
-    background: #e8f2ec !important;
-    color: #245645 !important;
+    background: var(--accent) !important;
+    color: var(--accent-foreground) !important;
   }
   .studio-shell .composer {
     border-radius: 22px !important;
-    border-color: #dee5e0 !important;
-    box-shadow: 0 3px 25px #254a3510 !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 3px 25px color-mix(in srgb, var(--foreground) 7%, transparent) !important;
   }
   .studio-shell .send-button {
-    background: #326857 !important;
+    background: var(--primary) !important;
+    /* Named, not inherited. The literal this replaced was dark in both themes,
+       so the glyph never had to say anything; --primary is pale in dark, and
+       the inherited near-white measured 1.38:1 on it. */
+    color: var(--primary-foreground) !important;
     border-radius: 12px !important;
   }
   .studio-shell .welcome > svg {
-    color: #326857;
+    color: var(--accent-foreground);
     padding: 11px;
-    background: #e8f2ec;
+    background: var(--accent);
     border-radius: 20px;
     box-sizing: content-box;
   }
   .studio-shell .starter-prompts button {
     border-radius: 15px !important;
-    background: #fff;
+    background: var(--card);
   }
   .studio-shell .welcome h2 {
     font-weight: 560;
     letter-spacing: -1.1px;
   }
   .studio-shell .assistant-label > svg {
-    color: #326857;
-    background: #e8f2ec;
+    color: var(--accent-foreground);
+    background: var(--accent);
     border-radius: 8px;
     padding: 3px;
     box-sizing: content-box;
@@ -3616,7 +3602,7 @@
     font-size: 11px;
     letter-spacing: 0.14em;
     font-weight: 700;
-    color: #557869;
+    color: var(--muted-foreground);
     margin-bottom: 12px;
   }
   .destination-hero h2 {
@@ -3661,16 +3647,16 @@
     font-weight: 400;
   }
   .agent-avatar.coding {
-    background: #e8edf6;
-    color: #506bb1;
+    background: var(--accent);
+    color: var(--ax-data-categorical-blue);
   }
   .agent-avatar.voice {
-    background: #f5ebf3;
-    color: #9b6093;
+    background: var(--ax-data-purple-1);
+    color: var(--ax-data-purple-5);
   }
   .agent-avatar.video {
-    background: #faf0e4;
-    color: #a26c31;
+    background: var(--ax-data-orange-1);
+    color: var(--ax-data-orange-5);
   }
   .status-pill {
     display: inline-flex;
@@ -3678,8 +3664,8 @@
     gap: 4px;
     font-size: 11px;
     padding: 4px 8px;
-    color: #326857;
-    background: #e8f2ec;
+    color: var(--accent-foreground);
+    background: var(--accent);
     border-radius: 20px;
   }
   .agent-card-actions .icon-button {
@@ -3745,8 +3731,8 @@
     padding: 22px !important;
   }
   .sandbox-split pre {
-    background: #172a25;
-    color: #cfe5d8;
+    background: var(--muted);
+    color: var(--accent);
     padding: 22px;
     margin: 0;
     white-space: pre-wrap;
@@ -3857,25 +3843,6 @@
    (Tailwind's own `dark:` utility is fine — @custom-variant at the top of this
    file already maps it to [data-theme]. It is only these hand-written rules
    that had the wrong prefix.) */
-  [data-theme='dark'] .hikmah-brand > svg,
-  [data-theme='dark'] .agent-avatar,
-  [data-theme='dark'] .status-pill {
-    background: #22392f;
-    color: #b3d9c6;
-  }
-  [data-theme='dark'] .studio-shell .primary-nav button.selected,
-  [data-theme='dark'] .studio-shell .knowledge-nav.selected {
-    background: #293f33 !important;
-    color: #c8dfcf !important;
-  }
-  [data-theme='dark'] .studio-shell .composer {
-    border-color: #3b4a40 !important;
-  }
-  [data-theme='dark'] .studio-shell .welcome > svg,
-  [data-theme='dark'] .studio-shell .assistant-label > svg {
-    background: #22392f;
-    color: #b3d9c6;
-  }
   /* 1179, not 1180: two other blocks already use it, and a boundary that
    differs by one pixel from another is two boundaries to maintain and one
    width nobody can tell apart. */

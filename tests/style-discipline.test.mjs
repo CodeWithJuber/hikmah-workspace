@@ -307,6 +307,7 @@ test('no surface shadows a name the token layer owns', () => {
 const CONVERTED = {
   'app/styles/marketing.css': ['colour'],
   'app/styles/billing.css': ['colour', 'type', 'radius'],
+  'app/styles/workspace.css': ['colour'],
 };
 
 /** Each dimension as a matcher plus a predicate.
