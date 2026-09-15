@@ -46,6 +46,11 @@ export function AgentsPanel({
   onPick?: (agent: Agent | null) => void;
 }) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
+  /** The last load did not come back. Separate from the rows themselves, so a
+   * failure never overwrites what is already on screen. */
+  const [failed, setFailed] = useState(false);
+  /** Bumped by Retry, which is what re-runs the load. */
+  const [attempt, setAttempt] = useState(0);
   const [tools, setTools] = useState<string[]>([]);
   // Whether the editor is open is its own state rather than something inferred
   // from the draft: "new agent, nothing typed yet" and "editor closed" have
@@ -59,19 +64,26 @@ export function AgentsPanel({
   useEffect(() => {
     let live = true;
     void clientFetch('/api/agents')
-      .then((response) => (response.ok ? response.json() : { agents: [], tools: [] }))
-      .then((payload: { agents?: Agent[]; tools?: string[] }) => {
+      .then(async (response) => {
+        // A refusal is not an empty workspace: this used to fall through to
+        // `{ agents: [], tools: [] }`, so a 500 rendered as a blank list with a
+        // New agent button and no explanation at all.
+        if (!response.ok) throw new Error(String(response.status));
+        const payload = (await response.json()) as { agents?: Agent[]; tools?: string[] };
         if (!live) return;
         setAgents(payload.agents ?? []);
         setTools(payload.tools ?? []);
+        setFailed(false);
       })
       .catch(() => {
-        if (live) setAgents([]);
+        // Not "no agents": a failed load rendered as an empty list with a New
+        // agent button and no explanation at all.
+        if (live) setFailed(true);
       });
     return () => {
       live = false;
     };
-  }, [revision]);
+  }, [revision, attempt]);
 
   const edit = useCallback((agent: Agent | null) => {
     setOpen(true);
@@ -129,7 +141,20 @@ export function AgentsPanel({
 
   return (
     <div className="agents-panel">
-      {agents === null && <p className="files-note">Loading…</p>}
+      {failed ? (
+        <p className="files-note files-failed" role="status">
+          Couldn&rsquo;t load your agents.
+          <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      ) : agents === null ? (
+        <p className="files-note">Loading…</p>
+      ) : agents.length === 0 ? (
+        <p className="files-note">
+          No agents yet. An agent is a named set of instructions and tools.
+        </p>
+      ) : null}
 
       <ul>
         {agents?.map((agent) => (

@@ -47,6 +47,11 @@ export function ConversationList({
 }) {
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
+  /** The last load did not come back. Separate from the list itself, so a
+   * failure never overwrites conversations that are already on screen. */
+  const [failed, setFailed] = useState(false);
+  /** Bumped by Retry, which is what re-runs the effect below. */
+  const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   // A background task finishes with no tab tailing it, so nothing bumps
   // `revision` on its behalf. While one is working the list asks again on its
@@ -64,17 +69,25 @@ export function ConversationList({
     // has moved on, so a slow response cannot overwrite a newer one.
     let live = true;
     void clientFetch('/api/conversations')
-      .then((response) => (response.ok ? response.json() : { conversations: [] }))
-      .then((payload: { conversations?: ConversationSummary[] }) => {
-        if (live) setConversations(payload.conversations ?? []);
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        const payload = (await response.json()) as { conversations?: ConversationSummary[] };
+        if (!live) return;
+        setConversations(payload.conversations ?? []);
+        setFailed(false);
       })
       .catch(() => {
-        if (live) setConversations([]);
+        // Not an empty list. This used to `setConversations([])`, so a request
+        // that failed rendered as "No conversations yet." — telling someone with
+        // two hundred conversations that they had none, which is worse than
+        // saying nothing. What is on screen stays, and the failure is said out
+        // loud with a way to try again.
+        if (live) setFailed(true);
       });
     return () => {
       live = false;
     };
-  }, [revision, poll]);
+  }, [revision, poll, attempt]);
 
   const startNew = useCallback(async () => {
     setBusy(true);
@@ -125,8 +138,18 @@ export function ConversationList({
         New chat
       </button>
 
-      {conversations === null && <p className="conversation-note">Loading…</p>}
-      {conversations?.length === 0 && <p className="conversation-note">No conversations yet.</p>}
+      {failed ? (
+        <p className="conversation-note conversation-failed" role="status">
+          Couldn&rsquo;t load your conversations.
+          <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      ) : conversations === null ? (
+        <p className="conversation-note">Loading…</p>
+      ) : conversations.length === 0 ? (
+        <p className="conversation-note">No conversations yet.</p>
+      ) : null}
 
       <ul>
         {chats?.map((conversation) => (

@@ -41,6 +41,11 @@ function currentTheme(): 'light' | 'dark' {
 
 export function FilesPanel({ revision }: { revision: number }) {
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  /** The last load did not come back. Separate from the rows themselves, so a
+   * failure never overwrites what is already on screen. */
+  const [failed, setFailed] = useState(false);
+  /** Bumped by Retry, which is what re-runs the load. */
+  const [attempt, setAttempt] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -59,19 +64,23 @@ export function FilesPanel({ revision }: { revision: number }) {
   useEffect(() => {
     let live = true;
     void clientFetch('/api/workspace/files')
-      .then((response) => (response.ok ? response.json() : { files: [] }))
-      .then((payload: { files?: Entry[]; preview?: string }) => {
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        const payload = (await response.json()) as { files?: Entry[]; preview?: string };
         if (!live) return;
         setEntries(payload.files ?? []);
         setPreviewBase(payload.preview ?? '');
+        setFailed(false);
       })
       .catch(() => {
-        if (live) setEntries([]);
+        // Not an empty workspace: a failed load used to render as "Nothing here
+        // yet", which is a different and wrong statement about someone's files.
+        if (live) setFailed(true);
       });
     return () => {
       live = false;
     };
-  }, [revision, changed]);
+  }, [revision, changed, attempt]);
 
   const load = useCallback(async (path: string) => {
     const response = await clientFetch(`/api/workspace/files?path=${encodeURIComponent(path)}`, {});
@@ -132,10 +141,18 @@ export function FilesPanel({ revision }: { revision: number }) {
     // A plain div: the panel around this is the landmark, and nesting a second
     // one inside it would announce two regions where a person sees one.
     <div className="files-panel">
-      {entries === null && <p className="files-note">Loading…</p>}
-      {entries?.length === 0 && (
+      {failed ? (
+        <p className="files-note files-failed" role="status">
+          Couldn&rsquo;t load your files.
+          <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      ) : entries === null ? (
+        <p className="files-note">Loading…</p>
+      ) : entries.length === 0 ? (
         <p className="files-note">Nothing here yet. Ask for something to be written.</p>
-      )}
+      ) : null}
 
       <ul>
         {entries?.map((entry) => (

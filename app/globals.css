@@ -6725,14 +6725,25 @@ a.auth-back {
   cursor: default;
 }
 .conversation-delete {
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
   color: var(--muted-foreground);
   cursor: pointer;
-  /* Revealed on hover or keyboard focus, so the row stays readable but the
-     control is still reachable without a mouse. */
-  opacity: 0;
+  /* Dimmed, never hidden.
+     This was `opacity: 0`, revealed on hover or keyboard focus — and the
+     comment claimed that kept it reachable without a mouse. A phone has
+     neither: no pointer to hover with, and no keyboard focus without a
+     keyboard. This list is a drawer on every phone, so deleting a conversation
+     was impossible by touch. Quiet enough to stay out of the title's way,
+     present enough to press. */
+  opacity: 0.45;
 }
 .conversation-list li:hover .conversation-delete,
+.conversation-delete:hover,
 .conversation-delete:focus-visible {
   opacity: 1;
 }
@@ -6945,13 +6956,22 @@ a.auth-back {
   padding: 8px;
 }
 .files-delete {
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
   color: var(--muted-foreground);
   cursor: pointer;
-  opacity: 0;
+  /* Same reason as .conversation-delete. This class serves the files panel and
+     the agents panel, where it is two adjacent controls — edit and delete — so
+     hidden-until-hover meant neither could be reached on a phone. */
+  opacity: 0.45;
 }
 .files-panel li:hover .files-delete,
 .agents-panel li:hover .files-delete,
+.files-delete:hover,
 .files-delete:focus-visible {
   opacity: 1;
 }
@@ -9200,4 +9220,28 @@ button.cursor-pointer.p-1 {
 .chat-earlier:hover {
   border-color: var(--primary);
   color: var(--foreground);
+}
+
+/* A panel that could not load says so, rather than showing its empty state.
+ *
+ * Several panels caught a failed request into an empty array, so a network
+ * failure rendered as "No conversations yet." — a false statement about
+ * someone's own data, and the more confident-sounding of the two. */
+.conversation-failed,
+.files-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.conversation-failed button,
+.files-failed button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+  cursor: pointer;
 }
