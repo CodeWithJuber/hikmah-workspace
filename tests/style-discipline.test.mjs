@@ -43,9 +43,16 @@ function atMost(actual, ceiling, what, detail = '') {
 
 test('!important, which is what fighting your own cascade looks like', () => {
   // 126 of these existed before app/globals.css was put in a layer, and most of
-  // them were there to beat unlayered rules that had already won. Layers made
-  // them unnecessary rather than removing them; the surface PRs remove them.
-  // Target: 0.
+  // them were there to beat unlayered rules that had already won. Target: 0.
+  //
+  // But they are not free to delete, which was worth finding out before a
+  // surface PR assumed otherwise. All 120 were stripped at once and the result
+  // measured across 1,964 elements on six surfaces in both themes: **120
+  // declarations changed** — near enough one per `!important`. Every page
+  // heading's size and leading moved, and the workspace sidebar's padding went
+  // from 26px to 8px. So each is currently load-bearing, and they come out one
+  // rule at a time, by making that rule win on its own, with the audit run each
+  // time. A blanket strip is a redesign nobody asked for.
   atMost(
     (css.match(/!important/g) ?? []).length,
     120,
