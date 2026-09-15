@@ -1,0 +1,185 @@
+/* The declarations that have to win, winning by layer instead of by !important.
+ *
+ * Each sets a box's size or its type on an element that also carries a Tailwind
+ * utility, and a rule in `@layer components` can never beat one in
+ * `@layer utilities` — layer order decides before specificity is consulted. So
+ * each carried `!important`, which is the blunt way of saying the same thing.
+ *
+ * `overrides` is declared after `utilities` in app/globals.css, so these win on
+ * the same grounds as every other rule.
+ *
+ * DECLARATIONS, not rules, and with their full nesting kept. Promoting whole
+ * rules moved 264 computed styles, because most mix an `!important` declaration
+ * with ordinary ones that were never meant to outrank anything. Promoting them
+ * without their enclosing @media moved 78 more, and produced a declaration
+ * sitting directly inside a media query with no selector at all.
+ *
+ * Order is the order they had, base.css before workspace.css, because two of
+ * these matching one element are still decided by source order. */
+@layer overrides {
+  .app-shell {
+    --sidebar-width: 220px;
+  }
+  .train-input {
+    font-size: 13px;
+    min-height: 210px;
+  }
+  @media (max-width: 1100px) {
+    .app-shell {
+      --sidebar-width: 195px;
+    }
+  }
+  @media (max-width: 767px) {
+    h1 {
+      font-size: 27px;
+    }
+  }
+  .studio-shell.app-shell {
+    --sidebar-width: 248px;
+    --sidebar-width: 232px;
+  }
+  .workspace-main {
+    max-width: none;
+  }
+  .workspace-sidebar-header {
+    padding: 24px 16px 10px;
+    gap: 23px;
+    padding: 24px 14px 10px;
+    gap: 25px;
+    padding: 26px 16px 8px;
+  }
+  .workspace-sidebar-content {
+    padding: 0 12px;
+    gap: 0;
+    padding: 0 10px;
+  }
+  .workspace-sidebar-footer {
+    padding: 14px 12px 17px;
+    gap: 4px;
+  }
+  .icon-button[data-slot='button'] {
+    padding: 0;
+  }
+  .settings-dialog {
+    width: 790px;
+    max-width: calc(100vw - 32px);
+    max-height: min(92dvh, 890px);
+    padding: 0;
+    gap: 0;
+  }
+  @media (max-width: 767px) {
+    .workspace-sidebar-header {
+      padding-top: 23px;
+    }
+  }
+  @media (max-width: 767px) {
+    .workspace-header h1 {
+      font-size: 17px;
+      font-size: 16px;
+      font-size: 15px;
+    }
+  }
+  @media (max-width: 767px) {
+    .welcome h2 {
+      font-size: 26px;
+      font-size: 27px;
+    }
+  }
+  @media (max-width: 767px) {
+    .settings-dialog {
+      max-height: 94dvh;
+      max-width: calc(100vw - 20px);
+    }
+  }
+  @media (max-width: 767px) {
+    .lab-header h1 {
+      font-size: 25px;
+    }
+  }
+  .header-actions .icon-button {
+    padding: 0 12px;
+  }
+  .model-directory {
+    padding: 0;
+  }
+  .model-directory-list {
+    max-height: min(460px, 45dvh);
+    padding: 0;
+  }
+  @media (max-width: 767px) {
+    .header-actions .icon-button {
+      padding: 0;
+    }
+  }
+  @media (max-width: 767px) {
+    .model-directory-list {
+      max-height: 44dvh;
+    }
+  }
+  .skill-editor-dialog {
+    width: 720px;
+    max-width: calc(100vw - 24px);
+  }
+  .fine-print {
+    font-size: 13px;
+    margin-top: 16px;
+  }
+  @media (max-width: 767px) {
+    .has-artifact .welcome h2 {
+      font-size: 29px;
+    }
+  }
+  .annotation-editor {
+    font-size: 13px;
+  }
+  .provider-explanation .markdown-content {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .co-model-nav {
+    margin-top: 8px;
+    padding: 12px;
+  }
+  .co-model-nav small {
+    font-size: 12px;
+  }
+  .composer textarea {
+    font-size: 16px;
+    padding: 20px 22px;
+    line-height: 1.6;
+  }
+  .composer .send-button {
+    width: 42px;
+    height: 40px;
+  }
+  .provider-explanation .message-content {
+    font-size: 14px;
+  }
+  .knowledge-editor {
+    max-width: 580px;
+  }
+  .workspace-sidebar-footer button {
+    font-size: 14px;
+  }
+  @media (max-width: 699px) {
+    .composer textarea {
+      padding: 16px;
+    }
+  }
+  @media (max-width: 699px) {
+    .composer .composer-create-menu {
+      font-size: 0;
+      gap: 0;
+      padding: 7px;
+    }
+  }
+  .hikmah-brand {
+    gap: 11px;
+  }
+  .agent-card-actions .icon-button {
+    padding: 0;
+  }
+  .sandbox-split textarea {
+    padding: 22px;
+  }
+}

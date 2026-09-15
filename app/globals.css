@@ -6,7 +6,7 @@
  * its tokens are available and its opinions are not.
  *
  * A @layer statement may precede @import; only @charset may come before it. */
-@layer reset, astryx-base, astryx-theme, theme, base, components, utilities;
+@layer reset, astryx-base, astryx-theme, theme, base, components, utilities, overrides;
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -42,6 +42,7 @@
 @import './styles/billing.css';
 @import './styles/marketing.css';
 @import './styles/memory.css';
+@import './styles/overrides.css';
 
 /* The workspace stamps its theme on the root element, and Tailwind's `dark:`
    variant otherwise means `prefers-color-scheme`. Without this the two

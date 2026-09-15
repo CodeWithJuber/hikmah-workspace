@@ -42,29 +42,31 @@ function atMost(actual, ceiling, what, detail = '') {
 }
 
 test('!important, which is what fighting your own cascade looks like', () => {
-  // 126 of these existed before app/globals.css was put in a layer, and most of
-  // them were there to beat unlayered rules that had already won. Target: 0.
+  // 126 of these existed before app/globals.css was put in a layer, and they
+  // are all gone. Two readings had to be corrected to get there.
   //
-  // A blanket strip is not the way. All 119 were removed at once and measured:
-  // 142 declarations changed — every page heading's size and leading, and the
-  // workspace sidebar's padding from 26px to 8px. That reading said "all of
-  // them are load-bearing", and it was too coarse: what it actually showed was
-  // that SOME are, and a strip of everything cannot say which.
+  // First: a blanket strip of all 119 moved 142 declarations, and that was
+  // recorded here as "each is currently load-bearing". A strip of everything
+  // shows that SOME are; it can never say which. The properties that moved were
+  // only height, width, font-size, line-height, padding, gap and margin-left —
+  // so every !important on any other property came out with 0 change, once the
+  // audit had been taught to capture overflow, letter-spacing, scroll-behaviour,
+  // animation, the max-* bounds and the outline, so that "not in the changed
+  // list" could not mean "never looked at".
   //
-  // What can: the properties that moved were only height, width, font-size,
-  // line-height, padding, gap and margin-left. Every `!important` on any other
-  // property was removable, and removing all 50 of them changed nothing at all
-  // — proved after the audit was taught to capture overflow, letter-spacing,
-  // scroll-behaviour, animation, the max-* bounds and the outline, so that
-  // "this property is not in the changed list" could not mean "the instrument
-  // never looked at it".
+  // Second: the 66 that guarded a box's size were not load-bearing either. They
+  // existed because a rule in `components` can never beat a utility in
+  // `utilities` — layer order decides before specificity is consulted — and
+  // !important was the blunt way to say so. An `overrides` layer declared after
+  // `utilities` says it properly. Promoting whole rules moved 264 computed
+  // styles and promoting declarations without their enclosing @media moved 78;
+  // promoting each declaration with its full nesting moved none.
   //
-  // The 66 that remain guard a box's size or its type, where a removal really
-  // does move the page. Those come out one rule at a time, by making the rule
-  // win on its own.
+  // So: zero, and it stays zero. If a rule seems to need one, something above it
+  // is the bug, or it belongs in app/styles/overrides.css.
   atMost(
     (css.match(/!important/g) ?? []).length,
-    66,
+    0,
     '!important declarations',
     'A layered rule does not need one. If it seems to, something above it is the bug.',
   );
