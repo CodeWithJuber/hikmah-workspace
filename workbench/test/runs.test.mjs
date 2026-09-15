@@ -411,12 +411,20 @@ test('a directory change survives between two requests', async (t) => {
   // The session is what makes `cd` then `ls` behave like a shell rather than
   // like two unrelated commands.
   const { port } = await start(t);
-  await post(port, {
-    tool: 'bash',
-    sessionId: 'conv-local-2',
-    userKey: USER,
-    command: 'mkdir -p sub && cd sub',
-  });
+  // Drained, not just awaited. `post` resolves when the response HEADERS
+  // arrive; the frames stream afterwards, so awaiting it alone does not mean
+  // the command finished — and this test's whole premise is that the first
+  // request completes before the second begins. It passed for as long as the
+  // first command happened to win that race, and started failing on CI the
+  // moment commands went through the slot wrapper and got slower.
+  await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-2',
+      userKey: USER,
+      command: 'mkdir -p sub && cd sub',
+    }),
+  );
   const second = await frames(
     await post(port, {
       tool: 'bash',
@@ -430,12 +438,16 @@ test('a directory change survives between two requests', async (t) => {
 
 test('a reset sends the session back to the top of the workspace', async (t) => {
   const { port } = await start(t);
-  await post(port, {
-    tool: 'bash',
-    sessionId: 'conv-local-3',
-    userKey: USER,
-    command: 'mkdir -p deep && cd deep',
-  });
+  // Drained for the same reason as above: without it this test passes whether
+  // or not `reset` does anything, because the session never moved.
+  await frames(
+    await post(port, {
+      tool: 'bash',
+      sessionId: 'conv-local-3',
+      userKey: USER,
+      command: 'mkdir -p deep && cd deep',
+    }),
+  );
   const after = await frames(
     await post(port, {
       tool: 'bash',
