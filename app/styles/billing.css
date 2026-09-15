@@ -7,8 +7,32 @@
  *
  * Imported by app/globals.css, which is the only place the order is set. */
 @layer components {
+  /* The page and its column — two billing rules that were at the end of
+   * chat.css.
+   *
+   * Same cause as the landing block that used to be in this file: the split
+   * that broke up globals.css cut contiguously so source order could not
+   * change, so a rule landed where the old file grew rather than where it
+   * belongs.
+   *
+   * At the TOP of this file, because that is exactly where they were: chat.css
+   * is imported before billing.css, so these preceded every rule below. The
+   * position is the position, with nothing to reason about. */
+  .billing-page {
+    min-height: 100dvh;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 28px 20px 64px;
+  }
+  .billing {
+    max-width: 840px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
   .billing-head h1 {
-    font-size: 26px;
+    font-size: var(--font-size-2xl);
     letter-spacing: -0.7px;
     font-weight: 560;
     margin-top: 14px;
@@ -20,7 +44,7 @@
      height rather than the 20px its 13px text happened to give it. */
     min-height: 24px;
     gap: 7px;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
   }
   .billing-back:hover {
@@ -33,17 +57,21 @@
     justify-content: center;
     padding: 64px 0;
     color: var(--muted-foreground);
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
   .billing-eyebrow {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     letter-spacing: 1.4px;
     font-weight: 600;
     color: var(--muted-foreground);
   }
   .billing-current {
     border: 1px solid var(--border);
-    border-radius: 16px;
+    /* What `rounded-xl` resolves to, which is what components/ui/card.tsx
+       wears. Written as the derivation rather than as 16px so that moving
+       --radius moves this card with every shadcn card, instead of leaving it
+       behind at a number nobody remembers choosing. */
+    border-radius: calc(var(--radius) + 4px);
     padding: 22px;
     display: flex;
     flex-direction: column;
@@ -51,25 +79,25 @@
     background: var(--card);
   }
   .billing-current h2 {
-    font-size: 20px;
+    font-size: var(--font-size-xl);
     font-weight: 560;
     letter-spacing: -0.4px;
   }
   .billing-usage-line {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     line-height: 1.6;
   }
   .billing-meter {
     height: 8px;
-    border-radius: 99px;
+    border-radius: var(--radius-full);
     background: var(--muted);
     overflow: hidden;
   }
   .billing-meter > span {
     display: block;
     height: 100%;
-    border-radius: 99px;
+    border-radius: var(--radius-full);
     background: var(--primary);
   }
   .billing-current button,
@@ -80,10 +108,11 @@
     gap: 8px;
     min-height: 40px;
     padding: 0 18px;
-    border-radius: 10px;
+    /* `rounded-md`, as components/ui/button.tsx. */
+    border-radius: calc(var(--radius) - 2px);
     background: var(--primary);
     color: var(--primary-foreground);
-    font-size: 13.5px;
+    font-size: var(--font-size-base);
     cursor: pointer;
   }
   .billing-current button:disabled,
@@ -100,7 +129,7 @@
   }
   .billing-plan {
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: calc(var(--radius) + 4px);
     padding: 22px;
     display: flex;
     flex-direction: column;
@@ -111,11 +140,11 @@
     border-color: var(--primary);
   }
   .billing-plan h3 {
-    font-size: 17px;
+    font-size: var(--font-size-lg);
     font-weight: 560;
   }
   .billing-tagline {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     line-height: 1.6;
   }
@@ -123,7 +152,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 13.5px;
+    font-size: var(--font-size-base);
     line-height: 1.5;
   }
   .billing-plan li {
@@ -137,7 +166,7 @@
     color: var(--primary);
   }
   .billing-note {
-    font-size: 12.5px;
+    font-size: var(--font-size-sm);
     color: var(--muted-foreground);
     line-height: 1.6;
   }
