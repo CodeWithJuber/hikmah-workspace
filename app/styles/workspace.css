@@ -3326,6 +3326,54 @@
     color: var(--muted-foreground);
     margin-top: 5px;
   }
+  /* The owner's performance panel. Tokens only — no colour is named here, which
+   * is the rule every new rule is held to now. */
+  .vitals-panel {
+    margin: 30px 0;
+  }
+  .vitals-panel h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .vitals-panel h3 [data-slot='button'] {
+    margin-inline-start: auto;
+  }
+  /* Its own scroller, so five columns on a 360px screen scroll the table
+   * rather than the page. */
+  .vitals-table {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .vitals-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .vitals-table th,
+  .vitals-table td {
+    padding: 8px 12px;
+    text-align: start;
+    white-space: nowrap;
+  }
+  .vitals-table thead th {
+    color: var(--muted-foreground);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .vitals-table tbody tr + tr td {
+    border-top: 1px solid var(--border);
+  }
+  /* Over Google's own threshold for that metric. Weight as well as colour: a
+   * number that is only red is invisible to anyone who cannot see red. */
+  .vitals-table td[data-poor] {
+    color: var(--error-text);
+    font-weight: 650;
+  }
   .learning-live-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

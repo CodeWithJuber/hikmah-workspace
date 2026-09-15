@@ -17,6 +17,7 @@ import { usePlayground } from './context';
 import { useMemory } from '@/hooks/use-memory';
 import { useKernel } from '@/components/kernel/context';
 import { KnowledgeEditor, newKnowledge } from './knowledge';
+import { VitalsPanel } from '@/components/settings/vitals-panel';
 import type { KnowledgeItem } from '@/lib/playground/knowledge';
 
 export function OwnerAccess({ children }: { children: ReactNode }) {
@@ -194,6 +195,7 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
             </button>
           ))}
         </div>
+        {owner && <VitalsPanel />}
         <div className="learning-live-grid">
           <section>
             <h3>What runs in real time</h3>
