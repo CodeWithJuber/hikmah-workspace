@@ -65,7 +65,7 @@ test('one type scale, not thirty-nine sizes', () => {
   const sizes = new Set(
     [...css.matchAll(/font-size:\s*([^;}]+)/g)]
       .map((m) => m[1].trim().replace(/\s*!important$/, ''))
-      .filter((value) => !value.startsWith('var(') && value !== 'inherit'),
+      .filter((value) => !/var\(/.test(value) && value !== 'inherit'),
   );
   // The generated palette carries a 12-step scale anchored at 14px, which is
   // already this app's dominant size. Every literal here is a size somebody
@@ -78,7 +78,14 @@ test('one radius scale', () => {
   const radii = new Set(
     [...css.matchAll(/border-radius:\s*([^;}]+)/g)]
       .map((m) => m[1].trim().replace(/\s*!important$/, ''))
-      .filter((value) => !/^(var\(|50%|0|inherit|9999px|max\(var\()/.test(value)),
+      // A value is literal when no token appears anywhere in it. Anchoring this
+      // to the START of the value counted `calc(var(--radius) + 4px)` as two
+      // new literals and failed the very change it exists to encourage: that
+      // expression IS the token, offset the way the utilities offset it, and it
+      // moves when --radius moves. A ratchet that punishes the fix is worse
+      // than no ratchet, because the cheapest way past it is to put the literal
+      // back.
+      .filter((value) => !/var\(/.test(value) && !/^(50%|0|inherit|9999px)$/.test(value)),
   );
   // The palette has six: none, inner, element, container, page, full. The file
   // has these. Target: 0.
@@ -284,25 +291,68 @@ test('no surface shadows a name the token layer owns', () => {
   assert.deepEqual(shadows, [], shadows.join('\n'));
 });
 
-/** Colour belongs to the token layer, one surface at a time.
+/** What each converted surface has finished, dimension by dimension.
  *
- * scripts/check-styles.mjs counts authored colours across every stylesheet and
- * walks that total down. A total cannot say a surface is FINISHED, though, so
- * each one that reaches zero is pinned here and can never drift back.
+ * The ratchets above count DISTINCT values across every stylesheet, which is
+ * the right shape for the repo as a whole and the wrong shape for saying a
+ * surface is done: retiring every literal in billing.css moved neither count,
+ * because every value it used — 26px, 20px, 17px, 14px, 13px, 10px — is still
+ * written somewhere else. A distinct-count ceiling only falls when the LAST
+ * user of a value goes, so it can report no progress through most of the work
+ * and then all of it at once.
+ *
+ * So a surface that reaches zero on a dimension is pinned here and can never
+ * drift back, and the totals above stay as the measure of what is left.
  */
-test('the surfaces that have been converted carry no colour of their own', () => {
-  const done = ['app/styles/marketing.css'];
-  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\boklch\(/g;
-  for (const path of done) {
-    const file = styleFiles().find((f) => f.path === path);
-    assert.ok(file, `${path} is in the import graph`);
-    const found = [...strip(file.text).matchAll(colour)].map((m) => m[0]);
-    assert.deepEqual(
-      found,
-      [],
-      `${path} names ${found.length} colour(s) directly: ${found.join(', ')}.\n` +
-        'Every colour on a converted surface comes from a token, so that setting ' +
-        'a background cannot leave the text behind in the other theme.',
-    );
-  }
-});
+const CONVERTED = {
+  'app/styles/marketing.css': ['colour'],
+  'app/styles/billing.css': ['colour', 'type', 'radius'],
+};
+
+/** Each dimension as a matcher plus a predicate.
+ *
+ * Deliberately not one regex with a negative lookahead: `font-size:\s*(?!var\()`
+ * passes everything, because `\s*` can match zero characters and the lookahead
+ * is then tested at the space rather than at the value. It read as correct and
+ * reported eleven violations that were all tokens. Capture the value, decide in
+ * JS — the same shape the ratchets above already use.
+ */
+const DIMENSION = {
+  // A colour written out rather than taken from a token. This is what let the
+  // landing page pin `background: #fff` while its text came from the palette,
+  // and serve the dark theme's near-white type on its own hardcoded white.
+  colour: {
+    find: /#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)|\bhsla?\([^)]*\)|\boklch\([^)]*\)/g,
+    literal: () => true,
+    why: 'so that setting a background cannot leave the text behind in the other theme',
+  },
+  type: {
+    find: /font-size:\s*([^;}]+)/g,
+    literal: (value) => !/var\(/.test(value) && value !== 'inherit',
+    why: 'so one scale decides every size, rather than each rule choosing again',
+  },
+  radius: {
+    // `calc(var(--radius) + 4px)` passes: it is the token, offset the way the
+    // utilities offset it, and it moves when --radius moves.
+    find: /border-radius:\s*([^;}]+)/g,
+    literal: (value) => !/var\(/.test(value) && !/^(0|50%|inherit|9999px)$/.test(value),
+    why: 'so a corner follows --radius instead of remembering its own number',
+  },
+};
+
+for (const [path, dimensions] of Object.entries(CONVERTED))
+  for (const dimension of dimensions)
+    test(`${path} carries no ${dimension} of its own`, () => {
+      const file = styleFiles().find((f) => f.path === path);
+      assert.ok(file, `${path} is in the import graph`);
+      const { find, literal, why } = DIMENSION[dimension];
+      const found = [...strip(file.text).matchAll(find)]
+        .map((m) => (m[1] ?? m[0]).trim().replace(/\s*!important$/, ''))
+        .filter(literal);
+      assert.deepEqual(
+        found,
+        [],
+        `${path} writes ${found.length} ${dimension} value(s) directly: ${found.join(' | ')}.\n` +
+          `Every ${dimension} on a converted surface comes from a token, ${why}.`,
+      );
+    });

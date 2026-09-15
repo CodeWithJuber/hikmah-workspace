@@ -1836,20 +1836,6 @@
   /* Plan and usage.
    Theme-aware through the same tokens the chat uses, unlike the auth cards,
    which are a deliberately light-only front door. */
-  .billing-page {
-    min-height: 100dvh;
-    background: var(--background);
-    color: var(--foreground);
-    padding: 28px 20px 64px;
-  }
-  .billing {
-    max-width: 840px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 26px;
-  }
-
   /* The phone, and a turn that produced nothing — both of them chat rules.
    *
    * They spent a while at the top of marketing.css. When app/globals.css was
