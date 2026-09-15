@@ -45,17 +45,26 @@ test('!important, which is what fighting your own cascade looks like', () => {
   // 126 of these existed before app/globals.css was put in a layer, and most of
   // them were there to beat unlayered rules that had already won. Target: 0.
   //
-  // But they are not free to delete, which was worth finding out before a
-  // surface PR assumed otherwise. All 120 were stripped at once and the result
-  // measured across 1,964 elements on six surfaces in both themes: **120
-  // declarations changed** — near enough one per `!important`. Every page
-  // heading's size and leading moved, and the workspace sidebar's padding went
-  // from 26px to 8px. So each is currently load-bearing, and they come out one
-  // rule at a time, by making that rule win on its own, with the audit run each
-  // time. A blanket strip is a redesign nobody asked for.
+  // A blanket strip is not the way. All 119 were removed at once and measured:
+  // 142 declarations changed — every page heading's size and leading, and the
+  // workspace sidebar's padding from 26px to 8px. That reading said "all of
+  // them are load-bearing", and it was too coarse: what it actually showed was
+  // that SOME are, and a strip of everything cannot say which.
+  //
+  // What can: the properties that moved were only height, width, font-size,
+  // line-height, padding, gap and margin-left. Every `!important` on any other
+  // property was removable, and removing all 50 of them changed nothing at all
+  // — proved after the audit was taught to capture overflow, letter-spacing,
+  // scroll-behaviour, animation, the max-* bounds and the outline, so that
+  // "this property is not in the changed list" could not mean "the instrument
+  // never looked at it".
+  //
+  // The 66 that remain guard a box's size or its type, where a removal really
+  // does move the page. Those come out one rule at a time, by making the rule
+  // win on its own.
   atMost(
     (css.match(/!important/g) ?? []).length,
-    120,
+    66,
     '!important declarations',
     'A layered rule does not need one. If it seems to, something above it is the bug.',
   );
