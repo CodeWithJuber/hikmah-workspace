@@ -14,8 +14,18 @@ export const PROVIDER_IDLE_MS = 300_000;
  * a provider dripping one token every few seconds holds a run, and one of the
  * worker's slots, for as long as it likes. Nothing else in the system ends it.
  * Twenty minutes is far above any healthy answer, including long reasoning
- * ones, so this only ever fires on something that has genuinely gone wrong. */
-export const PROVIDER_MAX_MS = 20 * 60_000;
+ * ones, so this only ever fires on something that has genuinely gone wrong.
+ *
+ * `HIKMAH_RUN_MAX_MS` overrides it, because the right number depends on the
+ * models a deployment actually calls; 0 or a value that is not a positive
+ * number means the default rather than "no bound", since an env var set to
+ * nonsense must not silently remove a safety limit. */
+const PROVIDER_MAX_MS = 20 * 60_000;
+
+export function providerMaxMs(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = Number(env.HIKMAH_RUN_MAX_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : PROVIDER_MAX_MS;
+}
 
 export type WatchdogFetch = typeof fetch;
 

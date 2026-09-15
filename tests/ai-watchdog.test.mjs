@@ -3,7 +3,7 @@
 // Run: node --test tests/ai-watchdog.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withIdleTimeout } from '../lib/ai/watchdog.ts';
+import { providerMaxMs, withIdleTimeout } from '../lib/ai/watchdog.ts';
 
 const read = async (response) => {
   const reader = response.body.getReader();
@@ -135,4 +135,19 @@ test('a response that finishes inside the cap is untouched', async () => {
   );
   const response = await fetchBounded('https://example.test');
   assert.equal(await response.text(), 'all of it');
+});
+
+test('the deployment can set the cap, and nonsense does not remove it', () => {
+  // A safety bound that an empty or mistyped environment variable silently
+  // turns off is worse than no bound, because it reads as if it is there.
+  assert.equal(providerMaxMs({ HIKMAH_RUN_MAX_MS: '90000' }), 90_000);
+  // The default is named here rather than imported: a test that compares a
+  // constant to itself would pass whatever the number became.
+  assert.equal(providerMaxMs({}), 20 * 60_000, 'unset means twenty minutes');
+  for (const bad of ['', '0', '-1', 'soon', 'NaN', 'Infinity'])
+    assert.equal(
+      providerMaxMs({ HIKMAH_RUN_MAX_MS: bad }),
+      20 * 60_000,
+      `${JSON.stringify(bad)} must fall back to the default, not disable the cap`,
+    );
 });
