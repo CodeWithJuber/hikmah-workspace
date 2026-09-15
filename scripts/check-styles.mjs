@@ -59,7 +59,24 @@ function stylesheetGraph(from) {
 }
 
 const sheets = stylesheetGraph(entry);
-const css = sheets.map((s) => s.text).join('\n');
+
+/* A hex inside a generated file is not drift.
+ *
+ * `app/styles/palette.generated.css` is a seeded ramp with a receipt: 87
+ * colours derived from two seeds by `npm run design:build`, regenerated whole,
+ * never edited. Counting them with the hand-written ones would bury the number
+ * this check exists to drive to zero under an order of magnitude more that
+ * nobody should touch. They are counted, and reported, separately — so a
+ * palette that doubles in size is still visible. */
+const GENERATED = /@generated\b/;
+const authored = sheets.filter((s) => !GENERATED.test(s.text.slice(0, 400)));
+const generated = sheets.filter((s) => GENERATED.test(s.text.slice(0, 400)));
+const css = authored.map((s) => s.text).join('\n');
+const paletteColours = new Set(
+  generated.flatMap((s) =>
+    [...s.text.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase()),
+  ),
+);
 /** Blank out comments, leaving the file's length and line structure intact.
  *
  * Not a regex, because `/*` also occurs inside strings: every `@source` glob
@@ -184,8 +201,13 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 149, repeated: 94, extra: 132 };
-const actual = { colours: colours.size, repeated: repeated.length, extra };
+const BASELINE = { colours: 149, repeated: 94, extra: 132, paletteColours: 87 };
+const actual = {
+  colours: colours.size,
+  repeated: repeated.length,
+  extra,
+  paletteColours: paletteColours.size,
+};
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
 if (grown.length) {
@@ -217,8 +239,8 @@ if (slack.length && process.argv.includes('--update')) {
   console.info('Baseline lowered to', actual);
 } else {
   console.info(
-    `styles: ${actual.colours} colours, ${actual.repeated} selectors defined more than once ` +
-      `(${actual.extra} extra)` +
+    `styles: ${actual.colours} authored colours, ${actual.paletteColours} generated, ` +
+      `${actual.repeated} selectors defined more than once (${actual.extra} extra)` +
       (slack.length ? ' — below baseline; run with --update to lock it in' : ''),
   );
 }

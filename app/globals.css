@@ -14,6 +14,16 @@
  *
  * scripts/check-styles.mjs follows this graph, so a file is counted from the
  * moment it is imported here, and one nobody imports does not ship. */
+/* The design language, compiled from design/hikmah-theme.ts. Generated, and
+ * committed: if Astryx breaks or is abandoned, the escape is to delete two
+ * devDependencies and keep this file.
+ *
+ * Almost all of it is inside `@scope ([data-astryx-theme="hikmah"])`, so it
+ * defines nothing until <html> carries that attribute — which it does not
+ * yet. The exception is three unscoped `color-scheme` rules, which do apply;
+ * see the commit for what that changes. */
+@import './styles/palette.generated.css';
+
 @import './styles/base.css';
 @import './styles/workspace.css';
 @import './styles/auth.css';
