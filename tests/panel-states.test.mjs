@@ -84,8 +84,11 @@ test('row actions are reachable on a touch screen', () => {
   // `opacity: 0` plus `:hover` is unreachable on a phone, and these three
   // panels are drawers on a phone.
   for (const selector of ['.conversation-delete', '.files-delete']) {
-    const start = css.indexOf(`\n${selector} {`);
-    assert.ok(start > -1, `${selector} has no rule`);
+    // Found by pattern rather than at column zero: globals.css wraps its rules
+    // in `@layer components`, so every selector in it is now indented.
+    const found = new RegExp(`\n\\s*\\${selector} \\{`).exec(css);
+    assert.ok(found, `${selector} has no rule`);
+    const start = found.index;
     const block = css.slice(start, css.indexOf('}', start));
     assert.doesNotMatch(
       block,
