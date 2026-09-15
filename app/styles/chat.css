@@ -131,7 +131,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 38px;
+    height: 36px;
     width: 38px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -915,7 +915,7 @@
     background: var(--muted);
   }
   .page-preview-width button {
-    height: 30px;
+    height: 32px;
     padding: 0 8px;
   }
   .page-preview-width button[aria-pressed='true'] {
@@ -1052,7 +1052,7 @@
     overflow-wrap: anywhere;
   }
   .chat-tools-trigger {
-    height: 34px;
+    height: 32px;
     gap: 6px;
     padding: 0 10px;
     font-size: 13px;

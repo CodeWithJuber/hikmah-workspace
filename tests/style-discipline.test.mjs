@@ -188,3 +188,33 @@ test('icons come from one scale', () => {
   for (const dir of ['app', 'components']) walk(join(root, dir));
   assert.deepEqual(off, [], 'icon sizes outside the scale');
 });
+
+test('a control is one of five heights', () => {
+  // Twenty-five distinct heights on things you press or type into, between a
+  // 25px span and a 46px field: 25, 26, 28, 30, 31, 34, 35, 38, 39, 42, 43, 45,
+  // 46 and the five real ones. Four of them differed from a neighbour by a
+  // single pixel, which nobody chose and nobody can see — but the composer's
+  // send button being 38 in one file and 42 in another is the reason a row
+  // never quite lined up.
+  //
+  // 24/32/36/40/44. The range is deliberate: below 20px is a hidden file input
+  // or a slider track, and 47px and up is a card, a tab bar or a multi-line
+  // field, whose height is a layout decision rather than a place on this scale.
+  const SCALE = new Set([24, 32, 36, 40, 44]);
+  const CONTROL =
+    /button|\[data-slot|input|select|textarea|\.icon-button|trigger|tab\b|chip|pill|toggle/i;
+  const off = [];
+  for (const file of styleFiles()) {
+    if (file.path.startsWith('vendor/') || file.text.includes('@generated')) continue;
+    for (const [, selector, body] of strip(file.text).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const where = selector.trim().replace(/\s+/g, ' ');
+      if (where.startsWith('@') || !CONTROL.test(where)) continue;
+      for (const [, size] of body.matchAll(/(?:^|[;\s])(?:min-|max-)?height:\s*([0-9.]+)px/g)) {
+        const height = Number(size);
+        if (height < 20 || height > 46 || SCALE.has(height)) continue;
+        off.push(`${file.path} ${where.slice(0, 50)} — ${height}px`);
+      }
+    }
+  }
+  assert.deepEqual(off, [], 'control heights off the scale');
+});
