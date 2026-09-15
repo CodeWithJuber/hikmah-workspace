@@ -236,7 +236,7 @@
     max-width: 100%;
     overflow-x: auto;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .studio-shell .workspace-header h1 {
       flex: 1;
       max-width: unset;

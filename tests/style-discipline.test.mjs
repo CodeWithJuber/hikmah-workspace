@@ -101,13 +101,36 @@ test('colour comes from a token, or from mixing two', () => {
   atMost(literal.length, 178, 'declarations naming a colour literally', '');
 });
 
-test('three breakpoints, not thirteen', () => {
-  const widths = new Set([...css.matchAll(/@media[^{]*?(\d+)px/g)].map((m) => Number(m[1])));
-  // 480, 600, 650, 699, 700, 760, 767, 900, 1100, 1179, 1180, 1350, 1600 — and
-  // 699/700 and 1179/1180 are the same boundary written twice, once as `max-`
-  // and once as `min-`, four times over. A layout that changes at thirteen
-  // widths was not designed at any of them. Target: 3.
-  atMost(widths.size, 13, 'distinct @media widths', [...widths].sort((a, b) => a - b).join(' '));
+test('the layout changes at as few widths as possible', () => {
+  /* Counted as BOUNDARIES, not as numbers in the file, because the first
+   * version of this check counted both wrong.
+   *
+   * It matched any `<digits>px` after `@media`, so `@media (max-height: 650px)`
+   * — a rule about short windows, not narrow ones — was counted as a
+   * breakpoint. And it counted `max-width: 699px` and `min-width: 700px` as two
+   * boundaries when they are the standard way to write ONE: complementary, no
+   * overlap, no gap. "699/700 is the same boundary written twice" was in the
+   * commit message and it was wrong.
+   *
+   * What is left after fixing both is the real number, and it is still too
+   * many: 480 600 700 760 767 900 1100 1179 1350 1600. A layout that changes at
+   * ten widths was not designed at any of them. But merging them is a design
+   * decision per surface, not a sweep — 900 belongs to the chat PR, 480 to
+   * auth — so this walks down with those rather than in one step. */
+  const boundaries = new Set();
+  for (const [, query] of css.matchAll(/@media([^{]*)\{/g)) {
+    for (const [, kind, size] of query.matchAll(/(min|max)-width:\s*(\d+)px/g)) {
+      // A max-width of N-1 and a min-width of N are one boundary, named for the
+      // min-width side.
+      boundaries.add(kind === 'max' ? Number(size) + 1 : Number(size));
+    }
+  }
+  atMost(
+    boundaries.size,
+    10,
+    'distinct layout boundaries',
+    [...boundaries].sort((a, b) => a - b).join(' '),
+  );
 });
 
 test('[data-slot=] belongs in one file', () => {

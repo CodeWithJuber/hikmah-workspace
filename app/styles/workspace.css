@@ -2518,7 +2518,10 @@
       padding: 17px;
     }
   }
-  @media (max-width: 700px) {
+  /* 699, not 700: chat.css carries `min-width: 700px`, so a `max-width: 700px`
+   here means both fire at exactly 700px wide. A boundary cannot be inclusive
+   on both sides. */
+  @media (max-width: 699px) {
     .context-intro h2 {
       font-size: 27px;
     }
@@ -2603,7 +2606,7 @@
     max-width: 260px;
     min-width: 100px;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .comparison-toolbar .model-picker {
       max-width: 100%;
     }
@@ -2729,7 +2732,7 @@
     font-size: 13px;
     color: var(--muted-foreground);
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .corpus-controls {
       flex-direction: column;
     }
@@ -3143,7 +3146,7 @@
   }
   @media (max-width: 1100px) {
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .studio-shell .workspace-header {
       height: 62px;
       padding: 0 14px;
@@ -3879,7 +3882,10 @@
     background: #22392f;
     color: #b3d9c6;
   }
-  @media (max-width: 1180px) {
+  /* 1179, not 1180: two other blocks already use it, and a boundary that
+   differs by one pixel from another is two boundaries to maintain and one
+   width nobody can tell apart. */
+  @media (max-width: 1179px) {
     .agent-grid,
     .runtime-grid,
     .connection-paths {
@@ -3889,7 +3895,7 @@
       min-height: 0;
     }
   }
-  @media (max-width: 700px) {
+  @media (max-width: 699px) {
     .destination-scroll {
       padding: 20px 18px 45px;
     }
