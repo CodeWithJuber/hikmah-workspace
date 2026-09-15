@@ -1,0 +1,113 @@
+/* The product's colour tokens, in one place, derived from the generated palette.
+ *
+ * Every name below is one shadcn and the app's own rules already read — it is
+ * app/globals.css's `@theme inline` block that turns `--primary` into Tailwind's
+ * `bg-primary`, so re-pointing these names moves every utility class, every
+ * vendored component and every hand-written rule at once, with no edit to any
+ * of them.
+ *
+ * There were nine blocks declaring these, in three files, across five
+ * generations of the design: a plain `:root`, a `:root[data-theme='dark']`, a
+ * `:root:not([data-theme='dark'])` written specifically to out-specify the
+ * others, and two more `:root` blocks further down the same file. `--accent`
+ * alone was declared nine times at three different values, so which green the
+ * app wore depended on which rule happened to win. They are all deleted; this
+ * is the only one.
+ *
+ * There is also no dark twin of this block, which is the second thing that
+ * changes. The generated tokens are `light-dark()` pairs driven by
+ * `color-scheme`, and palette.generated.css sets that from the `data-theme`
+ * attribute the layout already stamps from the cookie. So one declaration
+ * carries both modes, and a token can no longer be defined in light and
+ * forgotten in dark — the bug that left the landing page light-only.
+ *
+ * The `--ax-` names are the generated palette's. Astryx writes them `--color-*`
+ * and scripts/build-design.mjs renames them, because `--color-*` is also
+ * Tailwind's theme namespace: `@theme inline` in globals.css declares
+ * `--color-accent: var(--accent)` so that `bg-accent` works, `theme` sorts
+ * after `astryx-theme`, and the two silently became the same name pointing at
+ * each other. tests/design-tokens.test.mjs holds the two namespaces apart now.
+ *
+ * Where a value is mixed rather than taken whole, it is mixed with the body
+ * background on purpose: `color-mix(… 5%, var(--ax-background-body))` is 5%
+ * ink on white in light and 5% light on the dark page in dark, so a muted fill
+ * is a step AWAY from the page in both modes. A fixed alpha would be a step
+ * down in one of them.
+ */
+@layer components {
+  :root {
+    /* The page and the text on it. */
+    --background: var(--ax-background-body);
+    --foreground: var(--ax-text-primary);
+
+    /* Raised surfaces. Tinted against the page in light, lighter than it in
+     * dark — the same relationship stated twice, not two different ideas. */
+    --card: var(--ax-background-card);
+    --card-foreground: var(--ax-text-primary);
+    --popover: var(--ax-background-popover);
+    --popover-foreground: var(--ax-text-primary);
+    --sidebar: var(--ax-background-surface);
+    --sidebar-foreground: var(--ax-text-primary);
+
+    /* The brand green, and what may sit on it. The dark value is the light one
+     * inverted rather than darkened: #285d46 on the dark page is 2.6:1, which
+     * fails as a button, while a light fill with dark ink is 9:1 and still
+     * reads as the same colour. */
+    --primary: var(--ax-accent);
+    --primary-foreground: var(--ax-on-accent);
+    --sidebar-primary: var(--ax-accent);
+    --sidebar-primary-foreground: var(--ax-on-accent);
+
+    /* The quiet tint under a hover, a selected row, a chip. Opaque rather than
+     * the palette's own translucent `--ax-accent-muted`, because these sit
+     * on top of each other — a drawer over a card over the page — and stacked
+     * alpha compounds into a colour nobody chose. */
+    --accent: color-mix(in srgb, var(--ax-accent) 14%, var(--ax-background-body));
+    --accent-foreground: var(--ax-text-accent);
+    --sidebar-accent: color-mix(in srgb, var(--ax-accent) 14%, var(--ax-background-body));
+    --sidebar-accent-foreground: var(--ax-text-accent);
+    --user-bubble: color-mix(in srgb, var(--ax-accent) 14%, var(--ax-background-body));
+
+    /* Secondary and muted are the same fill; they always were. */
+    --secondary: color-mix(in srgb, var(--ax-text-primary) 5%, var(--ax-background-body));
+    --secondary-foreground: var(--ax-text-primary);
+    --muted: color-mix(in srgb, var(--ax-text-primary) 5%, var(--ax-background-body));
+    --muted-foreground: var(--ax-text-secondary);
+
+    /* Lines. `--border` separates, `--input` is the edge of something you type
+     * into and is meant to be findable, so it is the palette's emphasized one. */
+    --border: color-mix(in srgb, var(--ax-text-primary) 12%, var(--ax-background-body));
+    --sidebar-border: color-mix(in srgb, var(--ax-text-primary) 12%, var(--ax-background-body));
+    --input: var(--ax-border-emphasized);
+    --ring: var(--ax-accent);
+    --sidebar-ring: var(--ax-accent);
+
+    /* Outcomes. The backgrounds are mixed with the page for the reason above;
+     * the text is the ramp's own dark step in light and its light step in dark,
+     * so both halves carry text against their own fill. */
+    --destructive: var(--ax-data-red-4);
+    --error-bg: color-mix(in srgb, var(--ax-data-red-4) 12%, var(--ax-background-body));
+    --error-text: light-dark(var(--ax-data-red-5), var(--ax-data-red-2));
+    --success-bg: color-mix(in srgb, var(--ax-accent) 12%, var(--ax-background-body));
+    --success-text: var(--ax-accent);
+
+    /* Categorical, for anything that has to tell N things apart. These are the
+     * palette's own categorical set, which is chosen to be distinguishable
+     * rather than to match the brand. */
+    --chart-1: var(--ax-data-categorical-orange);
+    --chart-2: var(--ax-data-categorical-teal);
+    --chart-3: var(--ax-data-categorical-cyan);
+    --chart-4: var(--ax-data-yellow-4);
+    --chart-5: var(--ax-data-orange-3);
+
+    /* The v7 workspace's own four. Its dark accent was #9baeff — a blue, left
+     * over from before green became the brand, and the last of that family
+     * still reaching the screen. */
+    --hk-accent: var(--ax-accent);
+    --hk-surface: var(--ax-background-surface);
+    --hk-muted: var(--ax-text-secondary);
+    --hk-border: color-mix(in srgb, var(--ax-text-primary) 12%, var(--ax-background-body));
+
+    --radius: 0.75rem;
+  }
+}

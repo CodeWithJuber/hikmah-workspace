@@ -33,6 +33,7 @@
  * yet. The exception is three unscoped `color-scheme` rules, which do apply;
  * see the commit for what that changes. */
 @import './styles/palette.generated.css';
+@import './styles/tokens.css';
 
 @import './styles/base.css';
 @import './styles/workspace.css';

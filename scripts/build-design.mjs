@@ -33,10 +33,24 @@ execFileSync(process.execPath, [cli, 'theme', 'build', source, '-o', out], {
 // which is a temp directory here and so differs on every run. Rewritten to the
 // command a person would actually type: deterministic, and more use to whoever
 // reads the header wondering how to regenerate it.
-const built = readFileSync(out, 'utf8').replace(
-  /^ \* Command: .*$/m,
-  ' * Command: npm run design:build',
-);
+const built = readFileSync(out, 'utf8')
+  .replace(/^ \* Command: .*$/m, ' * Command: npm run design:build')
+  // Astryx names its colour tokens `--color-*`. So does Tailwind: `--color-*`
+  // IS Tailwind's theme namespace, and app/globals.css's `@theme inline` block
+  // declares `--color-accent: var(--accent)` to make `bg-accent` work. Both
+  // land on :root, and `theme` sorts after `astryx-theme`, so Tailwind's
+  // silently replaced the generated value — and then `--accent` reading
+  // `--color-accent` closed a reference cycle, which CSS resolves by throwing
+  // BOTH away. Every rule that named the brand green lost it: the mark went
+  // black, and `border: 1px solid color-mix(…var(--primary)…)` took its whole
+  // shorthand down with it, so the onboarding card lost its border and its
+  // background as well as its colour.
+  //
+  // Renamed here rather than worked around at the point of use, because the
+  // collision is the whole namespace and not one token: any future `@theme`
+  // entry would hit it again, silently, and the symptom is a colour quietly
+  // becoming the wrong one rather than an error anybody sees.
+  .replace(/--color-/g, '--ax-');
 
 if (process.argv.includes('--check')) {
   const committed = existsSync(target) ? readFileSync(target, 'utf8') : '';

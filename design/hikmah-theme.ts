@@ -75,5 +75,24 @@ export const hikmahTheme = defineTheme({
     // Changing an accent means owning the label that sits on it, in both modes.
     '--color-on-accent': ['#ffffff', '#10241b'],
     '--color-background-body': ['#ffffff', '#10241b'],
+    /* The surfaces, pinned for the same reason the body is.
+     *
+     * Derived, they came off the generator's own neutral ramp — #F4FFF9 light
+     * and #151D19 dark — which is a near-white mint in light and, against the
+     * pinned body above, a DARKER grey-green in dark. A card darker than the
+     * page it sits on inverts the one cue that says "this is raised", and it
+     * only happened because the body was pinned and the surfaces were not.
+     * Pinned together, a card is lighter than the page in dark and tinted
+     * against it in light, which is the same relationship in both modes. */
+    '--color-background-surface': ['#f4fff9', '#16301f'],
+    '--color-background-card': ['#f4fff9', '#16301f'],
+    '--color-background-popover': ['#ffffff', '#1b3b28'],
+    /* The edge of something you type into, which WCAG 2.2 holds to 3:1 against
+     * what is behind it — a rule about UI components, not text, so the
+     * generator's own text guarantee does not cover it. Derived it was #5C6C63,
+     * which is 2.93:1 on the pinned dark body: a field you cannot quite find.
+     * One step lighter clears it at 3.08:1. The light value already passed and
+     * is kept. */
+    '--color-border-emphasized': ['#84948c', '#616f67'],
   },
 });

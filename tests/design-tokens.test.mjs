@@ -52,10 +52,8 @@ test('nothing but color-scheme applies until <html> carries the theme attribute'
   );
 });
 
-test('the accent carries its own label in both colour modes', () => {
-  // The generator guarantees contrast for what IT derives. --color-accent and
-  // --color-on-accent are both written by hand in design/hikmah-theme.ts, which
-  // the template says plainly makes that pair ours to check.
+// Shared by the two contrast tests below.
+const contrast = () => {
   const pair = (name) => {
     const m = palette.match(
       new RegExp(`${name}: light-dark\\((#[0-9a-fA-F]{3,8}), (#[0-9a-fA-F]{3,8})\\)`),
@@ -79,8 +77,16 @@ test('the accent carries its own label in both colour modes', () => {
     return (x + 0.05) / (y + 0.05);
   };
 
-  const [accentLight, accentDark] = pair('--color-accent');
-  const [onLight, onDark] = pair('--color-on-accent');
+  return { pair, ratio };
+};
+
+test('the accent carries its own label in both colour modes', () => {
+  // The generator guarantees contrast for what IT derives. --ax-accent and
+  // --ax-on-accent are both written by hand in design/hikmah-theme.ts, which
+  // the template says plainly makes that pair ours to check.
+  const { pair, ratio } = contrast();
+  const [accentLight, accentDark] = pair('--ax-accent');
+  const [onLight, onDark] = pair('--ax-on-accent');
   for (const [mode, fill, label] of [
     ['light', accentLight, onLight],
     ['dark', accentDark, onDark],
@@ -93,6 +99,55 @@ test('the accent carries its own label in both colour modes', () => {
   }
 });
 
+test('a field edge is findable against the page it sits on', () => {
+  // WCAG 2.2 holds a UI component's boundary to 3:1, which is a different rule
+  // from the text one and not something the generator promises: derived, the
+  // dark value was 2.93:1 on the pinned dark body — a field you cannot quite
+  // see. Both halves are pinned in design/hikmah-theme.ts now, so this is the
+  // check that says why, and the one that fails if a CLI upgrade re-derives
+  // them.
+  const { pair, ratio } = contrast();
+  const [edgeLight, edgeDark] = pair('--ax-border-emphasized');
+  const [bodyLight, bodyDark] = pair('--ax-background-body');
+  for (const [mode, edge, body] of [
+    ['light', edgeLight, bodyLight],
+    ['dark', edgeDark, bodyDark],
+  ]) {
+    const value = ratio(edge, body);
+    assert.ok(
+      value >= 3,
+      `${mode}: the input edge ${edge} on ${body} is ${value.toFixed(2)}:1, under 3`,
+    );
+  }
+});
+
 test('the palette is imported, so the graph-following checks see it', () => {
   assert.ok(allStyles().includes('@generated'), 'globals.css no longer imports the palette');
+});
+
+test('the generated palette and Tailwind’s theme namespace share no name', () => {
+  // `--color-*` is Tailwind's theme namespace, and it was Astryx's too. Both
+  // write to :root, `theme` sorts after `astryx-theme`, so Tailwind's entry
+  // replaced the generated one — and because globals.css declares
+  // `--color-accent: var(--accent)` while tokens.css built `--accent` from
+  // `--color-accent`, the two closed a reference cycle. CSS resolves a cycle by
+  // discarding every property in it, so the brand green stopped existing:
+  // measured across six surfaces, 1,942 borderColor and 1,566 color
+  // declarations changed, the mark rendered black, and `border: 1px solid
+  // color-mix(…var(--primary)…)` lost its whole shorthand — width, style and
+  // colour — taking the onboarding card's border and background with it.
+  //
+  // Nothing in the build says the two namespaces must stay apart, and the
+  // failure is silent in review and in the console. This says it.
+  const generated = new Set([...palette.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+  const globals = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
+  const theme = globals.slice(globals.indexOf('@theme inline'));
+  const declared = new Set([...theme.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+  const shared = [...declared].filter((name) => generated.has(name));
+  assert.deepEqual(
+    shared,
+    [],
+    `${shared.join(', ')} is declared by both the generated palette and @theme, ` +
+      'so whichever layer sorts last silently wins. Rename one side.',
+  );
 });
