@@ -18,8 +18,49 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const file = join(root, 'app/globals.css');
 const css = readFileSync(file, 'utf8');
-// Comments do not style anything, and a hex quoted in prose is not a colour.
-const bare = css.replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length));
+/** Blank out comments, leaving the file's length and line structure intact.
+ *
+ * Not a regex, because `/*` also occurs inside strings: every `@source` glob
+ * ends `dist/*.js`. A regex opener there ran to the next real `*\/` and blanked
+ * 3,393 characters of live CSS — the whole shadcn token block among them — so
+ * this check was silently ignoring part of the file it guards, and its colour
+ * baseline was an undercount of exactly that much. It surfaced when a change
+ * that added one comment moved which region got swallowed, and 13 colours
+ * appeared to spring into existence.
+ *
+ * So strings are tracked, and a `/*` inside one is what it is: two characters
+ * of a filename. */
+function withoutComments(source) {
+  let out = '';
+  let quote = null;
+  for (let i = 0; i < source.length; i += 1) {
+    const c = source[i];
+    if (quote) {
+      out += c;
+      if (c === '\\') {
+        out += source[i + 1] ?? '';
+        i += 1;
+      } else if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      out += c;
+      continue;
+    }
+    if (c === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      // Keep newlines so anything reported by line still lines up.
+      out += source.slice(i, stop).replace(/[^\n]/g, ' ');
+      i = stop - 1;
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+const bare = withoutComments(css);
 
 const colours = new Set([...bare.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase()));
 
@@ -56,7 +97,12 @@ for (const [, preludeRaw, brace] of bare.matchAll(/([^{}]*)([{}])/g)) {
 const repeated = [...seen].filter(([, n]) => n > 1);
 const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
 
-const BASELINE = { colours: 131, repeated: 100, extra: 138 };
+/* 131 until the comment scanner above was fixed. The file never had 131
+ * colours: 13 of them sat in the 3,393 characters this check could not see,
+ * and both the pre-layer and post-layer file measure 144 once it can. Raised
+ * because the measurement was wrong, not because the file grew — the only
+ * reason a ratchet may ever go up. */
+const BASELINE = { colours: 144, repeated: 100, extra: 138 };
 const actual = { colours: colours.size, repeated: repeated.length, extra };
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);
