@@ -126,7 +126,7 @@ export function VoiceInput({
       }
       onClick={start}
     >
-      {listening ? <Square size={17} /> : <Mic size={18} />}
+      {listening ? <Square size={16} /> : <Mic size={20} />}
     </Button>
   );
 }

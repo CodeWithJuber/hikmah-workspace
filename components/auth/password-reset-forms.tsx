@@ -34,7 +34,7 @@ export function ForgotPasswordForm() {
   if (sent)
     return (
       <p className="auth-sent" role="status">
-        <MailCheck size={22} aria-hidden />
+        <MailCheck size={20} aria-hidden />
         If there is an account for <strong>{email}</strong>, a link to set a new password is on its
         way. It can be used once, and expires shortly.
       </p>
@@ -56,13 +56,13 @@ export function ForgotPasswordForm() {
         <button type="submit" disabled={busy}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={18} />
+              <LoaderCircle className="spin" size={20} />
               Sending…
             </>
           ) : (
             <>
               Send the link
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </>
           )}
         </button>
@@ -136,13 +136,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
         <button type="submit" disabled={busy}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={18} />
+              <LoaderCircle className="spin" size={20} />
               Saving…
             </>
           ) : (
             <>
               Set the password
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </>
           )}
         </button>

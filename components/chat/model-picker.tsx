@@ -114,7 +114,7 @@ export function ModelPicker({
         title={selected ? priceLine(selected, local) || selected.id : value}
       >
         <span>{selected?.label ?? value ?? 'Choose a model'}</span>
-        <ChevronDown size={14} aria-hidden="true" />
+        <ChevronDown size={16} aria-hidden="true" />
       </Button>
       <CommandDialog
         open={open}
@@ -193,7 +193,7 @@ export function ModelPicker({
                       <span className="model-row-name" dir="auto">
                         {model.label}
                       </span>
-                      {model.id === value && <Check size={15} aria-label="Current" />}
+                      {model.id === value && <Check size={16} aria-label="Current" />}
                     </span>
                     {model.label !== model.id && <span className="model-row-id">{model.id}</span>}
                     <span className="model-row-meta">
@@ -207,17 +207,17 @@ export function ModelPicker({
                       )}
                       {model.tools && (
                         <span className="model-chip">
-                          <Wrench size={11} aria-hidden="true" /> tools
+                          <Wrench size={12} aria-hidden="true" /> tools
                         </span>
                       )}
                       {model.reasoning && (
                         <span className="model-chip">
-                          <BrainCircuit size={11} aria-hidden="true" /> reasoning
+                          <BrainCircuit size={12} aria-hidden="true" /> reasoning
                         </span>
                       )}
                       {model.vision && (
                         <span className="model-chip">
-                          <Eye size={11} aria-hidden="true" /> images
+                          <Eye size={12} aria-hidden="true" /> images
                         </span>
                       )}
                     </span>

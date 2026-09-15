@@ -202,7 +202,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Tools & runtimes</strong>
                   <p>Built-in JavaScript, reference search and your server connections.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setWorkspacePage('agents')}>
                 <Workflow size={24} />
@@ -210,7 +210,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Your agents</strong>
                   <p>Create reusable roles, instructions and tool permissions.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setWorkspacePage('superadmin')}>
                 <BrainCircuit size={24} />
@@ -218,7 +218,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Owner console · Super Admin</strong>
                   <p>Owner controls, reviewed learning and model releases.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setTab('providers')}>
                 <Settings2 size={24} />
@@ -226,7 +226,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Models & connection</strong>
                   <p>{provider.model || 'Choose a model to start'}</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setTab('media')}>
                 <ImageIcon size={24} />
@@ -234,7 +234,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Images, audio & video</strong>
                   <p>Set a model for each media operation.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setTab('connectors')}>
                 <Plug size={24} />
@@ -242,7 +242,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Connected tools</strong>
                   <p>Add an HTTP MCP server with its own credentials.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
               <button onClick={() => setTab('skills')}>
                 <BrainCircuit size={24} />
@@ -250,7 +250,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                   <strong>Agent skills</strong>
                   <p>Reusable instructions for the work you do.</p>
                 </div>
-                <ArrowRight size={19} />
+                <ArrowRight size={20} />
               </button>
             </div>
             <section className="admin-launch-note">
@@ -330,7 +330,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                       disabled={!!busy}
                       onClick={() => void loadCatalog(item.kind)}
                     >
-                      {busy === item.kind ? <LoaderCircle size={15} className="spin" /> : null}Load
+                      {busy === item.kind ? <LoaderCircle size={16} className="spin" /> : null}Load
                       models
                     </Button>
                   </div>
@@ -422,7 +422,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             </div>
             {!workspace.connectors.length && (
               <div className="admin-empty">
-                <Plug size={30} />
+                <Plug size={32} />
                 <h4>Connect your first tool server</h4>
                 <p>Use a server endpoint provided by your service or your own hosted adapter.</p>
               </div>
@@ -471,9 +471,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     }}
                   >
                     {busy === c.id ? (
-                      <LoaderCircle className="spin" size={15} />
+                      <LoaderCircle className="spin" size={16} />
                     ) : (
-                      <Plug size={15} />
+                      <Plug size={16} />
                     )}
                     Connect & discover
                   </Button>
@@ -517,7 +517,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 target="_blank"
                 rel="noreferrer"
               >
-                MCP connection documentation <ExternalLink size={13} />
+                MCP connection documentation <ExternalLink size={12} />
               </a>
             </div>
           </TabsContent>
@@ -551,7 +551,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             <div className="skill-list">
               {workspace.skills.map((s) => (
                 <section className="skill-row" key={s.id}>
-                  <BrainCircuit size={22} />
+                  <BrainCircuit size={20} />
                   <div>
                     <h4>{s.name}</h4>
                     <p>{s.description}</p>
@@ -575,7 +575,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     aria-label={'Delete skill ' + s.name}
                     onClick={() => setRemove({ kind: 'skill', id: s.id })}
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={16} />
                   </Button>
                 </section>
               ))}

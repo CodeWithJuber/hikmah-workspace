@@ -16,7 +16,12 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { allStyles, styleFiles } from './stylesheet.mjs';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Comments are prose about CSS, not CSS. Left in, `!important` in a sentence
  * explaining why one was removed would count as one. */
@@ -157,4 +162,29 @@ test('the three properties that cost a composite on every frame', () => {
   // row. A hover cannot fire on the phone this app is slowest on, and never
   // fires while an answer streams, so these are the cheap kind.
   atMost(uses('filter').length, 3, 'filter declarations', uses('filter').join(', '));
+});
+
+test('icons come from one scale', () => {
+  // Twenty distinct sizes across 245 lucide `size={n}` uses, including a 19
+  // that existed only to be one pixel off a 20, and a 17 one pixel off a 16.
+  // Nobody chose twenty sizes; twenty people chose one each.
+  //
+  // Six steps: 12/16/20/24 for anything inside a control, and 32/48 for the
+  // display marks on an empty state or a page header, which are pictures rather
+  // than affordances and do not belong on the same scale as a chevron.
+  const SCALE = new Set([12, 16, 20, 24, 32, 48]);
+  const off = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      // Vendored, and replaced wholesale by their installers.
+      if (full.endsWith('components/ui') || full.endsWith('components/ai-elements')) continue;
+      if (statSync(full).isDirectory()) walk(full);
+      else if (full.endsWith('.tsx'))
+        for (const [, size] of readFileSync(full, 'utf8').matchAll(/size=\{(\d+)\}/g))
+          if (!SCALE.has(Number(size))) off.push(`${relative(root, full)} size={${size}}`);
+    }
+  };
+  for (const dir of ['app', 'components']) walk(join(root, dir));
+  assert.deepEqual(off, [], 'icon sizes outside the scale');
 });

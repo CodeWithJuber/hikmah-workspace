@@ -98,14 +98,14 @@ function StagedAttachments() {
     <ul className="chat-attachments">
       {attachments.files.map((file) => (
         <li key={file.id}>
-          <Paperclip size={13} aria-hidden="true" />
+          <Paperclip size={12} aria-hidden="true" />
           <span>{file.filename || file.mediaType || 'Attachment'}</span>
           <button
             type="button"
             aria-label={`Remove ${file.filename || 'attachment'}`}
             onClick={() => attachments.remove(file.id)}
           >
-            <X size={13} />
+            <X size={12} />
           </button>
         </li>
       ))}

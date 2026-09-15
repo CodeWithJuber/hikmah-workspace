@@ -25,7 +25,7 @@ export function GoogleButton({ label }: { label: string }) {
         }}
       >
         {busy ? (
-          <LoaderCircle className="spin" size={18} aria-hidden />
+          <LoaderCircle className="spin" size={20} aria-hidden />
         ) : (
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden focusable="false">
             <path

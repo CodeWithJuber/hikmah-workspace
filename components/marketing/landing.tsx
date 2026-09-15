@@ -101,7 +101,7 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
       </a>
       <header className="landing-bar">
         <span className="landing-logo">
-          <HikmahIcon name="orbit" size={28} />
+          <HikmahIcon name="orbit" size={32} />
           Hikmah
         </span>
         <nav>
@@ -124,7 +124,7 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
         <div className="landing-cta">
           <Link href={start} className="landing-primary">
             {config.signUpOpen ? 'Start free' : 'Sign in'}
-            <ArrowRight size={18} aria-hidden />
+            <ArrowRight size={20} aria-hidden />
           </Link>
           <a href="#pricing" className="landing-secondary">
             See the plans
@@ -186,7 +186,7 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
               <ul>
                 {plan.features.map((feature) => (
                   <li key={feature}>
-                    <Check size={15} aria-hidden />
+                    <Check size={16} aria-hidden />
                     {feature}
                   </li>
                 ))}

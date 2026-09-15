@@ -69,10 +69,10 @@ export function VitalsPanel() {
   return (
     <section className="vitals-panel">
       <h3>
-        <Activity size={18} aria-hidden="true" />
+        <Activity size={20} aria-hidden="true" />
         How the site performed
         <Button variant="ghost" size="sm" onClick={reload} aria-label="Reload">
-          <RefreshCw size={14} aria-hidden="true" />
+          <RefreshCw size={16} aria-hidden="true" />
         </Button>
       </h3>
       {state.kind === 'loading' && <p className="small-note">Reading the last seven days…</p>}

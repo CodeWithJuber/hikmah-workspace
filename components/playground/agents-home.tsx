@@ -47,7 +47,7 @@ export function AgentsHome() {
             chat to apply it to the next message; the model stays yours unless the agent names one.
           </p>
           <button className="text-link" onClick={() => setWorkspacePage('tools')}>
-            Explore tools &amp; runtimes <ArrowUpRight size={15} />
+            Explore tools &amp; runtimes <ArrowUpRight size={16} />
           </button>
         </section>
         {/* No picker here: this screen manages agents, and there is no

@@ -362,7 +362,7 @@ export function ChatPreview({
           onGrant={onGrant}
           empty={
             <div className="chat-greeting">
-              <HikmahIcon name="orbit" size={34} />
+              <HikmahIcon name="orbit" size={32} />
               <h2>What are we working on?</h2>
             </div>
           }

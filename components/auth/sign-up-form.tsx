@@ -52,7 +52,7 @@ export function SignUpForm({ config }: { config: PublicAuthConfig }) {
   if (sent)
     return (
       <p className="auth-sent" role="status">
-        <MailCheck size={22} aria-hidden />
+        <MailCheck size={20} aria-hidden />
         Check <strong>{email}</strong> for a link to confirm the address. You can close this page —
         the link opens your workspace.
       </p>
@@ -107,13 +107,13 @@ export function SignUpForm({ config }: { config: PublicAuthConfig }) {
         <button type="submit" disabled={busy}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={18} />
+              <LoaderCircle className="spin" size={20} />
               Creating your workspace…
             </>
           ) : (
             <>
               Create your workspace
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </>
           )}
         </button>

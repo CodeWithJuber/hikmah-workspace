@@ -71,7 +71,7 @@ export const MessageContent = memo(function MessageContent({
             className="code-host-save"
             onClick={() => onSave?.(language, source)}
           >
-            <FileCode2 size={14} />
+            <FileCode2 size={16} />
             Save to workspace
           </Button>
         </div>

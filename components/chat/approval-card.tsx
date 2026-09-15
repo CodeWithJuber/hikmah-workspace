@@ -128,7 +128,7 @@ export function ApprovalCard({
   return (
     <section className="chat-approval" role="group" aria-labelledby={heading}>
       <header className="chat-approval-head">
-        <ShieldQuestion size={18} aria-hidden="true" />
+        <ShieldQuestion size={20} aria-hidden="true" />
         <span id={heading}>
           {title}
           {where && <span className="chat-approval-source"> {where}</span>}
@@ -158,7 +158,7 @@ export function ApprovalCard({
               <Button type="button" variant="outline" disabled={!id || sent}>
                 <ShieldCheck size={16} aria-hidden="true" />
                 Always allow
-                <ChevronDown size={14} aria-hidden="true" />
+                <ChevronDown size={16} aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="chat-approval-menu">

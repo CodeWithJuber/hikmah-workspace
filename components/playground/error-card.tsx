@@ -48,18 +48,18 @@ export function ErrorCard({
         <div className="error-actions">
           {onSettings && (
             <Button variant="ghost" onClick={onSettings}>
-              <Settings2 size={14} />
+              <Settings2 size={16} />
               Connection settings
             </Button>
           )}
           {onRetry && (
             <Button variant="ghost" disabled={disabled} onClick={onRetry}>
-              <RefreshCw size={14} />
+              <RefreshCw size={16} />
               Retry
             </Button>
           )}
           <Button variant="ghost" onClick={() => void copyText(JSON.stringify(error, null, 2))}>
-            <Copy size={14} />
+            <Copy size={16} />
             Copy diagnostic
           </Button>
         </div>

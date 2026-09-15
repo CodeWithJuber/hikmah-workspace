@@ -43,7 +43,7 @@ export function LegalShell({ title, children }: { title: string; children: React
       </a>
       <header className="landing-bar">
         <Link href="/" className="landing-logo">
-          <HikmahIcon name="orbit" size={28} />
+          <HikmahIcon name="orbit" size={32} />
           Hikmah
         </Link>
         <nav>

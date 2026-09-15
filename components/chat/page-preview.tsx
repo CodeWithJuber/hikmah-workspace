@@ -118,7 +118,7 @@ export function PagePreview({
           {logs.length > 0 && <span className="page-preview-count">{logs.length}</span>}
         </button>
         <button type="button" aria-label="Close preview" onClick={onClose}>
-          <X size={18} aria-hidden="true" />
+          <X size={20} aria-hidden="true" />
         </button>
       </header>
       <div className={'page-preview-stage' + (width === 'phone' ? ' is-phone' : '')}>

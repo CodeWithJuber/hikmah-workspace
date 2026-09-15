@@ -12,7 +12,7 @@ import { ArrowRight, KeyRound } from 'lucide-react';
 export function ConnectModelCard({ onOpenSettings }: { onOpenSettings: () => void }) {
   return (
     <section className="chat-connect" aria-labelledby="chat-connect-title">
-      <KeyRound size={22} aria-hidden="true" />
+      <KeyRound size={20} aria-hidden="true" />
       <h3 id="chat-connect-title">Connect a model to start</h3>
       <p>
         Hikmah talks to models with a key of your own, and none is saved yet. It takes about a

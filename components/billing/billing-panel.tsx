@@ -97,7 +97,7 @@ export function BillingPanel() {
   if (!data)
     return (
       <p className="billing-loading" aria-busy="true">
-        <LoaderCircle className="spin" size={18} aria-hidden />
+        <LoaderCircle className="spin" size={20} aria-hidden />
         Loading your plan…
       </p>
     );
@@ -181,7 +181,7 @@ export function BillingPanel() {
               <ul>
                 {plan.features.map((feature) => (
                   <li key={feature}>
-                    <Check size={15} aria-hidden />
+                    <Check size={16} aria-hidden />
                     {feature}
                   </li>
                 ))}

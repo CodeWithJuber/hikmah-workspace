@@ -99,9 +99,9 @@ function RememberAction({
       }}
     >
       {state === 'saved' || state === 'suggested' ? (
-        <BookmarkCheck size={15} />
+        <BookmarkCheck size={16} />
       ) : (
-        <Bookmark size={15} />
+        <Bookmark size={16} />
       )}
     </MessageAction>
   );
@@ -202,9 +202,9 @@ function TaskPlan({ steps }: { steps: PlanStep[] }) {
         {steps.map((entry, index) => (
           <li key={index} className={'chat-plan-' + entry.status}>
             {entry.status === 'completed' ? (
-              <Check size={15} aria-hidden="true" />
+              <Check size={16} aria-hidden="true" />
             ) : entry.status === 'in_progress' ? (
-              <LoaderCircle size={15} className="spin" aria-hidden="true" />
+              <LoaderCircle size={16} className="spin" aria-hidden="true" />
             ) : (
               <span className="chat-plan-number">{index + 1}</span>
             )}
@@ -321,9 +321,9 @@ function ResearchCard({ view }: { view: ResearchView }) {
           {lanes.map((lane, index) => (
             <li key={index} className={'chat-research-' + lane.status}>
               {lane.status === 'running' ? (
-                <LoaderCircle size={15} className="spin" aria-hidden="true" />
+                <LoaderCircle size={16} className="spin" aria-hidden="true" />
               ) : lane.status === 'done' ? (
-                <Check size={15} aria-hidden="true" />
+                <Check size={16} aria-hidden="true" />
               ) : (
                 <span className="chat-plan-number">{index + 1}</span>
               )}
@@ -723,7 +723,7 @@ function MessagePartsInner({
                 onClick={() => void copyMessage(message)}
                 disabled={!messageText(message)}
               >
-                <Copy size={15} />
+                <Copy size={16} />
               </MessageAction>
               {/* Reads the text parts only, so the tool receipts and reasoning
                   between them are not spoken. Silent about code, which the
@@ -735,7 +735,7 @@ function MessagePartsInner({
                   tooltip="Answer again, replacing everything after this"
                   onClick={() => onRegenerateMessage?.(message.id)}
                 >
-                  <RefreshCw size={15} />
+                  <RefreshCw size={16} />
                 </MessageAction>
               )}
             </MessageActions>
@@ -756,7 +756,7 @@ function MessagePartsInner({
               tooltip="Edit and ask again, replacing everything after this"
               onClick={() => onEditMessage?.(message)}
             >
-              <Pencil size={15} />
+              <Pencil size={16} />
             </MessageAction>
           )}
         </div>

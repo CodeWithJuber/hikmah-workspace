@@ -156,12 +156,12 @@ export function ContextGraphView({ graph }: { graph: ContextGraph }) {
                 {e.actor.map(label).join(', ') || 'Who?'}
                 <small>actor candidate</small>
               </span>
-              <ArrowRight size={17} />
+              <ArrowRight size={16} />
               <strong>
                 {e.surface}
                 <small>{e.predicate}</small>
               </strong>
-              <ArrowRight size={17} />
+              <ArrowRight size={16} />
               <span>
                 {e.patient.map(label).join(', ') || 'What / whom?'}
                 <small>object candidate</small>
@@ -547,7 +547,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
           </p>
         </div>
         <div className="context-architecture-badge">
-          <Network size={25} />
+          <Network size={24} />
           <span>
             Sparse factors
             <br />
@@ -581,7 +581,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
             disabled={busy}
             onClick={() => setTab(String(id))}
           >
-            {typeof Icon !== 'string' && <Icon size={17} />}
+            {typeof Icon !== 'string' && <Icon size={16} />}
             <span>{String(label)}</span>
           </button>
         ))}
@@ -780,7 +780,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                   disabled={busy}
                   onChange={(event) => void addFile(event.target.files?.[0])}
                 />
-                <Upload size={15} aria-hidden="true" />
+                <Upload size={16} aria-hidden="true" />
                 Add a file
               </label>
               {/* Every chat is parsed already to build its context notes, and
@@ -794,7 +794,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                 disabled={busy || !waiting[trainLanguage]}
                 onClick={() => void loadFromChats()}
               >
-                <Sparkles size={15} aria-hidden="true" />
+                <Sparkles size={16} aria-hidden="true" />
                 {waiting[trainLanguage]
                   ? `From your chats (${waiting[trainLanguage]})`
                   : 'Nothing from your chats yet'}
@@ -918,7 +918,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                     }
                   }}
                 >
-                  <RotateCcw size={15} />
+                  <RotateCcw size={16} />
                   Restore released
                 </Button>
               </div>
@@ -950,7 +950,7 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
                           .catch((e) => setError(e.message))
                       }
                     >
-                      <Download size={15} />
+                      <Download size={16} />
                       Export
                     </Button>
                     {v.receipt.approved && (
@@ -1034,30 +1034,30 @@ export function ContextStudio({ initialTab = 'understand' }: { initialTab?: stri
             </p>
             <div className="research-link-grid">
               <a href="/research/v6/research.md" target="_blank" rel="noreferrer">
-                Full architecture, mathematics & findings <ArrowRight size={15} />
+                Full architecture, mathematics & findings <ArrowRight size={16} />
               </a>
               <a
                 href="/research/v6/quran-context-and-language-report.md"
                 target="_blank"
                 rel="noreferrer"
               >
-                Quran context research <ArrowRight size={15} />
+                Quran context research <ArrowRight size={16} />
               </a>
               <a href="/research/v6/quran-original-audit.json" target="_blank" rel="noreferrer">
-                Original corpus integrity audit <ArrowRight size={15} />
+                Original corpus integrity audit <ArrowRight size={16} />
               </a>
               <a
                 href="/research/v6/root-context-seed-contrasts.json"
                 target="_blank"
                 rel="noreferrer"
               >
-                Root and contextual sense contrasts <ArrowRight size={15} />
+                Root and contextual sense contrasts <ArrowRight size={16} />
               </a>
               <a href="/research/v6/root-context-experiments.json" target="_blank" rel="noreferrer">
-                Falsification & ablation protocol <ArrowRight size={15} />
+                Falsification & ablation protocol <ArrowRight size={16} />
               </a>
               <a href="/research/v6/source-notices/README.md" target="_blank" rel="noreferrer">
-                Data provenance & licenses <ArrowRight size={15} />
+                Data provenance & licenses <ArrowRight size={16} />
               </a>
             </div>
           </section>
