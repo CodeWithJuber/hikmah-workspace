@@ -203,6 +203,12 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *   -> 106    the nine remaining :root blocks collapsed into app/styles/tokens.css
  *             and re-pointed at the generated palette, which is where the last
  *             hand-picked greys and the leftover blue accent lived
+ *   -> 98     the auth surface was written in literals and was light-only: its page,
+ *             its card and its button kept a white background while their text took
+ *             --foreground, which in dark mode is #dae5df at 1.29:1 on white. Every
+ *             literal in it is a token now, each one the token whose LIGHT value it
+ *             already was, so light mode did not move and dark mode works for the
+ *             first time. Found by axe-core, not by reading.
  *
  * paletteColours went 87 -> 88 in that same change, and only because three
  * surface colours moved from derived to pinned in design/hikmah-theme.ts: the
@@ -212,7 +218,7 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 106, repeated: 93, extra: 131, paletteColours: 88 };
+const BASELINE = { colours: 98, repeated: 93, extra: 131, paletteColours: 88 };
 const actual = {
   colours: colours.size,
   repeated: repeated.length,

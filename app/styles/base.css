@@ -350,9 +350,53 @@
     gap: 10px;
     font-size: 14px;
     padding: 5px 0;
+    /* For the ::after that grows its target to 24px; see below. */
+    position: relative;
   }
   .check-row [data-slot='checkbox'] {
     flex-shrink: 0;
+  }
+
+  /* Targets grown to 24px without moving anything.
+   *
+   * WCAG 2.2's 2.5.8 asks that a target fit a 24x24 circle. Measured across all
+   * twenty-four workspace screens and the seven public ones, at 390px and
+   * 1280px, three patterns miss it: a label wrapping a bare checkbox at 20px
+   * (twenty-four of them, on Tools and Connections), a shadcn Switch at 32x18
+   * (twenty), and the sidebar's "Sign out" at 35x16. Two to eight pixels short,
+   * each of them a thing people tap on purpose.
+   *
+   * Grown with an ::after overlay rather than with height or padding: the
+   * overlay is the hit area, so the target reaches 24px and not one visible
+   * pixel moves. Taller elements would push every settings row apart, which is
+   * a redesign of those screens rather than a fix to their targets — and they
+   * are dense on purpose.
+   *
+   * A <summary> at 22px is left alone deliberately. Those are 312px and 940px
+   * wide with nothing within 24px above or below, so they meet 2.5.8 by its
+   * spacing exception, and an overlay across a 940px row would sit on top of
+   * whatever the disclosure's header contains.
+   *
+   * The first sweep also reported seventy 13x13 checkboxes. That was the
+   * harness measuring the <input> rather than the <label> around it: clicking
+   * the label toggles the box, so the label is the target. Those seventy needed
+   * nothing, and changing them would have been seventy edits to no defect. */
+  label:has(input[type='checkbox']),
+  [data-slot='switch'] {
+    position: relative;
+  }
+  .check-row::after,
+  label:has(input[type='checkbox'])::after,
+  .release-label a::after,
+  [data-slot='switch']::after {
+    content: '';
+    position: absolute;
+    /* Half of 24 either side of the middle: exactly 24px tall whatever the
+     * element's own height, and never shorter than it. */
+    inset-block: 50%;
+    inset-inline: 0;
+    margin-block: -12px;
+    min-height: 24px;
   }
   .train-input {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -1669,5 +1713,38 @@
     .thinking-indicator span {
       animation: none !important;
     }
+  }
+}
+
+/* The one place this repo writes a utility of its own, and why.
+ *
+ * shadcn's TabsTrigger carries `text-foreground/60` — the page's ink at 60%
+ * alpha. Over the tab strip that computes to #6e7371 on #f3f4f4, which is
+ * 4.37:1: under the 4.5 WCAG asks of body text, found by axe-core on 28 of the
+ * 116 screen/width/theme combinations it scanned.
+ *
+ * The active state was wrong too, and silently. `[data-slot='tabs-trigger']
+ * [data-state='active'] { color: var(--primary) }` has sat in this file for
+ * some time doing nothing: it is in `@layer components`, Tailwind emits
+ * utilities in `@layer utilities`, and a later layer beats an earlier one
+ * whatever the specificity. So the selected tab rendered in #151D19, the same
+ * near-black as the page, instead of the brand green — measured in the browser,
+ * not read off the file.
+ *
+ * Both need to beat a utility, and only three things can: `!important` (a count
+ * this repo is driving to zero), editing the vendored component (replaced
+ * wholesale by its installer), or a rule in the same layer, later. This is the
+ * third. It is at the top level of the file rather than inside the
+ * `@layer components` wrapper above, because a nested `@layer utilities` would
+ * be `components.utilities` and lose to the real one. */
+@layer utilities {
+  [data-slot='tabs-trigger'] {
+    color: var(--muted-foreground);
+  }
+  [data-slot='tabs-trigger']:hover {
+    color: var(--foreground);
+  }
+  [data-slot='tabs-trigger'][data-state='active'] {
+    color: var(--primary);
   }
 }

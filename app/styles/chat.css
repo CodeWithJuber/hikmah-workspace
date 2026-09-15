@@ -1372,6 +1372,20 @@
     color: var(--primary);
     text-decoration: underline;
   }
+  /* Outside the buttons, not inside one. See connect-model.tsx. */
+  .chat-connect-note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .chat-connect-note a {
+    color: var(--primary);
+    /* Underlined, because it sits in a sentence: a link told apart from its
+     * surrounding prose by colour alone is 1.22:1 against it here, and WCAG
+     * asks for 3:1 or a second cue. */
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   .chat-settings-account p {
     font-size: 13px;
   }
@@ -1555,6 +1569,13 @@
     margin-top: 14px;
     font-size: 13px;
     color: var(--muted-foreground);
+  }
+  /* The green on the grey around it is 1.22:1 — a link nobody who cannot see
+   * the difference in hue can find. WCAG 1.4.1 wants 3:1 against the
+   * surrounding text or a cue that is not colour; this is the cue. */
+  .destination-note a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   /* The per-turn switches on the composer row: Search and Research. A pill that
    shows its own state, because a checkbox inside a menu cannot. */

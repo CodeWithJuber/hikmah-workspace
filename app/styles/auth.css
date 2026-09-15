@@ -16,7 +16,7 @@
     font-size: 10px;
     letter-spacing: 1.4px;
     font-weight: 600;
-    color: #567265;
+    color: var(--muted-foreground);
     margin-bottom: 12px;
   }
   .auth-card h1 {
@@ -30,7 +30,7 @@
     font-size: 14px;
     /* Was #718078: 4.15:1 on the card, under the 4.5 a 14px text needs. The
      landing page's own soft ink reads 5.9:1 and is already in this file. */
-    color: #55695f;
+    color: var(--muted-foreground);
     line-height: 1.7;
     margin-bottom: 28px;
   }
@@ -45,24 +45,28 @@
   }
   .auth-card input {
     height: 44px;
-    border: 1px solid #dee5e0;
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 0 14px;
-    background: #fff;
+    background: var(--background);
     margin-bottom: 8px;
     outline: none;
   }
   .auth-card input:focus {
-    border-color: #35765b;
-    box-shadow: 0 0 0 3px #35765b15;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 15%, transparent);
   }
   .auth-card button {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: #285d46;
-    color: white;
+    background: var(--primary);
+    /* --primary-foreground, not white. The dark accent is a LIGHT green, so a
+     * white label on it is 1.77:1 — the label on the one button this page
+     * exists to have pressed. The token is the colour that belongs on the fill
+     * in whichever mode it is. */
+    color: var(--primary-foreground);
     border-radius: 10px;
     min-height: 44px;
     margin-top: 12px;
@@ -75,25 +79,25 @@
     cursor: wait;
   }
   .auth-error {
-    color: #a43b34;
+    color: var(--error-text);
     font-size: 13px;
   }
   .auth-note {
     font-size: 12px;
-    color: #55695f;
+    color: var(--muted-foreground);
     text-align: center;
     line-height: 1.6;
     margin-top: 22px;
   }
   .auth-card footer {
     margin-top: 32px;
-    border-top: 1px solid #e8f2ec;
+    border-top: 1px solid var(--accent);
     padding-top: 16px;
     display: flex;
     justify-content: space-between;
     /* 10px at 2.7:1 was neither legible nor passing. */
     font-size: 11px;
-    color: #567265;
+    color: var(--muted-foreground);
   }
   .auth-back {
     display: block;
@@ -111,13 +115,13 @@
   /* Google, above the password form. Outlined rather than filled: the primary
    action in this card is the one that submits it. */
   .auth-social {
-    background: #fff !important;
-    color: #20352e !important;
-    border: 1px solid #d6ded7;
+    background: var(--card) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--input);
     font-weight: 500;
   }
   .auth-social:hover {
-    background: #f4f7f5 !important;
+    background: var(--muted) !important;
   }
   .auth-divider {
     display: flex;
@@ -125,18 +129,18 @@
     gap: 12px;
     margin: 18px 0 4px;
     font-size: 11px;
-    color: #567265;
+    color: var(--muted-foreground);
   }
   .auth-divider::before,
   .auth-divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: #e8f2ec;
+    background: var(--accent);
   }
   .auth-hint {
     font-size: 12px;
-    color: #55695f;
+    color: var(--muted-foreground);
     margin-top: -4px;
   }
   .auth-links {
@@ -147,7 +151,7 @@
     text-align: center;
     margin-top: 22px;
     font-size: 13px;
-    color: #567265;
+    color: var(--muted-foreground);
     line-height: 1.6;
   }
   .auth-links a,
@@ -171,9 +175,9 @@
     text-align: center;
     font-size: 14px;
     line-height: 1.65;
-    color: #37544a;
-    background: #f4f7f5;
-    border: 1px solid #dee5e0;
+    color: var(--foreground);
+    background: var(--muted);
+    border: 1px solid var(--border);
     border-radius: 14px;
     padding: 22px 20px;
   }

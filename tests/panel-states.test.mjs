@@ -114,3 +114,43 @@ test('hovering still brings the action to full strength', () => {
     );
   }
 });
+
+/* The same defect, in the hook two screens share.
+ *
+ * hooks/use-memory.ts had two ways of turning a failure into "you have no
+ * memories": the catch set `[]`, and — the quieter one — a response that was
+ * not ok became `null`, whose `?.memories ?? []` is also `[]`. So a 500, an
+ * expired session and a dropped connection all rendered as "Nothing saved yet.
+ * Write something above", to someone who may have written a hundred things.
+ *
+ * It is a hook rather than a panel, so the shape differs: the failure flag
+ * lives beside the rows in the hook and the sentence lives in the panel. What
+ * is asserted is the same thing in both places. */
+test('a memory load that failed does not read as an empty memory', () => {
+  const hook = read('hooks/use-memory.ts');
+  assert.doesNotMatch(
+    hook,
+    /catch\([^)]*\)\s*=>\s*\{?\s*if \(live\) setMemories\(\[\]\)/,
+    'use-memory still turns a failed request into an empty list',
+  );
+  // The not-ok path has to throw rather than resolve to null, or the catch
+  // above never runs and `payload?.memories ?? []` does the same damage
+  // quietly.
+  assert.match(
+    hook,
+    /if \(!response\.ok\) throw new Error/,
+    'a non-ok response still resolves to null, which reads as no memories',
+  );
+  assert.match(hook, /const \[failed, setFailed\] = useState\(false\)/);
+  // And `loading` must end on a failure, or the panel spins for ever.
+  assert.match(hook, /loading: memories === null && !failed/);
+
+  const panel = read('components/chat/memory-panel.tsx');
+  assert.match(panel, /Couldn&rsquo;t load/, 'the panel never says the load failed');
+  assert.match(panel, /Try again/, 'the panel reports a failure with no way out of it');
+  // Before the empty state, or the empty state wins and the lie comes back.
+  const failedAt = panel.indexOf('failed ?');
+  const emptyAt = panel.indexOf('Nothing saved yet');
+  assert.ok(failedAt > -1, 'the panel does not branch on the failure at all');
+  assert.ok(failedAt < emptyAt, 'the panel renders its empty state before checking for a failure');
+});

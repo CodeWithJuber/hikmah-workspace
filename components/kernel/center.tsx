@@ -412,7 +412,10 @@ export function KernelCenter({
               Beta counts are replayed from the latest 500 recorded runs. Changing a rating replaces
               its previous contribution. Preference is not factual accuracy.
             </p>
-            <div className="kernel-table-wrap">
+            {/* tabIndex and a role, because it scrolls: a region that overflows and
+                cannot be focused is one a keyboard user cannot scroll at all.
+                Named so a screen reader says what it landed in. */}
+            <div className="kernel-table-wrap" tabIndex={0} role="region" aria-label="Table">
               <table>
                 <thead>
                   <tr>
@@ -501,7 +504,7 @@ export function KernelCenter({
               No runs yet. Complete a chat to record your first run.
             </div>
           ) : (
-            <div className="kernel-table-wrap">
+            <div className="kernel-table-wrap" tabIndex={0} role="region" aria-label="Table">
               <table>
                 <thead>
                   <tr>

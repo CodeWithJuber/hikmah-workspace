@@ -59,7 +59,7 @@ export function VitalsPanel() {
         if (live) setState({ kind: 'ready', rows: body.vitals ?? [] });
       })
       .catch(() => {
-        if (live) setState({ kind: 'error', message: 'Could not load the last seven days.' });
+        if (live) setState({ kind: 'error', message: 'Couldn\u2019t load the last seven days.' });
       });
     return () => {
       live = false;
@@ -80,7 +80,7 @@ export function VitalsPanel() {
         <p className="small-note" role="status">
           {state.message}{' '}
           <button type="button" onClick={reload}>
-            Retry
+            Try again
           </button>
         </p>
       )}
