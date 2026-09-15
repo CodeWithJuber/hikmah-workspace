@@ -14,6 +14,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { commandEnvironment } from './env.ts';
 
 /** Inline output cap, matching the SSH path so the model sees one rule. */
 export const MAX_INLINE_OUTPUT = 30_000;
@@ -115,9 +116,15 @@ export async function runCommand(
   const timeoutMs = Math.min(options.timeoutMs ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
   const script = `${command}\n__status=$?\nprintf '\\n${CWD_MARKER}%s\\n' "$PWD"\nexit $__status`;
 
+  // The allowlist, not `process.env`. This used to spread the whole
+  // environment, so `HIKMAH_WORKBENCH_TOKEN` — the workbench's entire
+  // authentication — was readable by every command it authorised, and `env` was
+  // on the app's auto-approved list so reading it needed nobody's say-so. The
+  // interactive terminal has always filtered this; only the assistant's path
+  // did not.
   const child = spawnProcess('bash', ['-lc', script], {
     cwd: session.cwd,
-    env: { ...process.env, TERM: 'dumb' },
+    env: commandEnvironment(process.env),
   }) as ChildProcessWithoutNullStreams;
 
   const stdout: string[] = [];

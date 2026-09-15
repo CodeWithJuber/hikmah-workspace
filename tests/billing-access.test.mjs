@@ -27,8 +27,7 @@ await build({
 });
 const mod = async (n) => import(pathToFileURL(join(dir, n + '.mjs')));
 const { runAccess, refusal } = await mod('access');
-const { entitlementsFor, resolveTier, overCap, periodStart, EXECUTION_TOOLS } =
-  await mod('entitlements');
+const { entitlementsFor, resolveTier, overCap, periodStart } = await mod('entitlements');
 const { createBillingStore } = await mod('store');
 
 test('the deployment key is not handed to someone who did not pay for it', () => {
@@ -70,9 +69,11 @@ test('only the operator may reach a machine', () => {
   assert.equal(entitlementsFor('owner').execution, true);
   assert.equal(entitlementsFor('managed').execution, false);
   assert.equal(entitlementsFor('byok').execution, false);
-  // Named so the run route and this test cannot drift about which tools those
-  // are. The workbench is one shared /workspace volume, which is the reason.
-  assert.deepEqual(EXECUTION_TOOLS, ['bash', 'sandbox_run', 'ssh_exec', 'list_ssh_hosts']);
+  // Which tools that actually means is asserted where it is decided, by
+  // building the real agent: tests/run-execution-gate.test.mjs. There used to be
+  // an EXECUTION_TOOLS list here whose comment said the run route read it — it
+  // never did, and a list that looks like a gate without being one is worse than
+  // no list.
 });
 
 // The two the Pro plan sells, which were sold before they existed.
