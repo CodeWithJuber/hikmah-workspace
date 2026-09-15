@@ -445,7 +445,7 @@
     border-bottom: 2px solid transparent;
     border-radius: 0;
     padding: 0 3px;
-    box-shadow: none !important;
+    box-shadow: none;
     font-size: var(--font-size-base);
   }
   .admin-tabs > [data-slot='tabs-list'] > [data-state='active'] {
@@ -1940,9 +1940,9 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .studio-shell * {
-      scroll-behavior: auto !important;
-      transition: none !important;
-      animation: none !important;
+      scroll-behavior: auto;
+      transition: none;
+      animation: none;
     }
   }
   .pending-dot {
@@ -2786,8 +2786,8 @@
   .co-model-nav {
     margin-top: 8px !important;
     padding: 12px !important;
-    background: transparent !important;
-    border: 0 !important;
+    background: transparent;
+    border: 0;
   }
   .co-model-nav small {
     font-size: 12px !important;
@@ -2871,11 +2871,11 @@
     line-height: 1.6 !important;
   }
   .composer .send-button {
-    border-radius: 14px !important;
+    border-radius: 14px;
     width: 42px !important;
     height: 40px !important;
-    background: var(--primary) !important;
-    color: var(--primary-foreground) !important;
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
   .studio-shell .conversation-content {
     max-width: 940px;
@@ -2964,8 +2964,8 @@
     margin-bottom: 22px;
   }
   .knowledge-search input {
-    border: 0 !important;
-    box-shadow: none !important;
+    border: 0;
+    box-shadow: none;
     font-size: var(--font-size-base);
   }
   .knowledge-search svg {
@@ -3086,7 +3086,7 @@
     max-width: 580px !important;
     max-height: 90vh;
     overflow: auto;
-    border-radius: 20px !important;
+    border-radius: 20px;
   }
   .knowledge-editor label {
     font-size: var(--font-size-base);
@@ -3198,9 +3198,9 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .studio-shell * {
-      transition: none !important;
-      animation: none !important;
-      scroll-behavior: auto !important;
+      transition: none;
+      animation: none;
+      scroll-behavior: auto;
     }
   }
   /* The active tab fills with the brand and says what colour its label is.
@@ -3523,8 +3523,8 @@
     letter-spacing: -0.012em;
   }
   .hikmah-brand {
-    letter-spacing: -1px !important;
-    font-weight: 670 !important;
+    letter-spacing: -1px;
+    font-weight: 670;
     gap: 11px !important;
   }
   .hikmah-brand > svg {
@@ -3537,28 +3537,28 @@
   .studio-shell .primary-nav button,
   .studio-shell .knowledge-nav,
   .workspace-sidebar-footer > button {
-    border-radius: 10px !important;
+    border-radius: 10px;
     transition:
       background 0.15s,
       color 0.15s;
   }
   .studio-shell .primary-nav button.selected,
   .studio-shell .knowledge-nav.selected {
-    background: var(--accent) !important;
-    color: var(--accent-foreground) !important;
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
   .studio-shell .composer {
-    border-radius: 22px !important;
-    border-color: var(--border) !important;
-    box-shadow: 0 3px 25px var(--shadow) !important;
+    border-radius: 22px;
+    border-color: var(--border);
+    box-shadow: 0 3px 25px var(--shadow);
   }
   .studio-shell .send-button {
-    background: var(--primary) !important;
+    background: var(--primary);
     /* Named, not inherited. The literal this replaced was dark in both themes,
        so the glyph never had to say anything; --primary is pale in dark, and
        the inherited near-white measured 1.38:1 on it. */
-    color: var(--primary-foreground) !important;
-    border-radius: 12px !important;
+    color: var(--primary-foreground);
+    border-radius: 12px;
   }
   .studio-shell .welcome > svg {
     color: var(--accent-foreground);
@@ -3568,7 +3568,7 @@
     box-sizing: content-box;
   }
   .studio-shell .starter-prompts button {
-    border-radius: 15px !important;
+    border-radius: 15px;
     background: var(--card);
   }
   .studio-shell .welcome h2 {
@@ -3720,9 +3720,9 @@
     border-top: 1px solid var(--border);
   }
   .sandbox-split textarea {
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
     resize: vertical;
     min-height: 220px;
     font:
@@ -3829,7 +3829,7 @@
    literal pink it used to hardcode, which was invisible against a dark page. */
   .voice-control.active {
     color: var(--destructive);
-    background: color-mix(in oklab, var(--destructive) 14%, transparent) !important;
+    background: color-mix(in oklab, var(--destructive) 14%, transparent);
   }
   /* These ten rules were written with a `.dark ` prefix and this app has never
    put a `dark` class on anything: the theme is `[data-theme='dark']` on the
@@ -3889,8 +3889,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .studio-shell * {
-      scroll-behavior: auto !important;
-      transition: none !important;
+      scroll-behavior: auto;
+      transition: none;
     }
   }
 

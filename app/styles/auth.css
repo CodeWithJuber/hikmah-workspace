@@ -115,13 +115,13 @@
   /* Google, above the password form. Outlined rather than filled: the primary
    action in this card is the one that submits it. */
   .auth-social {
-    background: var(--card) !important;
-    color: var(--foreground) !important;
+    background: var(--card);
+    color: var(--foreground);
     border: 1px solid var(--input);
     font-weight: 500;
   }
   .auth-social:hover {
-    background: var(--muted) !important;
+    background: var(--muted);
   }
   .auth-divider {
     display: flex;
