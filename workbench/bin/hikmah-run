@@ -1,0 +1,31 @@
+#!/bin/bash
+# One command, as one slot user, with bounds it cannot raise.
+#
+#   $1  the working directory
+#   $2  the command
+#
+# Bounds first, applied after the uid has already dropped so they are the slot
+# user's own hard limits:
+#   -t 150  CPU seconds. A busy loop dies here rather than competing with the
+#           app for one of two cores for its whole 120s wall clock. This is the
+#           only per-user CPU bound available without cgroup delegation.
+#   -u 96   processes for this uid, so a fork bomb costs one account its slot
+#           rather than the container's whole pid limit.
+#   -f 2097152  2GB for any single file.
+#   -n 256  open files.
+#   -c 0    no core dumps filling the volume.
+#
+# Deliberately no -v. Not because node cannot start under one — it can, at 1GB —
+# but because a bare `node -e` reserves ~732MB of address space before any user
+# code runs, so the smallest -v that still lets sandbox_run work is larger than
+# this container's whole memory limit. It would never bind. Per-user memory is
+# bounded by the container's mem_limit only; docs/architecture.md says so.
+ulimit -t 150 -u 96 -f 2097152 -n 256 -c 0
+
+# The cd happens HERE, not through spawn's `cwd`, and that is not a style
+# choice. The supervisor holds no CAP_DAC_OVERRIDE, and Node chdir's before it
+# setuid's — so passing a 0700 slot directory as `cwd` fails with EACCES before
+# the drop even happens. The slot user can enter its own directory. It also
+# means a slot cannot be aimed at another slot: the cd simply fails.
+cd "$1" || { echo "hikmah-run: cannot enter $1" >&2; exit 1; }
+exec bash -lc "$2"

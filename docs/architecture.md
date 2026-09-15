@@ -28,7 +28,7 @@ encrypted secret store. The workbench holds no secrets of its own.
 
 ```
 browser ──HTTPS──> caddy ──┬──> app        (session cookie, Better Auth)
-                           └──> workbench  (single-use ticket, /ws/*)
+                           └──> workbench  (single-use ticket, /ws/terminal only)
 
 app ──private network──> workbench         (shared bearer token)
 ```
@@ -46,13 +46,75 @@ The ticket format is implemented twice, in `lib/workbench/ticket.ts` and
 `tests/workbench-ticket.test.mjs` issues with one copy and verifies with the
 other, so drift fails in CI rather than in production.
 
+Caddy publishes exactly one workbench path, `/ws/terminal`. The command API at
+`/runs` and the MCP bridge at `/mcp/*` are reachable only over the compose
+network, which is not published at all. The wide `/ws/*` it used to publish made
+`POST https://<domain>/ws/runs` a route to arbitrary command execution behind
+one shared bearer token.
+
 The workbench deliberately does **not** read `.env`. That file holds the vault
 key and the session secret, and this service hands people a shell. It receives
-only `HIKMAH_WORKBENCH_TOKEN` and `HIKMAH_APP_ORIGIN`, and the shell itself
+only `HIKMAH_WORKBENCH_TOKEN` and `HIKMAH_APP_ORIGIN`, and every process it
+spawns — the terminal, the assistant's commands, and stdio MCP servers —
 inherits an allowlist (`PATH`, `HOME`, `TERM`, locale) rather than whatever the
-process happens to hold. A denylist would have to be updated every time the
+service happens to hold. A denylist would have to be updated every time the
 service gains a variable, and the cost of forgetting once is someone's vault key
 in `env` output.
+
+## Isolation
+
+Each account gets its own Unix user and its own directory inside the workbench.
+`hk01`…`hk32` (uid and gid 3001–3032) are baked into the image; `workbench/src/slots.ts`
+assigns one per account and creates `/workspace/u/<name>` at mode **0700**, owned
+by that uid. The filesystem is the boundary — not a path check and not a policy.
+
+The app never sends a user id. It sends an HMAC of it, keyed by the shared
+workbench token (`lib/workbench/user-key.ts`), so the workbench can keep
+directories apart without learning who anyone is, and knowing an account id is
+not enough to reach that account's files. A request that names no account is
+**refused**; there is deliberately no shared slot to fall back to.
+
+The supervisor runs as uid 0 with `cap_drop: [ALL]` and only `SETUID`, `SETGID`
+and `CHOWN` — enough to become a slot user and to create that user's directory,
+and nothing else. Notably **not** `DAC_OVERRIDE`, so the supervisor cannot read a
+slot user's files either. `no-new-privileges` stays on, so a dropped child can
+never climb back. This is strictly less power than before, when the uid running
+the assistant's commands owned the service's own source.
+
+Every command goes through `/usr/local/bin/hikmah-run`, which applies limits the
+command cannot raise: `ulimit -t 150` (CPU seconds), `-u 96` (processes per
+account), `-f 2GB` (any one file), `-n 256`, `-c 0`. The working directory is an
+_argument_ to that wrapper rather than `spawn`'s `cwd`, because Node `chdir`s
+before it `setuid`s and a supervisor without `DAC_OVERRIDE` cannot enter a 0700
+directory it does not own.
+
+**What this does not give**, stated plainly because a security section that
+overstates itself is worse than none:
+
+- **No separate PID namespace.** That needs `CAP_SYS_ADMIN`, which is not
+  granted. Process _names_ stay visible to other accounts in `ps`; their
+  environments and `/proc/<pid>/environ` do not.
+- **No per-account memory quota.** Only the container's `mem_limit`. A `ulimit -v`
+  low enough to be a meaningful per-account bound is below the floor `node`
+  needs to start at all — it reserves about 732 MB of address space before any
+  user code runs — so it would break `sandbox_run` without ever binding.
+- **No kernel disk quota.** `ulimit -f` bounds any single file; total bytes per
+  account are not enforced by the filesystem.
+- **Execution is still owner-only.** Isolation is what would _let_ that open;
+  whether it should is a product decision, not one a security change makes.
+
+A deployment that predates slots holds the owner's files at the top of the
+volume, owned by the uid the old image used. The first time a slot is assigned
+on such a volume, those files are moved into it and handed to that uid
+(`workbench/src/migrate.ts`). It never deletes, and it writes its marker last, so
+a failure is retried rather than accepted. That the first slot is the owner's
+follows from execution being owner-only; if that ever changes, the migration
+needs an explicit owner key instead.
+
+`scripts/smoke-workbench.sh` proves the kernel-level half against a real
+container: that slot A gets `EACCES` on slot B's files, that a slot user cannot
+write `/workbench/src`, that the supervisor cannot read a slot's files, that the
+wrapper's limits apply and cannot be raised, and that the migration runs once.
 
 ## Runs
 

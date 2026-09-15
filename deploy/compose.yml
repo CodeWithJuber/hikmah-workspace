@@ -24,7 +24,8 @@ services:
       - /app/.next/cache:rw,noexec,nosuid,size=64m,uid=1000,gid=1000
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    mem_limit: 1g
+    cpus: 0.9
+    mem_limit: 1536m
     pids_limit: 256
     logging:
       driver: json-file
@@ -39,6 +40,7 @@ services:
       - source: search_settings
         target: /etc/searxng/hikmah.yml
     # Accessible only on the Compose network; the authenticated app owns requests.
+    cpus: 0.25
     mem_limit: 512m
     pids_limit: 128
     security_opt: [no-new-privileges:true]
@@ -63,10 +65,25 @@ services:
     volumes:
       - ./workbench-data:/workspace
     # Not read_only: the point of this service is a workspace people write to.
+    #
+    # The supervisor runs as root so it can drop to a slot uid before exec, and
+    # holds only the three capabilities that needs. Notably NOT DAC_OVERRIDE, so
+    # it cannot read a slot user's files either — which is what makes uid 0
+    # acceptable here, and is strictly less than before, when the uid running
+    # the assistant's commands owned the service's own source.
+    user: '0:0'
     cap_drop: [ALL]
+    cap_add: [SETUID, SETGID, CHOWN]
     security_opt: [no-new-privileges:true]
-    mem_limit: 512m
-    pids_limit: 256
+    cpus: 0.6
+    mem_limit: 640m
+    # 32 slots x the per-slot `ulimit -u 96` would be 3072; this is the ceiling
+    # that stops one account's fork bomb reaching the others, with the per-slot
+    # limit doing the per-account half.
+    pids_limit: 512
+    # /tmp stops being a shared writable directory between accounts.
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     logging:
       driver: json-file
       options: { max-size: '10m', max-file: '3' }
@@ -90,6 +107,7 @@ services:
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE]
     security_opt: [no-new-privileges:true]
+    cpus: 0.2
     mem_limit: 256m
     logging:
       driver: json-file

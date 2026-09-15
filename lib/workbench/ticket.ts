@@ -39,7 +39,15 @@ export function workbenchToken(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export function issueTicket(
-  payload: { scope: TicketScope; hostId?: string },
+  payload: {
+    scope: TicketScope;
+    hostId?: string;
+    /** Whose terminal this is, as the workbench's opaque name for them
+     * (lib/workbench/user-key.ts). Signed, so the browser cannot choose it, and
+     * required — a ticket that names no account opened a pty in the shared
+     * workspace, which is the inverse of the bug on the model's path. */
+    userKey?: string;
+  },
   secret: string,
   now: number = Date.now(),
 ): string {

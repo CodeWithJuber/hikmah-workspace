@@ -7,6 +7,7 @@
  */
 import pty from '@homebridge/node-pty-prebuilt-multiarch';
 import { shellEnvironment } from './env.ts';
+import type { Slot } from './slots.ts';
 
 /** Output is forwarded to a socket, so a program printing without pause would
  * otherwise fill memory faster than the network drains it. */
@@ -29,19 +30,39 @@ export type TerminalOptions = {
   rows?: number;
   shell?: string;
   env?: NodeJS.ProcessEnv;
+  /** Whose shell this is: the uid to drop to and the directory to stay in.
+   * Absent only in the tests, which have no pool of users to drop to. */
+  slot?: Slot;
   /** Injected by the tests so they do not need a real pty. */
   spawn?: typeof pty.spawn;
 };
 
+/** Where the image installs the login wrapper. See workbench/bin/hikmah-shell. */
+export const SHELL_WRAPPER = '/usr/local/bin/hikmah-shell';
+
 export function createTerminal(options: TerminalOptions): TerminalSession {
   const spawn = options.spawn ?? pty.spawn;
-  const shell = options.shell ?? process.env.SHELL ?? '/bin/bash';
-  const child = spawn(shell, ['-l'], {
+  const slot = options.slot;
+  const environment = shellEnvironment(options.env ?? process.env);
+
+  // The same rule as the assistant's commands (see shell.ts): the directory is
+  // an argument to the wrapper, which cds after the uid has dropped, because
+  // node-pty also chdir's before it setuid's and the supervisor cannot enter a
+  // 0700 slot directory itself.
+  const wrapper = process.env.HIKMAH_SHELL_WRAPPER || SHELL_WRAPPER;
+  const command = slot ? wrapper : (options.shell ?? process.env.SHELL ?? '/bin/bash');
+  const args = slot ? [slot.home] : ['-l'];
+
+  const child = spawn(command, args, {
     name: 'xterm-256color',
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
     cwd: options.cwd,
-    env: shellEnvironment(options.env ?? process.env) as Record<string, string>,
+    env: {
+      ...environment,
+      ...(slot ? { HOME: slot.home, USER: slot.name, LOGNAME: slot.name } : {}),
+    } as Record<string, string>,
+    ...(slot ? { uid: slot.uid, gid: slot.gid } : {}),
   });
 
   let pending = 0;

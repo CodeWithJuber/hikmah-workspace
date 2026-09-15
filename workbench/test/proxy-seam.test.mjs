@@ -16,6 +16,10 @@ import WebSocket from 'ws';
 import { createWorkbench } from '../src/server.ts';
 import { terminalUrl } from '../../lib/workbench/ticket.ts';
 import { issueTicket } from '../src/ticket.ts';
+import { SlotError, isUserKey } from '../src/slots.ts';
+
+/** A terminal ticket names the account whose slot it opens. */
+const USER = 'u'.repeat(32);
 
 const TOKEN = 'w'.repeat(48);
 const ORIGIN = 'http://127.0.0.1';
@@ -26,6 +30,23 @@ async function start(t) {
     // Set per test from the real port, since Origin must match exactly.
     appOrigin: undefined,
     workspace: '/tmp',
+    // Slots without the uids: resolving a real one chowns, which needs root.
+    // What the terminal tests are about is that a ticket names an account and
+    // the shell starts in that account's directory; the kernel half is asserted
+    // in the container by scripts/smoke-workbench.sh.
+    slots: (userKey) => {
+      // Only the chown is faked. The refusal is real, or this would be testing
+      // a resolver that accepts anything — including a ticket naming nobody.
+      if (!isUserKey(userKey))
+        throw new SlotError('This request did not say which account it is for.');
+      return {
+        index: 1,
+        name: 'hk01',
+        uid: process.getuid(),
+        gid: process.getgid(),
+        home: `/tmp/u/${userKey.slice(0, 8)}`,
+      };
+    },
     createTerminal: () => ({ pid: 1, write: () => {}, resize: () => {}, kill: () => {} }),
   });
   const port = await workbench.listen(0);
@@ -57,7 +78,7 @@ test('the URL the app hands the browser is one the workbench accepts', async (t)
   const origin = `http://127.0.0.1:${port}`;
   // Exactly what components/workbench/terminal-panel.tsx receives from
   // /api/workbench/ticket and passes to `new WebSocket(...)`.
-  const url = terminalUrl(origin, issueTicket({ scope: 'terminal' }, TOKEN));
+  const url = terminalUrl(origin, issueTicket({ scope: 'terminal', userKey: USER }, TOKEN));
   assert.match(url, /^ws:\/\/127\.0\.0\.1:\d+\/ws\/terminal\?ticket=/, 'unchanged from the app');
   assert.equal(await connect(url, origin), 'open', 'and the workbench takes it');
 });
@@ -68,7 +89,7 @@ test('the path a stripping proxy produces is accepted too', async (t) => {
   // which proxy is in front.
   const port = await start(t);
   const origin = `http://127.0.0.1:${port}`;
-  const ticket = encodeURIComponent(issueTicket({ scope: 'terminal' }, TOKEN));
+  const ticket = encodeURIComponent(issueTicket({ scope: 'terminal', userKey: USER }, TOKEN));
   assert.equal(
     await connect(`${origin.replace('http', 'ws')}/terminal?ticket=${ticket}`, origin),
     'open',
@@ -78,7 +99,7 @@ test('the path a stripping proxy produces is accepted too', async (t) => {
 test('an unrelated path is still refused', async (t) => {
   const port = await start(t);
   const origin = `http://127.0.0.1:${port}`;
-  const ticket = encodeURIComponent(issueTicket({ scope: 'terminal' }, TOKEN));
+  const ticket = encodeURIComponent(issueTicket({ scope: 'terminal', userKey: USER }, TOKEN));
   assert.equal(
     await connect(`${origin.replace('http', 'ws')}/ws/shell?ticket=${ticket}`, origin),
     404,

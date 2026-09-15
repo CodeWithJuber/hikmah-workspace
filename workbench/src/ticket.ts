@@ -18,6 +18,9 @@ export type TicketPayload = {
   expiresAt: number;
   /** Saved SSH host id, for scope 'ssh'. */
   hostId?: string;
+  /** Whose terminal this is: the app's opaque name for the account, which the
+   * server resolves to a Unix user and a directory. */
+  userKey?: string;
   /** Random, so two tickets are never byte-identical and replay is detectable. */
   nonce: string;
 };

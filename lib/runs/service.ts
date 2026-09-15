@@ -19,6 +19,7 @@ import { ASK_USER_PART } from './resume.ts';
 import { answered, NO_ANSWER } from './failure.ts';
 import { mediaKeyFor } from './media.ts';
 import { executionAllowed } from './execution.ts';
+import { workbenchUserKey } from '../workbench/user-key.ts';
 import { createMemoryStore } from '../memory/store.ts';
 import { recentUserText } from '../context-model/run-brief.ts';
 import type { MemoryToolContext } from '../ai/tools/memory.ts';
@@ -105,6 +106,13 @@ export type RecalledConversation = { id: string; title: string };
  * out, so a client that connects late or reconnects gets the same bytes in the
  * same order as one that was there from the start.
  */
+/** The workbench's opaque name for this run's owner, or '' when there is no
+ * owner — in which case `available` above is false and it is never sent. */
+function shellUserKey(userId: string | undefined): string {
+  const secret = process.env.HIKMAH_WORKBENCH_TOKEN ?? '';
+  return userId && secret ? workbenchUserKey(userId, secret) : '';
+}
+
 async function driveWithAgent({
   run,
   messages,
@@ -173,7 +181,11 @@ async function driveWithAgent({
     ssh: execution && run.user_id ? sshRunContext(run.user_id) : undefined,
     shell: {
       conversationId: run.conversation_id ?? run.id,
-      available: execution && workbenchReady(),
+      // The workbench gives each account its own Unix user and directory, and
+      // refuses a run that does not say whose it is. A run with no user cannot
+      // name one, so it gets no shell rather than a shared one.
+      userKey: shellUserKey(run.user_id),
+      available: execution && Boolean(run.user_id) && workbenchReady(),
     },
     mcp,
     files: run.user_id

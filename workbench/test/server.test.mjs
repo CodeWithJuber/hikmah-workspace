@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import WebSocket from 'ws';
 import { createWorkbench } from '../src/server.ts';
 import { issueTicket } from '../src/ticket.ts';
+import { SlotError, isUserKey } from '../src/slots.ts';
 
 const TOKEN = 'w'.repeat(48);
 const ORIGIN = 'https://app.test';
@@ -17,6 +18,23 @@ async function start(t, overrides = {}) {
     token: TOKEN,
     appOrigin: ORIGIN,
     workspace: '/tmp',
+    // Slots without the uids: resolving a real one chowns, which needs root.
+    // What the terminal tests are about is that a ticket names an account and
+    // the shell starts in that account's directory; the kernel half is asserted
+    // in the container by scripts/smoke-workbench.sh.
+    slots: (userKey) => {
+      // Only the chown is faked. The refusal is real, or this would be testing
+      // a resolver that accepts anything — including a ticket naming nobody.
+      if (!isUserKey(userKey))
+        throw new SlotError('This request did not say which account it is for.');
+      return {
+        index: 1,
+        name: 'hk01',
+        uid: process.getuid(),
+        gid: process.getgid(),
+        home: `/tmp/u/${userKey.slice(0, 8)}`,
+      };
+    },
     createTerminal: (options) => {
       const shell = { options, written: [], resized: [], killed: 0 };
       shells.push(shell);
@@ -36,7 +54,11 @@ async function start(t, overrides = {}) {
   return { workbench, port, shells };
 }
 
-const ticketUrl = (port, payload = { scope: 'terminal' }, secret = TOKEN) =>
+/** The app's opaque name for an account. A terminal ticket must carry one now:
+ * one that named nobody opened a pty in the shared workspace. */
+const USER = 'u'.repeat(32);
+
+const ticketUrl = (port, payload = { scope: 'terminal', userKey: USER }, secret = TOKEN) =>
   `ws://127.0.0.1:${port}/terminal?ticket=${encodeURIComponent(issueTicket(payload, secret))}`;
 
 /** Resolve with 'open', or with the HTTP status the upgrade was refused with. */
@@ -83,9 +105,23 @@ test('a valid ticket opens a shell', async (t) => {
   const { outcome, ws } = await connect(ticketUrl(port));
   assert.equal(outcome, 'open');
   assert.equal(shells.length, 1);
-  assert.equal(shells[0].options.cwd, '/tmp', 'the shell starts in the workspace volume');
+  // In the account's own directory, not at the top of the shared volume. A
+  // ticket that named nobody used to open a pty in everybody's workspace — the
+  // inverse of the defect on the assistant's path, where everyone shared a uid.
+  assert.equal(shells[0].options.cwd, `/tmp/u/${USER.slice(0, 8)}`);
+  assert.equal(shells[0].options.slot.home, shells[0].options.cwd, 'and as that account');
   assert.equal(workbench.sessionCount, 1);
   ws.close();
+});
+
+test('a terminal ticket that names no account does not open a shell', async (t) => {
+  // The ticket is signed, so the browser cannot add one — which means a ticket
+  // without an account is a bug in the app, and opening a shared shell would be
+  // the worst possible response to it.
+  const { port, shells } = await start(t);
+  const { outcome } = await connect(ticketUrl(port, { scope: 'terminal' }));
+  assert.notEqual(outcome, 'open', 'the upgrade is refused');
+  assert.equal(shells.length, 0, 'and no pty was started');
 });
 
 test('a page on another origin cannot open a shell', async (t) => {
@@ -99,7 +135,9 @@ test('a page on another origin cannot open a shell', async (t) => {
 
 test('a forged ticket is refused', async (t) => {
   const { port } = await start(t);
-  const { outcome } = await connect(ticketUrl(port, { scope: 'terminal' }, 'f'.repeat(48)));
+  const { outcome } = await connect(
+    ticketUrl(port, { scope: 'terminal', userKey: USER }, 'f'.repeat(48)),
+  );
   assert.equal(outcome, 401);
 });
 

@@ -123,7 +123,10 @@ cp "$package/Caddyfile" Caddyfile
 printf 'HIKMAH_IMAGE=%s\nHIKMAH_WORKBENCH_IMAGE=%s\n' "$image" "$workbench" > release.env
 # The workspace volume belongs to the workbench's unprivileged user, and a
 # fresh directory would otherwise be created root-owned by the daemon.
-mkdir -p workbench-data && chown 1000:1000 workbench-data
+# root:root, not 1000:1000. The supervisor creates each account's directory
+# under this at that account's own uid; it is no longer one directory one user
+# writes to. See workbench/src/slots.ts.
+mkdir -p workbench-data && chown 0:0 workbench-data && chmod 0755 workbench-data
 "${compose[@]}" up -d app workbench --wait --wait-timeout 120
 actual=$("${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>console.log(x.revision))")
 [[ "$actual" == "$revision" ]]
