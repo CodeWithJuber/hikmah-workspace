@@ -29,7 +29,7 @@ const PROVENANCE: Record<Memory['provenance'], string> = {
 const EMPTY_DRAFT = { title: '', content: '', kind: 'reference' as MemoryKind };
 
 export function MemoryPanel() {
-  const { memories, counts, recent, loading, add, update, remove } = useMemory();
+  const { memories, counts, recent, loading, failed, refresh, add, update, remove } = useMemory();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [editing, setEditing] = useState<Memory | null>(null);
@@ -233,6 +233,15 @@ export function MemoryPanel() {
       )}
       {loading ? (
         <p className="memory-empty">Loading…</p>
+      ) : failed ? (
+        // Not "nothing saved yet": that sentence is a claim about what this
+        // person has written, and a failed load knows nothing about it.
+        <p className="memory-empty" role="status">
+          Couldn&rsquo;t load your memories.{' '}
+          <button type="button" onClick={refresh}>
+            Try again
+          </button>
+        </p>
       ) : (
         <>
           {suggested.length > 0 && (

@@ -22,19 +22,37 @@ export function useMemory() {
   const [counts, setCounts] = useState<MemoryCounts>({ suggested: 0, saved: 0, rejected: 0 });
   const [recent, setRecent] = useState<string[]>([]);
   const [revision, setRevision] = useState(0);
+  /** A load that did not happen, told apart from a person with nothing saved.
+   *
+   * This hook had two ways of turning a failure into "you have no memories".
+   * The catch set `[]`, and — the quieter one — a response that was not ok
+   * became `null`, whose `?.memories ?? []` is also `[]`. So a 500, an expired
+   * session or a dropped connection all rendered as "Nothing saved yet. Write
+   * something above", to someone who may have written a hundred things. The
+   * files and agents panels were fixed for exactly this in an earlier pass;
+   * this is the one that was left. */
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let live = true;
     void clientFetch('/api/memory')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { memories?: Memory[]; counts?: MemoryCounts; recent?: string[] } | null) => {
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return (await response.json()) as {
+          memories?: Memory[];
+          counts?: MemoryCounts;
+          recent?: string[];
+        };
+      })
+      .then((payload) => {
         if (!live) return;
-        setMemories(payload?.memories ?? []);
-        if (payload?.counts) setCounts(payload.counts);
-        setRecent(payload?.recent ?? []);
+        setMemories(payload.memories ?? []);
+        if (payload.counts) setCounts(payload.counts);
+        setRecent(payload.recent ?? []);
+        setFailed(false);
       })
       .catch(() => {
-        if (live) setMemories([]);
+        if (live) setFailed(true);
       });
     return () => {
       live = false;
@@ -75,5 +93,17 @@ export function useMemory() {
     [send],
   );
 
-  return { memories, counts, recent, loading: memories === null, add, update, remove, refresh };
+  // `loading` stops once the request settles, either way — a failed load that
+  // stayed "loading" would be a spinner nobody can end.
+  return {
+    memories,
+    counts,
+    recent,
+    failed,
+    loading: memories === null && !failed,
+    add,
+    update,
+    remove,
+    refresh,
+  };
 }
