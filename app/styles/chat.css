@@ -1849,4 +1849,87 @@
     flex-direction: column;
     gap: 26px;
   }
+
+  /* The phone, and a turn that produced nothing — both of them chat rules.
+   *
+   * They spent a while at the top of marketing.css. When app/globals.css was
+   * split, the cut was made contiguously so that source order, and therefore
+   * the cascade, could not change; a rule landed where the old file happened
+   * to grow rather than where it belongs, and this run of chat rules fell past
+   * the boundary into the landing page's file.
+   *
+   * Appended at the END of this file on purpose, not merged into the
+   * `max-width: 600px` block above: these rules used to come after every rule
+   * in chat.css, and moving them earlier would let any later rule of equal
+   * specificity win instead. Nothing between here and where they were —
+   * billing.css — selects a `.chat-` class, so this position is the same
+   * position. The computed-style audit says so across 2,332 elements.
+   *
+   * What the breakpoint itself is for, from when it was written: this surface
+   * had no breakpoint below 600px at all — the only responsive
+   * decision in the whole chat block was the 900px drawer switch, so every
+   * value used at 390px was the value chosen for 899px. The arithmetic that
+   * follows from that, measured at 360px CSS width:
+   *
+   *   .chat-preview pads 16px a side and ConversationContent adds p-4, so 32px
+   *   a side goes to gutters and the text column is 281px — about 34 characters
+   *   a line. The composer's row is 302px of usable width holding controls that
+   *   measure about 411px.
+   *
+   * So the gutter is halved and the row is allowed to be a row. */
+  @media (max-width: 600px) {
+    .chat-preview {
+      padding: 0 8px env(safe-area-inset-bottom);
+    }
+    /* The scroller's own padding, on top of the gutter above. */
+    .chat-preview [data-slot='conversation-content'] {
+      padding-inline: 4px;
+      /* 24px between turns is a desktop rhythm. On a phone it is a quarter of
+       the visible transcript spent on nothing. */
+      gap: 16px;
+    }
+    /* The bubble caps itself at 95%, and that sliver buys nothing on a phone
+     where a bubble is told apart by its background rather than by the gap
+     beside it. (The class, not a data-slot: this element carries neither
+     `data-slot` nor an id, only `is-user` / `is-assistant`.) */
+    .chat-preview .is-user,
+    .chat-preview .is-assistant {
+      max-width: 100%;
+    }
+    /* The word "Tools" gives up its room: the icon and the count still say what
+     that button is. */
+    .chat-tools-label {
+      display: none;
+    }
+    /* The picker is a dialog now, so its trigger can be small: the name is read
+     in the dialog, where it has the whole screen, not on the row. */
+    .chat-composer-row .chat-model-select {
+      max-width: 34vw;
+    }
+    /* Five icon buttons in a 360px bar with about 7px to spare, and they were
+     `width: 38px` rather than `min-width`, with no `flex-shrink: 0` — so they
+     compressed into 18px slivers inside 38px boxes rather than staying square.
+     Their intrinsic minimum is the icon, which is why they could. */
+    .chat-topbar-toggle,
+    .chat-topbar-links.is-compact a {
+      min-width: 38px;
+      flex-shrink: 0;
+    }
+    .chat-topbar-brand {
+      min-width: 0;
+      flex-shrink: 1;
+      overflow: hidden;
+    }
+  }
+
+  /* A turn that produced nothing at all.
+   Quiet rather than alarming — the model stopping without writing is a
+   disappointment, not a fault in the workspace — but present, because a blank
+   space where an answer belongs reads as the app being broken. */
+  .chat-blank-turn {
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-style: italic;
+    margin: 4px 0;
+  }
 }

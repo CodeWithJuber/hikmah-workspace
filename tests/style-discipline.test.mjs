@@ -248,3 +248,61 @@ test('a control is one of five heights', () => {
   }
   assert.deepEqual(off, [], 'control heights off the scale');
 });
+
+/** A surface may not redefine a name the token layer owns.
+ *
+ * `.landing` declared its own `--ink`, `--ink-soft`, `--line` and `--accent`.
+ * The first three were private aliases for tokens that already existed. The
+ * fourth was the dangerous one: `--accent` is shadcn's pale tint everywhere
+ * else and the landing redefined it as the brand fill, so `bg-accent` inside
+ * that page would have rendered a different colour from the same class in the
+ * rest of the app — invisible until the page adopted its first shared
+ * component, which is a change nobody would think to test for a colour bug.
+ *
+ * This is a zero, not a ceiling. A surface that needs a value the tokens do not
+ * have should add a token, not a local with a name the cascade already uses.
+ */
+test('no surface shadows a name the token layer owns', () => {
+  const files = styleFiles();
+  const owner = files.find((f) => f.path.endsWith('tokens.css'));
+  assert.ok(owner, 'app/styles/tokens.css is in the import graph');
+  const declared = (text) => [...strip(text).matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]);
+  const owned = new Set(declared(owner.text));
+  assert.ok(
+    owned.size > 30,
+    `tokens.css declares ${owned.size} names — the regex stopped matching`,
+  );
+
+  const shadows = [];
+  for (const file of files) {
+    // The generated palette is the layer BELOW tokens.css and legitimately
+    // declares its own `--ax-*`; it never declares a token layer name.
+    if (file === owner || file.path.includes('generated')) continue;
+    for (const name of new Set(declared(file.text)))
+      if (owned.has(name)) shadows.push(`${file.path} redeclares ${name}`);
+  }
+  assert.deepEqual(shadows, [], shadows.join('\n'));
+});
+
+/** Colour belongs to the token layer, one surface at a time.
+ *
+ * scripts/check-styles.mjs counts authored colours across every stylesheet and
+ * walks that total down. A total cannot say a surface is FINISHED, though, so
+ * each one that reaches zero is pinned here and can never drift back.
+ */
+test('the surfaces that have been converted carry no colour of their own', () => {
+  const done = ['app/styles/marketing.css'];
+  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\boklch\(/g;
+  for (const path of done) {
+    const file = styleFiles().find((f) => f.path === path);
+    assert.ok(file, `${path} is in the import graph`);
+    const found = [...strip(file.text).matchAll(colour)].map((m) => m[0]);
+    assert.deepEqual(
+      found,
+      [],
+      `${path} names ${found.length} colour(s) directly: ${found.join(', ')}.\n` +
+        'Every colour on a converted surface comes from a token, so that setting ' +
+        'a background cannot leave the text behind in the other theme.',
+    );
+  }
+});

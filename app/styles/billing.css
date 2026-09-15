@@ -141,40 +141,4 @@
     color: var(--muted-foreground);
     line-height: 1.6;
   }
-
-  /* The landing page.
-   Its own palette rather than the app tokens: this is the one surface a visitor
-   sees before choosing anything, so it commits to a single look instead of
-   following a theme they have not set yet. Phone-first — a landing page that
-   breaks at 400px sells nothing. */
-  /* Straight to the content, for anyone arriving on the keyboard: off-screen
-   until it takes focus, then the first thing in the page. */
-  .landing-skip {
-    position: absolute;
-    left: -9999px;
-    top: 8px;
-    z-index: 20;
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: var(--ink);
-    color: #fff;
-    font-size: 14px;
-  }
-  .landing-skip:focus-visible {
-    left: 20px;
-  }
-  .landing {
-    --ink: #16261f;
-    --ink-soft: #55695f;
-    --line: #dee5e0;
-    --accent: #285d46;
-    background: radial-gradient(ellipse at 20% -5%, #e8f2ec, transparent 60%), #fff;
-    color: var(--ink);
-    min-height: 100dvh;
-    padding: 0 20px 72px;
-  }
-  .landing > * {
-    max-width: 1020px;
-    margin: 0 auto;
-  }
 }
