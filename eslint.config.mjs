@@ -83,7 +83,16 @@ const eslintConfig = defineConfig([
       'jsx-a11y/no-interactive-element-to-noninteractive-role': 'error',
       'jsx-a11y/no-noninteractive-element-interactions': 'error',
       'jsx-a11y/no-noninteractive-element-to-interactive-role': 'error',
-      'jsx-a11y/no-noninteractive-tabindex': 'error',
+      // `role="region"` added, next to the rule's own `tabpanel`.
+      //
+      // This rule and axe-core disagree about a scrolling <div>, and axe is
+      // right: an element that overflows and cannot be focused is one a
+      // keyboard user cannot scroll at all, which is WCAG 2.1.1, and
+      // `tabindex="0"` with a role and a label is the documented fix. The rule
+      // already carves out `tabpanel` for the same reason — a container that
+      // holds content a keyboard has to reach. `region` is that container with
+      // a name.
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel', 'region'] }],
       'jsx-a11y/no-redundant-roles': 'error',
       'jsx-a11y/no-static-element-interactions': 'error',
       'jsx-a11y/scope': 'error',

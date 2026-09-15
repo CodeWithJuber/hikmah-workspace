@@ -1715,3 +1715,36 @@
     }
   }
 }
+
+/* The one place this repo writes a utility of its own, and why.
+ *
+ * shadcn's TabsTrigger carries `text-foreground/60` — the page's ink at 60%
+ * alpha. Over the tab strip that computes to #6e7371 on #f3f4f4, which is
+ * 4.37:1: under the 4.5 WCAG asks of body text, found by axe-core on 28 of the
+ * 116 screen/width/theme combinations it scanned.
+ *
+ * The active state was wrong too, and silently. `[data-slot='tabs-trigger']
+ * [data-state='active'] { color: var(--primary) }` has sat in this file for
+ * some time doing nothing: it is in `@layer components`, Tailwind emits
+ * utilities in `@layer utilities`, and a later layer beats an earlier one
+ * whatever the specificity. So the selected tab rendered in #151D19, the same
+ * near-black as the page, instead of the brand green — measured in the browser,
+ * not read off the file.
+ *
+ * Both need to beat a utility, and only three things can: `!important` (a count
+ * this repo is driving to zero), editing the vendored component (replaced
+ * wholesale by its installer), or a rule in the same layer, later. This is the
+ * third. It is at the top level of the file rather than inside the
+ * `@layer components` wrapper above, because a nested `@layer utilities` would
+ * be `components.utilities` and lose to the real one. */
+@layer utilities {
+  [data-slot='tabs-trigger'] {
+    color: var(--muted-foreground);
+  }
+  [data-slot='tabs-trigger']:hover {
+    color: var(--foreground);
+  }
+  [data-slot='tabs-trigger'][data-state='active'] {
+    color: var(--primary);
+  }
+}

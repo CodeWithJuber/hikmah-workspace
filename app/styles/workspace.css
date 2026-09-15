@@ -3954,17 +3954,26 @@
     display: grid;
     place-items: center;
     padding: 28px 20px;
-    background: radial-gradient(ellipse at 25% 10%, #e8f2ec, transparent 55%), #f4f7f5;
-    color: #20352e;
+    /* Tokens, not literals. Written light-only, this page kept a white card and
+     * a light gradient while its headings took --foreground — which in dark
+     * mode is #dae5df, 1.29:1 on white. axe found it on four screen/width/theme
+     * combinations and it is the whole of what "the auth page does not follow
+     * the theme" looks like from outside. Each token's LIGHT value is the
+     * literal it replaces, so light mode does not move. */
+    background: radial-gradient(ellipse at 25% 10%, var(--accent), transparent 55%), var(--muted);
+    color: var(--foreground);
   }
   .auth-card {
     width: 100%;
     max-width: 440px;
-    background: #fff;
+    /* --card, not #fff. This was the rest of the same bug as .auth-page above:
+     * with the page following the theme and the card still white, dark mode
+     * rendered pale text on a white card, which is worse than either. */
+    background: var(--card);
     padding: 44px;
-    border: 1px solid #dee5e0;
+    border: 1px solid var(--border);
     border-radius: 24px;
-    box-shadow: 0 20px 70px #243b2e0a;
+    box-shadow: 0 20px 70px color-mix(in srgb, var(--ax-shadow) 40%, transparent);
   }
   .auth-brand {
     display: flex;

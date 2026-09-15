@@ -22,13 +22,13 @@ export function ConnectModelCard({ onOpenSettings }: { onOpenSettings: () => voi
         <button type="button" className="is-primary" onClick={onOpenSettings}>
           <span>
             <strong>Use free models</strong>
-            <small>
-              Get a free key at{' '}
-              <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer noopener">
-                openrouter.ai
-              </a>
-              , paste it once. No card.
-            </small>
+            {/* The openrouter.ai link used to be an <a> inside this <button>.
+                A link inside a button is a control inside a control: pressing
+                it fired BOTH — the settings dialog opened and a tab opened —
+                and a screen reader could not reach the link at all, because a
+                button's contents are its label. It is now the sentence under
+                the two choices, where it is one thing that does one thing. */}
+            <small>Get a free key at openrouter.ai, paste it once. No card.</small>
           </span>
           <ArrowRight size={16} aria-hidden="true" />
         </button>
@@ -40,6 +40,13 @@ export function ConnectModelCard({ onOpenSettings }: { onOpenSettings: () => voi
           <ArrowRight size={16} aria-hidden="true" />
         </button>
       </div>
+      <p className="chat-connect-note">
+        Free keys come from{' '}
+        <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer noopener">
+          openrouter.ai
+        </a>
+        .
+      </p>
     </section>
   );
 }
