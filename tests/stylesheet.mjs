@@ -11,7 +11,7 @@
  * order the imports are in, and that they come before any rule.
  */
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,8 +25,18 @@ export function globals() {
  * import order — which is also cascade order, so a test about which of two
  * rules wins reads them the way the browser does. */
 export function allStyles() {
+  return styleFiles()
+    .map((file) => file.text)
+    .join('\n');
+}
+
+/** The same graph, but per file, for a check that has to say WHICH file.
+ *
+ * `[data-slot=` belongs in one place, and a count over the concatenation could
+ * not tell you whether 93 uses were in one file or nine. */
+export function styleFiles() {
   const seen = new Set();
-  const parts = [];
+  const files = [];
   const visit = (path) => {
     const key = resolve(path);
     if (seen.has(key)) return;
@@ -36,8 +46,8 @@ export function allStyles() {
     // rule in an imported file precedes the importing file's own.
     for (const [, spec] of text.matchAll(/@import\s+['"]([^'"]+)['"]/g))
       if (spec.startsWith('.') || spec.startsWith('/')) visit(join(dirname(key), spec));
-    parts.push(text);
+    files.push({ path: relative(root, key), text });
   };
   visit(ENTRY);
-  return parts.join('\n');
+  return files;
 }
