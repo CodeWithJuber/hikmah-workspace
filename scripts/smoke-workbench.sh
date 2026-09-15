@@ -88,55 +88,72 @@ user_key=$(printf 'o%.0s' $(seq 1 32))
 run_reply=$(curl -s -H "authorization: Bearer $token" -H 'content-type: application/json' \
   -d "{\"tool\":\"bash\",\"sessionId\":\"smoke\",\"userKey\":\"$user_key\",\"command\":\"pwd\"}" \
   http://127.0.0.1:3211/runs)
-# The owner's files are in the owner's slot and owned by it. On failure, say
-# what the run itself answered and what the service logged — the first version
-# of this check printed neither, and "not migrated" on its own says nothing
-# about which of the four steps did not happen.
-docker exec "$container" test -f "/workspace/u/hk01/notes.md" || {
+# The owner's files are in the owner's slot and owned by it.
+#
+# Every check below runs `--user 3001`, because the slot is 0700 and `docker
+# exec` gets the container's capability set — uid 0 with no DAC_OVERRIDE cannot
+# enter it. Asking as root reports "missing" for a file that is right there,
+# which is the boundary this script asserts forty lines further down. Asking as
+# the slot user is also the stronger claim: the point of the migration is that
+# the owner can reach their own work.
+#
+# On failure, say what the run itself answered and what the service logged — the
+# first version of this check printed neither, and "not migrated" on its own
+# says nothing about which of the steps did not happen.
+docker exec --user 3001:3001 "$container" test -f "/workspace/u/hk01/notes.md" || {
   echo "--- the run replied ---"; echo "$run_reply"
   echo "--- the volume holds ---"; docker exec "$container" ls -la /workspace /workspace/u 2>&1 || true
   echo "--- the service logged ---"; docker logs "$container"
   fail 'The existing workspace was not migrated into the owner slot.'
 }
-docker exec "$container" test -f "/workspace/u/hk01/project/app.ts" \
+docker exec --user 3001:3001 "$container" test -f "/workspace/u/hk01/project/app.ts" \
   || fail 'The migration did not carry nested directories.'
-docker exec "$container" test -f /workspace/u/hk01/readonly/file.txt \
+docker exec --user 3001:3001 "$container" test -f /workspace/u/hk01/readonly/file.txt \
   || fail 'The migration left behind a directory its owner had made read-only.'
-docker exec "$container" test -L /workspace/u/hk01/link \
+docker exec --user 3001:3001 "$container" test -L /workspace/u/hk01/link \
   || fail 'The migration did not carry a symlink, or replaced it with its target.'
 passwd_uid=$(docker exec "$container" stat -c '%u' /etc/passwd)
 [[ $passwd_uid == 0 ]] \
   || fail "The migration followed a symlink: /etc/passwd is now owned by $passwd_uid."
 docker exec "$container" test -e /workspace/notes.md \
   && fail 'The migration left a copy at the top of the volume.'
-owner_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/notes.md)
+owner_uid=$(docker exec --user 3001:3001 "$container" stat -c '%u' /workspace/u/hk01/notes.md)
 [[ $owner_uid == 3001 ]] || fail "Migrated files are owned by $owner_uid, expected the slot uid 3001."
 # One level down, specifically. Re-owning the slot directory is the last thing
 # the supervisor can do to it — after that it cannot even list it — so a walk
 # that starts at the top re-owns nothing inside and says nothing about it.
-nested_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/project/app.ts)
+nested_uid=$(docker exec --user 3001:3001 "$container" stat -c '%u' /workspace/u/hk01/project/app.ts)
 [[ $nested_uid == 3001 ]] \
   || fail "A migrated file inside a folder is owned by $nested_uid: the re-own stopped at the top."
-locked_uid=$(docker exec "$container" stat -c '%u' /workspace/u/hk01/readonly)
+locked_uid=$(docker exec --user 3001:3001 "$container" stat -c '%u' /workspace/u/hk01/readonly)
 [[ $locked_uid == 3001 ]] || fail "The read-only directory is still owned by $locked_uid."
 
 # --- the slot users exist and the service's source is beyond them ---------
 docker exec "$container" id hk01 >/dev/null || fail 'The image has no slot users.'
 docker exec "$container" id hk32 >/dev/null || fail 'The slot pool is smaller than the code expects.'
-if docker exec --user 3001 "$container" sh -c 'echo pwned >> /workbench/src/server.ts' 2>/dev/null; then
+if docker exec --user 3001:3001 "$container" sh -c 'echo pwned >> /workbench/src/server.ts' 2>/dev/null; then
   fail 'A slot user can rewrite the service source and own it on the next restart.'
 fi
 
 # --- the boundary itself: slot A cannot reach slot B ----------------------
 # Two real uids, two real 0700 directories, one real kernel.
+#
+# Seeded in the order the supervisor is obliged to use everywhere else, and for
+# the same two reasons: modes before ownership, because it holds no CAP_FOWNER
+# and cannot set the mode on a directory it has given away; and the file before
+# the directory that holds it, because once the directory belongs to hk02 it
+# cannot be listed either. `chown -R` is avoided for exactly that second reason
+# — it re-owns the directory and then tries to descend into it.
 docker exec --user 0:0 "$container" sh -c \
   'mkdir -p /workspace/u/hk02 && echo secret > /workspace/u/hk02/theirs.txt &&
-   chown -R 3002:3002 /workspace/u/hk02 && chmod 0700 /workspace/u/hk02 &&
-   chmod 0600 /workspace/u/hk02/theirs.txt'
-if docker exec --user 3001 "$container" cat /workspace/u/hk02/theirs.txt 2>/dev/null; then
+   chmod 0700 /workspace/u/hk02 && chmod 0600 /workspace/u/hk02/theirs.txt &&
+   chown 3002:3002 /workspace/u/hk02/theirs.txt &&
+   chown 3002:3002 /workspace/u/hk02' \
+  || fail 'Could not seed a second slot, so the boundary was never tested.'
+if docker exec --user 3001:3001 "$container" cat /workspace/u/hk02/theirs.txt 2>/dev/null; then
   fail 'Slot hk01 can read slot hk02. The directories are not a boundary.'
 fi
-if docker exec --user 3001 "$container" sh -c 'touch /workspace/u/hk02/planted' 2>/dev/null; then
+if docker exec --user 3001:3001 "$container" sh -c 'touch /workspace/u/hk02/planted' 2>/dev/null; then
   fail 'Slot hk01 can write into slot hk02.'
 fi
 # And the supervisor, though uid 0, cannot either — that is what makes running
@@ -146,19 +163,19 @@ if docker exec --user 0:0 "$container" cat /workspace/u/hk02/theirs.txt 2>/dev/n
 fi
 
 # --- the wrapper applies bounds a command cannot raise --------------------
-limits=$(docker exec --user 3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
+limits=$(docker exec --user 3001:3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
   'ulimit -t; ulimit -u; ulimit -f; ulimit -n; ulimit -c' | tr -d ' ' | paste -sd/)
 [[ $limits == '150/96/2097152/256/0' ]] || fail "hikmah-run applied $limits, expected 150/96/2097152/256/0."
-raised=$(docker exec --user 3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
+raised=$(docker exec --user 3001:3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
   'ulimit -t 600 2>&1; ulimit -t' | tr -d ' ' | tr '\n' ' ')
 [[ $raised == *"150"* ]] || fail "A command raised its own CPU limit: $raised"
 # The wrapper cds after dropping, so it cannot be aimed at another slot.
-if docker exec --user 3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk02 'pwd' 2>/dev/null; then
+if docker exec --user 3001:3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk02 'pwd' 2>/dev/null; then
   fail 'A command can be started inside another account slot.'
 fi
 # sandbox_run needs node to start under those bounds; this is why there is no
 # `ulimit -v` (see workbench/bin/hikmah-run).
-docker exec --user 3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
+docker exec --user 3001:3001 "$container" /usr/local/bin/hikmah-run /workspace/u/hk01 \
   'node -e "process.exit(0)"' || fail 'node cannot start under the wrapper, so sandbox_run is broken.'
 
 # --- the migration is idempotent ------------------------------------------
@@ -173,11 +190,11 @@ done
 curl -s -o /dev/null -H "authorization: Bearer $token" -H 'content-type: application/json' \
   -d "{\"tool\":\"bash\",\"sessionId\":\"smoke2\",\"userKey\":\"$user_key\",\"command\":\"pwd\"}" \
   http://127.0.0.1:3211/runs
-docker exec "$container" test -f /workspace/u/hk01/notes.md \
+docker exec --user 3001:3001 "$container" test -f /workspace/u/hk01/notes.md \
   || fail 'A second run moved the migrated files again.'
-docker exec "$container" test -e /workspace/u/hk01/u \
+docker exec --user 3001:3001 "$container" test -e /workspace/u/hk01/u \
   && fail 'A second run moved the slot directory into itself.'
-docker exec "$container" test -e /workspace/u/hk01/hk01 \
+docker exec --user 3001:3001 "$container" test -e /workspace/u/hk01/hk01 \
   && fail 'A second run moved the slot into itself.'
 
 echo 'The workbench image starts, demands its token, keeps one account out of another, and migrates once.'
