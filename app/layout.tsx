@@ -45,7 +45,7 @@ export default async function RootLayout({
   const cookie = (await cookies()).get(THEME_COOKIE)?.value;
   const theme: Theme = isTheme(cookie) ? cookie : await savedTheme();
   return (
-    <html lang="en" data-theme={theme}>
+    <html lang="en" data-theme={theme} data-astryx-theme="hikmah">
       <body className="antialiased">{children}</body>
     </html>
   );
