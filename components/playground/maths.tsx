@@ -223,7 +223,7 @@ export function Maths() {
         <div className="two-columns">
           <div>
             <div className="number-row">
-              <label>Context budget</label>
+              <span>Context budget</span>
               <output>{wordBudget} whitespace words</output>
             </div>
             <Slider
@@ -276,7 +276,7 @@ export function Maths() {
           />
           <div className="field">
             <div className="number-row">
-              <label>Diffusion time</label>
+              <span>Diffusion time</span>
               <output>{diffusionTime.toFixed(1)}</output>
             </div>
             <Slider

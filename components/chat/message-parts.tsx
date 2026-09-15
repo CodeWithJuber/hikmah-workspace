@@ -159,9 +159,17 @@ function MediaAttachment({ media }: { media: GeneratedMedia }) {
     return (
       <figure className="chat-media">
         {/* The figcaption below carries the text that was spoken, which is the
-            caption this needs. preload="none" so a transcript with several of
-            these does not fetch them all on open. */}
-        <audio controls src={media.url} preload="none" />
+            caption this needs — a <track> would be the same words in a second
+            format, and there is no timing to put in one: the clip is generated
+            from that prompt, not transcribed from speech. preload="none" so a
+            transcript with several of these does not fetch them all on open. */}
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <audio
+          controls
+          aria-label={media.prompt ?? 'Generated audio'}
+          src={media.url}
+          preload="none"
+        />
         {media.prompt && <figcaption dir="auto">{media.prompt}</figcaption>}
       </figure>
     );
@@ -681,16 +689,24 @@ function MessagePartsInner({
           <Sources>
             <SourcesTrigger count={sources.length} />
             <SourcesContent>
-              {sources.map((part, index) => (
-                <a
-                  key={message.id + '-source-' + index}
-                  href={part.type === 'source-url' ? part.url : undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {part.title ?? (part.type === 'source-url' ? part.url : 'Source')}
-                </a>
-              ))}
+              {sources.map((part, index) =>
+                /* A source-document has no URL, and an <a> without href is not a
+                   link: it takes no focus and the keyboard cannot reach it, while
+                   still looking like every other citation. Render the ones that
+                   can be followed as links and the rest as plain text. */
+                part.type === 'source-url' ? (
+                  <a
+                    key={message.id + '-source-' + index}
+                    href={part.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {part.title ?? part.url}
+                  </a>
+                ) : (
+                  <span key={message.id + '-source-' + index}>{part.title ?? 'Source'}</span>
+                ),
+              )}
             </SourcesContent>
           </Sources>
         )}
