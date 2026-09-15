@@ -103,6 +103,16 @@
     /* The v7 workspace's own four. Its dark accent was #9baeff — a blue, left
      * over from before green became the brand, and the last of that family
      * still reaching the screen. */
+    /* A shadow, which is not ink on the page.
+     *
+     * Every shadow converted in the surface PRs was written as
+     * color-mix(in srgb, var(--foreground) N%, transparent), which is right in
+     * light and wrong in dark: --foreground is near-white there, so a shadow
+     * became a faint glow. The generated token is black in both modes and MORE
+     * opaque in dark (#0000001A -> #0000004D), because a dark page needs a
+     * stronger shadow to separate a surface from it at all. */
+    --shadow: var(--ax-shadow);
+
     --hk-accent: var(--ax-accent);
     --hk-surface: var(--ax-background-surface);
     --hk-muted: var(--ax-text-secondary);

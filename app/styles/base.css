@@ -18,7 +18,7 @@
   body {
     margin: 0;
     color: var(--foreground);
-    background: #fff;
+    background: var(--background);
     /* The variable next/font sets in app/layout.tsx, which is the loaded Inter
        followed by a fallback scaled to its metrics. Written `Inter, Arial,
        Helvetica` before, and nothing loaded Inter, so it was Arial. */
@@ -134,7 +134,7 @@
     border-radius: 8px;
   }
   [data-slot='sidebar-inner'] {
-    background: #f5f7fa;
+    background: var(--muted);
   }
   .app-shell {
     --sidebar-width: 220px !important;
@@ -153,7 +153,7 @@
     margin-bottom: 26px;
   }
   .page-header p {
-    color: #657181;
+    color: var(--muted-foreground);
     font-size: 17px;
     margin-top: 5px;
   }
@@ -180,7 +180,7 @@
   }
   .field label {
     font-size: 14px;
-    color: #445267;
+    color: var(--foreground);
     font-weight: 500;
   }
   .actions {
@@ -195,12 +195,12 @@
     min-width: 180px;
   }
   .small-note {
-    color: #657181;
+    color: var(--muted-foreground);
     font-size: 13px;
     line-height: 1.55;
   }
   .muted {
-    color: #657181;
+    color: var(--muted-foreground);
   }
   .two-columns {
     display: grid;
@@ -208,7 +208,7 @@
     gap: 28px;
   }
   .section {
-    border-top: 1px solid #dde3eb;
+    border-top: 1px solid var(--border);
     padding-top: 24px;
     margin-top: 24px;
   }
@@ -216,13 +216,13 @@
     display: grid;
     grid-template-columns: 1fr 1.02fr;
     gap: 26px;
-    border-top: 1px solid #dde3eb;
+    border-top: 1px solid var(--border);
     margin-top: 22px;
     padding-top: 23px;
   }
   .result-columns > section + section {
     padding-left: 26px;
-    border-left: 1px solid #dde3eb;
+    border-left: 1px solid var(--border);
   }
   .meaning-graph {
     width: 100%;
@@ -232,22 +232,22 @@
   }
   .meaning-graph text {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    fill: #17212b;
+    fill: var(--foreground);
     font-size: 17px;
   }
   .meaning-graph .role-label {
     font-family: Arial, Helvetica, sans-serif;
-    fill: #657181;
+    fill: var(--muted-foreground);
     font-size: 13px;
   }
   .meaning-graph rect {
-    fill: #fff;
-    stroke: #718096;
+    fill: var(--card);
+    stroke: var(--muted-foreground);
     stroke-width: 1;
   }
   .meaning-graph line,
   .meaning-graph path {
-    stroke: #718096;
+    stroke: var(--muted-foreground);
     stroke-width: 1.25;
     fill: none;
   }
@@ -277,19 +277,19 @@
   }
   .notice {
     border-left: 3px solid var(--primary);
-    background: #f4f7f5;
+    background: var(--muted);
     padding: 12px 16px;
     margin-top: 16px;
     font-size: 14px;
     line-height: 1.6;
   }
   .notice.error {
-    border-color: #bc3f32;
-    background: #fff5f3;
-    color: #813127;
+    border-color: var(--destructive);
+    background: var(--error-bg);
+    color: var(--error-text);
   }
   .disclosure {
-    border-top: 1px solid #dde3eb;
+    border-top: 1px solid var(--border);
     padding: 16px 0;
     margin-top: 18px;
   }
@@ -306,7 +306,7 @@
     max-height: 400px;
     overflow: auto;
     padding: 14px;
-    background: #f5f7fa;
+    background: var(--muted);
     border-radius: 6px;
   }
   .metric-row {
@@ -328,7 +328,7 @@
   }
   .metric span {
     font-size: 13px;
-    color: #657181;
+    color: var(--muted-foreground);
   }
   .equation {
     border-left: 2px solid var(--primary);
@@ -343,7 +343,7 @@
   }
   .equation p {
     font-size: 14px;
-    color: #657181;
+    color: var(--muted-foreground);
     margin-top: 8px;
     max-width: 85ch;
   }
@@ -407,10 +407,10 @@
     min-height: 210px !important;
   }
   .outcome {
-    color: #186d45;
+    color: var(--success-text);
   }
   .failure {
-    color: #ac372d;
+    color: var(--error-text);
   }
   .timeline {
     list-style: none;
@@ -419,7 +419,7 @@
   }
   .timeline li {
     position: relative;
-    border-left: 1px solid #ccd5e4;
+    border-left: 1px solid var(--border);
     margin-left: 12px;
     padding: 0 0 22px 28px;
   }
@@ -428,8 +428,8 @@
     position: absolute;
     left: -13px;
     top: 0;
-    background: #fff;
-    border: 1px solid #b9c6db;
+    background: var(--card);
+    border: 1px solid var(--border);
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -443,20 +443,20 @@
   }
   .timeline p {
     font-size: 13px;
-    color: #657181;
+    color: var(--muted-foreground);
   }
   .chart {
     display: block;
     width: 100%;
     height: auto;
     max-height: 235px;
-    border-bottom: 1px solid #dde3eb;
+    border-bottom: 1px solid var(--border);
   }
   .chart-caption {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: #657181;
+    color: var(--muted-foreground);
     margin-top: 7px;
   }
   .chart-block {
@@ -483,7 +483,7 @@
   .audio-upload {
     margin-top: 22px;
     padding: 20px;
-    border: 1px dashed #bcc7d6;
+    border: 1px dashed var(--border);
     border-radius: 6px;
   }
   .root-row {
@@ -491,7 +491,7 @@
     grid-template-columns: 90px 1fr;
     gap: 16px;
     padding: 16px 0;
-    border-bottom: 1px solid #dde3eb;
+    border-bottom: 1px solid var(--border);
   }
   .root-arabic {
     font-size: 27px;
@@ -508,13 +508,13 @@
   }
   .message {
     padding: 18px 0;
-    border-bottom: 1px solid #eceef3;
+    border-bottom: 1px solid var(--border);
   }
   .message pre {
-    background: #f5f7fa;
+    background: var(--muted);
     font-size: 12px;
     padding: 14px;
-    border: 1px solid #dde3eb;
+    border: 1px solid var(--border);
     margin: 14px 0;
     overflow: auto;
   }
@@ -534,7 +534,7 @@
   }
   .math-flow p {
     font-size: 14px;
-    color: #657181;
+    color: var(--muted-foreground);
   }
   @media (min-width: 1600px) {
   }
@@ -579,7 +579,7 @@
     .result-columns > section + section {
       padding-left: 0;
       border-left: 0;
-      border-top: 1px solid #dde3eb;
+      border-top: 1px solid var(--border);
       padding-top: 24px;
     }
     .fields > .field {
@@ -629,7 +629,7 @@
     border-color: var(--border);
   }
   [data-slot='button'][data-variant='outline'] {
-    border-color: #aebbcf;
+    border-color: var(--border);
   }
 
   body {
@@ -788,7 +788,7 @@
   }
   [data-slot='dialog-overlay'],
   [data-slot='sheet-overlay'] {
-    background: #0c142870;
+    background: color-mix(in srgb, var(--foreground) 44%, transparent);
     backdrop-filter: blur(3px);
   }
   [data-slot='dialog-content'] {
@@ -829,10 +829,10 @@
     font-weight: 650;
     letter-spacing: -0.8px;
     padding: 0 10px;
-    color: #fff;
+    color: var(--primary-foreground);
   }
   .hikmah-brand svg {
-    color: #777dfa;
+    color: var(--primary);
     stroke-width: 2;
   }
   .hikmah-brand.compact {
@@ -867,7 +867,7 @@
     background: var(--primary);
     color: var(--primary-foreground);
     font-size: 15px;
-    box-shadow: 0 3px 9px #204e3b0e;
+    box-shadow: 0 3px 9px var(--shadow);
     transition:
       background 0.15s,
       border-color 0.15s;
@@ -880,7 +880,7 @@
   .workspace-sidebar-content {
     padding: 0 12px !important;
     gap: 0 !important;
-    color: #dbe5f5;
+    color: var(--sidebar-foreground);
   }
   .primary-nav button,
   .workspace-sidebar-footer > button {
@@ -891,7 +891,7 @@
     padding: 12px 15px;
     background: none;
     border: 0;
-    color: #d4dcee;
+    color: var(--sidebar-foreground);
     font-size: 15px;
     text-align: left;
     border-radius: 9px;
@@ -899,15 +899,15 @@
   }
   .primary-nav button:hover,
   .workspace-sidebar-footer > button:hover {
-    background: #232e43;
+    background: var(--sidebar-accent);
   }
   .primary-nav button.selected,
   .workspace-sidebar-footer > button.selected {
-    background: #303847;
-    color: #fff;
+    background: var(--sidebar-accent);
+    color: var(--primary-foreground);
   }
   .recent-row.active {
-    background: #2b3447;
+    background: var(--sidebar-accent);
   }
   .workspace-sidebar-footer {
     padding: 14px 12px 17px !important;
@@ -915,7 +915,7 @@
   }
   .local-save {
     font-size: 12px;
-    color: #8e9fbe;
+    color: var(--muted-foreground);
     padding: 10px 14px 0;
   }
   .workspace-header {
@@ -1126,12 +1126,12 @@
     border: 1px solid var(--input);
     background: var(--card);
     border-radius: 14px;
-    box-shadow: 0 4px 18px #223a6b05;
+    box-shadow: 0 4px 18px var(--shadow);
     overflow: hidden;
   }
   .composer:focus-within {
     border-color: var(--ring);
-    box-shadow: 0 0 0 2px #6369eb0a;
+    box-shadow: 0 0 0 2px var(--shadow);
   }
   .composer [data-slot='textarea'] {
     border: 0 !important;
@@ -1410,18 +1410,18 @@
     font-size: 26px;
   }
   .file-tabs > button.active {
-    background: #172033;
-    color: #dbe5f5;
-    box-shadow: inset 0 2px 0 #777dfa;
+    background: var(--sidebar-accent);
+    color: var(--sidebar-foreground);
+    box-shadow: inset 0 2px 0 var(--primary);
   }
   .file-tabs > .icon-button {
-    color: #a6b6d0;
+    color: var(--muted-foreground);
   }
   .syntax-editor {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    background: #282c34;
+    background: var(--muted);
   }
   .syntax-editor .cm-editor {
     height: 100%;
@@ -1438,7 +1438,7 @@
   .editor-status .icon-button {
     height: 24px;
     width: 28px;
-    color: #a6b6d0;
+    color: var(--muted-foreground);
   }
   .lab-page {
     overflow-y: auto;
