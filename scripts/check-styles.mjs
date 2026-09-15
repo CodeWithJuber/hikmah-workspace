@@ -184,7 +184,7 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 149, repeated: 95, extra: 133 };
+const BASELINE = { colours: 149, repeated: 94, extra: 132 };
 const actual = { colours: colours.size, repeated: repeated.length, extra };
 
 const grown = Object.entries(BASELINE).filter(([key, limit]) => actual[key] > limit);

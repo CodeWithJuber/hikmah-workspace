@@ -29,7 +29,9 @@ export function AgentsHome() {
   return (
     <div className="destination-page">
       <header className="workspace-header">
-        <SidebarTrigger />
+        {/* size-9, because the vendored default is size-7 — 28px, under any
+            comfortable touch target. tailwind-merge lets the call site win. */}
+        <SidebarTrigger className="size-9" />
         <h1>Agents</h1>
       </header>
       <div className="destination-scroll">

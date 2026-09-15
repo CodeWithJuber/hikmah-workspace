@@ -2636,14 +2636,6 @@
     font-size: 14px;
     color: var(--muted-foreground);
   }
-  .text-link {
-    border: 0;
-    background: none;
-    padding: 0;
-    font-size: 13px;
-    color: var(--primary);
-    margin-top: 10px;
-  }
   .skill-row > [data-slot='switch'] {
     margin-top: 6px;
   }
@@ -5568,9 +5560,17 @@
   .text-link {
     display: inline-flex;
     align-items: center;
-    /* As .billing-back: a link on its own line is a target, not prose. */
-    min-height: 24px;
+    border: 0;
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    color: var(--primary);
+    margin-top: 10px;
     gap: 6px;
+    /* As .billing-back: a link on its own line is a target, not prose. 24px was
+       the WCAG 2.2 minimum and nothing more — measured at 390 this was the
+       shortest real control on the workspace. */
+    min-height: 36px;
   }
   .section-label {
     font-size: 16px;
@@ -6555,6 +6555,10 @@
     display: flex;
     align-items: center;
     border-radius: 6px;
+    /* Edit and delete sit side by side at the end of this row and had nothing
+       between them. Two 32px targets touching is a mis-tap on the only screen
+       that can remove an agent, and the wrong one deletes. */
+    gap: 4px;
   }
   .files-panel li.is-open,
   .agents-panel li.is-open {
@@ -6563,10 +6567,13 @@
   .files-panel li > button:first-child,
   .agents-panel li > button:first-child {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
     flex: 1;
     min-width: 0;
+    /* Measured at 31px, which is nothing on a phone and not on any scale. */
+    min-height: 36px;
     padding: 6px 8px;
     font-size: 12px;
     text-align: left;
@@ -6591,8 +6598,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 36px;
+    min-height: 36px;
     padding: 0;
     color: var(--muted-foreground);
     cursor: pointer;
@@ -7534,10 +7541,12 @@
     }
     .workspace-chat-link {
       display: inline-flex;
+      align-items: center;
       position: absolute;
       top: 10px;
       right: 12px;
       z-index: 5;
+      min-height: 36px;
       padding: 6px 12px;
       border: 1px solid var(--border);
       border-radius: 999px;

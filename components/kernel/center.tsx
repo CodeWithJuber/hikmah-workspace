@@ -97,7 +97,9 @@ export function KernelCenter({
   return (
     <div className="kernel-page">
       <header className="kernel-page-header">
-        <SidebarTrigger />
+        {/* size-9, because the vendored default is size-7 — 28px, under any
+            comfortable touch target. tailwind-merge lets the call site win. */}
+        <SidebarTrigger className="size-9" />
         <div>
           <span className="eyebrow">{owner ? 'OWNER CONSOLE' : 'YOUR OWN MODEL'}</span>
           <h1>{owner ? 'Super Admin' : 'Hikmah context model'}</h1>
