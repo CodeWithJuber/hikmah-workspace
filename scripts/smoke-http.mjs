@@ -200,19 +200,33 @@ if (phase === 'write') {
     (await (await fetch(base + `/api/conversations/${conversation}/messages`, { headers })).json())
       .messages;
 
-  // 202: the reply is the run id, not the answer.
-  assert.equal((await post(turn('regen-1', 'First question'))).status, 202);
+  // One run per conversation, so the previous one has to settle before a replay
+  // is anything but a 409.
+  //
+  // It is cancelled rather than waited out. Waiting put the network on the
+  // critical path: the run settles by failing, and it failed by reaching a real
+  // provider, so the 15s window was a bet on how fast openrouter.ai answers from
+  // a runner. It lost, and the next assertion reported it as "answering again is
+  // accepted" — naming the primary key for what was really an unsettled run.
+  // Cancelling aborts the provider call instead of racing it, and the assertion
+  // below means a future stall says so itself.
+  const settle = async (response) => {
+    const { runId } = await response.clone().json();
+    if (runId) await fetch(base + `/api/runs/${runId}/cancel`, { method: 'POST', headers });
+    for (let i = 0; i < 60; i += 1) {
+      const active = await (
+        await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+      ).json();
+      if (!active.runId) return;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    assert.fail('the previous run never settled, so the replay below cannot be read');
+  };
 
-  // One run per conversation, so the first has to settle before the replay is
-  // anything but a 409. There is no provider reachable here, so it fails within
-  // a moment; the point of the wait is determinism, not patience.
-  for (let i = 0; i < 60; i += 1) {
-    const active = await (
-      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
-    ).json();
-    if (!active.runId) break;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
+  // 202: the reply is the run id, not the answer.
+  const first = await post(turn('regen-1', 'First question'));
+  assert.equal(first.status, 202);
+  await settle(first);
 
   const replayed = await post(turn('regen-1', 'First question', 'regenerate-message'));
   assert.equal(replayed.status, 202, 'answering again is accepted, not a primary-key failure');
@@ -228,13 +242,7 @@ if (phase === 'write') {
 
   // Editing is the same replay carrying different words, so the stored question
   // has to end up as the edited one rather than the original.
-  for (let i = 0; i < 60; i += 1) {
-    const active = await (
-      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
-    ).json();
-    if (!active.runId) break;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
+  await settle(replayed);
   const edited = await post(turn('regen-1', 'A better question', 'regenerate-message'));
   assert.equal(edited.status, 202);
   const after = await stored();

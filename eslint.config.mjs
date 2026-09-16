@@ -100,13 +100,17 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // React Compiler advisories that predate this branch, in the five legacy
+    // React Compiler advisories that predate this branch, in the three legacy
     // components that the chat and runs rework replaces. Held at "warn" rather
     // than silenced so they stay visible, and scoped to these exact files so
     // all new code is still held to the rule. Each entry should disappear as
     // its component is rewritten; the last one to go removes this block.
+    //
+    // A fourth named components/playground/chat.tsx, which the run-loop
+    // retirement deleted. A path that matches no file reads as a rule still
+    // being relaxed for something, and would have silently absorbed a new file
+    // created at that path.
     files: [
-      'components/playground/chat.tsx',
       'components/playground/settings.tsx',
       'components/kernel/context.tsx',
       'components/context-model/studio.tsx',
