@@ -15,10 +15,12 @@ export SMOKE_COOKIE_FILE="$temporary/session"
 printf '%s' "$SMOKE_PASSWORD" > "$temporary/data/bootstrap-owner-password"
 sudo chown -R 1000:1000 "$temporary/data"
 session_secret=$(openssl rand -hex 32)
-# The provider key is never used — nothing here reaches a provider. It is set
-# because a run against a hosted provider with no key is now refused up front,
-# which turned these assertions into a test of the refusal rather than of the
-# run lifecycle they exist for.
+# The provider key is not a real one, but it is not unused: a run against a
+# hosted provider with no key is refused up front, which turned these assertions
+# into a test of the refusal rather than of the run lifecycle they exist for, so
+# the key is set to admit them. The runs it admits do dial openrouter.ai and
+# wait for the 401 — this comment used to say nothing here reaches a provider,
+# and that was false. smoke-http.mjs cancels every run it starts.
 docker run -d --name "$container" -p 127.0.0.1:3210:3000 \
   --mount "type=bind,source=$temporary/data,target=/data" \
   --read-only --tmpfs /tmp:rw,noexec,nosuid,size=128m,uid=1000,gid=1000 \

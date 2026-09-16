@@ -57,6 +57,36 @@ else {
   await writeFile(cookieFile, cookie, { mode: 0o600 });
 }
 const headers = { cookie, Origin: base, 'Content-Type': 'application/json' };
+
+/** Wait for a conversation's run to end, having first asked it to stop.
+ *
+ * One run per conversation, so a second POST is a 409 until the first has
+ * ended. It is cancelled rather than waited out: waiting put the network on
+ * the critical path, because a run here settles by failing and it fails by
+ * reaching a real provider. Every 202 this script starts and does not need the
+ * answer to should come through here, or it stays live until the harness kills
+ * the server underneath it.
+ *
+ * The backoff ramps because cancelling is not synchronous: the route aborts the
+ * provider call and returns, and the status turns terminal a millisecond or two
+ * later when the aborted driver unwinds. The first poll lands on either side of
+ * that, so a flat floor charged a quarter second for a miss on something that
+ * had already finished. The ceiling stays around 15s, which is what a genuinely
+ * stuck run needs. The assertion at the end means a stall says so itself
+ * instead of surfacing as whatever assertion happens to come next.
+ */
+const settle = async (response, conversation) => {
+  const { runId } = await response.json();
+  await fetch(base + `/api/runs/${runId}/cancel`, { method: 'POST', headers });
+  for (let i = 0; i < 60; i += 1) {
+    const active = await (
+      await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
+    ).json();
+    if (!active.runId) return;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(250, 10 * 2 ** i)));
+  }
+  assert.fail(`the run on ${conversation} never settled, so what follows cannot be read`);
+};
 const kernel = await fetch(base + '/api/kernel', { headers });
 assert.equal(kernel.status, 200);
 assert.equal((await kernel.json()).role, 'super_admin');
@@ -200,33 +230,10 @@ if (phase === 'write') {
     (await (await fetch(base + `/api/conversations/${conversation}/messages`, { headers })).json())
       .messages;
 
-  // One run per conversation, so the previous one has to settle before a replay
-  // is anything but a 409.
-  //
-  // It is cancelled rather than waited out. Waiting put the network on the
-  // critical path: the run settles by failing, and it failed by reaching a real
-  // provider, so the 15s window was a bet on how fast openrouter.ai answers from
-  // a runner. It lost, and the next assertion reported it as "answering again is
-  // accepted" — naming the primary key for what was really an unsettled run.
-  // Cancelling aborts the provider call instead of racing it, and the assertion
-  // below means a future stall says so itself.
-  const settle = async (response) => {
-    const { runId } = await response.clone().json();
-    if (runId) await fetch(base + `/api/runs/${runId}/cancel`, { method: 'POST', headers });
-    for (let i = 0; i < 60; i += 1) {
-      const active = await (
-        await fetch(base + `/api/conversations/${conversation}/runs`, { headers })
-      ).json();
-      if (!active.runId) return;
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-    assert.fail('the previous run never settled, so the replay below cannot be read');
-  };
-
   // 202: the reply is the run id, not the answer.
   const first = await post(turn('regen-1', 'First question'));
   assert.equal(first.status, 202);
-  await settle(first);
+  await settle(first, conversation);
 
   const replayed = await post(turn('regen-1', 'First question', 'regenerate-message'));
   assert.equal(replayed.status, 202, 'answering again is accepted, not a primary-key failure');
@@ -242,7 +249,7 @@ if (phase === 'write') {
 
   // Editing is the same replay carrying different words, so the stored question
   // has to end up as the edited one rather than the original.
-  await settle(replayed);
+  await settle(replayed, conversation);
   const edited = await post(turn('regen-1', 'A better question', 'regenerate-message'));
   assert.equal(edited.status, 202);
   const after = await stored();
@@ -252,6 +259,14 @@ if (phase === 'write') {
     'A better question',
     'the edited words replace the original rather than being ignored',
   );
+
+  // Settled last, after the assertions above and before the stranger block
+  // reads this same conversation at line 356. Settling it any earlier changes
+  // what those assertions see: they read the transcript with the run still in
+  // flight, and waiting for it first turns a cancelled run into a finished one
+  // carrying a second row. Left unsettled it outlives the block instead, which
+  // is the latency bet the rest of this file no longer makes.
+  await settle(edited, conversation);
 }
 
 // A second account, created the way a stranger would, against the real routes.
@@ -317,6 +332,9 @@ if (phase === 'write') {
     }),
   });
   assert.equal(asOwner.status, 202, 'the operator still reaches the deployment key');
+  // The 202 is the whole assertion; the run behind it is not wanted, and left
+  // alone it stays live until the harness stops the server under it.
+  await settle(asOwner, 'smoke-owner-key');
 
   const reason = (await keyless.json()).error;
   assert.match(reason, /own/i, 'and is told to bring its own key');
