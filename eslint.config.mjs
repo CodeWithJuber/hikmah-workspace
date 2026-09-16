@@ -104,12 +104,9 @@ const eslintConfig = defineConfig([
     // components that the chat and runs rework replaces. Held at "warn" rather
     // than silenced so they stay visible, and scoped to these exact files so
     // all new code is still held to the rule. Each entry should disappear as
-    // its component is rewritten; the last one to go removes this block.
-    //
-    // A fourth named components/playground/chat.tsx, which the run-loop
-    // retirement deleted. A path that matches no file reads as a rule still
-    // being relaxed for something, and would have silently absorbed a new file
-    // created at that path.
+    // its component is rewritten; the last one to go removes this block. Take
+    // an entry out with its file: a path matching nothing still relaxes these
+    // rules for whatever is created there later.
     files: [
       'components/playground/settings.tsx',
       'components/kernel/context.tsx',

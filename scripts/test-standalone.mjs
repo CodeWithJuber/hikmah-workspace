@@ -19,8 +19,13 @@ const environment = {
   HIKMAH_OWNER_EMAIL: 'owner@example.test',
   // A run is now refused up front when a hosted provider has no key, which is
   // the point of that check — but it made these smoke assertions test the
-  // refusal instead of the run lifecycle they exist for. The value is never
-  // used: nothing here reaches a provider.
+  // refusal instead of the run lifecycle they exist for.
+  //
+  // The key is not a real one, but the runs it admits do dial openrouter.ai and
+  // wait for the 401. This comment used to claim nothing here reaches a
+  // provider; that was false, and believing it cost a CI failure that read as a
+  // primary-key error. smoke-http.mjs cancels every run it starts rather than
+  // waiting for that round trip.
   HIKMAH_PROVIDER_KEY: 'smoke-provider-key',
   SMOKE_EMAIL: 'owner@example.test',
   SMOKE_PASSWORD: randomBytes(24).toString('base64url'),
