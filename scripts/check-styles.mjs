@@ -218,7 +218,7 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 8, repeated: 93, extra: 131, paletteColours: 88 };
+const BASELINE = { colours: 8, repeated: 88, extra: 122, paletteColours: 88 };
 const actual = {
   colours: colours.size,
   repeated: repeated.length,

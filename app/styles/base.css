@@ -23,7 +23,7 @@
        followed by a fallback scaled to its metrics. Written `Inter, Arial,
        Helvetica` before, and nothing loaded Inter, so it was Arial. */
     font-family: var(--font-inter);
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     line-height: 1.5;
   }
   button,
@@ -46,20 +46,20 @@
     margin: 0;
   }
   h1 {
-    font-size: 32px;
+    font-size: var(--font-size-4xl);
     line-height: 1.2;
     font-weight: 700;
     letter-spacing: -0.7px;
   }
   h2 {
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
     line-height: 1.35;
     font-weight: 650;
     letter-spacing: -0.35px;
     margin-bottom: 16px;
   }
   h3 {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     font-weight: 650;
     margin-bottom: 10px;
   }
@@ -88,9 +88,9 @@
   [data-slot='input'],
   [data-slot='textarea'],
   [data-slot='select-trigger'] {
-    border-radius: 6px;
+    border-radius: var(--radius-element);
     box-shadow: none;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     line-height: 1.5;
   }
   /* Full width is a property of a field in a form, not of the element type: the
@@ -110,7 +110,7 @@
     min-height: 90px;
   }
   [data-slot='table'] {
-    font-size: 15px;
+    font-size: var(--font-size-base);
   }
   [data-slot='table-head'] {
     font-weight: 650;
@@ -136,11 +136,8 @@
   [data-slot='sidebar-inner'] {
     background: var(--muted);
   }
-  .app-shell {
-    --sidebar-width: 220px !important;
-  }
   .brand {
-    font-size: 28px;
+    font-size: var(--font-size-3xl);
     font-weight: 750;
     letter-spacing: -0.5px;
     padding: 17px 10px 12px;
@@ -196,7 +193,7 @@
   }
   .small-note {
     color: var(--muted-foreground);
-    font-size: 13px;
+    font-size: var(--font-size-base);
     line-height: 1.55;
   }
   .muted {
@@ -238,7 +235,7 @@
   .meaning-graph .role-label {
     font-family: Arial, Helvetica, sans-serif;
     fill: var(--muted-foreground);
-    font-size: 13px;
+    font-size: var(--font-size-base);
   }
   .meaning-graph rect {
     fill: var(--card);
@@ -255,7 +252,7 @@
     padding-top: 20px;
   }
   .rule code {
-    font-size: 15px;
+    font-size: var(--font-size-base);
     overflow-wrap: anywhere;
   }
   .contrast-fields {
@@ -295,7 +292,7 @@
   }
   .disclosure > summary {
     cursor: pointer;
-    font-size: 15px;
+    font-size: var(--font-size-base);
     font-weight: 550;
   }
   .disclosure[open] > summary {
@@ -307,7 +304,7 @@
     overflow: auto;
     padding: 14px;
     background: var(--muted);
-    border-radius: 6px;
+    border-radius: var(--radius-element);
   }
   .metric-row {
     display: flex;
@@ -322,12 +319,12 @@
     min-width: 105px;
   }
   .metric strong {
-    font-size: 27px;
+    font-size: var(--font-size-3xl);
     font-weight: 650;
     letter-spacing: -0.6px;
   }
   .metric span {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   .equation {
@@ -403,8 +400,6 @@
   }
   .train-input {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    font-size: 13px !important;
-    min-height: 210px !important;
   }
   .outcome {
     color: var(--success-text);
@@ -438,11 +433,11 @@
     place-items: center;
   }
   .timeline h3 {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     margin-bottom: 4px;
   }
   .timeline p {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   .chart {
@@ -484,7 +479,7 @@
     margin-top: 22px;
     padding: 20px;
     border: 1px dashed var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-element);
   }
   .root-row {
     display: grid;
@@ -494,7 +489,7 @@
     border-bottom: 1px solid var(--border);
   }
   .root-arabic {
-    font-size: 27px;
+    font-size: var(--font-size-3xl);
   }
   .source-list {
     padding-left: 20px;
@@ -536,25 +531,17 @@
     font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
-  @media (min-width: 1600px) {
-  }
   @media (max-width: 1100px) {
-    .app-shell {
-      --sidebar-width: 195px !important;
-    }
     .page-header h1 {
-      font-size: 29px;
+      font-size: var(--font-size-3xl);
     }
     .fields {
       gap: 16px;
     }
   }
   @media (max-width: 767px) {
-    h1 {
-      font-size: 27px !important;
-    }
     h2 {
-      font-size: 21px;
+      font-size: var(--font-size-xl);
     }
     .page-header {
       gap: 12px;
@@ -563,11 +550,11 @@
     }
     .page-header > button {
       height: 36px;
-      font-size: 13px;
+      font-size: var(--font-size-base);
       padding-inline: 12px;
     }
     .page-header p {
-      font-size: 15px;
+      font-size: var(--font-size-base);
     }
     .result-columns,
     .two-columns,
@@ -712,7 +699,7 @@
     height: 40px;
     font-size: var(--font-size-base);
     font-weight: 500;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) - 2px);
     padding-inline: 15px;
     gap: 8px;
     /* One duration for every control, so the whole product settles at the same
@@ -762,8 +749,8 @@
   [data-slot='input'],
   [data-slot='select-trigger'],
   [data-slot='textarea'] {
-    font-size: 15px;
-    border-radius: 9px;
+    font-size: var(--font-size-base);
+    border-radius: calc(var(--radius) - 2px);
     background: var(--card);
     color: var(--foreground);
     border-color: var(--input);
@@ -784,7 +771,7 @@
     min-height: 44px;
   }
   [data-slot='textarea'] {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
   [data-slot='dialog-overlay'],
   [data-slot='sheet-overlay'] {
@@ -805,7 +792,6 @@
     color: var(--sidebar-foreground);
   }
   .studio-shell.app-shell {
-    --sidebar-width: 248px !important;
     height: 100dvh;
     min-height: 100dvh;
     overflow: hidden;
@@ -814,18 +800,13 @@
   .workspace-main {
     height: 100dvh;
     min-width: 0;
-    max-width: none !important;
     background: var(--background);
-  }
-  .workspace-sidebar-header {
-    padding: 24px 16px 10px !important;
-    gap: 23px !important;
   }
   .hikmah-brand {
     display: flex;
     gap: 13px;
     align-items: center;
-    font-size: 25px;
+    font-size: var(--font-size-2xl);
     font-weight: 650;
     letter-spacing: -0.8px;
     padding: 0 10px;
@@ -866,7 +847,7 @@
     border-radius: var(--radius);
     background: var(--primary);
     color: var(--primary-foreground);
-    font-size: 15px;
+    font-size: var(--font-size-base);
     box-shadow: 0 3px 9px var(--shadow);
     transition:
       background 0.15s,
@@ -878,8 +859,6 @@
     color: var(--primary-foreground);
   }
   .workspace-sidebar-content {
-    padding: 0 12px !important;
-    gap: 0 !important;
     color: var(--sidebar-foreground);
   }
   .primary-nav button,
@@ -892,9 +871,9 @@
     background: none;
     border: 0;
     color: var(--sidebar-foreground);
-    font-size: 15px;
+    font-size: var(--font-size-base);
     text-align: left;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) - 2px);
     min-height: 44px;
   }
   .primary-nav button:hover,
@@ -908,10 +887,6 @@
   }
   .recent-row.active {
     background: var(--sidebar-accent);
-  }
-  .workspace-sidebar-footer {
-    padding: 14px 12px 17px !important;
-    gap: 4px !important;
   }
   .local-save {
     font-size: var(--font-size-sm);
@@ -928,7 +903,7 @@
     border-bottom: 1px solid var(--border);
   }
   .workspace-header h1 {
-    font-size: 23px;
+    font-size: var(--font-size-2xl);
     letter-spacing: -0.7px;
     font-weight: 650;
     line-height: 1.3;
@@ -941,7 +916,6 @@
   .icon-button[data-slot='button'] {
     height: 36px;
     width: 36px;
-    padding: 0 !important;
     border: 0;
     flex-shrink: 0;
     color: var(--muted-foreground);
@@ -969,7 +943,8 @@
     width: 100%;
     justify-content: flex-start;
     border-top: 1px solid var(--border);
-    border-radius: 0 0 9px 9px;
+    border-radius: var(--radius-none) var(--radius-none) calc(var(--radius) - 2px)
+      calc(var(--radius) - 2px);
   }
   .welcome {
     max-width: 650px;
@@ -982,7 +957,7 @@
     margin: 0 auto 21px;
   }
   .welcome h2 {
-    font-size: 30px;
+    font-size: var(--font-size-3xl);
     letter-spacing: -0.9px;
     line-height: 1.25;
     font-weight: 600;
@@ -990,7 +965,7 @@
   }
   .welcome > p {
     color: var(--muted-foreground);
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     max-width: 480px;
     margin: auto;
   }
@@ -998,7 +973,7 @@
     border: 0;
     background: none;
     color: var(--primary);
-    font-size: 13px;
+    font-size: var(--font-size-base);
     margin-top: 16px;
   }
   .chat-message.user {
@@ -1010,7 +985,8 @@
     position: relative;
     max-width: 87%;
     background: var(--user-bubble);
-    border-radius: 17px 17px 5px 17px;
+    border-radius: calc(var(--radius) + 4px) calc(var(--radius) + 4px) var(--radius-inner)
+      calc(var(--radius) + 4px);
     padding: 12px 17px;
   }
   .chat-message.user .markdown-content > p {
@@ -1027,7 +1003,7 @@
     margin-left: 0;
   }
   .markdown-content {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     line-height: 1.8;
     overflow-wrap: anywhere;
     min-width: 0;
@@ -1041,15 +1017,15 @@
     margin-bottom: 0;
   }
   .markdown-content h1 {
-    font-size: 25px;
+    font-size: var(--font-size-2xl);
     margin: 22px 0 14px;
   }
   .markdown-content h2 {
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
     margin: 20px 0 12px;
   }
   .markdown-content h3 {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     margin: 18px 0 9px;
   }
   .markdown-content ul,
@@ -1106,8 +1082,6 @@
   .chat-message.user:focus-within .user-actions {
     opacity: 1;
   }
-  @media (prefers-reduced-motion: reduce) {
-  }
   @keyframes thinking {
     50% {
       opacity: 0.3;
@@ -1125,7 +1099,7 @@
   .composer {
     border: 1px solid var(--input);
     background: var(--card);
-    border-radius: 14px;
+    border-radius: calc(var(--radius) + 4px);
     box-shadow: 0 4px 18px var(--shadow);
     overflow: hidden;
   }
@@ -1146,7 +1120,7 @@
     padding: 17px 19px 8px;
     border-radius: 0;
     line-height: 1.6;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
   .error-card {
     display: flex;
@@ -1156,7 +1130,7 @@
     color: var(--error-text);
     padding: 15px;
     border: 1px solid color-mix(in srgb, var(--error-text) 20%, transparent);
-    border-radius: 11px;
+    border-radius: var(--radius);
     margin: 12px 0;
   }
   .error-card > svg {
@@ -1173,7 +1147,7 @@
     display: block;
   }
   .error-card p {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     line-height: 1.6;
     margin-top: 6px;
   }
@@ -1212,7 +1186,7 @@
   }
   .run-settings-body .number-row {
     margin-top: 22px;
-    font-size: 13px;
+    font-size: var(--font-size-base);
   }
   .setting-switch {
     display: flex;
@@ -1232,7 +1206,7 @@
     font-weight: 500;
   }
   .setting-switch span {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     line-height: 1.5;
     color: var(--muted-foreground);
   }
@@ -1251,14 +1225,9 @@
     margin: 12px 0;
   }
   .settings-dialog {
-    width: 790px !important;
-    max-width: calc(100vw - 32px) !important;
-    max-height: min(92dvh, 890px) !important;
-    padding: 0 !important;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 0 !important;
   }
   .settings-heading {
     padding: 25px 28px 19px;
@@ -1328,11 +1297,11 @@
     flex: 1;
   }
   .settings-section-title h3 {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     margin: 0 0 3px;
   }
   .settings-section-title p {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   .settings-section-title > button {
@@ -1343,7 +1312,7 @@
     height: 29px;
     display: grid;
     place-items: center;
-    font-size: 13px;
+    font-size: var(--font-size-base);
     font-weight: 600;
     border: 1px solid var(--border);
     background: var(--secondary);
@@ -1376,7 +1345,7 @@
   .theme-options button {
     width: 140px;
     height: 60px;
-    font-size: 15px;
+    font-size: var(--font-size-base);
     gap: 12px;
   }
   .data-action {
@@ -1395,11 +1364,11 @@
     flex: 1;
   }
   .data-action strong {
-    font-size: 15px;
+    font-size: var(--font-size-base);
     font-weight: 600;
   }
   .data-action p {
-    font-size: 13px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
     margin-top: 4px;
   }
@@ -1407,7 +1376,7 @@
     margin-top: 7vh;
   }
   .coding-workspace .welcome h2 {
-    font-size: 26px;
+    font-size: var(--font-size-2xl);
   }
   .file-tabs > button.active {
     background: var(--sidebar-accent);
@@ -1428,7 +1397,7 @@
   }
   .syntax-editor .cm-scroller {
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-    font-size: 13px;
+    font-size: var(--font-size-base);
     line-height: 1.75;
     scrollbar-width: thin;
   }
@@ -1452,10 +1421,10 @@
     margin-bottom: 30px;
   }
   .lab-header h1 {
-    font-size: 27px;
+    font-size: var(--font-size-3xl);
   }
   .lab-header p {
-    font-size: 15px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
     margin-top: 5px;
   }
@@ -1490,7 +1459,7 @@
     margin: 0 0 6px;
   }
   .lab-directory p {
-    font-size: 15px;
+    font-size: var(--font-size-base);
     color: var(--muted-foreground);
   }
   .lab-directory > button:hover {
@@ -1524,7 +1493,7 @@
   }
   .lab-page .meaning-graph {
     background: white;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) - 2px);
   }
   .lab-page .timeline li:before {
     background: var(--card);
@@ -1537,15 +1506,12 @@
       padding-inline: 20px;
     }
     .workspace-header h1 {
-      font-size: 22px;
+      font-size: var(--font-size-2xl);
     }
   }
   @media (max-width: 767px) {
     .studio-shell.app-shell {
       height: 100dvh;
-    }
-    .workspace-sidebar-header {
-      padding-top: 23px !important;
     }
     .workspace-header {
       height: 64px;
@@ -1554,7 +1520,6 @@
       gap: 8px;
     }
     .workspace-header h1 {
-      font-size: 17px !important;
       letter-spacing: -0.3px;
     }
     .header-actions .model-picker {
@@ -1571,11 +1536,8 @@
       padding: 0 23px;
       margin: 6vh auto 25px;
     }
-    .welcome h2 {
-      font-size: 26px !important;
-    }
     .welcome > p {
-      font-size: 15px;
+      font-size: var(--font-size-base);
     }
     .welcome > svg {
       width: 36px;
@@ -1588,15 +1550,15 @@
       margin-left: 0;
     }
     .markdown-content {
-      font-size: 16px;
+      font-size: var(--font-size-lg);
     }
     .chat-message.user .chat-message-inner {
       max-width: 94%;
-      font-size: 15px;
+      font-size: var(--font-size-base);
     }
     .composer [data-slot='textarea'] {
       min-height: 70px;
-      font-size: 16px;
+      font-size: var(--font-size-lg);
       padding: 14px 15px 5px;
     }
     .composer-controls .icon-button {
@@ -1608,15 +1570,13 @@
       height: 40px;
     }
     .settings-dialog {
-      max-height: 94dvh !important;
-      max-width: calc(100vw - 20px) !important;
-      border-radius: 13px;
+      border-radius: var(--radius);
     }
     .settings-heading {
       padding: 20px 19px 16px;
     }
     .settings-heading [data-slot='dialog-title'] {
-      font-size: 22px;
+      font-size: var(--font-size-2xl);
     }
     .settings-tabs-list {
       padding: 0 12px;
@@ -1624,7 +1584,7 @@
       justify-content: space-between;
     }
     .settings-tabs-list [data-slot='tabs-trigger'] {
-      font-size: 13px;
+      font-size: var(--font-size-base);
       padding: 0 4px;
       gap: 6px;
     }
@@ -1645,7 +1605,7 @@
       margin-left: 38px;
     }
     .settings-section-title h3 {
-      font-size: 15px;
+      font-size: var(--font-size-base);
     }
     .settings-section-title p {
       font-size: var(--font-size-sm);
@@ -1657,7 +1617,7 @@
       padding: 12px;
     }
     .error-card strong {
-      font-size: 13px;
+      font-size: var(--font-size-base);
     }
     .error-card p {
       font-size: var(--font-size-sm);
@@ -1668,15 +1628,12 @@
     .lab-page {
       padding: 20px;
     }
-    .lab-header h1 {
-      font-size: 25px !important;
-    }
     .lab-directory > button {
       padding: 20px 5px;
       gap: 17px;
     }
     .lab-directory h2 {
-      font-size: 19px;
+      font-size: var(--font-size-xl);
     }
     .lab-directory p {
       font-size: var(--font-size-base);
