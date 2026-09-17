@@ -133,6 +133,15 @@ export function migrateRunCredentials(db) {
         changed++;
       }
     }
+    if (changed)
+      // Persist this in the same transaction as the rewrites. Encryption can
+      // succeed while an older reader still pins plaintext pages in the WAL.
+      // Storage startup must retry truncation even when there are no raw keys
+      // left to migrate after a restart.
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS hikmah_storage_maintenance (task TEXT PRIMARY KEY);
+         INSERT OR IGNORE INTO hikmah_storage_maintenance VALUES ('credential-scrub')`,
+      );
     db.exec('COMMIT');
     return changed;
   } catch (error) {

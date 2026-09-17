@@ -182,6 +182,62 @@ test('legacy plaintext is never accepted directly as executable configuration', 
   );
 });
 
+test('a busy credential scrub is retried after restart until the inherited plaintext WAL is removed', async (t) => {
+  env(t, 'HIKMAH_VAULT_KEY', master);
+  const directory = await mkdtemp(join(tmpdir(), 'hikmah-run-scrub-retry-'));
+  let reader, restarted;
+  t.after(async () => {
+    restarted?.close();
+    if (reader) {
+      if (reader.isTransaction) reader.exec('ROLLBACK');
+      reader.close();
+    }
+    await rm(directory, { recursive: true, force: true });
+  });
+  const seed = openStorage(directory);
+  createRunStore(seed.raw).createConversation({ id: 'chat', userId: 'alice' });
+  seed.raw
+    .prepare(
+      'INSERT INTO runs (id,conversation_id,user_id,status,config,created_at) VALUES (?,?,?,?,?,?)',
+    )
+    .run(
+      'legacy',
+      'chat',
+      'alice',
+      'waiting_approval',
+      JSON.stringify(config),
+      new Date().toISOString(),
+    );
+  reader = new DatabaseSync(join(directory, 'workspace.sqlite'));
+  reader.exec('BEGIN');
+  reader.prepare('SELECT config FROM runs WHERE id=?').get('legacy');
+  seed.close();
+
+  assert.throws(() => openStorage(directory), /exclusive storage access/);
+  assert.ok(
+    (await readFile(join(directory, 'workspace.sqlite-wal'))).includes(Buffer.from(privateKey)),
+    'the old reader retains the WAL containing the inherited plaintext',
+  );
+  assert.throws(
+    () => {
+      restarted = openStorage(directory);
+    },
+    /exclusive storage access/,
+    'restart must not skip cleanup merely because encryption already committed',
+  );
+
+  reader.exec('COMMIT');
+  restarted = openStorage(directory);
+  const run = createRunStore(restarted.raw).getRun('legacy');
+  assert.equal(run.status, 'waiting_approval');
+  assert.equal(executionRunConfig(run).apiKey, privateKey);
+  assert.ok(
+    !(await readFile(join(directory, 'workspace.sqlite'))).includes(Buffer.from(privateKey)),
+  );
+  const wal = await readFile(join(directory, 'workspace.sqlite-wal')).catch(() => Buffer.alloc(0));
+  assert.ok(!wal.includes(Buffer.from(privateKey)));
+});
+
 test('a provider error cannot echo its decrypted key into the failure row or log callback', async (t) => {
   const { db } = setup(t);
   let logged;

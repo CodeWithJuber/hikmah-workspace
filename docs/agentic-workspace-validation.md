@@ -15,7 +15,7 @@ This change adds a usable agentic chat surface, a consent-based exchange review 
 
 ## Automated verification
 
-Final results: 1,022 tests passed, none failed or skipped. Production compilation and TypeScript passed. ESLint completed with zero errors and 54 warnings; formatting, style, reachability and generated-palette checks passed. The standalone production restart smoke passed. The final browser run passed 21 workflow checks with zero uncaught errors.
+Final results: 1,023 tests passed, none failed or skipped. Production compilation and TypeScript passed. ESLint completed with zero errors and 54 warnings; formatting, style, reachability and generated-palette checks passed. The standalone production restart smoke passed. The final browser run passed 21 workflow checks with zero uncaught errors.
 
 Commands used:
 
@@ -34,7 +34,7 @@ NO_PROXY=localhost,127.0.0.1,::1 NODE_USE_ENV_PROXY=0 npm run test:production
 
 Loopback proxy exclusions are needed by this test environment. They are not a product change. The standalone smoke test creates a disposable account/database, checks authenticated HTTP behavior, and verifies persistence across a real process restart. Its existing hosted-provider probe uses a dummy credential and cancellation; it does not establish successful live-model behavior.
 
-Research tests independently compare 2,694 finite queries with a complete-table oracle and validate 3,492 proof certificates. These are software/finite-model checks, not natural-language accuracy measurements. Credential tests cover encryption, tenant/run/endpoint binding, wrong masters, tampering, pause/resume, terminal removal, physical live database/WAL scanning and diagnostic redaction.
+Research tests independently compare 2,694 finite queries with a complete-table oracle and validate 3,492 proof certificates. These are software/finite-model checks, not natural-language accuracy measurements. Credential tests cover encryption, tenant/run/endpoint binding, wrong masters, tampering, pause/resume, terminal removal, physical live database/WAL scanning, busy-checkpoint retry across process restarts, and diagnostic redaction.
 
 ## Browser verification
 
@@ -58,6 +58,6 @@ The two generated concepts are visual references, not screenshots. Actual browse
 
 ## Deployment and remaining release gates
 
-Keep the existing stable `HIKMAH_VAULT_KEY`, or the existing `BETTER_AUTH_SECRET` fallback, across deploys and restores. Losing that master prevents paused runs from decrypting their original credential snapshot. Live legacy SQLite/WAL records are upgraded; historical external backups are outside this migration. Back up the database and stable master through the operator's existing secure process before deployment.
+Keep the existing stable `HIKMAH_VAULT_KEY`, or the existing `BETTER_AUTH_SECRET` fallback, across deploys and restores. Losing that master prevents paused runs from decrypting their original credential snapshot. Live legacy SQLite/WAL records are upgraded. A persistent cleanup marker keeps blocked WAL truncation pending across restarts; startup refuses until cleanup can finish. Stop other database readers if the upgrade requests exclusive access. Historical external backups are outside this migration. Back up the database and stable master through the operator's existing secure process before deployment.
 
 Before calling the hosted platform commercially ready, record successful calls to the intended real providers, production-like reconnect/restart/cancel/approval journeys, load and concurrency results, subscription/webhook behavior, backup restore, and deployed privacy/retention behavior. No live deployment, billing event, load test or provider weight-training job was performed here. Stage 31/32 integration remains dependent on authoritative completed artifacts. Detailed acceptance requirements and primary research sources are in [agentic-platform-research.md](agentic-platform-research.md).
