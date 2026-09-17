@@ -10,16 +10,17 @@
  * of the process would mean the server never comes up.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
-  const { runService } = await import('./lib/runs/service');
-  const worker = runService();
-  worker.start();
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { runService } = await import('./lib/runs/service');
+    const worker = runService();
+    worker.start();
 
-  // Hand back anything in flight so the next boot resumes it rather than
-  // leaving it marked running with nobody driving it.
-  const shutdown = () => {
-    void worker.stop();
-  };
-  process.once('SIGTERM', shutdown);
-  process.once('SIGINT', shutdown);
+    // Hand back anything in flight so the next boot resumes it rather than
+    // leaving it marked running with nobody driving it.
+    const shutdown = () => {
+      void worker.stop();
+    };
+    process.once('SIGTERM', shutdown);
+    process.once('SIGINT', shutdown);
+  }
 }

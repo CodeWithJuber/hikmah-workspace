@@ -1,0 +1,28 @@
+{
+  "phase": "responsive",
+  "checks": [
+    "capture defaults off",
+    "draft survives learning navigation",
+    "keyboard command search opens learning",
+    "explicit capture consent persists",
+    "capture switch thumb stays within checked track",
+    "durable worker streams response and captures completed exchange",
+    "correction and approval persist with provenance",
+    "approved dataset exports as JSONL",
+    "approved correction reaches subsequent provider request as reference context",
+    "failed provider exchange is not captured",
+    "evidence entailment, retraction, stale receipt and ambiguity",
+    "owner co-model training and checkpoint workspace loads",
+    "real browser training worker fits annotations and server saves evaluated checkpoint",
+    "training draft and selected tab survive chat navigation",
+    "training workspace reflows at mobile and tablet widths",
+    "research workspace reflows at mobile and tablet widths",
+    "learning has no page overflow at 320, 360, 390, 768, 1024, 1440 and 1920px",
+    "chat has no page overflow at seven viewport widths",
+    "mobile drawer traps focus and Escape closes it",
+    "theme control updates the real theme",
+    "no uncaught browser errors"
+  ],
+  "errors": [],
+  "success": true
+}

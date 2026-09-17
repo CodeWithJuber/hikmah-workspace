@@ -3,15 +3,19 @@ import { mkdirSync, readdirSync, readFileSync, chmodSync } from 'node:fs';
 import { readFile, writeFile, rename, mkdir, unlink, lstat } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
+import { migrateRunCredentials } from './run-credentials.mjs';
 
 export function openStorage(directory, migrations = resolve('drizzle')) {
   const root = resolve(directory);
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(join(root, 'workspace.sqlite'));
   chmodSync(join(root, 'workspace.sqlite'), 0o600);
-  db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
   db.exec(
-    'CREATE TABLE IF NOT EXISTS hikmah_migrations (name TEXT PRIMARY KEY, sha256 TEXT NOT NULL)',
+    'PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA secure_delete=ON;',
+  );
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS hikmah_migrations (name TEXT PRIMARY KEY, sha256 TEXT NOT NULL);
+     CREATE TABLE IF NOT EXISTS hikmah_storage_maintenance (task TEXT PRIMARY KEY)`,
   );
   const files = readdirSync(migrations)
     .filter((x) => /^\d+.*\.sql$/.test(x))
@@ -26,6 +30,9 @@ export function openStorage(directory, migrations = resolve('drizzle')) {
       if (!applied) {
         db.exec(sql);
         db.prepare('INSERT INTO hikmah_migrations VALUES (?, ?)').run(name, hash);
+        // The cleanup obligation commits with the migration, so a blocked
+        // checkpoint or a process crash cannot lose it on the next startup.
+        db.exec("INSERT OR IGNORE INTO hikmah_storage_maintenance VALUES ('credential-scrub')");
       }
       db.exec('COMMIT');
     } catch (error) {
@@ -33,6 +40,24 @@ export function openStorage(directory, migrations = resolve('drizzle')) {
       db.close();
       throw error;
     }
+  }
+  try {
+    migrateRunCredentials(db);
+    // Rewrite secure-deleted pages into the main file and remove the old WAL.
+    // This applies to the SQL migration's terminal-key scrub as well.
+    if (
+      db.prepare("SELECT task FROM hikmah_storage_maintenance WHERE task='credential-scrub'").get()
+    ) {
+      const checkpoint = db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get();
+      if (Number(checkpoint?.busy ?? 0))
+        throw Error(
+          'Credential migration needs exclusive storage access. Stop other app instances and restart.',
+        );
+      db.exec("DELETE FROM hikmah_storage_maintenance WHERE task='credential-scrub'");
+    }
+  } catch (error) {
+    db.close();
+    throw error;
   }
   const DB = {
     prepare(sql) {

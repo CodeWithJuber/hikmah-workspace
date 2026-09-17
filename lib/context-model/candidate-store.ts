@@ -10,6 +10,7 @@
  * did not happen, not a conversation that did not send.
  */
 import { uncertainty, type Candidate } from './candidates.ts';
+import { DEFAULT_LEARNING_POLICY } from '../learning/types.ts';
 
 /** The subset of node:sqlite this needs. */
 export type SqliteHandle = {
@@ -68,6 +69,8 @@ export function createCandidateStore(
   };
 
   const sql = {
+    retention: 'SELECT retention_days FROM learning_policies WHERE user_id = ?',
+    expired: 'DELETE FROM context_candidates WHERE user_id = ? AND created_at < ?',
     // Last writer wins on the parse: a later turn was parsed by whatever
     // checkpoint is active now, which is the more useful starting point. The
     // review flag is deliberately not reset — a sentence dealt with stays
@@ -101,9 +104,26 @@ export function createCandidateStore(
           )`,
   };
 
+  // Enforce retention even when the owner opens the co-model directly and
+  // never visits the exchange queue. Older schemas use the safe default.
+  const purge = (userId: string) => {
+    const row = prepare(sql.retention)?.get(userId) as { retention_days?: number } | undefined;
+    const days =
+      row?.retention_days && [7, 30, 90].includes(row.retention_days)
+        ? row.retention_days
+        : DEFAULT_LEARNING_POLICY.retentionDays;
+    const cutoff = new Date(Date.parse(now()) - days * 86_400_000).toISOString();
+    prepare(sql.expired)?.run(userId, cutoff);
+  };
+
   return {
     /** Record what this turn found hard. Returns how many rows were written. */
     record(userId: string, candidates: readonly Candidate[]): number {
+      try {
+        purge(userId);
+      } catch {
+        return 0;
+      }
       // No statement means no table, which means nothing was recorded — saying
       // otherwise would report a queue that does not exist.
       const upsert = prepare(sql.upsert);
@@ -142,6 +162,7 @@ export function createCandidateStore(
     /** The hardest unreviewed sentences for one language. */
     queue(userId: string, language: string, limit = 20): QueuedCandidate[] {
       try {
+        purge(userId);
         return (
           (prepare(sql.queue)?.all(userId, language, Math.max(1, Math.min(500, limit))) as
             (Omit<QueuedCandidate, 'annotation'> & { annotation: string })[] | undefined) ?? []
@@ -154,6 +175,7 @@ export function createCandidateStore(
     /** How many are waiting, per language, so the screen can say so. */
     waiting(userId: string): Record<string, number> {
       try {
+        purge(userId);
         const rows = (prepare(sql.counts)?.all(userId) ?? []) as {
           language: string;
           waiting: number;
@@ -166,6 +188,11 @@ export function createCandidateStore(
 
     /** Mark sentences dealt with, so the queue does not offer them again. */
     reviewed(userId: string, language: string, fingerprints: readonly string[]): number {
+      try {
+        purge(userId);
+      } catch {
+        return 0;
+      }
       const stamp = now();
       let marked = 0;
       for (const fingerprint of fingerprints)

@@ -17,7 +17,7 @@
  *   npm run design:build     regenerate app/styles/palette.generated.css
  *   npm run design:check     fail if the committed file is stale
  *
- * The values below are the ones the product already wears: `#285d46` is the
+ * The values below are the ones the product already wears: `#17664f` is the
  * mark and the front door, and it carries text at 8.9:1 on white. 14px is
  * already this app's dominant body size, so the scale is anchored where the
  * rhythm already is rather than moving every screen a step.
@@ -32,7 +32,7 @@ export const hikmahTheme = defineTheme({
    * >= 4.5:1 against its own surface in both modes — which is the guarantee
    * that makes this worth a dependency. `cool` greys because the product's
    * greys already lean blue-green beside the mark. */
-  color: { accent: ['#285d46', '#7fd3aa'], neutralStyle: 'cool', contrast: 'standard' },
+  color: { accent: ['#17664f', '#7fd3aa'], neutralStyle: 'cool', contrast: 'standard' },
 
   /* 14px is what this app is already written at — 123 uses of it — so the
    * scale is anchored there rather than at Astryx's 16 default. 1.2 is the
@@ -73,7 +73,7 @@ export const hikmahTheme = defineTheme({
    * light-dark(), which is how this theme follows the `data-theme` the layout
    * already stamps from the cookie. */
   tokens: {
-    '--color-accent': ['#285d46', '#7fd3aa'],
+    '--color-accent': ['#17664f', '#7fd3aa'],
     // Changing an accent means owning the label that sits on it, in both modes.
     '--color-on-accent': ['#ffffff', '#10241b'],
     '--color-background-body': ['#ffffff', '#10241b'],
@@ -86,8 +86,8 @@ export const hikmahTheme = defineTheme({
      * only happened because the body was pinned and the surfaces were not.
      * Pinned together, a card is lighter than the page in dark and tinted
      * against it in light, which is the same relationship in both modes. */
-    '--color-background-surface': ['#f4fff9', '#16301f'],
-    '--color-background-card': ['#f4fff9', '#16301f'],
+    '--color-background-surface': ['#f6f8f9', '#16301f'],
+    '--color-background-card': ['#ffffff', '#16301f'],
     '--color-background-popover': ['#ffffff', '#1b3b28'],
     /* The edge of something you type into, which WCAG 2.2 holds to 3:1 against
      * what is behind it — a rule about UI components, not text, so the

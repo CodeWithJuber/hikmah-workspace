@@ -1,11 +1,8 @@
 /** The two pages a stranger looks for before trusting a workspace with their
  * work: what is kept, and on what terms.
  *
- * A public audit found the landing page making a strong privacy claim — "your
- * conversations, files and secrets are yours alone… nothing you write is used
- * to train anything" — with no policy anywhere to stand behind it, and no
- * contact of any kind. A claim with nothing behind it is worth less than no
- * claim.
+ * Keep the description of learning aligned with its separate controls for
+ * interaction capture, reviewed-example reuse and local syntax training.
  *
  * Everything stated here is read off what this codebase actually does. Where a
  * fact belongs to the operator rather than the code — who they are, where they
@@ -76,7 +73,7 @@ export function PrivacyBody() {
   return (
     <>
       <p className="landing-lede">
-        What this workspace keeps, where it goes, and what is never done with it.
+        What this workspace keeps, where it goes, and how you control its use.
       </p>
 
       <h2>What is stored</h2>
@@ -88,6 +85,12 @@ export function PrivacyBody() {
         <li>
           <strong>Your work.</strong> Conversations and their messages, the files your workspace
           holds, the notes you keep in Memory, and the settings you choose.
+        </li>
+        <li>
+          <strong>Learning examples, if you enable capture.</strong> Completed model requests and
+          responses can be saved for your review with their source conversation and model details.
+          Syntax-example collection has its own setting. Both collection settings are off by
+          default.
         </li>
         <li>
           <strong>Your provider keys.</strong> Encrypted before they are written, with your own
@@ -111,9 +114,10 @@ export function PrivacyBody() {
       <h2>Who else sees it</h2>
       <ul>
         <li>
-          <strong>The model provider you choose.</strong> A question you send is sent to the
-          provider set in your Connection settings, under that provider&rsquo;s own terms. Choosing
-          the provider is choosing who sees the prompt.
+          <strong>The model provider you choose.</strong> Your request and any selected context,
+          including memories or approved examples used in the request, are sent to the provider set
+          in your Connection settings, under that provider&rsquo;s own terms. Choosing the provider
+          is choosing who sees that context.
         </li>
         <li>
           <strong>Stripe</strong>, if you subscribe to a paid plan. Card details go to Stripe and
@@ -130,24 +134,37 @@ export function PrivacyBody() {
         </li>
       </ul>
 
-      <h2>What is never done</h2>
+      <h2>Learning and training</h2>
       <p>
-        Nothing you write is used to train a model. The workspace runs models; it does not build
-        them. Web search runs through this deployment&rsquo;s own search service rather than sending
-        your query to a search company under your name.
+        Interaction capture is off by default. If you enable it, captured examples wait for your
+        review. Approved examples can guide later responses when example reuse is enabled; this does
+        not change a provider model&rsquo;s weights. Turning capture off stops new collection;
+        example reuse is a separate control.
+      </p>
+      <p>
+        Collecting syntax examples is a separate opt-in. Training the local syntax co-model requires
+        reviewed annotations and an explicit training action. It changes that local model, not the
+        external provider&rsquo;s model. Provider handling of requests remains subject to that
+        provider&rsquo;s own terms.
+      </p>
+      <p>
+        Web search runs through this deployment&rsquo;s own search service rather than sending your
+        query to a search company under your name.
       </p>
 
       <h2>Your control</h2>
       <p>
         You can read, edit and delete your conversations, files and memories from inside the
         workspace at any time, and remove a saved provider key from Settings. Deleting a
-        conversation removes its messages. To have an account and everything under it removed, ask
-        below.
+        conversation removes its messages. Learning settings let you review or delete captured
+        examples and control capture and example reuse separately. To have an account and everything
+        under it removed, ask below.
       </p>
 
       <h2>How long it is kept</h2>
       <p>
-        Your work is kept until you delete it or ask for the account to be removed. Backups of the
+        Your conversations, files and memories are kept until you delete them or ask for the account
+        to be removed. Captured learning examples have their own retention setting. Backups of the
         whole deployment are kept for a short window so a failure can be recovered from, and roll
         off after that. The operator of this deployment sets the exact window.
       </p>

@@ -11,6 +11,7 @@
 // actually produces, rather than a driver that invents a tidy id.
 // Run: node --test tests/runs-answer-identity.test.mjs
 import test from 'node:test';
+import './fixtures/vault.mjs';
 import assert from 'node:assert/strict';
 import { applySchema } from './schema.mjs';
 import { DatabaseSync } from 'node:sqlite';
@@ -19,7 +20,7 @@ import { createWorker } from '../lib/runs/worker.ts';
 const config = JSON.stringify({
   baseUrl: 'https://openrouter.ai/api/v1',
   model: 'a/b:free',
-  apiKey: 'k',
+  apiKey: 'fixture-provider-key-for-durable-tests',
   instructions: 'test',
 });
 

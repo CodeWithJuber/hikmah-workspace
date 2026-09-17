@@ -218,7 +218,10 @@ const extra = repeated.reduce((total, [, n]) => total + n - 1, 0);
  *
  * Twice it went up because the measurement got honest, never because the file
  * did. That is the only reason it may. */
-const BASELINE = { colours: 8, repeated: 88, extra: 122, paletteColours: 88 };
+// The workspace concept separates a white card from a cool-gray rail and changes
+// the accent seed. Its regenerated light/dark ramp contains two more colors;
+// authored-color and duplicate-selector ceilings remain unchanged.
+const BASELINE = { colours: 8, repeated: 88, extra: 122, paletteColours: 90 };
 const actual = {
   colours: colours.size,
   repeated: repeated.length,

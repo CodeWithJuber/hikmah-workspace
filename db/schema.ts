@@ -89,3 +89,30 @@ export const contextCandidates = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.language, table.fingerprint] })],
 );
+
+export const learningPolicies = sqliteTable('learning_policies', {
+  userId: text('user_id').primaryKey(),
+  enabled: integer('enabled').notNull().default(0),
+  useApproved: integer('use_approved').notNull().default(1),
+  collectSyntax: integer('collect_syntax').notNull().default(0),
+  retentionDays: integer('retention_days').notNull().default(30),
+  revision: integer('revision').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const learningExamples = sqliteTable('learning_examples', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  runId: text('run_id').notNull(),
+  conversationId: text('conversation_id').notNull(),
+  model: text('model').notNull(),
+  provider: text('provider').notNull(),
+  status: text('status').notNull().default('pending'),
+  prompt: text('prompt').notNull(),
+  response: text('response').notNull(),
+  correction: text('correction'),
+  redactions: text('redactions').notNull(),
+  createdAt: text('created_at').notNull(),
+  reviewedAt: text('reviewed_at'),
+  revision: integer('revision').notNull().default(0),
+});

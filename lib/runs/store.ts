@@ -12,6 +12,8 @@
  * This module imports nothing from Next, the kernel, or the browser modules, so
  * the worker can be tested without a server.
  */
+import { createLearningStore } from '../learning/store.ts';
+import { sealRunConfig } from '../../server/run-credentials.mjs';
 
 export type RunStatus =
   | 'queued'
@@ -174,7 +176,9 @@ export function createRunStore(
     ),
     getRun: db.prepare('SELECT * FROM runs WHERE id = ?'),
     setStatus: db.prepare('UPDATE runs SET status = ? WHERE id = ?'),
-    finish: db.prepare('UPDATE runs SET status = ?, error = ?, ended_at = ? WHERE id = ?'),
+    finish: db.prepare(`UPDATE runs SET status = ?, error = ?, ended_at = ?,
+      config = CASE WHEN json_valid(config) THEN json_remove(config, '$.apiKey', '$.providerCredential') ELSE '{}' END
+      WHERE id = ?`),
     bumpSteps: db.prepare('UPDATE runs SET step_count = step_count + 1 WHERE id = ?'),
     // A process that dies mid-run leaves rows marked running with nobody
     // driving them. Requeue on boot and on shutdown so the work resumes instead
@@ -440,7 +444,12 @@ export function createRunStore(
         input.id,
         input.conversationId,
         input.userId,
-        JSON.stringify(input.config),
+        JSON.stringify({
+          ...sealRunConfig(input.config, { id: input.id, user_id: input.userId }),
+          // Server-owned consent snapshot. Never trust a caller-supplied one,
+          // and never apply a later opt-in to an already queued conversation.
+          learning: createLearningStore(db, now).consent(input.userId),
+        }),
         now(),
         Number.isFinite(input.priority) ? Math.trunc(input.priority as number) : 0,
       );

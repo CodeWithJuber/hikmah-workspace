@@ -34,6 +34,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { z } from 'zod';
+import { safeDiagnostic } from '../../runs/safe-error.ts';
 
 export type LaneStatus = 'queued' | 'running' | 'done' | 'failed' | 'skipped';
 
@@ -76,6 +77,8 @@ export type DeepResearchContext = {
   signal: AbortSignal;
   /** Whether the run is on a free key: lanes run sequentially and fewer. */
   freeOnly: boolean;
+  /** In-memory credentials to remove from provider diagnostics before publish. */
+  diagnosticSecrets?: readonly string[];
   /** Writes the progress card into the run's stream. */
   publish?: (view: ResearchView) => void;
   /** One call per finished lane, so each lane's tokens become a usage row. */
@@ -289,9 +292,7 @@ export async function deepResearch(
           ? 'Out of time.'
           : rate
             ? 'Rate-limited by the provider.'
-            : error instanceof Error && error.message
-              ? error.message
-              : 'The lane failed.',
+            : safeDiagnostic(error, context.diagnosticSecrets, 'The lane failed.'),
       });
     }
   };

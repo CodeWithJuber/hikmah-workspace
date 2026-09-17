@@ -30,17 +30,23 @@ import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
 import { createChatSettingsStore } from '../chat/settings-store.ts';
 import { grantsFor } from '../chat/approvals.ts';
+import { captureCompletedRun } from '../learning/server.ts';
+import type { LearningConsent } from '../learning/types.ts';
+import { executionRunConfig } from '../../server/run-credentials.mjs';
+import { safeDiagnostic } from './safe-error.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
 }
 
-/** Configuration stored on a run, written when it is created. */
+/** Per-request configuration. The durable row replaces apiKey with an
+ * authenticated encrypted snapshot; it is decrypted only while executing. */
 export type RunConfig = {
   baseUrl: string;
   model: string;
   freeOnly: boolean;
   apiKey: string;
+  learning?: LearningConsent;
   /** Whether the deployment's own key is paying for this run, decided at
    * creation from the person's tier. Recorded so usage can be charged against
    * an allowance without re-deriving who was entitled to what. */
@@ -124,7 +130,7 @@ async function driveWithAgent({
   signal: AbortSignal;
   emit: (chunk: unknown) => number;
 }) {
-  const config = JSON.parse(run.config) as RunConfig;
+  const config = executionRunConfig(run) as RunConfig;
   // Absent means no. This read used to be `!== false`, so a config that simply
   // did not carry the key was granted the workbench shell and SSH — a gate
   // failing in the one direction a gate must not. See lib/runs/execution.ts.
@@ -230,7 +236,12 @@ async function driveWithAgent({
       // loses the figures entirely because they were never a row.
       messageMetadata: ({ part }) =>
         part.type === 'finish'
-          ? { model: config.model, usage: part.totalUsage, finishedAt: Date.now() }
+          ? {
+              model: config.model,
+              usage: part.totalUsage,
+              finishedAt: Date.now(),
+              finishReason: part.finishReason,
+            }
           : undefined,
       // Without this the SDK redacts every failure to "An error occurred." and
       // emits that as the error chunk — so a missing key, a rejected model and
@@ -240,8 +251,7 @@ async function driveWithAgent({
       // This is a single-owner deployment talking to a provider the owner
       // configured, so the provider's own words are theirs to see. It is the
       // only way to tell "you have no key" from "that model does not exist".
-      onError: (error) =>
-        error instanceof Error && error.message ? error.message : 'The run failed.',
+      onError: (error) => safeDiagnostic(error, [config.apiKey]),
     });
 
     // Tee the chunks: one copy into the durable log, one into the fold that
@@ -282,7 +292,7 @@ async function driveWithAgent({
               onError: (error) =>
                 console.error(
                   '[hikmah] closing step failed:',
-                  error instanceof Error ? error.message : error,
+                  safeDiagnostic(error, [config.apiKey]),
                 ),
             })) {
               push(name(chunk));
@@ -413,6 +423,7 @@ export function runService(): Worker {
   const worker = createWorker({
     db: storage.raw,
     drive: driveWithAgent,
+    onCompleted: captureCompletedRun,
     // Two by default: a chat and, beside it, one background task. The last
     // slot is always a chat's, so a task never makes a conversation wait.
     concurrency: runConcurrency(process.env.HIKMAH_RUN_CONCURRENCY),

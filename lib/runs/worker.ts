@@ -14,6 +14,8 @@ import { describeFailure, operatorRun, NO_ANSWER } from './failure.ts';
 import { answerIdFor } from './answer-id.ts';
 import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
+import { executionRunConfig } from '../../server/run-credentials.mjs';
+import { safeDiagnostic } from './safe-error.ts';
 
 /** How often to look for queued work when idle. */
 const POLL_MS = 400;
@@ -93,6 +95,13 @@ export type WorkerOptions = {
    * is claimed only while no other task is running. */
   concurrency?: number;
   onError?: (error: unknown, run: RunRow) => void;
+  /** Runs after a successful answer is durable. Its failure must never turn a
+   * completed conversation into a failed one. Pauses/cancellation skip it. */
+  onCompleted?: (input: {
+    run: RunRow;
+    messages: unknown[];
+    message: unknown;
+  }) => Promise<void> | void;
 };
 
 export type Worker = {
@@ -204,10 +213,33 @@ export function createWorker(options: WorkerOptions): Worker {
           // Recorded as one, it left a transcript showing the working and then
           // nothing at all — no answer, no error, and nothing to press.
           else if (result?.silent) store.finish(run.id, 'failed', NO_ANSWER);
-          else store.finish(run.id, 'done');
+          else {
+            store.finish(run.id, 'done');
+            if (result?.message && options.onCompleted) {
+              try {
+                await options.onCompleted({
+                  run,
+                  messages: store.listMessages(run.conversation_id),
+                  message: result.message,
+                });
+              } catch {
+                // No raw exception: it could contain the provider key that
+                // the privacy filter was resolving. The answer stays done.
+                console.error('[hikmah] completed exchange was not captured');
+              }
+            }
+          }
         }
       } catch (error) {
-        options.onError?.(error, run);
+        let key = '';
+        try {
+          key = executionRunConfig(run).apiKey;
+        } catch {
+          /* Decryption errors are already generic. */
+        }
+        const safe = new Error(safeDiagnostic(error, key ? [key] : []));
+        if (error instanceof Error) safe.name = error.name;
+        options.onError?.(safe, run);
         if (controller.signal.aborted) store.finish(run.id, 'cancelled');
         else
           // The provider's own words where there are any, and a sentence the
@@ -220,7 +252,7 @@ export function createWorker(options: WorkerOptions): Worker {
           store.finish(
             run.id,
             'failed',
-            describeFailure(error, { operator: operatorRun(run.config) }),
+            describeFailure(safe, { operator: operatorRun(run.config) }),
           );
       } finally {
         running.delete(run.id);

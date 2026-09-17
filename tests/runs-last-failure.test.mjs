@@ -6,6 +6,7 @@
 // explanation. The transcript endpoint has to hand the reason over.
 // Run: node --test tests/runs-last-failure.test.mjs
 import test from 'node:test';
+import './fixtures/vault.mjs';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { applySchema } from './schema.mjs';
@@ -26,7 +27,7 @@ const config = {
   baseUrl: 'https://openrouter.ai/api/v1',
   model: 'a/b',
   freeOnly: true,
-  apiKey: 'k',
+  apiKey: 'fixture-provider-key-for-durable-tests',
   instructions: 'x',
 };
 

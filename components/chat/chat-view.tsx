@@ -9,7 +9,7 @@
  * What that buys, and what the old surface could not do: close the tab
  * mid-answer, come back, and the answer is still being written.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import { hasAnsweredQuestion } from '@/lib/runs/resume';
 import { useChat } from '@ai-sdk/react';
@@ -32,8 +32,25 @@ import {
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
 import type { FileUIPart, LanguageModelUsage } from 'ai';
-import { Columns2, Globe, GraduationCap, Paperclip, Telescope, X } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
+import {
+  ArrowUp,
+  BookOpen,
+  Check,
+  Code2,
+  Columns2,
+  Download,
+  Globe,
+  GraduationCap,
+  KeyRound,
+  LoaderCircle,
+  Paperclip,
+  Scale,
+  Search,
+  Square,
+  Telescope,
+  WifiOff,
+  X,
+} from 'lucide-react';
 import {
   Context,
   ContextCacheUsage,
@@ -61,6 +78,15 @@ import { MessageParts, messageText } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { clientFetch } from '@/lib/client/request';
+import {
+  CHAT_INTENTS,
+  currentRunActivity,
+  failureAction,
+  readConversationDraft,
+  transcriptMarkdown,
+  writeConversationDraft,
+  type ChatIntent,
+} from './chat-experience';
 
 /** What the run recorded about itself when it finished. Written by the worker
  * onto the answer, so it survives a reload rather than living in this tab. */
@@ -87,6 +113,52 @@ const WINDOW = 40;
 const ACCEPT = 'image/*,text/*,.md,.markdown,.json,.csv,.pdf';
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
+
+const INTENT_ICONS = { research: Search, build: Code2, compare: Scale, learn: BookOpen };
+const onlineSnapshot = () => navigator.onLine;
+const serverOnlineSnapshot = () => true;
+function subscribeOnline(notify: () => void) {
+  window.addEventListener('online', notify);
+  window.addEventListener('offline', notify);
+  return () => {
+    window.removeEventListener('online', notify);
+    window.removeEventListener('offline', notify);
+  };
+}
+
+function SendControl({
+  busy,
+  stopping,
+  blocked,
+  draft,
+  halt,
+}: {
+  busy: boolean;
+  stopping: boolean;
+  blocked: boolean;
+  draft: string;
+  halt: () => void;
+}) {
+  const attachments = usePromptInputAttachments();
+  return (
+    <PromptInputSubmit
+      className="chat-send-control"
+      status={busy ? 'streaming' : 'ready'}
+      onStop={halt}
+      disabled={stopping || (!busy && (blocked || (!draft.trim() && !attachments.files.length)))}
+      aria-label={stopping ? 'Stopping response' : busy ? 'Stop response' : 'Send message'}
+      title={busy ? 'Stop response' : 'Send message (Enter)'}
+    >
+      {stopping ? (
+        <LoaderCircle size={20} className="spin" aria-hidden="true" />
+      ) : busy ? (
+        <Square size={16} aria-hidden="true" />
+      ) : (
+        <ArrowUp size={20} aria-hidden="true" />
+      )}
+    </PromptInputSubmit>
+  );
+}
 
 /** The files staged for the next message. Rendered here because the library
  * offers the state and the picker but no list, and a file you cannot see or
@@ -173,8 +245,7 @@ export type ChatViewProps = {
   onSettled?: () => void;
   /** Shown when the conversation is empty. */
   empty?: React.ReactNode;
-  /** Offered on an empty conversation. Sent as written rather than dropped in
-   * the composer: a starter is a question someone already decided to ask. */
+  /** Offered on an empty conversation. A starter fills a draft for review. */
   starters?: string[];
   /** The models the provider offers, with what the catalogue says about each.
    * Empty while it loads, or when the provider publishes none. */
@@ -278,6 +349,32 @@ export function ChatView({
   // The "learn this in the background" dialog. Opened from the `+` menu and
   // rendered outside it, because a menu unmounts its content when it closes.
   const [learning, setLearning] = useState(false);
+  const [intent, setIntent] = useState<ChatIntent | null>(null);
+  const [draft, setDraft] = useState(() => {
+    try {
+      return readConversationDraft(window.sessionStorage, id);
+    } catch {
+      return '';
+    }
+  });
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [attachmentError, setAttachmentError] = useState('');
+  const [stopState, setStopState] = useState<'idle' | 'stopping' | 'stopped' | 'unconfirmed'>(
+    'idle',
+  );
+  const [exported, setExported] = useState(false);
+  const online = useSyncExternalStore(subscribeOnline, onlineSnapshot, serverOnlineSnapshot);
+  const updateDraft = useCallback(
+    (value: string) => {
+      setDraft(value);
+      try {
+        setDraftSaved(writeConversationDraft(window.sessionStorage, id, value));
+      } catch {
+        setDraftSaved(false);
+      }
+    },
+    [id],
+  );
   // The stored failure is shown until this conversation does something else.
   // Reset during render rather than in an effect, because an effect would show
   // the previous conversation's failure for one frame after switching.
@@ -344,6 +441,9 @@ export function ChatView({
     (messages.at(-1)?.parts ?? []).some(
       (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
     );
+  const activity = currentRunActivity(messages.at(-1));
+  const failure = error?.message || (!retried ? initialError : '') || '';
+  const recovery = failureAction(failure);
 
   // The most recent answer's own figures. Earlier turns each carry their own,
   // but the composer is about the next message, so the latest is the one that
@@ -369,42 +469,72 @@ export function ChatView({
   // second, the run would finish into the log with nobody watching.
   const halt = useCallback(() => {
     const runId = transport.activeRun();
-    void stop();
-    if (runId) void cancelRun(runId);
-  }, [transport, stop]);
+    setStopState('stopping');
+    void (async () => {
+      await stop();
+      const confirmed = runId ? await cancelRun(runId) : false;
+      setStopState(confirmed ? 'stopped' : 'unconfirmed');
+      onSettled?.();
+    })().catch(() => setStopState('unconfirmed'));
+  }, [transport, stop, onSettled]);
 
-  // Dictation writes straight into the textarea rather than through
-  // PromptInputProvider. The provider would lift the attachment state out of
-  // PromptInput too, and its own `add` applies none of the accept, count or
-  // size limits the local one does — so wrapping for the sake of the text would
-  // quietly drop the caps on the files. The textarea is uncontrolled and its
-  // value is read from the form on submit, so writing to it is enough.
+  // Keep text controlled while retaining PromptInput's validated attachments.
   const composer = useRef<HTMLTextAreaElement>(null);
-  const dictate = useCallback((text: string) => {
-    const field = composer.current;
-    if (!field) return;
-    field.value = field.value ? field.value.trimEnd() + ' ' + text : text;
-    field.focus();
-  }, []);
 
   // The question being rewritten, if any. Sending while this is set replaces
   // that message rather than adding one, and the server truncates the turns it
   // started — so the conversation reads as though it had been asked that way.
   const [editing, setEditing] = useState<string | null>(null);
-  const beginEdit = useCallback((message: UIMessage) => {
-    const field = composer.current;
-    if (!field) return;
-    field.value = messageText(message);
-    field.focus();
-    // The caret goes to the end, because the common edit is adding to a
-    // question rather than replacing it.
-    field.setSelectionRange(field.value.length, field.value.length);
-    setEditing(message.id);
-  }, []);
+  const draftBeforeEdit = useRef('');
+  const dictate = useCallback(
+    (text: string) => {
+      const next = draft ? draft.trimEnd() + ' ' + text : text;
+      if (editing) setDraft(next);
+      else updateDraft(next);
+      composer.current?.focus();
+    },
+    [draft, editing, updateDraft],
+  );
+  const beginEdit = useCallback(
+    (message: UIMessage) => {
+      draftBeforeEdit.current = draft;
+      setDraft(messageText(message));
+      composer.current?.focus();
+      setEditing(message.id);
+    },
+    [draft],
+  );
   const cancelEdit = useCallback(() => {
     setEditing(null);
-    if (composer.current) composer.current.value = '';
-  }, []);
+    updateDraft(draftBeforeEdit.current);
+  }, [updateDraft]);
+
+  const chooseIntent = useCallback(
+    (choice: ChatIntent) => {
+      setIntent(choice);
+      setDeepResearch(choice === 'research');
+      setWebSearch(choice === 'research');
+      setCompare(choice === 'compare');
+      if (!draft.trim() || Object.values(CHAT_INTENTS).some((option) => option.prompt === draft))
+        updateDraft(CHAT_INTENTS[choice].prompt);
+      composer.current?.focus();
+    },
+    [draft, updateDraft],
+  );
+
+  const exportTranscript = useCallback(() => {
+    const url = URL.createObjectURL(
+      new Blob([transcriptMarkdown(messages)], { type: 'text/markdown;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hikmah-conversation-${id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)}.md`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setExported(true);
+  }, [id, messages]);
 
   // The three handlers the transcript needs, each created once.
   //
@@ -428,9 +558,12 @@ export function ChatView({
     ({ text, files }: { text?: string; files?: FileUIPart[] }) => {
       const trimmed = (text ?? '').trim();
       // A file on its own is a message: "look at this" is a complete request.
-      if ((!trimmed && !files?.length) || busy) return;
+      if ((!trimmed && !files?.length) || busy || stopState === 'stopping' || needsKey || !online)
+        return;
       // Whatever failed before, this turn supersedes it.
       setRetried(true);
+      setStopState('idle');
+      setAttachmentError('');
 
       if (editing) {
         setEditing(null);
@@ -456,13 +589,25 @@ export function ChatView({
           ),
         );
         void regenerate({ messageId: editing });
-        if (composer.current) composer.current.value = '';
+        updateDraft(draftBeforeEdit.current);
         return;
       }
 
       void sendMessage({ text: trimmed, files });
+      updateDraft('');
     },
-    [busy, editing, messages, regenerate, sendMessage, setMessages],
+    [
+      busy,
+      editing,
+      messages,
+      regenerate,
+      sendMessage,
+      setMessages,
+      stopState,
+      needsKey,
+      online,
+      updateDraft,
+    ],
   );
 
   // What each model costs, for the receipt under every answer.
@@ -473,27 +618,31 @@ export function ChatView({
 
   return (
     <PricingContext.Provider value={pricing}>
-      <div className="chat-view">
+      <div className={'chat-view' + (messages.length === 0 ? ' is-empty' : '')}>
         {banner}
-        <Conversation>
-          <ConversationContent>
-            {messages.length === 0 && (
-              <div className="chat-welcome">
-                {empty}
-                {needsKey && onOpenSettings ? (
-                  <ConnectModelCard onOpenSettings={onOpenSettings} />
-                ) : null}
-                {!needsKey && !!starters?.length && (
-                  <div className="chat-starters">
-                    {starters.map((prompt) => (
-                      <button key={prompt} type="button" onClick={() => submit({ text: prompt })}>
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+        {messages.length > 0 && (
+          <div className="chat-transcript-toolbar">
+            <span>
+              {messages.filter((message) => message.role === 'user').length} prompts in this
+              conversation
+            </span>
+            <button
+              type="button"
+              onClick={exportTranscript}
+              title="Download the visible answers and sources as Markdown"
+            >
+              {exported ? (
+                <Check size={16} aria-hidden="true" />
+              ) : (
+                <Download size={16} aria-hidden="true" />
+              )}
+              Export chat
+            </button>
+          </div>
+        )}
+        <Conversation className="chat-transcript" aria-label="Conversation messages">
+          <ConversationContent className="chat-transcript-content">
+            {messages.length === 0 && <div className="chat-welcome">{empty}</div>}
             {hidden > 0 && (
               <button type="button" className="chat-earlier" onClick={() => setShowEarlier(true)}>
                 Show {hidden} earlier {hidden === 1 ? 'message' : 'messages'}
@@ -540,14 +689,22 @@ export function ChatView({
               before writing a word, looked like nothing had happened. It
               disappears the moment real text arrives, because the answer is a
               better indicator than any label. */}
-            {busy && !streamingText && (
-              <div className="chat-thinking" role="status">
+            {busy && (
+              <div className="chat-thinking chat-run-progress" role="status">
                 <span className="chat-thinking-dots" aria-hidden="true">
                   <i />
                   <i />
                   <i />
                 </span>
-                <span>{status === 'submitted' ? 'Sending…' : 'Working on it…'}</span>
+                <span>
+                  {!online
+                    ? 'Connection lost — reconnect when you’re online'
+                    : status === 'submitted'
+                      ? 'Sending your request…'
+                      : activity.label}
+                </span>
+                {activity.completed > 0 && <small>{activity.completed} tools completed</small>}
+                {streamingText && <span className="sr-only">Response is streaming.</span>}
               </div>
             )}
             {/* The answer region is announced while a run is in progress, so a
@@ -559,189 +716,349 @@ export function ChatView({
           <ConversationScrollButton />
         </Conversation>
 
-        {/* The live failure first; the stored one only while nothing has been
+        <div className="chat-composer-area">
+          {!online && (
+            <div className="chat-connection-notice" role="status">
+              <WifiOff size={16} aria-hidden="true" />
+              <span>
+                You’re offline. Your draft is still here. Reconnect to check the latest response.
+              </span>
+              <button type="button" onClick={() => window.location.reload()}>
+                Reconnect
+              </button>
+            </div>
+          )}
+          {stopState !== 'idle' && !busy && (
+            <div className="chat-connection-notice" role="status">
+              <span>
+                {stopState === 'stopping'
+                  ? 'Stopping the run…'
+                  : stopState === 'stopped'
+                    ? 'Response stopped. You can continue from here.'
+                    : 'The stream stopped, but the server has not confirmed cancellation.'}
+              </span>
+              {stopState === 'unconfirmed' && (
+                <button type="button" onClick={() => window.location.reload()}>
+                  Check status
+                </button>
+              )}
+              {stopState === 'stopped' && (
+                <button
+                  type="button"
+                  onClick={() => setStopState('idle')}
+                  aria-label="Dismiss stopped notice"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          )}
+          {/* The live failure first; the stored one only while nothing has been
           sent since, so pressing Try again cannot leave the old reason sitting
           under the new answer. */}
-        {(error || (initialError && !retried)) && (
-          <div className="chat-error" role="alert">
-            <p>{error ? error.message : initialError}</p>
-            {/* A run paused on a card this tab has lost track of — answered
+          {!!failure && (
+            <div className="chat-error" role="alert">
+              <strong>
+                {recovery === 'reconnect'
+                  ? 'Connection interrupted'
+                  : 'This request needs attention'}
+              </strong>
+              <p>{failure}</p>
+              {/* A run paused on a card this tab has lost track of — answered
                 once and refused, or answered from another tab — is put right by
                 reloading, which shows the card again from the stored turn.
                 Try again would re-send into the same refusal. */}
-            {/waiting for you|Reload the conversation/.test(
-              error ? error.message : (initialError ?? ''),
-            ) ? (
-              <button type="button" onClick={() => window.location.reload()}>
-                Reload
-              </button>
-            ) : /No API key/.test(error ? error.message : (initialError ?? '')) &&
-              onOpenSettings ? (
-              // The fix is a key, not a retry: open where it goes.
-              <button type="button" onClick={onOpenSettings}>
-                Add a key
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setRetried(true);
-                  void regenerate();
-                }}
-              >
-                Try again
-              </button>
-            )}
-          </div>
-        )}
-
-        <PromptInput
-          onSubmit={submit}
-          accept={ACCEPT}
-          multiple
-          globalDrop
-          maxFiles={MAX_FILES}
-          maxFileSize={MAX_FILE_BYTES}
-        >
-          <PromptInputBody>
-            {editing && (
-              <p className="chat-editing" role="status">
-                Editing an earlier question. Sending replaces it, and every reply after it.
-                <button type="button" onClick={cancelEdit}>
-                  Cancel
+              {recovery === 'reload' || recovery === 'reconnect' ? (
+                <button type="button" onClick={() => window.location.reload()}>
+                  {recovery === 'reconnect' ? 'Reconnect to saved run' : 'Reload conversation'}
                 </button>
-              </p>
-            )}
-            <StagedAttachments />
-            <PromptInputTextarea
-              ref={composer}
-              // The transcript sets dir="auto" on every rendered message and the
-              // composer never did, so typing Urdu or Arabic stayed left-aligned
-              // with the caret and the punctuation on the wrong side — the one
-              // place in the app where the owner writes rather than reads.
-              dir="auto"
-              placeholder={
-                editing ? 'Rewrite your question…' : 'Ask anything, or describe what to build.'
+              ) : recovery === 'configure' && onOpenSettings ? (
+                // The fix is a key, not a retry: open where it goes.
+                <button type="button" onClick={onOpenSettings}>
+                  Add a key
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy || !online}
+                  onClick={() => {
+                    setRetried(true);
+                    setStopState('idle');
+                    void regenerate();
+                  }}
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+
+          <PromptInput
+            className="chat-composer"
+            onSubmit={submit}
+            accept={ACCEPT}
+            multiple
+            globalDrop
+            maxFiles={MAX_FILES}
+            maxFileSize={MAX_FILE_BYTES}
+            onError={(issue) => setAttachmentError(issue.message)}
+            onSubmitCapture={(event) => {
+              if (busy || needsKey || !online || stopState === 'stopping') {
+                event.preventDefault();
+                event.stopPropagation();
               }
-            />
-          </PromptInputBody>
-          <PromptInputFooter className="chat-composer-row">
-            <PromptInputTools className="chat-composer-tools">
-              <PromptInputActionMenu>
-                {/* An icon-only trigger with no name at all: a screen reader
+            }}
+          >
+            <PromptInputBody>
+              {editing && (
+                <p className="chat-editing" role="status">
+                  Editing an earlier question. Sending replaces it, and every reply after it.
+                  <button type="button" onClick={cancelEdit}>
+                    Cancel
+                  </button>
+                </p>
+              )}
+              <StagedAttachments />
+              {(webSearch || deepResearch || compare) && (
+                <div className="chat-selected-modes" aria-label="Modes for this request">
+                  {webSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setWebSearch(false)}
+                      aria-label="Turn off web search"
+                    >
+                      <Globe size={12} /> Search <X size={12} />
+                    </button>
+                  )}
+                  {deepResearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDeepResearch(false)}
+                      aria-label="Turn off deep research"
+                    >
+                      <Telescope size={12} /> Research <X size={12} />
+                    </button>
+                  )}
+                  {compare && (
+                    <button
+                      type="button"
+                      onClick={() => setCompare(false)}
+                      aria-label="Turn off comparison"
+                    >
+                      <Columns2 size={12} /> Compare <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+              <PromptInputTextarea
+                ref={composer}
+                value={draft}
+                onChange={(event) => {
+                  if (editing) setDraft(event.currentTarget.value);
+                  else updateDraft(event.currentTarget.value);
+                }}
+                aria-label={editing ? 'Edit your message' : 'Message Hikmah'}
+                aria-describedby="chat-composer-hint"
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing &&
+                    (busy || needsKey || !online || stopState === 'stopping')
+                  )
+                    event.preventDefault();
+                }}
+                // The transcript sets dir="auto" on every rendered message and the
+                // composer never did, so typing Urdu or Arabic stayed left-aligned
+                // with the caret and the punctuation on the wrong side — the one
+                // place in the app where the owner writes rather than reads.
+                dir="auto"
+                placeholder={
+                  editing
+                    ? 'Rewrite your question…'
+                    : 'Ask a question, attach a file, or describe a task…'
+                }
+              />
+            </PromptInputBody>
+            <PromptInputFooter className="chat-composer-row">
+              <PromptInputTools className="chat-composer-tools">
+                <PromptInputActionMenu>
+                  {/* An icon-only trigger with no name at all: a screen reader
                     announced "button" and nothing else, and there was no
                     tooltip on a pointer either. */}
-                <PromptInputActionMenuTrigger
-                  aria-label="Attach a file, and more for this message"
-                  title="Attach a file, and more"
-                />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                  {/* Comparing two answers is an expert's question about the
+                  <PromptInputActionMenuTrigger
+                    aria-label="Attach a file, and more for this message"
+                    title="Attach a file, and more"
+                  >
+                    <Paperclip size={20} aria-hidden="true" />
+                  </PromptInputActionMenuTrigger>
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                    <DropdownMenuCheckboxItem
+                      checked={webSearch}
+                      onCheckedChange={setWebSearch}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <Globe className="mr-2 size-4" aria-hidden="true" /> Search the web
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={deepResearch}
+                      onCheckedChange={setDeepResearch}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <Telescope className="mr-2 size-4" aria-hidden="true" /> Research in parallel
+                    </DropdownMenuCheckboxItem>
+                    {/* Comparing two answers is an expert's question about the
                     product, asked once and then rarely. It was a labelled
                     checkbox on the main row, permanently occupying width that
                     the model name needed, in front of everyone who only wanted
                     to type a message. */}
-                  <DropdownMenuCheckboxItem
-                    checked={compare}
-                    onCheckedChange={setCompare}
-                    onSelect={(event) => event.preventDefault()}
-                  >
-                    <Columns2 className="mr-2 size-4" aria-hidden="true" />
-                    Also answer without tools
-                  </DropdownMenuCheckboxItem>
-                  {/* A task is handed off, not sent: it becomes its own
+                    <DropdownMenuCheckboxItem
+                      checked={compare}
+                      onCheckedChange={setCompare}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <Columns2 className="mr-2 size-4" aria-hidden="true" />
+                      Also answer without tools
+                    </DropdownMenuCheckboxItem>
+                    {/* A task is handed off, not sent: it becomes its own
                     conversation and this one stays free to type in. */}
-                  <DropdownMenuItem onSelect={() => setLearning(true)}>
-                    <GraduationCap className="mr-2 size-4" aria-hidden="true" />
-                    Learn this in the background…
-                  </DropdownMenuItem>
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-              <VoiceInput disabled={busy} onText={dictate} />
-              {/* The two ways a question changes shape, on the row where it is
-                typed. "Research deeply" was a checkbox inside the `+` menu,
-                which is where nobody looking for "search the web" looks, and
-                there was no plain search switch at all: the model searched when
-                it felt like it. Both are per turn and show their state here. */}
-              <Toggle
-                pressed={webSearch}
-                onPressedChange={setWebSearch}
-                className="chat-turn-toggle rounded-full"
-                aria-label="Search the web for this message"
-                title="Search the web for this message"
-              >
-                <Globe size={16} aria-hidden="true" />
-                <span className="chat-turn-label">Search</span>
-              </Toggle>
-              {/* Sub-agents fanned out over the question, each reading its own
-                sources. A choice for a question, not a setting. */}
-              <Toggle
-                pressed={deepResearch}
-                onPressedChange={setDeepResearch}
-                className="chat-turn-toggle rounded-full"
-                aria-label="Research deeply: sub-agents read sources in parallel"
-                title="Research deeply: sub-agents read sources in parallel"
-              >
-                <Telescope size={16} aria-hidden="true" />
-                <span className="chat-turn-label">Research</span>
-              </Toggle>
-              {/* The model before the tools: on a phone the row wraps after
+                    <DropdownMenuItem onSelect={() => setLearning(true)}>
+                      <GraduationCap className="mr-2 size-4" aria-hidden="true" />
+                      Learn this in the background…
+                    </DropdownMenuItem>
+                    {onOpenSettings && (
+                      <DropdownMenuItem onSelect={onOpenSettings}>
+                        <KeyRound className="mr-2 size-4" aria-hidden="true" /> Model connections
+                        and API keys
+                      </DropdownMenuItem>
+                    )}
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+                {onTools && (
+                  <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
+                )}
+                {/* The model before the tools: on a phone the row wraps after
                 Research, and the second line then reads model first, which is
                 the thing people change; the tool count is the detail. */}
-              {onModel && (
-                <ModelPicker
-                  models={models ?? []}
-                  value={run.model}
-                  onSelect={onModel}
-                  loading={modelsLoading}
-                  error={modelsError}
-                  className="chat-model-select"
-                  local={allModelsFree(run.baseUrl)}
-                />
-              )}
-              {onTools && (
-                <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
-              )}
-            </PromptInputTools>
-            {/* The meter is a diagnostic, and it was on screen permanently: a bare
+                {onModel && (
+                  <ModelPicker
+                    models={models ?? []}
+                    value={run.model}
+                    onSelect={onModel}
+                    loading={modelsLoading}
+                    error={modelsError}
+                    className="chat-model-select"
+                    local={allModelsFree(run.baseUrl)}
+                  />
+                )}
+              </PromptInputTools>
+              {/* The meter is a diagnostic, and it was on screen permanently: a bare
               percentage beside a spinner, meaning nothing to most people, taking
               room on the row the send button needed. Every answer already
               carries its own token count in its receipt, so this is only worth
               showing once the window is actually filling up and the next message
               is at risk of losing the beginning of the conversation. */}
-            {spent?.usage && crowded && (
-              <Context
-                maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
-                modelId={spent.model ?? run.model}
-                usage={spent.usage}
-                usedTokens={spent.usage.totalTokens ?? 0}
-              >
-                <ContextTrigger />
-                <ContextContent>
-                  <ContextContentHeader />
-                  <ContextContentBody>
-                    <ContextInputUsage />
-                    <ContextOutputUsage />
-                    <ContextReasoningUsage />
-                    <ContextCacheUsage />
-                  </ContextContentBody>
-                  <ContextContentFooter />
-                </ContextContent>
-              </Context>
-            )}
-            {/* Doubles as Stop while a run is in flight.
+              {spent?.usage && crowded && (
+                <Context
+                  maxTokens={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
+                  modelId={spent.model ?? run.model}
+                  usage={spent.usage}
+                  usedTokens={spent.usage.totalTokens ?? 0}
+                >
+                  <ContextTrigger />
+                  <ContextContent>
+                    <ContextContentHeader />
+                    <ContextContentBody>
+                      <ContextInputUsage />
+                      <ContextOutputUsage />
+                      <ContextReasoningUsage />
+                      <ContextCacheUsage />
+                    </ContextContentBody>
+                    <ContextContentFooter />
+                  </ContextContent>
+                </Context>
+              )}
+              {/* Doubles as Stop while a run is in flight.
               After a failure the button is passed 'ready', not 'error': the
               component renders an ✕ for an errored chat, and on a phone that
               read as "stop" or "blocked" on a button that in fact sends —
               reported as "beech me stuck". The card above already says what
               went wrong; a button you can press should look like one. */}
-            <PromptInputSubmit
-              status={status === 'error' ? 'ready' : status}
-              onClick={busy ? halt : undefined}
-            />
-          </PromptInputFooter>
-        </PromptInput>
+              <VoiceInput disabled={busy || !!editing} onText={dictate} />
+              <SendControl
+                busy={busy}
+                stopping={stopState === 'stopping'}
+                blocked={needsKey || !online}
+                draft={draft}
+                halt={halt}
+              />
+            </PromptInputFooter>
+          </PromptInput>
+          {attachmentError && (
+            <p className="chat-attachment-error" role="alert">
+              {attachmentError}{' '}
+              <button
+                type="button"
+                onClick={() => setAttachmentError('')}
+                aria-label="Dismiss attachment error"
+              >
+                <X size={12} />
+              </button>
+            </p>
+          )}
+          {messages.length === 0 && (
+            <div className="chat-intent-shortcuts" role="group" aria-label="Start with a task">
+              {(Object.keys(CHAT_INTENTS) as ChatIntent[]).map((choice) => {
+                const Icon = INTENT_ICONS[choice];
+                return (
+                  <button
+                    type="button"
+                    key={choice}
+                    aria-pressed={intent === choice}
+                    onClick={() => chooseIntent(choice)}
+                    title={CHAT_INTENTS[choice].detail}
+                  >
+                    <Icon size={20} aria-hidden="true" />
+                    {CHAT_INTENTS[choice].label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
+          <div className="chat-composer-hint" id="chat-composer-hint">
+            <span>
+              {intent
+                ? CHAT_INTENTS[intent].detail
+                : 'Enter to send · Shift + Enter for a new line'}
+            </span>
+            {draftSaved && draft && !editing && (
+              <span className="chat-draft-saved">
+                <Check size={12} aria-hidden="true" /> Draft saved in this tab
+              </span>
+            )}
+          </div>
+          {messages.length === 0 && !!starters?.length && (
+            <details className="chat-agent-suggestions">
+              <summary>Ideas for this agent</summary>
+              <div className="chat-starters">
+                {starters.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => {
+                      updateDraft(prompt);
+                      composer.current?.focus();
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
         <LearnTaskDialog
           open={learning}
           onOpenChange={setLearning}
