@@ -25,11 +25,15 @@ import { knowledgeForRun } from '../knowledge/run-knowledge.ts';
 import { createMemoryStore } from '../memory/store.ts';
 import { createRecall, recallPrompt } from '../memory/recall.ts';
 import type { RecalledConversation, UsedMemory } from './service.ts';
+import { createLearningStore } from '../learning/store.ts';
+import { reviewedExamplePrompt } from '../learning/retrieval.ts';
+import { redactLearningText } from '../learning/privacy.ts';
+import { learningSecrets } from '../learning/server.ts';
 
 /**
  * Who may spend what on this run, and why not.
  *
- * The key is resolved once, here, and stored on the run so the worker can
+ * The key is resolved once, here, and encrypted on the run so the worker can
  * drive it after the request has gone. It is never returned to the browser.
  * The deployment's own key used to be the fallback for anyone signed in, which
  * is invisible with one account and an open bar with two.
@@ -95,7 +99,28 @@ export async function contextBriefFor(userId: string, messages: UIMessage[]): Pr
     // are kept for the owner to correct rather than discarded with the parse.
     // Inside this try, and after the block is computed, so a queue that cannot
     // be written costs the queue and never the notes or the message.
-    if (graph) createCandidateStore(storage.raw).record(userId, candidatesFrom(graph));
+    try {
+      const learning = createLearningStore(storage.raw);
+      const consent = learning.policy(userId);
+      if (graph && consent.collectSyntax) {
+        // Collection is a separate opt-in from using context notes. Only the
+        // latest user turn is eligible: enabling this cannot backfill history.
+        const currentText = recentUserText(messages, 1);
+        const secrets = await learningSecrets(userId);
+        const candidates = candidatesFrom(graph).filter(
+          (candidate) =>
+            currentText.includes(candidate.text) &&
+            redactLearningText(candidate.text, secrets).redactions.length === 0,
+        );
+        // Annotation and surface text must agree, so sensitive sentences are
+        // skipped rather than replacing words without rebuilding their grammar.
+        const still = learning.policy(userId);
+        if (still.collectSyntax && still.revision === consent.revision)
+          createCandidateStore(storage.raw).record(userId, candidates);
+      }
+    } catch {
+      // Failed collection must not discard the already-computed context notes.
+    }
     return block ? '\n\n' + block : '';
   } catch (error) {
     console.error(
@@ -151,8 +176,14 @@ export async function knowledgeFor(
     const hits = options.recall
       ? createRecall(storage.raw).recall(userId, query, options.conversationId)
       : [];
+    let learned = '';
+    try {
+      learned = reviewedExamplePrompt(query, createLearningStore(storage.raw).approved(userId));
+    } catch {
+      /* A missing learning aid must not discard saved memories. */
+    }
     return {
-      block: block ? '\n' + block : '',
+      block: [block, learned].filter(Boolean).join('\n\n'),
       recall: recallPrompt(hits),
       used,
       conversations: hits.map((hit) => ({ id: hit.conversationId, title: hit.title })),

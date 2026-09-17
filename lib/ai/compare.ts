@@ -15,6 +15,7 @@
  */
 import { convertToModelMessages, streamText, type LanguageModel, type UIMessage } from 'ai';
 import { createLanguageModel, type ModelRequest } from './models.ts';
+import { safeDiagnostic } from '../runs/safe-error.ts';
 
 /** The one part id the lane writes to. Later chunks replace earlier ones, so
  * the transcript holds the finished comparison rather than a hundred fragments. */
@@ -124,7 +125,11 @@ export async function runComparison(options: CompareOptions): Promise<CompareVie
     else
       publish({
         status: 'failed',
-        error: error instanceof Error ? error.message : 'The comparison did not finish.',
+        error: safeDiagnostic(
+          error,
+          [options.provider.apiKey ?? ''],
+          'The comparison did not finish.',
+        ),
       });
   }
 

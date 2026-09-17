@@ -119,6 +119,25 @@ test('each lane reports its own usage, so each can become a usage row', async ()
   assert.deepEqual(seen[0][1], { inputTokens: 100, outputTokens: 10 });
 });
 
+test('a provider error cannot write the run credential into research progress', async () => {
+  const credential = 'fixture-provider-credential-for-research';
+  const published = [];
+  await deepResearch(
+    base({
+      diagnosticSecrets: [credential],
+      publish: (view) => published.push(structuredClone(view)),
+      runLane: async () => {
+        throw Error('The upstream rejected ' + credential + ' for this model.');
+      },
+    }),
+    { question: 'q' },
+  );
+  const diagnostic = published.at(-1).lanes[0].error;
+  assert.match(diagnostic, /The upstream rejected/);
+  assert.match(diagnostic, /\[credential redacted\]/);
+  assert.equal(JSON.stringify(published).includes(credential), false);
+});
+
 test('the time cap ends a lane that never settles', async () => {
   const runLane = (_q, signal) =>
     new Promise((_, reject) =>

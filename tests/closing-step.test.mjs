@@ -70,7 +70,9 @@ async function drive(agent, closingModel, hooks = {}) {
     agent,
     uiMessages: [userTurn],
     messageMetadata: ({ part }) =>
-      part.type === 'finish' ? { model: 'a/b:free', usage: part.totalUsage } : undefined,
+      part.type === 'finish'
+        ? { model: 'a/b:free', usage: part.totalUsage, finishReason: part.finishReason }
+        : undefined,
   });
   const raw = [];
   const wrapped = [];
@@ -95,6 +97,31 @@ const text = (message) =>
     .filter((part) => part.type === 'text')
     .map((part) => part.text)
     .join('');
+
+test('a truncated closing answer cannot inherit the silent request’s successful finish reason', async () => {
+  const closing = words('The incomplete answer starts');
+  closing[closing.length - 1] = { type: 'finish', finishReason: { unified: 'length' }, usage };
+  const { agent, closingModel } = scenario(
+    [toolCall('calculate', { expression: '2+2' }), silence],
+    closing,
+  );
+  const { raw, wrapped } = await drive(agent, closingModel);
+  assert.equal((await fold(raw)).metadata.finishReason, 'stop');
+  assert.equal((await fold(wrapped)).metadata.finishReason, 'length');
+});
+
+test('a closing stream that fails after writing partial text records an error finish reason', async () => {
+  const { agent, closingModel } = scenario(
+    [toolCall('calculate', { expression: '2+2' }), silence],
+    [
+      { type: 'text-start', id: '0' },
+      { type: 'text-delta', id: '0', delta: 'Partial output' },
+      { type: 'error', error: new Error('provider stream failed') },
+    ],
+  );
+  const { wrapped } = await drive(agent, closingModel);
+  assert.equal((await fold(wrapped)).metadata.finishReason, 'error');
+});
 
 test('a loop that ends on a tool result with no words gets one forced answering step', async () => {
   const { agent, closingModel, asked } = scenario(

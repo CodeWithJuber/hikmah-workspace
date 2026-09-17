@@ -208,6 +208,7 @@ export function buildRunAgent(options: RunAgentOptions) {
         instructions: options.instructions,
         signal: options.signal,
         freeOnly: options.provider.freeOnly === true,
+        diagnosticSecrets: [options.provider.apiKey ?? ''],
         publish: (view: ResearchView) =>
           options.onData?.({ type: 'data-' + RESEARCH_PART_ID, id: RESEARCH_PART_ID, data: view }),
         onLaneUsage: options.onLaneUsage,

@@ -130,6 +130,16 @@ function addUsage(metadata: unknown, extra: LanguageModelUsage): unknown {
   };
 }
 
+/** The final provider request determines whether the answer completed. Keeping
+ * the silent request's `stop` after a truncated/failed fallback would falsely
+ * qualify that partial answer for the learning queue. */
+function finalReason(metadata: unknown, finishReason: string): unknown {
+  return {
+    ...(metadata && typeof metadata === 'object' ? metadata : {}),
+    finishReason,
+  };
+}
+
 /**
  * The source stream, with one forced answering step appended when it ended
  * silent.
@@ -235,10 +245,15 @@ export async function* withClosingStep(
           written.push(chunk);
           yield chunk;
         }
-        if (!failed && held.type === 'finish')
+        if (held.type === 'finish')
           held = {
             ...held,
-            messageMetadata: addUsage(held.messageMetadata, await result.totalUsage),
+            messageMetadata: failed
+              ? finalReason(held.messageMetadata, 'error')
+              : finalReason(
+                  addUsage(held.messageMetadata, await result.totalUsage),
+                  await result.finishReason,
+                ),
           };
 
         // Still nothing, or a refusal: once more, flat. The tool-role
@@ -279,14 +294,21 @@ export async function* withClosingStep(
             }
             yield chunk;
           }
-          if (!flatFailed && held.type === 'finish')
+          if (held.type === 'finish')
             held = {
               ...held,
-              messageMetadata: addUsage(held.messageMetadata, await flat.totalUsage),
+              messageMetadata: flatFailed
+                ? finalReason(held.messageMetadata, 'error')
+                : finalReason(
+                    addUsage(held.messageMetadata, await flat.totalUsage),
+                    await flat.finishReason,
+                  ),
             };
         }
       }
     } catch (error) {
+      if (held?.type === 'finish')
+        held = { ...held, messageMetadata: finalReason(held.messageMetadata, 'error') };
       options.onError?.(error);
     }
   }

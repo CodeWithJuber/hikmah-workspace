@@ -15,12 +15,6 @@
    renders twice, once as MathML and once as HTML. @streamdown/math names this
    exact path from its getStyles() and leaves the import to the app. */
 @import 'katex/dist/katex.min.css';
-/* Amiri: the naskh face the redesign uses for the two Arabic flourishes (the
-   auth hero wordmark and the empty-state basmala). Latin UI text stays on
-   Inter; this is loaded only for those Arabic glyphs. Imports must precede
-   rules, so it sits with the other font/vendor imports at the top. */
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-
 /* The product's own rules, in `@layer components`, one file per run of what
  * used to be this file. This order IS the cascade for two rules of equal
  * specificity, so it is the order they were already in and must not be
@@ -49,14 +43,9 @@
 @import './styles/memory.css';
 @import './styles/overrides.css';
 
-/* The v10 UI/UX redesign. Both files live in `@layer overrides`, which the
-   layer statement above sorts last, so they recolour and restyle every screen
-   by source order without editing the per-screen files or any component.
-   tokens.override.css re-points the brand palette; redesign.css carries the
-   layout, elevation, motion and the two Arabic flourishes. Remove these two
-   imports to revert the app to its previous look. */
-@import './styles/tokens.override.css';
-@import './styles/redesign.css';
+@import './styles/workspace-experience.css';
+@import './styles/chat-experience.css';
+@import './styles/learning.css';
 
 /* The workspace stamps its theme on the root element, and Tailwind's `dark:`
    variant otherwise means `prefers-color-scheme`. Without this the two

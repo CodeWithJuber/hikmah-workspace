@@ -25,14 +25,11 @@ import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { GrantHandler } from './approval-card';
 import { clientFetch } from '@/lib/client/request';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
-const STARTERS = [
-  'Turn my client brief into a clear proposal.',
-  'Help me write and adapt content for my audience.',
-  'Review code or notes from an attached file.',
-];
+const STARTERS: string[] = [];
 
 /** Openers for an agent that has its own kind of work.
  *
@@ -74,7 +71,7 @@ const FALLBACK: RunConfig = {
   instructions: HIKMAH_CORE,
 };
 
-type Loaded = { config: RunConfig; messages: UIMessage[]; error?: string };
+type Loaded = { conversationId: string; config: RunConfig; messages: UIMessage[]; error?: string };
 
 /** What a catalogue depends on: change any of these and it is stale. */
 const catalogueKey = (config?: RunConfig) =>
@@ -142,19 +139,19 @@ type SavedConnection = {
 async function loadMessages(
   conversationId: string,
 ): Promise<{ messages: UIMessage[]; error?: string }> {
-  try {
-    const response = await clientFetch(
-      `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
-      {},
-    );
-    if (!response.ok) return { messages: [] };
-    const payload = (await response.json()) as { messages?: UIMessage[]; error?: string };
-    return { messages: payload.messages ?? [], error: payload.error };
-  } catch {
-    // An unreadable transcript is worth starting without; refusing to open the
-    // chat over it would be a worse answer than an empty one.
-    return { messages: [] };
-  }
+  const response = await clientFetch(
+    `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
+    { signal: AbortSignal.timeout(20_000) },
+  );
+  const payload = (await response.json().catch(() => null)) as {
+    messages?: UIMessage[];
+    error?: string;
+  } | null;
+  if (!response.ok)
+    throw new Error(payload?.error || 'Your conversation could not be loaded. Please try again.');
+  if (!Array.isArray(payload?.messages))
+    throw new Error('The saved conversation could not be read. Please try again.');
+  return { messages: payload.messages, error: payload.error };
 }
 
 export function ChatPreview({
@@ -197,6 +194,11 @@ export function ChatPreview({
   onSettled?: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [loadFailure, setLoadFailure] = useState<{
+    conversationId: string;
+    message: string;
+  } | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   // The catalogue, and which connection it was loaded for: "loading" is the
   // connection having moved on from that, not a flag an effect has to set.
   const [catalog, setCatalog] = useState<{ key: string; rows: PickerModel[]; error: string }>({
@@ -210,13 +212,25 @@ export function ChatPreview({
 
   useEffect(() => {
     let live = true;
-    void Promise.all([loadConfig(), loadMessages(conversationId)]).then(([config, stored]) => {
-      if (live) setLoaded({ config, messages: stored.messages, error: stored.error });
-    });
+    void Promise.all([loadConfig(), loadMessages(conversationId)])
+      .then(([config, stored]) => {
+        if (live) {
+          setLoaded({ conversationId, config, messages: stored.messages, error: stored.error });
+          setLoadFailure(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (live)
+          setLoadFailure({
+            conversationId,
+            message:
+              error instanceof Error ? error.message : 'Your conversation could not be loaded.',
+          });
+      });
     return () => {
       live = false;
     };
-  }, [conversationId]);
+  }, [conversationId, loadAttempt]);
 
   // The connection as it is now, not as it was when this mounted. Saving a
   // different provider in Settings changed the run's endpoint at once but the
@@ -227,7 +241,7 @@ export function ChatPreview({
   // would point a run at OpenRouter for a frame.
   const live = settingsReady ? settings.connection : undefined;
   const config = useMemo<RunConfig | undefined>(() => {
-    if (!loaded) return undefined;
+    if (!loaded || loaded.conversationId !== conversationId) return undefined;
     if (!live) return loaded.config;
     return {
       ...loaded.config,
@@ -236,7 +250,7 @@ export function ChatPreview({
       freeOnly: live.freeOnly,
       apiKeySecret: live.apiKeySecret || loaded.config.apiKeySecret,
     };
-  }, [loaded, live]);
+  }, [loaded, live, conversationId]);
   // A model picked for the next turn belongs to the provider it was picked
   // from. When the endpoint changes, the pick is stale; reset during render
   // rather than in an effect, so no frame shows the old one against the new.
@@ -309,8 +323,25 @@ export function ChatPreview({
       {/* No page heading here: the topbar already names the app, and a
           paragraph explaining that runs are server-side was repeating an
           implementation detail above every conversation. */}
-      {loaded && config ? (
+      {loadFailure?.conversationId === conversationId ? (
+        <section className="chat-load-failure" role="alert">
+          <AlertCircle size={32} aria-hidden="true" />
+          <h2>We couldn’t open this conversation</h2>
+          <p>{loadFailure.message}</p>
+          <p>Your saved messages haven’t been replaced. Try loading them again.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadFailure(null);
+              setLoadAttempt((attempt) => attempt + 1);
+            }}
+          >
+            <RefreshCw size={16} aria-hidden="true" /> Retry loading
+          </button>
+        </section>
+      ) : loaded?.conversationId === conversationId && config ? (
         <ChatView
+          key={conversationId}
           id={conversationId}
           run={{
             ...loaded.config,
@@ -364,6 +395,7 @@ export function ChatPreview({
             <div className="chat-greeting">
               <HikmahIcon name="orbit" size={32} />
               <h2>What are we working on?</h2>
+              <p>Research, build, and learn in one conversation.</p>
             </div>
           }
         />

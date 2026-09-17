@@ -17,6 +17,7 @@ import {
 } from '@/components/ai-elements/confirmation';
 import { ApprovalCard, type GrantHandler } from './approval-card';
 import {
+  AlertCircle,
   Bookmark,
   BookmarkCheck,
   Check,
@@ -33,7 +34,6 @@ import {
   MessageResponse,
   MessageToolbar,
 } from '@/components/ai-elements/message';
-import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import { describeWorking, groupParts, toolLabel } from '@/lib/chat/working';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
@@ -61,6 +61,41 @@ export type RespondToQuestion = (response: { toolCallId: string; answer: string 
 
 /** Saves a message to memory. Returns how it was filed, or null on failure. */
 export type RememberMessage = (message: UIMessage) => Promise<'saved' | 'suggested' | null>;
+
+function CopyAction({ message }: { message: UIMessage }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const label =
+    state === 'copied'
+      ? 'Copied'
+      : state === 'failed'
+        ? 'Copy failed — select the text to copy'
+        : message.role === 'user'
+          ? 'Copy message'
+          : 'Copy answer';
+  return (
+    <MessageAction
+      tooltip={label}
+      aria-label={label}
+      disabled={!messageText(message)}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(messageText(message));
+          setState('copied');
+        } catch {
+          setState('failed');
+        }
+      }}
+    >
+      {state === 'copied' ? (
+        <Check size={16} />
+      ) : state === 'failed' ? (
+        <AlertCircle size={16} />
+      ) : (
+        <Copy size={16} />
+      )}
+    </MessageAction>
+  );
+}
 
 /** The Remember control on a message.
  *
@@ -439,7 +474,7 @@ function MessagePartsInner({
   // every code block in it. Profiled on a 4x-throttled phone: the TextMate
   // regex engine was 61% of all CPU during one answer.
   const streaming = status === 'streaming' && isLast;
-  const settled = status !== 'streaming' && status !== 'submitted';
+  const settled = !isLast || (status !== 'streaming' && status !== 'submitted');
   const sources = useMemo(() => sourceParts(message), [message]);
   const answered = message.role === 'assistant' && settled;
   // Copy, read aloud and answer again all act on the text of an answer. A turn
@@ -449,7 +484,7 @@ function MessagePartsInner({
   const hasText = message.parts.some(
     (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
   );
-  const asked = message.role === 'user' && settled;
+  const asked = message.role === 'user';
   // Both rewrite the transcript from this message on, so both are offered only
   // when nothing else is in flight. Derived here rather than passed in, so the
   // parent hands down one stable function instead of one closure per message.
@@ -477,9 +512,18 @@ function MessagePartsInner({
     // A Set, not `!working.includes(part)`: that was O(parts²) by identity, and
     // a long agent turn carries 30-80 parts.
     const inWorking = new Set(groups.working);
+    const completed = groups.working.filter(
+      (part) => 'state' in part && part.state === 'output-available',
+    );
+    const failed = groups.working.filter(
+      (part) =>
+        'state' in part && (part.state === 'output-error' || part.state === 'output-denied'),
+    ).length;
     return {
       working: groups.working,
-      summary: describeWorking(groups.working),
+      summary:
+        (describeWorking(completed) || 'Run activity') +
+        (failed ? ` · ${failed} failed or declined` : ''),
       // Original order for everything that is not the working: a plan card
       // belongs where the model put it, before the answer it introduces.
       rest: message.parts.filter((part) => !inWorking.has(part)),
@@ -499,10 +543,11 @@ function MessagePartsInner({
 
     if (part.type === 'reasoning')
       return (
-        <Reasoning key={key} isStreaming={part.state === 'streaming'}>
-          <ReasoningTrigger />
-          <ReasoningContent>{part.text}</ReasoningContent>
-        </Reasoning>
+        <p className="chat-provider-activity" key={key}>
+          {part.state === 'streaming'
+            ? 'The model is processing the request.'
+            : 'The provider reported a completed reasoning step.'}
+        </p>
       );
 
     // isToolUIPart covers both declared tools and dynamic ones, so the
@@ -657,19 +702,33 @@ function MessagePartsInner({
     message.role === 'assistant' &&
     settled &&
     !hasText &&
-    // The memories bookkeeping part renders nothing, so it cannot fill the hole.
-    rest.filter((part) => part.type !== 'data-memories').length === 0 &&
-    !(showActivity && working.length > 0);
+    // Receipts and step boundaries cannot substitute for an actual answer.
+    rest.every((part) =>
+      [
+        'data-memories',
+        'step-start',
+        'data-plan',
+        'data-research',
+        'source-url',
+        'source-document',
+      ].includes(part.type),
+    ) &&
+    !working.some((part) => isToolUIPart(part) && generatedMedia(part.output).length > 0);
 
   return (
-    <Message from={message.role}>
+    <Message from={message.role} className="chat-message">
       <MessageContent>
         {blank && (
           <p className="chat-blank-turn">
             {working.length
-              ? 'This turn thought it through and stopped without writing an answer.'
+              ? 'The model stopped without writing an answer.'
               : 'This turn produced nothing.'}{' '}
             Answer again, or choose a different model.
+            {canRegenerate && (
+              <button type="button" onClick={() => onRegenerateMessage?.(message.id)}>
+                Answer again
+              </button>
+            )}
           </p>
         )}
         {showActivity && working.length > 0 && (
@@ -718,13 +777,7 @@ function MessagePartsInner({
         {answered && hasText && (
           <MessageToolbar>
             <MessageActions>
-              <MessageAction
-                tooltip="Copy answer"
-                onClick={() => void copyMessage(message)}
-                disabled={!messageText(message)}
-              >
-                <Copy size={16} />
-              </MessageAction>
+              <CopyAction message={message} />
               {/* Reads the text parts only, so the tool receipts and reasoning
                   between them are not spoken. Silent about code, which the
                   component replaces with a spoken note rather than reciting. */}
@@ -748,8 +801,9 @@ function MessagePartsInner({
           the bubble now, out of the way until wanted: revealed on hover with a
           pointer, always there on a touch screen, where there is no hover to
           reveal it with. */}
-      {asked && (canEdit || onRemember) && (
+      {asked && (hasText || canEdit || onRemember) && (
         <div className="chat-ask-actions">
+          {hasText && <CopyAction message={message} />}
           {onRemember && <RememberAction message={message} onRemember={onRemember} />}
           {canEdit && (
             <MessageAction
@@ -791,15 +845,4 @@ export function messageText(message: UIMessage): string {
     .map((part) => (part as { text: string }).text)
     .join('\n\n')
     .trim();
-}
-
-async function copyMessage(message: UIMessage): Promise<void> {
-  const text = messageText(message);
-  if (!text) return;
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // Denied clipboard permission is the owner's decision, not an error to
-    // interrupt them with.
-  }
 }

@@ -1,69 +1,162 @@
 'use client';
-/** The chat page: conversations on the left, the workspace on the right. */
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Blocks, BookOpenCheck, CreditCard, LayoutGrid, PanelLeft, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ArrowLeft,
+  BookOpen,
+  BookOpenCheck,
+  Bot,
+  Database,
+  FileText,
+  LayoutGrid,
+  Menu,
+  MessageSquare,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  X,
+} from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
-import { ConversationList } from './conversation-list';
+import { ConversationList, type ConversationSummary } from './conversation-list';
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
 import { MemoryPanel } from './memory-panel';
 import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
+import { WorkspaceCommands } from './workspace-commands';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { useChatSettings } from '@/hooks/use-chat-settings';
 import { withGrant, type Grant } from '@/lib/chat/approvals';
 import { providerDestination } from '@/lib/ai/endpoint';
-import { Toaster } from 'sonner';
+import { themeCookie, type Theme } from '@/lib/theme';
+import { Toaster, toast } from 'sonner';
 import { clientFetch } from '@/lib/client/request';
 
-/** Narrow enough that a 240px list and a 260px panel would leave the
- * conversation with less room than either of them. Matches the breakpoint the
- * drawer styling uses, and is read once rather than per render. */
+const LearningStudio = dynamic(
+  () => import('@/components/learning/learning-studio').then((module) => module.LearningStudio),
+  {
+    loading: () => (
+      <div className="workspace-loading" role="status">
+        Opening Learning Studio…
+      </div>
+    ),
+  },
+);
 const NARROW = '(max-width: 900px)';
-
-/** Read through useSyncExternalStore rather than an effect: the width is
- * external state that exists before this renders, and setting it from an
- * effect would paint the desktop layout once on every phone load. The server
- * snapshot is `false` because the server has no viewport, and the wide layout
- * is the one that degrades gracefully. */
-function subscribeToWidth(onChange: () => void) {
-  const query = window.matchMedia(NARROW);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
+type Panel = 'files' | 'agents' | 'memory' | 'settings';
+const PANEL_LABELS: Record<Panel, string> = {
+  files: 'Files',
+  agents: 'Agents',
+  memory: 'Memory',
+  settings: 'Settings',
+};
+const NAV = [
+  { id: 'chat', label: 'Chats', icon: MessageSquare },
+  { id: 'learning', label: 'Learning studio', icon: BookOpen },
+  { id: 'agents', label: 'Agents', icon: Bot },
+  { id: 'files', label: 'Files', icon: FileText },
+  { id: 'memory', label: 'Memory', icon: Database },
+] as const;
+function subscribeToWidth(change: () => void) {
+  const media = window.matchMedia(NARROW);
+  media.addEventListener('change', change);
+  return () => media.removeEventListener('change', change);
 }
-
-function useNarrow() {
-  return useSyncExternalStore(
-    subscribeToWidth,
-    () => window.matchMedia(NARROW).matches,
-    () => false,
-  );
+function subscribeToTheme(change: () => void) {
+  const observer = new MutationObserver(change);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  return () => observer.disconnect();
 }
 
 export function ChatShell({
   conversationId,
   task = false,
+  title = 'New conversation',
 }: {
   conversationId: string;
-  /** This conversation is a background task: its report is shown with a way
-   * into what it left to review. */
   task?: boolean;
+  title?: string;
 }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const learning = params.get('view') === 'learning';
   const { settings, change, ready } = useChatSettings();
-  const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
-  // Bumped when a run settles. A conversation is created by its first message
-  // and titled from it, so without this the list would keep showing the state
-  // it had before the owner said anything.
+  const narrow = useSyncExternalStore(
+    subscribeToWidth,
+    () => window.matchMedia(NARROW).matches,
+    () => false,
+  );
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+    () => 'light',
+  );
   const [revision, setRevision] = useState(0);
-  const settled = useCallback(() => setRevision((value) => value + 1), []);
-
-  const [tab, setTab] = useState<'files' | 'agents' | 'memory' | 'settings'>('files');
-  // Whether a message sent now would have a key to run on: the person's own,
-  // or the deployment's for a plan that includes models. Null until known, so
-  // the first-run card is never flashed at someone who does not need it.
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandsOpen, setCommandsOpen] = useState(false);
+  const [learningVisited, setLearningVisited] = useState(learning);
+  if (learning && !learningVisited) setLearningVisited(true);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
+  const [previewBase, setPreviewBase] = useState('');
   const [managedKey, setManagedKey] = useState<boolean | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const settled = useCallback(() => setRevision((value) => value + 1), []);
+  const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
+  const onHistory = useCallback((rows: ConversationSummary[]) => setConversations(rows), []);
+  const currentTitle = conversations.find((row) => row.id === conversationId)?.title || title;
+  const selectView = useCallback(
+    (view: 'chat' | 'learning') => {
+      router.replace(
+        `/chat/${encodeURIComponent(conversationId)}${view === 'learning' ? '?view=learning' : ''}`,
+        { scroll: false },
+      );
+      setSidebarOpen(false);
+      setPanel(null);
+    },
+    [conversationId, router],
+  );
+  const openPanel = useCallback((next: Panel) => {
+    setPanel(next);
+    setArtifact(null);
+    setSidebarOpen(false);
+  }, []);
+  const openSettings = useCallback(() => openPanel('settings'), [openPanel]);
+  const openArtifact = useCallback((files: WorkspaceFiles) => {
+    setArtifact(files);
+    setPanel(null);
+    setSidebarOpen(false);
+  }, []);
+  const grant = useCallback(
+    async (scope: Grant) => {
+      await change({ approvals: withGrant(settings.approvals, scope) });
+    },
+    [change, settings.approvals],
+  );
+  const newChat = useCallback(async () => {
+    try {
+      const response = await clientFetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.id)
+        throw new Error(payload.error || 'Could not start a conversation.');
+      setSidebarOpen(false);
+      setPanel(null);
+      router.push(`/chat/${encodeURIComponent(payload.id)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not start a conversation.');
+    }
+  }, [router]);
   useEffect(() => {
     let live = true;
     void clientFetch('/api/billing')
@@ -82,17 +175,6 @@ export function ChatShell({
     managedKey === false &&
     Boolean(providerDestination(settings.connection.baseUrl)) &&
     !settings.connection.apiKeySecret;
-  // Applies from the next turn on, not retrospectively: an agent chosen now
-  // cannot change an answer already written.
-  const [agent, setAgent] = useState<Agent | null>(null);
-
-  // A page an answer produced, opened from its inline card. Its own column on a
-  // wide screen; the same drawer as the panel on a narrow one.
-  const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
-  // Where the workspace's pages are served, read when a preview first opens:
-  // the panel then shows the page as written, with every file it links to,
-  // and can open it full screen. See lib/files/preview-link.ts.
-  const [previewBase, setPreviewBase] = useState('');
   useEffect(() => {
     if (!artifact || previewBase) return;
     let live = true;
@@ -106,238 +188,361 @@ export function ChatShell({
       live = false;
     };
   }, [artifact, previewBase]);
-
-  // On a narrow screen the two side panels are drawers over the conversation
-  // rather than strips above and below it, which is what left the conversation
-  // itself about a quarter of the screen.
-  const narrow = useNarrow();
-  const [drawer, setDrawer] = useState<'list' | 'panel' | null>(null);
-  // A yes remembered from the approval card. Saved through the same store the
-  // run reads when it is driven, and awaited by the card before it answers,
-  // so the resumed run already knows.
-  const grant = useCallback(
-    async (scope: Grant) => {
-      await change({ approvals: withGrant(settings.approvals, scope) });
-    },
-    [change, settings.approvals],
-  );
-  // Where the key goes: the Settings tab, opened as a drawer on a phone.
-  const openSettings = useCallback(() => {
-    setTab('settings');
-    if (narrow) setDrawer('panel');
-  }, [narrow]);
-
-  // Reset during render rather than in an effect: an effect would paint the
-  // open drawer for one frame after the conversation had already changed.
-  // Opening a conversation from the drawer should close it, and the route
-  // changes without unmounting the shell.
   const [shownFor, setShownFor] = useState(conversationId);
   if (shownFor !== conversationId) {
     setShownFor(conversationId);
-    setDrawer(null);
-    // A preview belongs to the answer that produced it, so it does not follow
-    // the reader into another conversation.
     setArtifact(null);
-  } else if (!narrow && drawer) {
-    setDrawer(null);
+    setSidebarOpen(false);
   }
-
   useEffect(() => {
-    if (!drawer) return;
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDrawer(null);
+    const shortcuts = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandsOpen((open) => !open);
+      }
     };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [drawer]);
-
-  const open = narrow ? drawer : null;
-
+    window.addEventListener('keydown', shortcuts);
+    return () => window.removeEventListener('keydown', shortcuts);
+  }, []);
+  const modalOpen = narrow && (sidebarOpen || Boolean(panel) || (!learning && Boolean(artifact)));
+  useEffect(() => {
+    if (!modalOpen) return;
+    const root = sidebarOpen ? sidebarRef.current : panelRef.current;
+    if (!root) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = () =>
+      [
+        ...root.querySelectorAll<HTMLElement>(
+          'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
+        ),
+      ].filter((item) => item.getClientRects().length > 0);
+    const frame = requestAnimationFrame(() => (focusable()[0] ?? root).focus());
+    const trap = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSidebarOpen(false);
+        setPanel(null);
+        setArtifact(null);
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const first = items[0];
+      const last = items.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        root.focus();
+        return;
+      }
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || !root.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last || !root.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener('keydown', trap);
+    return () => {
+      cancelAnimationFrame(frame);
+      root.removeEventListener('keydown', trap);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [modalOpen, sidebarOpen, panel, artifact]);
+  function toggleTheme() {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    document.cookie = themeCookie(next);
+  }
   return (
-    <div className={'chat-shell' + (narrow ? ' is-narrow' : '')}>
-      {/* The voice controls and the background-task dialog speak through
-          sonner, and nothing on this surface had mounted it: every toast went
-          nowhere. The workspace shell mounts its own; this one is the chat's. */}
+    <div className={'chat-shell workspace-experience' + (narrow ? ' is-narrow' : '')}>
       <Toaster position="top-center" />
-      <header className="chat-topbar">
-        {narrow && (
-          <button
-            type="button"
-            className="chat-topbar-toggle"
-            aria-expanded={drawer === 'list'}
-            aria-label="Conversations"
-            onClick={() => setDrawer(drawer === 'list' ? null : 'list')}
-          >
-            <PanelLeft size={20} />
-          </button>
-        )}
-        <span className="chat-topbar-brand">
-          <HikmahIcon name="orbit" size={24} />
-          <strong>Hikmah</strong>
-        </span>
-        {/* Text links on a phone wrapped "Sign out" onto two lines and left the
-            row crowded, so on a narrow screen they are icons with their names
-            as labels. Everything this surface does not carry — the labs,
-            settings, the owner console, the terminal — lives through the first
-            one. */}
-        <nav className={'chat-topbar-links' + (narrow ? ' is-compact' : '')} aria-label="Workspace">
-          <Link href="/workspace" title="Workspace" aria-label="Workspace">
-            {narrow ? <Blocks size={16} /> : 'Workspace'}
-          </Link>
-          <Link href="/billing" title="Plan and usage" aria-label="Plan and usage">
-            {narrow ? <CreditCard size={16} /> : 'Plan'}
-          </Link>
-          {/* Not on a phone: an unlabelled sign-out icon beside the workspace
-              and plan icons was one thumb-slip from losing the session. On a
-              narrow screen it lives at the end of Settings, in words. */}
-          {!narrow && (
-            <Link href="/sign-out" title="Sign out" aria-label="Sign out">
-              Sign out
-            </Link>
+      <a className="workspace-skip" href="#workspace-main">
+        Skip to conversation
+      </a>
+      <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
+        <button
+          type="button"
+          className="workspace-icon workspace-menu"
+          aria-label="Conversations"
+          aria-expanded={sidebarOpen}
+          onClick={() => {
+            setSidebarOpen(true);
+            setPanel(null);
+            setArtifact(null);
+          }}
+        >
+          <Menu size={20} />
+        </button>
+        <div className="workspace-heading">
+          <span>{learning ? 'Learning studio' : currentTitle}</span>
+          {agent && !learning && (
+            <button
+              type="button"
+              className="workspace-agent-chip"
+              onClick={() => openPanel('agents')}
+            >
+              <Bot size={12} />
+              {agent.name}
+            </button>
           )}
-        </nav>
-        {narrow && (
+        </div>
+        <div className="workspace-header-actions">
           <button
             type="button"
-            className="chat-topbar-toggle"
-            aria-expanded={drawer === 'panel'}
-            aria-label="Files and agents"
-            onClick={() => setDrawer(drawer === 'panel' ? null : 'panel')}
+            className="workspace-action"
+            title="Search workspace (Ctrl/⌘ K)"
+            onClick={() => setCommandsOpen(true)}
           >
-            <LayoutGrid size={20} />
+            <Search size={16} />
+            <span>Search</span>
           </button>
-        )}
-      </header>
-
-      <div className="chat-body">
-        {/* Rendered in both layouts and positioned by CSS, so a drawer keeps its
-            scroll position and its fetched list when it closes. */}
-        <div className={'chat-drawer chat-drawer-list' + (open === 'list' ? ' is-open' : '')}>
-          <ConversationList activeId={conversationId} revision={revision} />
+          {learning ? (
+            <button type="button" className="workspace-action" onClick={() => selectView('chat')}>
+              <ArrowLeft size={16} />
+              <span>Back to chat</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="workspace-action"
+              onClick={() => selectView('learning')}
+            >
+              <BookOpen size={16} />
+              <span>Learning</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="workspace-action"
+            aria-label="Files and agents"
+            aria-expanded={Boolean(panel)}
+            onClick={() => (panel ? setPanel(null) : openPanel('files'))}
+          >
+            <LayoutGrid size={16} />
+            <span>Workspace</span>
+          </button>
         </div>
-
-        {/* Keyed by conversation so moving between them rebuilds the chat rather
-            than showing the previous transcript under the new id: useChat holds
-            its messages per instance. */}
-        <ChatPreview
-          key={conversationId}
-          conversationId={conversationId}
-          agent={agent}
-          settings={settings}
-          settingsReady={ready}
-          onArtifact={setArtifact}
-          onTools={changeTools}
-          onSettled={settled}
-          needsKey={needsKey}
-          onOpenSettings={openSettings}
-          onGrant={grant}
-          banner={
-            task ? (
-              <div className="chat-task-banner" role="note">
-                <BookOpenCheck size={16} aria-hidden="true" />
-                <span>
-                  A background task. What it kept is waiting for your review, and nothing is used
-                  until you accept it.
-                </span>
+      </header>
+      <aside
+        ref={sidebarRef}
+        className={
+          'workspace-sidebar chat-drawer chat-drawer-list' +
+          (narrow && sidebarOpen ? ' is-open' : '')
+        }
+        aria-label="Workspace navigation"
+        role={narrow && sidebarOpen ? 'dialog' : undefined}
+        aria-modal={(narrow && sidebarOpen) || undefined}
+        inert={(narrow && !sidebarOpen) || undefined}
+        tabIndex={-1}
+      >
+        <div className="workspace-brand">
+          <HikmahIcon name="orbit" size={32} />
+          <strong>Hikmah</strong>
+          <button
+            type="button"
+            className="workspace-icon workspace-sidebar-close"
+            aria-label="Close navigation"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <ConversationList
+          activeId={conversationId}
+          revision={revision}
+          onNew={newChat}
+          onConversations={onHistory}
+          onActivate={() => setSidebarOpen(false)}
+          navigation={
+            <div className="workspace-navigation" aria-label="Workspace sections">
+              {NAV.map(({ id, label, icon: Icon }) => (
                 <button
                   type="button"
-                  onClick={() => {
-                    setTab('memory');
-                    if (narrow) setDrawer('panel');
-                  }}
+                  key={id}
+                  aria-current={
+                    (
+                      id === 'learning'
+                        ? learning
+                        : id === 'chat'
+                          ? !learning && !panel
+                          : panel === id
+                    )
+                      ? 'page'
+                      : undefined
+                  }
+                  onClick={() =>
+                    id === 'chat' || id === 'learning' ? selectView(id) : openPanel(id)
+                  }
                 >
-                  Review what it learned
+                  <Icon size={20} />
+                  <span>{label}</span>
                 </button>
-              </div>
-            ) : null
+              ))}
+            </div>
           }
         />
-
-        {artifact && (
-          <ArtifactPanel
-            files={artifact}
-            previewBase={previewBase || undefined}
-            onClose={() => setArtifact(null)}
-            onEdit={() => {
-              // The files are rows already, written by the tool that made them,
-              // so editing means opening the panel that reads those rows.
-              setArtifact(null);
-              setTab('files');
-              if (narrow) setDrawer('panel');
-            }}
-          />
-        )}
-
-        <div className={'chat-drawer chat-drawer-panel' + (open === 'panel' ? ' is-open' : '')}>
-          <aside className="workspace-panel" aria-label="Workspace">
-            <div className="workspace-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'files'}
-                onClick={() => setTab('files')}
-              >
-                Files
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'agents'}
-                onClick={() => setTab('agents')}
-              >
-                Agents
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'memory'}
-                onClick={() => setTab('memory')}
-              >
-                Memory
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'settings'}
-                onClick={() => setTab('settings')}
-              >
-                Settings
-              </button>
-              {narrow && (
-                <button
-                  type="button"
-                  className="workspace-tabs-close"
-                  aria-label="Close"
-                  onClick={() => setDrawer(null)}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            {/* Files reload on the same signal as the conversation list: a run
-                that just finished may have written one, and a panel showing the
-                state from before it is worse than no panel. */}
-            {tab === 'files' ? (
-              <FilesPanel revision={revision} />
-            ) : tab === 'agents' ? (
-              <AgentsPanel activeId={agent?.id ?? null} onPick={setAgent} />
-            ) : tab === 'memory' ? (
-              <MemoryPanel />
-            ) : (
-              <RunSettings settings={settings} onChange={change} />
-            )}
-          </aside>
-        </div>
-
-        {open && (
+        <div className="workspace-sidebar-footer">
+          <button type="button" onClick={openSettings}>
+            <Settings size={16} />
+            Settings
+          </button>
           <button
             type="button"
-            className="chat-drawer-scrim"
-            aria-label="Close panel"
-            onClick={() => setDrawer(null)}
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            <span className="workspace-theme-state">Change</span>
+          </button>
+        </div>
+      </aside>
+      <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
+        <section
+          className="workspace-chat-pane"
+          hidden={learning}
+          inert={learning || modalOpen || undefined}
+          aria-label="Conversation"
+        >
+          <ChatPreview
+            key={conversationId}
+            conversationId={conversationId}
+            agent={agent}
+            settings={settings}
+            settingsReady={ready}
+            onArtifact={openArtifact}
+            onTools={changeTools}
+            onSettled={settled}
+            needsKey={needsKey}
+            onOpenSettings={openSettings}
+            onGrant={grant}
+            banner={
+              task ? (
+                <div className="chat-task-banner" role="note">
+                  <BookOpenCheck size={16} />
+                  <span>A background task. Suggestions wait for your review.</span>
+                  <button type="button" onClick={() => openPanel('memory')}>
+                    Review what it learned
+                  </button>
+                </div>
+              ) : null
+            }
           />
+        </section>
+        {learningVisited && (
+          <section
+            className="workspace-learning-pane"
+            hidden={!learning}
+            aria-label="Learning studio"
+            inert={!learning || modalOpen || undefined}
+          >
+            <LearningStudio revision={revision} />
+          </section>
         )}
-      </div>
+        {(panel || (!learning && artifact)) && (
+          <div
+            ref={panelRef}
+            className={
+              'workspace-detail chat-drawer chat-drawer-panel' + (narrow ? ' is-open' : '')
+            }
+            role={narrow ? 'dialog' : undefined}
+            aria-modal={narrow || undefined}
+            aria-label={panel ? PANEL_LABELS[panel] : 'Artifact preview'}
+            tabIndex={-1}
+          >
+            {artifact && !panel ? (
+              <ArtifactPanel
+                files={artifact}
+                previewBase={previewBase || undefined}
+                onClose={() => setArtifact(null)}
+                onEdit={() => openPanel('files')}
+              />
+            ) : (
+              panel && (
+                <aside className="workspace-panel" aria-label="Workspace">
+                  <div className="workspace-detail-heading">
+                    <h2>{PANEL_LABELS[panel]}</h2>
+                    <button
+                      type="button"
+                      className="workspace-icon"
+                      aria-label="Close workspace panel"
+                      onClick={() => setPanel(null)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="workspace-detail-tabs" role="group" aria-label="Workspace tools">
+                    {(Object.keys(PANEL_LABELS) as Panel[]).map((key) => (
+                      <button
+                        type="button"
+                        key={key}
+                        aria-pressed={panel === key}
+                        onClick={() => setPanel(key)}
+                      >
+                        {PANEL_LABELS[key]}
+                      </button>
+                    ))}
+                  </div>
+                  {panel === 'files' ? (
+                    <FilesPanel revision={revision} />
+                  ) : panel === 'agents' ? (
+                    <AgentsPanel
+                      activeId={agent?.id ?? null}
+                      onPick={(next) => {
+                        setAgent(next);
+                        setPanel(null);
+                        selectView('chat');
+                      }}
+                    />
+                  ) : panel === 'memory' ? (
+                    <MemoryPanel />
+                  ) : (
+                    <>
+                      <RunSettings settings={settings} onChange={change} />
+                      <nav className="workspace-account-links" aria-label="Account">
+                        <Link href="/workspace" title="Workspace" aria-label="Workspace">
+                          Research labs & terminal
+                        </Link>
+                        <Link href="/billing">Plan and usage</Link>
+                        <Link href="/sign-out" title="Sign out" aria-label="Sign out">
+                          Sign out
+                        </Link>
+                      </nav>
+                    </>
+                  )}
+                </aside>
+              )
+            )}
+          </div>
+        )}
+      </main>
+      {modalOpen && (
+        <button
+          type="button"
+          className="chat-drawer-scrim workspace-scrim"
+          aria-label="Close panel"
+          tabIndex={-1}
+          onClick={() => {
+            setSidebarOpen(false);
+            setPanel(null);
+            setArtifact(null);
+          }}
+        />
+      )}
+      <WorkspaceCommands
+        open={commandsOpen}
+        onOpenChange={setCommandsOpen}
+        conversations={conversations}
+        onNew={() => void newChat()}
+        onLearning={() => selectView('learning')}
+        onPanel={openPanel}
+      />
     </div>
   );
 }

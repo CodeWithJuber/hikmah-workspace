@@ -88,7 +88,7 @@ const FAQ = [
   },
   {
     q: 'Is my work private?',
-    a: 'Your conversations, files and secrets are yours alone, and an API key you save is encrypted with your own account bound into the encryption, so it cannot be read under anyone else’s. Nothing you write is used to train anything.',
+    a: 'Saved API keys are encrypted for your account. Requests and selected context go to the model provider you choose under its terms. Learning capture is off by default; if enabled, examples wait for your review before reuse. Local syntax training is a separate choice using reviewed annotations. These features do not change the provider’s model weights. The privacy page explains the controls.',
   },
 ];
 

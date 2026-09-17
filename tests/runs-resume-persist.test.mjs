@@ -12,6 +12,7 @@
 // "UNIQUE constraint failed: messages.id" and lost the answer.
 // Run: node --test tests/runs-resume-persist.test.mjs
 import test from 'node:test';
+import './fixtures/vault.mjs';
 import assert from 'node:assert/strict';
 import { applySchema } from './schema.mjs';
 import { DatabaseSync } from 'node:sqlite';
@@ -33,7 +34,7 @@ const config = {
   baseUrl: 'https://openrouter.ai/api/v1',
   model: 'a/b:free',
   freeOnly: true,
-  apiKey: 'k',
+  apiKey: 'fixture-provider-key-for-durable-tests',
   instructions: 'test',
 };
 
