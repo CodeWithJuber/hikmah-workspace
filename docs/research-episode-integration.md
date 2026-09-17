@@ -4,14 +4,14 @@ This integration ports the verified, standalone **shared episode identity** Pyth
 
 ## Provenance checked on 17 September 2026
 
-| Source | Available evidence | Boundary |
-| --- | --- | --- |
-| `meaning-model-stage30-update.md`, `stage30-research-report.md`, `meaning-model-stage30-verification.json` | Saved source contents read; the report defines existential partial observations and conditional entailment | The full Stage 30 archive could not be retrieved in this integration attempt; its download returned HTTP 502 |
-| `meaning-model-stage30.zip` | Expected SHA-256 `43484ef701f164755dbc61a91581ce8c9394eb825fa2bdb7f41216b770016de9`, expected 10,958,978 bytes, from the saved verification/continuation records | Expected identity only; archive bytes, original audio, QAC data, and parent code were not verified or run here |
-| Standalone `meaning-research-episode-identity/episode_model.py` | Actual source inspected; supplied demo rerun; SHA-256 `2f71cfec834b28ac295578248b5d0aa2364304a596ac4331ed896eaa2ce83199` | Its own report and protocol explicitly say this is not Stage 31 and not an integrated replacement checkpoint |
-| Standalone `REPORT.md` | Actual content inspected; SHA-256 `713876900d22a700fe2daf90ade4d4f737e85f7b73a6c5f4d6720b0081f9bb42` | Authored finite tests, not independent natural-language evaluation |
-| `stage31-preflight-review.md` | Actual content inspected; SHA-256 `b9e6c0eee823074401137894ad3220b26355b0e9df4b4c0d6b092fb425f89163` | Explicitly a proposed, unexecuted token-to-root evaluation protocol |
-| Stage 32 | No authoritative matching artifact established during retrieval | No implementation or completion claim is made |
+| Source                                                                                                     | Available evidence                                                                                                                                               | Boundary                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `meaning-model-stage30-update.md`, `stage30-research-report.md`, `meaning-model-stage30-verification.json` | Saved source contents read; the report defines existential partial observations and conditional entailment                                                       | The full Stage 30 archive could not be retrieved in this integration attempt; its download returned HTTP 502   |
+| `meaning-model-stage30.zip`                                                                                | Expected SHA-256 `43484ef701f164755dbc61a91581ce8c9394eb825fa2bdb7f41216b770016de9`, expected 10,958,978 bytes, from the saved verification/continuation records | Expected identity only; archive bytes, original audio, QAC data, and parent code were not verified or run here |
+| Standalone `meaning-research-episode-identity/episode_model.py`                                            | Actual source inspected; supplied demo rerun; SHA-256 `2f71cfec834b28ac295578248b5d0aa2364304a596ac4331ed896eaa2ce83199`                                         | Its own report and protocol explicitly say this is not Stage 31 and not an integrated replacement checkpoint   |
+| Standalone `REPORT.md`                                                                                     | Actual content inspected; SHA-256 `713876900d22a700fe2daf90ade4d4f737e85f7b73a6c5f4d6720b0081f9bb42`                                                             | Authored finite tests, not independent natural-language evaluation                                             |
+| `stage31-preflight-review.md`                                                                              | Actual content inspected; SHA-256 `b9e6c0eee823074401137894ad3220b26355b0e9df4b4c0d6b092fb425f89163`                                                             | Explicitly a proposed, unexecuted token-to-root evaluation protocol                                            |
+| Stage 32                                                                                                   | No authoritative matching artifact established during retrieval                                                                                                  | No implementation or completion claim is made                                                                  |
 
 The standalone package's `MODEL_CARD.md`, `CONTINUATION.md`, `PROTOCOL.md`, independent mathematical review, and recorded `results/summary.json` were also inspected. This TypeScript port preserves that package's finite semantics. The new browser bundle and independent oracle tests exercise the port; they are not a regression run against the unavailable Stage 30 source.
 
@@ -28,11 +28,11 @@ Observations with the same explicit episode identity must share one context witn
 
 The query projects every compatible table/witness assignment onto the requested cells or recorded episode:
 
-| Result | Meaning |
-| --- | --- |
-| `ENTAILED` | At least one compatible assignment exists and all agree on one supplied sense |
-| `AMBIGUOUS` | Multiple senses remain possible; the output includes a complete-model witness for each |
-| `INCONSISTENT` | No compatible assignment exists; contradiction is not vacuous entailment |
+| Result           | Meaning                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `ENTAILED`       | At least one compatible assignment exists and all agree on one supplied sense               |
+| `AMBIGUOUS`      | Multiple senses remain possible; the output includes a complete-model witness for each      |
+| `INCONSISTENT`   | No compatible assignment exists; contradiction is not vacuous entailment                    |
 | `RESOURCE_LIMIT` | The search or proof-output budget was exhausted; value, candidates, and proofs are withheld |
 
 `ENTAILED` means entailed **under the supplied assumptions**. It does not certify that an observation, identity link, source, or inventory is correct. A false SAME link can produce a consistent but wrong singleton answer. The tests preserve this counterexample. No output is automatically stored as a world fact.
@@ -48,14 +48,36 @@ const evidence = new EpisodeModel(
   { scopeId: 'tenant-1:workspace-1:research-example' },
 );
 
-evidence.add({ rowId: 'anchor1', key: 'anchor', sense: 'RED',
-  allowed: ['scene-1'], source: 'reviewed-annotation:1' });
-evidence.add({ rowId: 'anchor2', key: 'anchor', sense: 'BLUE',
-  allowed: ['scene-2'], source: 'reviewed-annotation:2' });
-evidence.add({ rowId: 'partial-anchor', key: 'anchor', sense: 'RED',
-  allowed: evidence.cells, episode: 'recorded-instant', source: 'reviewed-annotation:3' });
-evidence.add({ rowId: 'partial-symbol', key: 'symbol', sense: 'CUP',
-  allowed: evidence.cells, episode: 'recorded-instant', source: 'reviewed-annotation:4' });
+evidence.add({
+  rowId: 'anchor1',
+  key: 'anchor',
+  sense: 'RED',
+  allowed: ['scene-1'],
+  source: 'reviewed-annotation:1',
+});
+evidence.add({
+  rowId: 'anchor2',
+  key: 'anchor',
+  sense: 'BLUE',
+  allowed: ['scene-2'],
+  source: 'reviewed-annotation:2',
+});
+evidence.add({
+  rowId: 'partial-anchor',
+  key: 'anchor',
+  sense: 'RED',
+  allowed: evidence.cells,
+  episode: 'recorded-instant',
+  source: 'reviewed-annotation:3',
+});
+evidence.add({
+  rowId: 'partial-symbol',
+  key: 'symbol',
+  sense: 'CUP',
+  allowed: evidence.cells,
+  episode: 'recorded-instant',
+  source: 'reviewed-annotation:4',
+});
 
 const result = evidence.query('symbol', { allowed: ['scene-1'] });
 // ENTAILED, CUP. Without the supplied link between the partial observations:
@@ -79,18 +101,18 @@ Keys and sense labels are exact strings. A caller should use an unambiguous enco
 
 ## Bounds and runtime
 
-| Resource | Hard limit |
-| --- | ---: |
-| Context cells | 64 |
-| Symbol keys | 16 |
-| Observations | 128 |
-| Senses per key | 32 |
-| Identifier/label UTF-8 bytes | 256 |
-| Source reference UTF-8 bytes | 2,048 |
-| Serialized snapshot bytes | 524,288 |
-| Search nodes | 100,000 |
-| Counted work units | 2,000,000 |
-| Proof-output byte allowance | 1,048,576 |
+| Resource                     | Hard limit |
+| ---------------------------- | ---------: |
+| Context cells                |         64 |
+| Symbol keys                  |         16 |
+| Observations                 |        128 |
+| Senses per key               |         32 |
+| Identifier/label UTF-8 bytes |        256 |
+| Source reference UTF-8 bytes |      2,048 |
+| Serialized snapshot bytes    |    524,288 |
+| Search nodes                 |    100,000 |
+| Counted work units           |  2,000,000 |
+| Proof-output byte allowance  |  1,048,576 |
 
 Queries can lower `budget` or `workBudget`; they cannot raise the hard bounds. Counted work covers grouping, candidate checks, search visits, and witness construction. The proof-byte accounting is conservative. Exhaustion discards all partial answers even if an earlier branch found a singleton. Input rejection leaves the previous state unchanged.
 

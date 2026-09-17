@@ -15,7 +15,7 @@ This change adds a usable agentic chat surface, a consent-based exchange review 
 
 ## Automated verification
 
-Final results: 1,022 tests passed, none failed or skipped. Production compilation and TypeScript passed. ESLint completed with zero errors and 54 existing warnings; style, reachability and generated-palette checks passed. The standalone production restart smoke passed. The final browser run passed 21 workflow checks with zero uncaught errors.
+Final results: 1,022 tests passed, none failed or skipped. Production compilation and TypeScript passed. ESLint completed with zero errors and 54 warnings; formatting, style, reachability and generated-palette checks passed. The standalone production restart smoke passed. The final browser run passed 21 workflow checks with zero uncaught errors.
 
 Commands used:
 
@@ -23,6 +23,7 @@ Commands used:
 npm ci --no-audit --no-fund
 npm --prefix workbench ci --no-audit --no-fund
 NO_PROXY=localhost,127.0.0.1,::1 NODE_USE_ENV_PROXY=0 npm test
+npm run format:check
 npm run lint
 npm run lint:styles
 npm run lint:reach
