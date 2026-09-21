@@ -12,8 +12,8 @@
  * Anthropic key keeps both and switches between them. The key never travels
  * back to the browser: the connection only records the name it is under.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { ExternalLink, Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, ExternalLink, Eye, EyeOff, LoaderCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DEFAULT_CONNECTION, type ChatConnection } from '@/lib/chat/settings';
+import type { ChatConnection } from '@/lib/chat/settings';
 import { allModelsFree, isLocalEndpoint, providerDestination } from '@/lib/ai/endpoint';
 import {
   OLLAMA_BASE_URL,
@@ -37,19 +37,28 @@ import { defaultProvider } from '@/lib/playground/session';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { ModelPicker, type PickerModel } from './model-picker';
 import { clientFetch } from '@/lib/client/request';
+import { saveModelConnection, saveProviderKey } from '@/lib/client/model-connection';
 
 export function ConnectionSettings({
   connection,
   onChange,
+  active = true,
 }: {
   connection: ChatConnection;
   onChange: (connection: ChatConnection) => Promise<void> | void;
+  active?: boolean;
 }) {
   const [draft, setDraft] = useState<ChatConnection>(connection);
   const [key, setKey] = useState('');
   const [reveal, setReveal] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [providerOpen, setProviderOpen] = useState(false);
+  if (!active && providerOpen) setProviderOpen(false);
+  if (!active && reveal) setReveal(false);
+  const [busy, setBusy] = useState<'key' | 'connection' | null>(null);
+  const [dirty, setDirty] = useState(false);
   const [note, setNote] = useState('');
+  const [failure, setFailure] = useState('');
+  const [reload, setReload] = useState(0);
   // Which keys the vault already holds, by name, so switching provider picks
   // up the key saved for it rather than forgetting it.
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -64,9 +73,9 @@ export function ConnectionSettings({
   // Reset when the stored settings arrive or change underneath, but never
   // while the owner is mid-edit — that would eat what they were typing.
   const [seen, setSeen] = useState(connection);
-  if (seen !== connection && !busy) {
+  if (seen !== connection) {
     setSeen(connection);
-    setDraft(connection);
+    if (!dirty && !busy) setDraft(connection);
   }
 
   useEffect(() => {
@@ -89,58 +98,74 @@ export function ConnectionSettings({
    * HTTPS endpoint. A loopback or private address is reached without one. */
   const destination = providerDestination(draft.baseUrl);
   const takesKey = Boolean(destination);
-  const secretName = secretNameFor(draft.baseUrl);
   const keySaved = Boolean(draft.apiKeySecret) && saved.has(draft.apiKeySecret);
   /** Whether "free only" means anything here: OpenRouter has free routes and a
    * local server bills nothing; every other hosted provider bills every token. */
   const freeTier = local || !preset || preset.freeTier;
+  const catalogueKey = [draft.baseUrl, draft.apiKeySecret, draft.freeOnly, reload].join('\n');
+  const keyRequiredForCatalogue = takesKey && !preset?.publicCatalogue && !draft.apiKeySecret;
+  const catalogueReady = catalogue.key === catalogueKey;
+  const rows = catalogueReady ? catalogue.rows : [];
+  const catalogueError = catalogueReady ? catalogue.error : '';
+
+  const edit = (patch: Partial<ChatConnection>) => {
+    setDraft((current) => ({ ...current, ...patch }));
+    setDirty(true);
+    setNote('');
+    setFailure('');
+  };
 
   // The catalogue for the draft, loaded through the server. Reloaded when the
   // endpoint or the key changes, so the picker shows what the connection being
   // saved will actually offer.
   useEffect(() => {
-    const key = [draft.baseUrl, draft.apiKeySecret, draft.freeOnly].join('\n');
-    if (!draft.baseUrl.trim()) return;
+    if (!draft.baseUrl.trim() || keyRequiredForCatalogue) return;
     const controller = new AbortController();
-    void listModels(
-      {
-        ...defaultProvider,
-        baseUrl: draft.baseUrl,
-        model: '',
-        apiKeySecret: draft.apiKeySecret,
-        freeOnly: draft.freeOnly,
-      },
-      controller.signal,
-    )
-      .then((rows) => {
-        const usable =
-          draft.freeOnly && !allModelsFree(draft.baseUrl)
-            ? rows.filter((row) => priceKind(row) === 'free')
-            : rows;
-        setCatalogue({
-          key,
-          rows: usable.map((row) => ({ ...row, label: row.name || row.id })).slice(0, 500),
-          error: '',
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setCatalogue({
-          key,
-          rows: [],
-          error:
-            takesKey && !draft.apiKeySecret
-              ? 'Save a key first: this provider lists its models only to a key.'
-              : error instanceof Error
-                ? error.message
-                : 'The catalogue could not be loaded.',
-        });
-      });
-    return () => controller.abort();
-  }, [draft.baseUrl, draft.apiKeySecret, draft.freeOnly, local, takesKey]);
+    // Editing a custom URL should not send a request for each character.
+    const timer = setTimeout(
+      () =>
+        void listModels(
+          {
+            ...defaultProvider,
+            baseUrl: draft.baseUrl,
+            model: '',
+            apiKeySecret: draft.apiKeySecret,
+            freeOnly: draft.freeOnly,
+          },
+          controller.signal,
+        )
+          .then((rows) => {
+            if (controller.signal.aborted) return;
+            const usable =
+              draft.freeOnly && !allModelsFree(draft.baseUrl)
+                ? rows.filter((row) => priceKind(row) === 'free')
+                : rows;
+            setCatalogue({
+              key: catalogueKey,
+              rows: usable.map((row) => ({ ...row, label: row.name || row.id })).slice(0, 500),
+              error: '',
+            });
+          })
+          .catch((error: unknown) => {
+            if (controller.signal.aborted) return;
+            setCatalogue({
+              key: catalogueKey,
+              rows: [],
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Models could not be loaded. Retry, or search using the exact model ID.',
+            });
+          }),
+      250,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [draft.baseUrl, draft.apiKeySecret, draft.freeOnly, catalogueKey, keyRequiredForCatalogue]);
   const catalogueLoading =
-    Boolean(draft.baseUrl.trim()) &&
-    catalogue.key !== [draft.baseUrl, draft.apiKeySecret, draft.freeOnly].join('\n');
+    Boolean(draft.baseUrl.trim()) && !keyRequiredForCatalogue && !catalogueReady;
 
   const choose = (baseUrl: string) => {
     const next = providerFor(baseUrl);
@@ -156,44 +181,49 @@ export function ConnectionSettings({
       freeOnly: next && !next.local && !next.freeTier ? false : current.freeOnly,
     }));
     setKey('');
+    setDirty(true);
+    setNote('');
+    setFailure('');
   };
 
-  const save = useCallback(async () => {
-    setBusy(true);
+  const saveKey = async () => {
+    setBusy('key');
     setNote('');
+    setFailure('');
     try {
-      let apiKeySecret = draft.apiKeySecret;
-      const typed = key.trim();
-      if (typed && !destination)
-        throw new Error(
-          'That endpoint needs no key. A local or private address is reached direct.',
-        );
-      if (typed) {
-        const response = await clientFetch('/api/secrets', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: secretName,
-            value: typed,
-            // The same function the run route resolves against, so what is
-            // saved here is what is looked up there.
-            destination,
-          }),
-        });
-        if (!response.ok) throw new Error('The key could not be saved.');
-        apiKeySecret = secretName;
-        setSaved((current) => new Set([...current, secretName]));
-      }
-      if (!draft.model.trim()) throw new Error('Choose a model, or type its id.');
-      await onChange({ ...draft, apiKeySecret, freeOnly: freeTier ? draft.freeOnly : false });
+      const next = await saveProviderKey(draft, key);
+      setDraft(next);
+      setSaved((current) => new Set([...current, next.apiKeySecret]));
+      setDirty(true);
       setKey('');
-      setNote('Saved. Applies from your next message.');
+      setReload((value) => value + 1);
+      setNote('Key saved. Choose a model, then save the connection.');
+      window.dispatchEvent(new Event('hikmah-secrets-changed'));
     } catch (error) {
-      setNote(error instanceof Error ? error.message : 'That could not be saved.');
+      setFailure(error instanceof Error ? error.message : 'The key was not saved. Try again.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
-  }, [draft, key, onChange, destination, secretName, freeTier]);
+  };
+
+  const save = async () => {
+    setBusy('connection');
+    setNote('');
+    setFailure('');
+    try {
+      const next = await saveModelConnection(draft, key, onChange);
+      setDraft(next);
+      if (next.apiKeySecret) setSaved((current) => new Set([...current, next.apiKeySecret]));
+      setDirty(false);
+      setKey('');
+      setNote('Connection saved. You can return to chat.');
+      window.dispatchEvent(new Event('hikmah-secrets-changed'));
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : 'Connection not saved. Try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <section className="chat-connection">
@@ -204,6 +234,9 @@ export function ConnectionSettings({
             it looked like it belonged to a different app. */}
         <Select
           value={preset ? preset.baseUrl : 'custom'}
+          open={active && providerOpen}
+          onOpenChange={setProviderOpen}
+          disabled={Boolean(busy)}
           onValueChange={(next) => choose(next === 'custom' ? '' : next)}
         >
           <SelectTrigger id="chat-provider" aria-label="Provider">
@@ -215,7 +248,7 @@ export function ConnectionSettings({
                 {entry.name}
               </SelectItem>
             ))}
-            <SelectItem value="custom">Something else (OpenAI-compatible)</SelectItem>
+            <SelectItem value="custom">Custom endpoint</SelectItem>
           </SelectContent>
         </Select>
         {preset?.note && <small>{preset.note}</small>}
@@ -227,50 +260,62 @@ export function ConnectionSettings({
           <Input
             id="chat-base-url"
             value={draft.baseUrl}
+            disabled={Boolean(busy)}
             placeholder={OLLAMA_BASE_URL}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, baseUrl: event.target.value }))
-            }
+            onChange={(event) => edit({ baseUrl: event.target.value, apiKeySecret: '', model: '' })}
           />
           {ollama ? (
-            <small>
-              Ollama on the same machine as the app, reached by the app — not by this browser. If
-              the app runs in Docker and Ollama on the host, use{' '}
-              <button
-                type="button"
-                className="chat-inline-link"
-                onClick={() => setDraft((current) => ({ ...current, baseUrl: OLLAMA_DOCKER_URL }))}
-              >
-                {OLLAMA_DOCKER_URL}
-              </button>{' '}
-              and add <code>host.docker.internal</code> to{' '}
-              <code>HIKMAH_PROVIDER_ALLOW_PRIVATE</code> on the server. Pull a model first (
-              <code>ollama pull llama3.2</code>); the list below fills from what is installed.
-            </small>
+            <details className="chat-settings-disclosure">
+              <summary>Ollama setup help</summary>
+              <small>
+                The app server connects to Ollama. If it runs in Docker, use{' '}
+                <button
+                  type="button"
+                  className="chat-inline-link"
+                  disabled={Boolean(busy)}
+                  onClick={() => edit({ baseUrl: OLLAMA_DOCKER_URL })}
+                >
+                  {OLLAMA_DOCKER_URL}
+                </button>{' '}
+                and add <code>host.docker.internal</code> to{' '}
+                <code>HIKMAH_PROVIDER_ALLOW_PRIVATE</code> on the server. Pull a model first (
+                <code>ollama pull llama3.2</code>); installed models appear below.
+              </small>
+            </details>
           ) : (
-            <small>
-              An OpenAI-compatible endpoint. A local one needs no key; a hosted one keeps its key
-              here, encrypted, like the rest.
-            </small>
+            <small>Use the OpenAI-compatible base URL, without /chat/completions.</small>
           )}
         </div>
       )}
 
       {takesKey && (
         <div className="chat-setting">
-          <label htmlFor="chat-key">API key</label>
+          <label htmlFor="chat-key">
+            API key{' '}
+            {keySaved && (
+              <span className="chat-key-saved">
+                <Check size={12} aria-hidden="true" /> Saved
+              </span>
+            )}
+          </label>
           <div className="chat-key-row">
             <Input
               id="chat-key"
               type={reveal ? 'text' : 'password'}
               value={key}
+              disabled={Boolean(busy)}
               autoComplete="off"
               placeholder={
                 keySaved
                   ? `A key is saved for ${preset?.name ?? 'this endpoint'}. Type to replace it.`
                   : `Paste your ${preset?.name ?? 'provider'} key`
               }
-              onChange={(event) => setKey(event.target.value)}
+              onChange={(event) => {
+                setKey(event.target.value);
+                setDirty(true);
+                setNote('');
+                setFailure('');
+              }}
             />
             <button
               type="button"
@@ -281,8 +326,10 @@ export function ConnectionSettings({
             </button>
           </div>
           <small>
-            Encrypted before it is stored and never sent back to this page. Leave it blank to keep
-            the key you already saved.
+            Stored encrypted.{' '}
+            {keySaved
+              ? 'Leave blank to keep your saved key.'
+              : 'Your provider bills any paid model usage.'}
             {preset?.keyUrl && (
               <>
                 {' '}
@@ -292,6 +339,12 @@ export function ConnectionSettings({
               </>
             )}
           </small>
+          {key.trim() && (keyRequiredForCatalogue || !draft.model.trim()) && (
+            <Button variant="outline" disabled={Boolean(busy)} onClick={() => void saveKey()}>
+              {busy === 'key' && <LoaderCircle size={16} className="spin" />}
+              Save key & load models
+            </Button>
+          )}
         </div>
       )}
 
@@ -299,70 +352,96 @@ export function ConnectionSettings({
         <label htmlFor="chat-model">Model</label>
         <div className="chat-model-row">
           <ModelPicker
-            models={catalogue.rows}
+            id="chat-model"
+            active={active}
+            models={rows}
             value={draft.model}
-            onSelect={(model) => setDraft((current) => ({ ...current, model }))}
+            onSelect={(model) => edit({ model })}
+            disabled={Boolean(busy)}
             loading={catalogueLoading}
-            error={catalogue.error}
+            error={
+              catalogueError ||
+              (keyRequiredForCatalogue
+                ? 'Save your API key above to load this provider’s models. You can also enter an exact model ID.'
+                : '')
+            }
             title={`Choose a model on ${preset?.name ?? 'this endpoint'}`}
             local={allModelsFree(draft.baseUrl)}
           />
-          <Input
-            id="chat-model"
-            value={draft.model}
-            placeholder={ollama ? 'llama3.2' : 'or type the exact id'}
-            onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))}
-          />
         </div>
-        <small>
-          {catalogueLoading
-            ? 'Loading the catalogue…'
-            : catalogue.rows.length
-              ? `${catalogue.rows.length} models listed, with prices where the provider or OpenRouter publishes them.`
-              : catalogue.error || 'The provider’s own id for the model, copied exactly.'}
+        <small role="status">
+          {keyRequiredForCatalogue
+            ? 'Save your API key to load available models.'
+            : catalogueLoading
+              ? 'Loading the catalogue…'
+              : rows.length
+                ? `${rows.length} models available. Search by name or exact ID.`
+                : catalogueError || 'Search by name or enter an exact model ID.'}
         </small>
+        {catalogueError && (
+          <button
+            type="button"
+            className="chat-inline-link"
+            disabled={Boolean(busy)}
+            onClick={() => setReload((value) => value + 1)}
+          >
+            <RefreshCw size={12} aria-hidden="true" /> Retry loading models
+          </button>
+        )}
       </div>
 
-      {freeTier ? (
-        <label className="chat-setting-toggle">
-          <input
-            type="checkbox"
-            checked={draft.freeOnly}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, freeOnly: event.target.checked }))
-            }
-          />
-          <span>
-            Free models only
-            <small>
-              Refuses any model the catalogue does not price at zero, so a run cannot spend. A local
-              server counts as free.
-            </small>
-          </span>
-        </label>
-      ) : (
+      {freeTier && !allModelsFree(draft.baseUrl) ? (
+        <details className="chat-settings-disclosure">
+          <summary>
+            Model options <span>{draft.freeOnly ? 'Free only' : 'Paid models allowed'}</span>
+          </summary>
+          <label className="chat-setting-toggle">
+            <input
+              type="checkbox"
+              checked={draft.freeOnly}
+              disabled={Boolean(busy)}
+              onChange={(event) => edit({ freeOnly: event.target.checked })}
+            />
+            <span>
+              Free models only
+              <small>
+                Only allow models verified as free. Turn off to use paid models with your key.
+              </small>
+            </span>
+          </label>
+        </details>
+      ) : !freeTier ? (
         <p className="chat-connection-note">
-          Every model on {preset?.name ?? 'this provider'} is billed to your key. The receipt under
-          each answer shows what it cost at the listed rates.
+          Paid usage is billed by {preset?.name ?? 'your provider'} to your key.
         </p>
-      )}
+      ) : null}
 
       <div className="chat-connection-actions">
-        <Button onClick={() => void save()} disabled={busy}>
-          {busy && <LoaderCircle size={16} className="spin" />}
+        <Button onClick={() => void save()} disabled={Boolean(busy) || !draft.model.trim()}>
+          {busy === 'connection' && <LoaderCircle size={16} className="spin" />}
           Save connection
         </Button>
-        <Button
-          variant="ghost"
-          disabled={busy}
-          onClick={() => {
-            setDraft(DEFAULT_CONNECTION);
-            setKey('');
-          }}
-        >
-          Reset
-        </Button>
+        {dirty && (
+          <Button
+            variant="ghost"
+            disabled={Boolean(busy)}
+            onClick={() => {
+              setDraft(connection);
+              setKey('');
+              setDirty(false);
+              setNote('');
+              setFailure('');
+            }}
+          >
+            Discard changes
+          </Button>
+        )}
       </div>
+      {failure && (
+        <p className="chat-connection-error" role="alert">
+          {failure} Your unsaved changes are still here.
+        </p>
+      )}
       {note && (
         <p className="chat-connection-note" role="status">
           {note}

@@ -49,32 +49,34 @@ export function writeConversationDraft(
   }
 }
 
-export type ChatIntent = 'research' | 'build' | 'compare' | 'learn';
+export type ChatStarter = 'research' | 'build' | 'compare' | 'explain';
 
-export const CHAT_INTENTS: Record<ChatIntent, { label: string; prompt: string; detail: string }> = {
-  research: {
-    label: 'Research',
-    prompt:
-      'Research this topic using primary sources and explain what is known, uncertain, and missing: ',
-    detail: 'Parallel research and web search. Review your question, then send.',
-  },
-  build: {
-    label: 'Build',
-    prompt:
-      'Help me build this. Make a clear plan, implement it with the available tools, and verify the result: ',
-    detail: 'Plan, build, and verify using the tools available in this workspace.',
-  },
-  compare: {
-    label: 'Compare',
-    prompt: 'Compare these options, explain the tradeoffs, and recommend a next step: ',
-    detail: 'Also requests an answer without tools. This makes an additional model call.',
-  },
-  learn: {
-    label: 'Learn',
-    prompt: 'Teach me this step by step. Check my understanding with a practical example: ',
-    detail: 'Guided learning in this conversation. Model learning is in Learning studio.',
-  },
-};
+/** Draft suggestions only. Selecting one never changes tools or adds model calls. */
+export const CHAT_STARTERS: Record<ChatStarter, { label: string; prompt: string; detail: string }> =
+  {
+    research: {
+      label: 'Research a topic',
+      prompt:
+        'Research this topic using primary sources and explain what is known, uncertain, and missing: ',
+      detail: 'Draft a question to research, then add your topic.',
+    },
+    build: {
+      label: 'Build something',
+      prompt:
+        'Help me build this. Make a clear plan, implement it with the available tools, and verify the result: ',
+      detail: 'Describe what you want to make.',
+    },
+    compare: {
+      label: 'Compare options',
+      prompt: 'Compare these options, explain the tradeoffs, and recommend a next step: ',
+      detail: 'Add the options you want help choosing between.',
+    },
+    explain: {
+      label: 'Explain a topic',
+      prompt: 'Teach me this step by step. Check my understanding with a practical example: ',
+      detail: 'Choose a topic to understand, with a practical example.',
+    },
+  };
 
 export function transcriptMarkdown(messages: readonly UIMessage[]): string {
   const turns = messages.map((message) => {

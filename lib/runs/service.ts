@@ -34,6 +34,7 @@ import { captureCompletedRun } from '../learning/server.ts';
 import type { LearningConsent } from '../learning/types.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
+import { typeformRunContext } from '../integrations/typeform-server.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
@@ -140,6 +141,11 @@ async function driveWithAgent({
   // connections per run it has ever driven.
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
   const mediaKey = mediaKeyFor(config);
+  // An integration outage must not prevent an ordinary chat from starting.
+  // Availability and form grants are checked again by every tool call.
+  const typeform = run.user_id
+    ? await typeformRunContext(run.user_id, signal).catch(() => undefined)
+    : undefined;
   // Built once here rather than inside buildRunAgent, because the closing step
   // below talks to the same model after the agent loop has finished with it.
   const provider = {
@@ -194,6 +200,7 @@ async function driveWithAgent({
       available: execution && Boolean(run.user_id) && workbenchReady(),
     },
     mcp,
+    typeform,
     files: run.user_id
       ? { userId: run.user_id, files: createFileStore(getStorage().raw) }
       : undefined,

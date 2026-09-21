@@ -11,6 +11,7 @@ const pages = new Set([
   'tools',
   'terminal',
   'connections',
+  'typeform',
   'knowledge',
   'learning',
   'kernel',
@@ -31,6 +32,7 @@ const pages = new Set([
   'superadmin/learning',
   'superadmin/runs',
   'superadmin/controls',
+  'superadmin/integrations',
 ]);
 export function workspaceDestination(hash: string): string {
   const page = hash.replace(/^#\/?/, '');

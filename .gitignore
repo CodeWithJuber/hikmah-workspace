@@ -58,3 +58,5 @@ __pycache__/
 
 # Built by scripts/build-sandbox-worker.mjs
 public/sandbox-worker.js
+# Built by scripts/build-automatic-worker.mjs
+public/research/v6/automatic-fit-worker.mjs

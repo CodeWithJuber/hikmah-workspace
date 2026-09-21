@@ -56,6 +56,9 @@ export function ModelPicker({
   className = '',
   allowCustom = true,
   local = false,
+  id,
+  disabled = false,
+  active = true,
 }: {
   models: readonly PickerModel[];
   /** The id in use. Shown by its name when the list has it. */
@@ -73,10 +76,18 @@ export function ModelPicker({
   /** Every model here is free — a local server, or a provider free within
    * its limits — and is said to be, whatever the listing says. */
   local?: boolean;
+  id?: string;
+  disabled?: boolean;
+  /** Close portalled UI when a persistent settings panel is hidden. */
+  active?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  if (!active && open) {
+    setOpen(false);
+    setQuery('');
+  }
   const selected = models.find((model) => model.id === value);
   const hasFree = useMemo(
     () => local || models.some((model) => priceKind(model) === 'free'),
@@ -106,48 +117,62 @@ export function ModelPicker({
   return (
     <>
       <Button
+        id={id}
         type="button"
         variant="outline"
         className={'chat-model-trigger ' + className}
-        onClick={() => setOpen(true)}
-        aria-label={'Model: ' + (selected?.label ?? value)}
+        disabled={disabled}
+        onClick={() => {
+          setFilter('all');
+          setOpen(true);
+        }}
+        aria-label={value ? 'Model: ' + (selected?.label || value) : 'Choose a model'}
         title={selected ? priceLine(selected, local) || selected.id : value}
       >
-        <span>{selected?.label ?? value ?? 'Choose a model'}</span>
+        <span>{selected?.label || value || 'Choose a model'}</span>
         <ChevronDown size={16} aria-hidden="true" />
       </Button>
       <CommandDialog
-        open={open}
-        onOpenChange={setOpen}
+        open={active && open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setQuery('');
+        }}
         title={title}
-        description="Search by name or id. Prices are per million tokens."
+        description="Search by name or paste an exact model ID. Prices are per million tokens."
         className="model-dialog"
       >
-        <CommandInput placeholder="Search models…" value={query} onValueChange={setQuery} />
-        <div className="model-dialog-filters" role="group" aria-label="Filter models">
-          {(
-            [
-              ['all', 'All'],
-              ['free', 'Free'],
-              ['tools', 'Tools'],
-              ['reasoning', 'Reasoning'],
-            ] as [Filter, string][]
-          )
-            .filter(([key]) => key !== 'free' || hasFree)
-            .map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
-              >
-                {label}
-              </button>
-            ))}
-          <span className="model-dialog-count">
-            {loading ? 'Loading…' : `${rows.length} ${rows.length === 1 ? 'model' : 'models'}`}
-          </span>
-        </div>
+        <CommandInput
+          placeholder="Search models or paste an ID…"
+          value={query}
+          onValueChange={setQuery}
+        />
+        <details className="model-dialog-filter-disclosure">
+          <summary>
+            Filter models <span>{loading ? 'Loading…' : `${models.length} available`}</span>
+          </summary>
+          <div className="model-dialog-filters" role="group" aria-label="Filter models">
+            {(
+              [
+                ['all', 'All'],
+                ['free', 'Free'],
+                ['tools', 'Tools'],
+                ['reasoning', 'Reasoning'],
+              ] as [Filter, string][]
+            )
+              .filter(([key]) => key !== 'free' || hasFree)
+              .map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={filter === key}
+                  onClick={() => setFilter(key)}
+                >
+                  {label}
+                </button>
+              ))}
+          </div>
+        </details>
         <CommandList className="model-dialog-list">
           {loading && !models.length ? (
             <div className="model-dialog-empty" role="status">
@@ -162,7 +187,7 @@ export function ModelPicker({
                   {error ||
                     (models.length
                       ? 'Try another word, or type the exact id.'
-                      : 'This provider lists nothing without a key, or has not answered. Type the exact model id instead.')}
+                      : 'Return to Connection and save your API key, or paste an exact model ID here.')}
                 </p>
               </div>
             </CommandEmpty>

@@ -1,5 +1,5 @@
 'use client';
-/** "Learn this in the background…" — the dialog behind the `+` menu entry.
+/** Background research, launched from the composer's Tools menu.
  *
  * Starting a task is a POST to `/api/conversations/tasks` with the same run
  * configuration a chat turn carries, plus the brief. The task is its own
@@ -52,10 +52,12 @@ export function LearnTaskDialog({
         toast.error(payload.error ?? 'The task could not be started.');
         return;
       }
-      toast('Learning in the background. It will appear under Background tasks when it is done.');
+      toast('Research started. Follow it under Background tasks in your chat history.');
       setBrief('');
       onOpenChange(false);
       onStarted?.();
+    } catch {
+      toast.error('The task could not be started. Your brief is still here; try again.');
     } finally {
       setBusy(false);
     }
@@ -65,14 +67,15 @@ export function LearnTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="chat-learn-dialog">
         <DialogHeader>
-          <DialogTitle>What should Hikmah learn?</DialogTitle>
+          <DialogTitle>Start background research</DialogTitle>
           <DialogDescription>
-            It works on its own while you carry on here, reading sources and keeping what it finds
-            for your review. Nothing it keeps is used until you accept it under Memory.
+            Research a topic in a separate conversation while you keep chatting. The report appears
+            under Background tasks. Suggested memories wait for your review before use.
           </DialogDescription>
         </DialogHeader>
         <Textarea
           dir="auto"
+          aria-label="Research brief"
           value={brief}
           onChange={(event) => setBrief(event.target.value)}
           placeholder="A topic, a question, or what you want it to read up on…"
@@ -84,7 +87,7 @@ export function LearnTaskDialog({
             Cancel
           </Button>
           <Button type="button" disabled={busy || !brief.trim()} onClick={() => void start()}>
-            {busy ? 'Starting…' : 'Start learning'}
+            {busy ? 'Starting…' : 'Start research'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -71,20 +71,22 @@ test('the theme has a source that does not depend on the workspace mounting', ()
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {
-  // /workspace since the swap: the chat is what opens at the root now. The
-  // destinations are the property; how they are labelled is not.
-  assert.match(shell, /href="\/workspace"/);
+  // Open the actual tool, rather than dropping the user into another home
+  // screen whose duplicate navigation they must learn first.
+  assert.match(shell, /href="\/workspace#\/terminal"/);
+  assert.match(shell, /href="\/workspace#\/connections"/);
   assert.match(shell, /href="\/sign-out"/);
 });
 
-test('those links keep a name when they shrink to icons', () => {
-  // On a phone they render as icons, because the text wrapped "Sign out" onto
-  // two lines. Swapping a label for a glyph is exactly when a control loses its
-  // accessible name without anything looking wrong.
+test('workspace destinations keep their names in the mobile navigation', () => {
   for (const [href, label] of [
-    ['/workspace', 'Workspace'],
-    ['/sign-out', 'Sign out'],
+    ['/workspace#/terminal', 'Terminal & SSH'],
+    ['/workspace#/connections', 'Connected services'],
   ]) {
+    const link = shell.slice(shell.indexOf(`href="${href}"`));
+    assert.ok(link.slice(0, link.indexOf('</Link>')).includes(label), `${href} needs visible text`);
+  }
+  for (const [href, label] of [['/sign-out', 'Sign out']]) {
     const link = shell.slice(shell.indexOf(`href="${href}"`));
     const tag = link.slice(0, link.indexOf('>'));
     assert.match(tag, new RegExp(`aria-label="${label}"`), `${href} needs a name`);

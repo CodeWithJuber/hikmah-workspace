@@ -45,7 +45,9 @@
 
 @import './styles/workspace-experience.css';
 @import './styles/chat-experience.css';
+@import './styles/composer-flow.css';
 @import './styles/learning.css';
+@import './styles/co-scientist.css';
 
 /* The workspace stamps its theme on the root element, and Tailwind's `dark:`
    variant otherwise means `prefers-color-scheme`. Without this the two

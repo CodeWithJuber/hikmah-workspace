@@ -37,6 +37,8 @@ export const BUILT_IN_TOOLS = [
   'simulate_plan',
   'ssh_exec',
   'transition_estimate',
+  'typeform_list_forms',
+  'typeform_read_responses',
   'update_plan',
   'write_file',
 ];

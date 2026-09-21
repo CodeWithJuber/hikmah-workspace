@@ -4,6 +4,8 @@ import { getStorage } from '@/server/storage.mjs';
 import { createLearningStore, LearningError } from '@/lib/learning/store';
 import { learningSecrets } from '@/lib/learning/server';
 import type { ExampleStatus, LearningPolicy } from '@/lib/learning/types';
+import { createChatSettingsStore } from '@/lib/chat/settings-store';
+import { createAutomaticStore } from '@/lib/learning/automatic-store';
 
 export const dynamic = 'force-dynamic';
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
@@ -98,9 +100,17 @@ export async function POST(request: Request) {
     let example;
     if (body.action === 'configure') {
       const patch: Partial<Omit<LearningPolicy, 'revision'>> = {};
-      for (const key of ['enabled', 'useApproved', 'collectSyntax', 'retentionDays'] as const)
+      for (const key of [
+        'enabled',
+        'automatic',
+        'useApproved',
+        'collectSyntax',
+        'retentionDays',
+      ] as const)
         if (body[key] !== undefined) Object.assign(patch, { [key]: body[key] });
       learning.configure(user.userId, patch);
+      if (patch.automatic === true)
+        createChatSettingsStore(getStorage().raw).update(user.userId, { contextModel: true });
     } else if (body.action === 'review') {
       if (
         typeof body.id !== 'string' ||
@@ -130,8 +140,15 @@ export async function POST(request: Request) {
         throw new LearningError('Choose an example to delete.');
       if (!learning.remove(user.userId, body.id))
         throw new LearningError('That example was not found.', 404);
-    } else if (body.action === 'clear') learning.clear(user.userId);
-    else throw new LearningError('Choose a valid learning action.');
+    } else if (body.action === 'clear') {
+      const objects = learning.clear(user.userId);
+      await Promise.all(
+        objects.map(async (key) => {
+          await getStorage().BUCKET.delete(key);
+          createAutomaticStore(getStorage().raw).cleaned(key);
+        }),
+      );
+    } else throw new LearningError('Choose a valid learning action.');
     return Response.json(
       { ...learning.snapshot(user.userId), ...(example ? { example } : {}) },
       { headers },

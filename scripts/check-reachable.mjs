@@ -47,6 +47,8 @@ const ALLOW = [
   // Loaded by URL as a worker bundle, never imported.
   /^lib\/playground\/sandbox\.worker\.ts$/,
   /^lib\/context-model\/train-worker\.ts$/,
+  // Bundled by build-automatic-worker.mjs and launched in a Node worker thread.
+  /^lib\/learning\/automatic-fit-worker\.ts$/,
   // Build inputs and one-shot operator scripts, not application code.
   /^scripts\//,
   // The design language. Compiled to app/styles/palette.generated.css by
@@ -89,7 +91,9 @@ const ALLOW = [
 // lib/ai/pricing.ts (the id match a direct provider's price rests on) and
 // resetRouteCatalogue in lib/server/route-catalogue.ts (the hour-long cache
 // cannot be tested without a way to empty it).
-const BASELINE = { orphanFiles: 0, testedOnly: 79, dead: 44 };
+// 79 → 82 and 44 → 47 for the Typeform integration: its client cursor/delay
+// helpers and service constants are asserted directly by integration tests.
+const BASELINE = { orphanFiles: 0, testedOnly: 82, dead: 47 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

@@ -1,0 +1,151 @@
+@layer overrides {
+  .chat-composer-options-trigger {
+    gap: 6px;
+    padding-inline: 9px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-base);
+  }
+
+  .chat-composer-options {
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(620px, var(--radix-popover-content-available-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+    border-radius: var(--radius-container);
+  }
+
+  .chat-composer-options h2 {
+    margin: 0 0 5px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+  }
+
+  .chat-options-description,
+  .chat-composer-permissions > p {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+
+  .chat-composer-options-list {
+    display: grid;
+    gap: 4px;
+    margin-top: 12px;
+  }
+
+  .chat-composer-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 60px;
+    padding: 9px 7px;
+    border-radius: var(--radius-element);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .chat-composer-option:hover,
+  .chat-background-task-action:hover {
+    background: var(--muted);
+  }
+
+  .chat-composer-option > svg,
+  .chat-background-task-action > svg {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+  }
+
+  .chat-composer-option > span,
+  .chat-background-task-action > span {
+    display: grid;
+    flex: 1 1 0;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .chat-composer-option strong,
+  .chat-background-task-action strong {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .chat-composer-option small,
+  .chat-background-task-action small {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
+  }
+
+  .chat-composer-option > input {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--primary);
+  }
+
+  .chat-composer-option:focus-within,
+  .chat-background-task-action:focus-visible,
+  .chat-composer-permissions > summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .chat-background-task-action {
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-composer-permissions {
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-composer-permissions > summary {
+    padding-block: 14px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+  }
+
+  .chat-composer-permissions .chat-tool-switches {
+    margin-top: 8px;
+  }
+
+  .chat-composer-permissions .chat-tool-switches label {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .chat-composer-permissions .chat-tool-switches code {
+    display: none;
+  }
+
+  .chat-agent-starters {
+    margin-top: 16px;
+  }
+
+  .workspace-experience .chat-outcome-starters button {
+    gap: 8px;
+    line-height: 1.4;
+  }
+
+  .chat-composer-row .chat-attach-control {
+    min-width: 36px;
+  }
+
+  @media (max-width: 600px) {
+    .workspace-experience .chat-composer-simple-row button {
+      min-height: 44px;
+      height: 44px;
+    }
+
+    .workspace-experience .chat-composer-simple-row .chat-attach-control,
+    .workspace-experience .chat-composer-simple-row .chat-send-control {
+      min-width: 44px;
+      width: 44px;
+    }
+  }
+}

@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     'workbench/**',
     // Built by scripts/build-sandbox-worker.mjs from sources that are linted.
     'public/sandbox-worker.js',
+    // Built from the separately linted automatic training source.
+    'public/research/v6/automatic-fit-worker.mjs',
   ]),
   {
     // The rest of eslint-plugin-jsx-a11y.

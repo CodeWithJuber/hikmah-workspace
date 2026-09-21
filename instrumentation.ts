@@ -14,11 +14,15 @@ export async function register() {
     const { runService } = await import('./lib/runs/service');
     const worker = runService();
     worker.start();
+    const { automaticLearningService } = await import('./lib/learning/automatic-server');
+    const learning = automaticLearningService();
+    learning.start();
 
     // Hand back anything in flight so the next boot resumes it rather than
     // leaving it marked running with nobody driving it.
     const shutdown = () => {
       void worker.stop();
+      void learning.stop();
     };
     process.once('SIGTERM', shutdown);
     process.once('SIGINT', shutdown);
