@@ -67,14 +67,12 @@ jobs:
           docker save "hikmah-workbench:$GITHUB_SHA" | gzip -1 > artifact/workbench.tar.gz
           cd artifact
           sha256sum image.tar.gz workbench.tar.gz > image.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Cache verified image for deployment
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
-          name: hikmah-image-${{ github.sha }}
           path: artifact/
-          retention-days: 3
-          compression-level: 0
-          if-no-files-found: error
+          key: hikmah-image-${{ github.sha }}-${{ github.run_id }}
   deploy:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
@@ -84,10 +82,12 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with: { persist-credentials: false }
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - name: Restore verified image
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
-          name: hikmah-image-${{ github.sha }}
-          path: artifact
+          path: artifact/
+          key: hikmah-image-${{ github.sha }}-${{ github.run_id }}
+          fail-on-cache-miss: true
       - name: Prepare SSH client
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends sshpass
       - name: Deploy the verified image and check HTTPS
