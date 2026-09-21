@@ -1214,7 +1214,18 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
+  }
+  .model-dialog-filter-disclosure {
     border-bottom: 1px solid var(--border);
+    font-size: var(--font-size-sm);
+  }
+  .model-dialog-filter-disclosure > summary {
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  .model-dialog-filter-disclosure > summary > span {
+    float: inline-end;
+    color: var(--muted-foreground);
   }
   .model-dialog-filters button {
     padding: 3px 10px;
@@ -1227,11 +1238,6 @@
     background: var(--primary);
     border-color: var(--primary);
     color: var(--primary-foreground);
-  }
-  .model-dialog-count {
-    margin-inline-start: auto;
-    font-size: var(--font-size-sm);
-    color: var(--muted-foreground);
   }
   .model-dialog-list {
     max-height: min(60vh, 480px);
@@ -1306,9 +1312,8 @@
   }
   .chat-model-row > button {
     max-width: 100%;
-  }
-  .chat-model-row > input {
-    flex: 1 1 160px;
+    width: 100%;
+    justify-content: space-between;
   }
   .chat-connect {
     display: flex;
@@ -1437,6 +1442,44 @@
     font-size: var(--font-size-sm);
     color: var(--muted-foreground);
   }
+  .chat-connection-error {
+    color: var(--destructive);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+  .chat-key-saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-inline-start: 6px;
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    color: var(--primary);
+  }
+  .chat-settings-disclosure {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .chat-settings-disclosure > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+  .chat-settings-disclosure > summary > span {
+    display: block;
+    padding-inline-start: 15px;
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+  .chat-settings-disclosure[open] > summary {
+    margin-bottom: 14px;
+  }
+  .chat-settings-disclosure-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
 
   .chat-settings-panel {
     display: flex;
@@ -1449,7 +1492,7 @@
     font-weight: 600;
     margin-bottom: 4px;
   }
-  .chat-settings-panel p {
+  .chat-settings-panel p:not(.chat-connection-error) {
     color: var(--muted-foreground);
     line-height: 1.55;
     margin-bottom: 9px;

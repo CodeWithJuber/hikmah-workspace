@@ -64,7 +64,7 @@ export function WorkspaceCommands({
               </CommandItem>
               <CommandItem onSelect={() => select(onLearning)}>
                 <BookOpen />
-                Learning studio
+                Learning
               </CommandItem>
               <CommandItem onSelect={() => select(() => onPanel('agents'))}>
                 <Bot />
@@ -76,7 +76,7 @@ export function WorkspaceCommands({
               </CommandItem>
               <CommandItem onSelect={() => select(() => onPanel('memory'))}>
                 <Database />
-                Memory
+                Saved memory
               </CommandItem>
               <CommandItem onSelect={() => select(() => onPanel('settings'))}>
                 <Settings />

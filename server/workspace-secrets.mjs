@@ -30,6 +30,7 @@ export function validateDestination(destination) {
       'search:brave',
       'runtime',
       'runtime:env',
+      'integration:typeform',
       // A credential an MCP server's config refers to as ${NAME}. One
       // destination rather than one per server, because the same token is often
       // the same token: keying it per server would make the owner save it twice

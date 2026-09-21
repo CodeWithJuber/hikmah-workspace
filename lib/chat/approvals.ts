@@ -145,4 +145,4 @@ export function commandGranted(command: string, prefixes: readonly string[]): bo
 }
 
 /** The tools whose calls the run can pause on, for the settings screen. */
-export const GATED_TOOLS = ['bash', 'sandbox_run', 'ssh_exec'] as const;
+export const GATED_TOOLS = ['bash', 'sandbox_run', 'ssh_exec', 'typeform_read_responses'] as const;

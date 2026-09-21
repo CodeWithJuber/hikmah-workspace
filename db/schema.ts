@@ -93,6 +93,7 @@ export const contextCandidates = sqliteTable(
 export const learningPolicies = sqliteTable('learning_policies', {
   userId: text('user_id').primaryKey(),
   enabled: integer('enabled').notNull().default(0),
+  automatic: integer('automatic').notNull().default(0),
   useApproved: integer('use_approved').notNull().default(1),
   collectSyntax: integer('collect_syntax').notNull().default(0),
   retentionDays: integer('retention_days').notNull().default(30),
@@ -115,4 +116,60 @@ export const learningExamples = sqliteTable('learning_examples', {
   createdAt: text('created_at').notNull(),
   reviewedAt: text('reviewed_at'),
   revision: integer('revision').notNull().default(0),
+});
+
+export const automaticLearningJobs = sqliteTable('automatic_learning_jobs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  exampleId: text('example_id')
+    .notNull()
+    .references(() => learningExamples.id, { onDelete: 'cascade' }),
+  consentRevision: integer('consent_revision').notNull(),
+  language: text('language').notNull(),
+  sentences: text('sentences').notNull(),
+  config: text('config').notNull(),
+  status: text('status').notNull().default('queued'),
+  reason: text('reason').notNull().default(''),
+  requestedAt: text('requested_at'),
+  annotations: text('annotations'),
+  checkpointId: text('checkpoint_id'),
+  receipt: text('receipt'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const automaticLearningBudget = sqliteTable(
+  'automatic_learning_budget',
+  {
+    userId: text('user_id').notNull(),
+    day: text('day').notNull(),
+    requests: integer('requests').notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.day] })],
+);
+
+export const automaticLearningLock = sqliteTable('automatic_learning_lock', {
+  id: integer('id').primaryKey(),
+  holder: text('holder').notNull(),
+  expiresAt: text('expires_at').notNull(),
+});
+
+export const automaticLearningAnnotations = sqliteTable(
+  'automatic_learning_annotations',
+  {
+    userId: text('user_id').notNull(),
+    language: text('language').notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    exampleId: text('example_id')
+      .notNull()
+      .references(() => learningExamples.id, { onDelete: 'cascade' }),
+    annotation: text('annotation').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.language, table.fingerprint] })],
+);
+
+export const automaticLearningGarbage = sqliteTable('automatic_learning_garbage', {
+  blobKey: text('blob_key').primaryKey(),
+  holder: text('holder'),
 });

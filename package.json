@@ -18,7 +18,7 @@
     "test:production": "node scripts/test-standalone.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:worker": "node scripts/build-sandbox-worker.mjs",
+    "build:worker": "node scripts/build-sandbox-worker.mjs && node scripts/build-automatic-worker.mjs",
     "design:build": "node scripts/build-design.mjs",
     "design:check": "node scripts/build-design.mjs --check"
   },

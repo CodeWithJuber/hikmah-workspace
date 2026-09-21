@@ -1,0 +1,237 @@
+@layer overrides {
+  .co-scientist-dialog {
+    width: min(620px, calc(100vw - 32px));
+    max-width: min(620px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 28px;
+    border-radius: var(--radius-container);
+  }
+  .co-scientist-form {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+  }
+  .co-scientist-header {
+    align-items: flex-start;
+    gap: 9px;
+    padding-inline-end: 15px;
+    text-align: start;
+  }
+  .co-scientist-mark {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 4px;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+    border-radius: var(--radius-element);
+    background: color-mix(in srgb, var(--primary) 7%, var(--card));
+    color: var(--primary);
+  }
+  .co-scientist-title {
+    font-size: var(--font-size-xl);
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+  .co-scientist-description {
+    max-width: 440px;
+    line-height: 1.55;
+  }
+  .co-scientist-field {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  .co-scientist-field > label {
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .co-scientist-field > textarea {
+    width: 100%;
+    min-height: 98px;
+    max-height: 240px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    resize: vertical;
+  }
+  .co-scientist-field > textarea:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .co-scientist-field > textarea::placeholder {
+    color: var(--muted-foreground);
+  }
+  .co-scientist-outcomes {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .co-scientist-outcomes > legend {
+    margin-bottom: 10px;
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .co-scientist-outcome-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .co-scientist-outcome-list > label {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 12px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    cursor: pointer;
+  }
+  .co-scientist-outcome-list > label.is-selected {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 5%, var(--card));
+  }
+  .co-scientist-outcome-list input {
+    flex-shrink: 0;
+    margin-top: 2px;
+    accent-color: var(--primary);
+  }
+  .co-scientist-outcome-list strong,
+  .co-scientist-sources strong {
+    display: block;
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .co-scientist-outcome-list small,
+  .co-scientist-sources small,
+  .co-scientist-sources p > span {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+  }
+  .co-scientist-context > summary,
+  .co-scientist-preview > summary {
+    width: fit-content;
+    padding-block: 4px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+  }
+  .co-scientist-context > summary > span {
+    margin-inline-start: 6px;
+    font-size: var(--font-size-xs);
+  }
+  .co-scientist-context .co-scientist-field {
+    margin-top: 12px;
+  }
+  .co-scientist-context p {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    line-height: 1.55;
+  }
+  .co-scientist-sources {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding-block: 14px;
+    border-block: 1px solid var(--border);
+    color: var(--muted-foreground);
+  }
+  .co-scientist-sources > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .co-scientist-sources > label {
+    display: flex;
+    flex: 1;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .co-scientist-sources input {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--primary);
+  }
+  .co-scientist-sources > p {
+    margin: 0;
+  }
+  .co-scientist-preview > p {
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 12px 0 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .co-scientist-error {
+    margin: 0;
+    color: var(--destructive);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+  .co-scientist-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .co-scientist-footer > p {
+    max-width: 310px;
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    line-height: 1.55;
+  }
+  .co-scientist-footer > button {
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+  @media (max-width: 520px) {
+    .co-scientist-dialog {
+      padding: 22px 18px;
+    }
+    .co-scientist-outcome-list {
+      grid-template-columns: 1fr;
+    }
+    .co-scientist-outcome-list > label {
+      padding: 10px 12px;
+    }
+    .co-scientist-footer {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .co-scientist-footer > p {
+      max-width: none;
+    }
+    .co-scientist-field > textarea {
+      font-size: 1rem;
+    }
+  }
+}

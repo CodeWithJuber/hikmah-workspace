@@ -20,11 +20,8 @@ import {
 } from '@/components/ai-elements/conversation';
 import {
   PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
   PromptInputBody,
+  PromptInputButton,
   PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
@@ -40,8 +37,6 @@ import {
   Columns2,
   Download,
   Globe,
-  GraduationCap,
-  KeyRound,
   LoaderCircle,
   Paperclip,
   Scale,
@@ -66,7 +61,6 @@ import {
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
-import { DropdownMenuCheckboxItem, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
 import { ConnectModelCard } from './connect-model';
@@ -74,18 +68,20 @@ import { allModelsFree } from '@/lib/ai/endpoint';
 import { PricingContext } from './pricing-context';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
+import { CoScientistDialog } from '@/components/research/co-scientist-dialog';
+import type { PreparedResearchBrief } from '@/lib/client/research-brief';
 import { MessageParts, messageText } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { clientFetch } from '@/lib/client/request';
 import {
-  CHAT_INTENTS,
+  CHAT_STARTERS,
   currentRunActivity,
   failureAction,
   readConversationDraft,
   transcriptMarkdown,
   writeConversationDraft,
-  type ChatIntent,
+  type ChatStarter,
 } from './chat-experience';
 
 /** What the run recorded about itself when it finished. Written by the worker
@@ -114,7 +110,7 @@ const ACCEPT = 'image/*,text/*,.md,.markdown,.json,.csv,.pdf';
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
-const INTENT_ICONS = { research: Search, build: Code2, compare: Scale, learn: BookOpen };
+const STARTER_ICONS = { research: Search, build: Code2, compare: Scale, explain: BookOpen };
 const onlineSnapshot = () => navigator.onLine;
 const serverOnlineSnapshot = () => true;
 function subscribeOnline(notify: () => void) {
@@ -157,6 +153,22 @@ function SendControl({
         <ArrowUp size={20} aria-hidden="true" />
       )}
     </PromptInputSubmit>
+  );
+}
+
+/** The paperclip always opens the picker; tools live in their own named menu. */
+function AttachControl({ disabled }: { disabled: boolean }) {
+  const attachments = usePromptInputAttachments();
+  return (
+    <PromptInputButton
+      className="chat-attach-control"
+      aria-label="Attach a file"
+      title="Attach a file"
+      disabled={disabled}
+      onClick={attachments.openFileDialog}
+    >
+      <Paperclip size={20} aria-hidden="true" />
+    </PromptInputButton>
   );
 }
 
@@ -337,19 +349,19 @@ export function ChatView({
 
   // Compare answers the same question a second time with no tools, to show what
   // the agent's machinery is actually buying. Held here rather than in the run
-  // configuration because it is a per-turn choice, not a setting.
+  // configuration because it is a choice for this conversation, not a saved setting.
   const [compare, setCompare] = useState(false);
-  // Deep research, per turn for the same reason — and because on a free key a
-  // fan-out of lanes can be most of the day's request allowance in one go.
+  // Optional help stays selected in this conversation until switched off.
+  // Its chips remain visible so additional calls are never an invisible mode.
   const [deepResearch, setDeepResearch] = useState(false);
-  // Search the web for this message, whatever the conversation's tool switches
-  // say. Per turn: a person asks for a search about one question, not about
-  // every question after it.
+  // Explicit web search overrides the conversation's general tool switches.
   const [webSearch, setWebSearch] = useState(false);
-  // The "learn this in the background" dialog. Opened from the `+` menu and
-  // rendered outside it, because a menu unmounts its content when it closes.
+  // A background research task is a separate conversation.
   const [learning, setLearning] = useState(false);
-  const [intent, setIntent] = useState<ChatIntent | null>(null);
+  const [researchDialog, setResearchDialog] = useState({
+    open: false,
+    capabilities: { webSearch: false, parallelResearch: false },
+  });
   const [draft, setDraft] = useState(() => {
     try {
       return readConversationDraft(window.sessionStorage, id);
@@ -509,17 +521,28 @@ export function ChatView({
     updateDraft(draftBeforeEdit.current);
   }, [updateDraft]);
 
-  const chooseIntent = useCallback(
-    (choice: ChatIntent) => {
-      setIntent(choice);
-      setDeepResearch(choice === 'research');
-      setWebSearch(choice === 'research');
-      setCompare(choice === 'compare');
-      if (!draft.trim() || Object.values(CHAT_INTENTS).some((option) => option.prompt === draft))
-        updateDraft(CHAT_INTENTS[choice].prompt);
+  const chooseStarter = useCallback(
+    (prompt: string) => {
+      // Suggestions draft a request. Only the Tools menu changes execution.
+      updateDraft(prompt);
       composer.current?.focus();
     },
-    [draft, updateDraft],
+    [updateDraft],
+  );
+
+  const prepareResearch = useCallback(
+    (brief: PreparedResearchBrief) => {
+      // Keep anything already written and all staged attachments. The prepared
+      // question is still an editable draft, and only Send starts a model call.
+      const next = draft.trim() ? `${draft.trimEnd()}\n\n${brief.prompt}` : brief.prompt;
+      if (editing) setDraft(next);
+      else updateDraft(next);
+      setWebSearch(brief.webSearch);
+      setDeepResearch(brief.deepResearch);
+      setResearchDialog((current) => ({ ...current, open: false }));
+      window.requestAnimationFrame(() => composer.current?.focus());
+    },
+    [draft, editing, updateDraft],
   );
 
   const exportTranscript = useCallback(() => {
@@ -820,7 +843,7 @@ export function ChatView({
               )}
               <StagedAttachments />
               {(webSearch || deepResearch || compare) && (
-                <div className="chat-selected-modes" aria-label="Modes for this request">
+                <div className="chat-selected-modes" aria-label="Extra help for this conversation">
                   {webSearch && (
                     <button
                       type="button"
@@ -845,7 +868,7 @@ export function ChatView({
                       onClick={() => setCompare(false)}
                       aria-label="Turn off comparison"
                     >
-                      <Columns2 size={12} /> Compare <X size={12} />
+                      <Columns2 size={12} /> Compare answers <X size={12} />
                     </button>
                   )}
                 </div>
@@ -880,67 +903,22 @@ export function ChatView({
                 }
               />
             </PromptInputBody>
-            <PromptInputFooter className="chat-composer-row">
+            <PromptInputFooter className="chat-composer-row chat-composer-simple-row">
               <PromptInputTools className="chat-composer-tools">
-                <PromptInputActionMenu>
-                  {/* An icon-only trigger with no name at all: a screen reader
-                    announced "button" and nothing else, and there was no
-                    tooltip on a pointer either. */}
-                  <PromptInputActionMenuTrigger
-                    aria-label="Attach a file, and more for this message"
-                    title="Attach a file, and more"
-                  >
-                    <Paperclip size={20} aria-hidden="true" />
-                  </PromptInputActionMenuTrigger>
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                    <DropdownMenuCheckboxItem
-                      checked={webSearch}
-                      onCheckedChange={setWebSearch}
-                      onSelect={(event) => event.preventDefault()}
-                    >
-                      <Globe className="mr-2 size-4" aria-hidden="true" /> Search the web
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={deepResearch}
-                      onCheckedChange={setDeepResearch}
-                      onSelect={(event) => event.preventDefault()}
-                    >
-                      <Telescope className="mr-2 size-4" aria-hidden="true" /> Research in parallel
-                    </DropdownMenuCheckboxItem>
-                    {/* Comparing two answers is an expert's question about the
-                    product, asked once and then rarely. It was a labelled
-                    checkbox on the main row, permanently occupying width that
-                    the model name needed, in front of everyone who only wanted
-                    to type a message. */}
-                    <DropdownMenuCheckboxItem
-                      checked={compare}
-                      onCheckedChange={setCompare}
-                      onSelect={(event) => event.preventDefault()}
-                    >
-                      <Columns2 className="mr-2 size-4" aria-hidden="true" />
-                      Also answer without tools
-                    </DropdownMenuCheckboxItem>
-                    {/* A task is handed off, not sent: it becomes its own
-                    conversation and this one stays free to type in. */}
-                    <DropdownMenuItem onSelect={() => setLearning(true)}>
-                      <GraduationCap className="mr-2 size-4" aria-hidden="true" />
-                      Learn this in the background…
-                    </DropdownMenuItem>
-                    {onOpenSettings && (
-                      <DropdownMenuItem onSelect={onOpenSettings}>
-                        <KeyRound className="mr-2 size-4" aria-hidden="true" /> Model connections
-                        and API keys
-                      </DropdownMenuItem>
-                    )}
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-                {onTools && (
-                  <ToolsMenu disabled={run.disabledTools ?? []} onChange={onTools} busy={busy} />
-                )}
-                {/* The model before the tools: on a phone the row wraps after
-                Research, and the second line then reads model first, which is
-                the thing people change; the tool count is the detail. */}
+                <AttachControl disabled={!!editing} />
+                <ToolsMenu
+                  disabled={run.disabledTools ?? []}
+                  onChange={onTools}
+                  busy={busy}
+                  webSearch={webSearch}
+                  onWebSearch={setWebSearch}
+                  deepResearch={deepResearch}
+                  onDeepResearch={setDeepResearch}
+                  compare={compare}
+                  onCompare={setCompare}
+                  onBackgroundTask={needsKey ? undefined : () => setLearning(true)}
+                  onCoScientist={(capabilities) => setResearchDialog({ open: true, capabilities })}
+                />
                 {onModel && (
                   <ModelPicker
                     models={models ?? []}
@@ -1007,63 +985,65 @@ export function ChatView({
               </button>
             </p>
           )}
-          {messages.length === 0 && (
-            <div className="chat-intent-shortcuts" role="group" aria-label="Start with a task">
-              {(Object.keys(CHAT_INTENTS) as ChatIntent[]).map((choice) => {
-                const Icon = INTENT_ICONS[choice];
-                return (
-                  <button
-                    type="button"
-                    key={choice}
-                    aria-pressed={intent === choice}
-                    onClick={() => chooseIntent(choice)}
-                    title={CHAT_INTENTS[choice].detail}
-                  >
-                    <Icon size={20} aria-hidden="true" />
-                    {CHAT_INTENTS[choice].label}
+          {messages.length === 0 &&
+            !needsKey &&
+            !draft.trim() &&
+            !editing &&
+            (starters?.length ? (
+              <div
+                className="chat-starters chat-agent-starters"
+                role="group"
+                aria-label="Try asking this agent"
+              >
+                {starters.map((prompt) => (
+                  <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
+                    {prompt}
                   </button>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div
+                className="chat-intent-shortcuts chat-outcome-starters"
+                role="group"
+                aria-label="Ideas to get started"
+              >
+                {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
+                  const Icon = STARTER_ICONS[choice];
+                  return (
+                    <button
+                      type="button"
+                      key={choice}
+                      onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
+                      title={CHAT_STARTERS[choice].detail}
+                    >
+                      <Icon size={20} aria-hidden="true" />
+                      {CHAT_STARTERS[choice].label}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
           <div className="chat-composer-hint" id="chat-composer-hint">
-            <span>
-              {intent
-                ? CHAT_INTENTS[intent].detail
-                : 'Enter to send · Shift + Enter for a new line'}
-            </span>
+            <span>Enter to send · Shift + Enter for a new line</span>
             {draftSaved && draft && !editing && (
               <span className="chat-draft-saved">
                 <Check size={12} aria-hidden="true" /> Draft saved in this tab
               </span>
             )}
           </div>
-          {messages.length === 0 && !!starters?.length && (
-            <details className="chat-agent-suggestions">
-              <summary>Ideas for this agent</summary>
-              <div className="chat-starters">
-                {starters.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => {
-                      updateDraft(prompt);
-                      composer.current?.focus();
-                    }}
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            </details>
-          )}
         </div>
         <LearnTaskDialog
           open={learning}
           onOpenChange={setLearning}
           run={run as unknown as Record<string, unknown>}
           onStarted={onSettled}
+        />
+        <CoScientistDialog
+          open={researchDialog.open}
+          onOpenChange={(open) => setResearchDialog((current) => ({ ...current, open }))}
+          capabilities={researchDialog.capabilities}
+          onPrepare={prepareResearch}
         />
       </div>
     </PricingContext.Provider>

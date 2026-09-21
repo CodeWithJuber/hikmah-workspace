@@ -101,6 +101,12 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
           icon: Activity,
         },
         {
+          title: 'Integrations',
+          text: 'Connect Typeform once and choose which forms each account can read.',
+          page: 'superadmin/integrations',
+          icon: Settings2,
+        },
+        {
           title: 'Owner controls',
           text: 'Configure the middle layer, rule training and feedback collection.',
           page: 'superadmin/controls',

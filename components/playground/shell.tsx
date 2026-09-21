@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   TerminalSquare,
   Plug,
+  FileText,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -35,6 +36,7 @@ import { AgentsHome } from './agents-home';
 import { RuntimeHome } from './runtime-home';
 import { TerminalPage } from '@/components/workbench/terminal-page';
 import { McpServers } from '@/components/settings/mcp-servers';
+import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { Knowledge } from './knowledge';
 import { useMemory } from '@/hooks/use-memory';
 import { Settings } from './settings';
@@ -275,7 +277,16 @@ function ShellContent() {
                 <p>Servers the assistant can call tools on.</p>
               </div>
             </header>
+            <div className="px-6 pb-4">
+              <Button variant="outline" onClick={() => setPage('typeform')}><FileText size={16} />Typeform forms</Button>
+              <p className="mt-2 text-sm text-muted-foreground">Read surveys shared with your account and use them in chat.</p>
+            </div>
             <McpServers />
+          </div>
+        ) : page === 'typeform' ? (
+          <div className="lab-page">
+            <header className="lab-header"><SidebarTrigger /><div><h1>Integrations</h1><p>Use your connected services in Hikmah.</p></div></header>
+            <TypeformPanel />
           </div>
         ) : page === 'knowledge' ? (
           <Knowledge />

@@ -17,10 +17,19 @@ export const dynamic = 'force-dynamic';
  * or a new one — and redirects, so that every conversation has its own URL and
  * a reload lands back where the owner was rather than somewhere else.
  */
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireChatGPTUser('/chat');
   // The most recent chat, never a background task: a task finishing is not a
   // reason for the next visit to open on its report instead of the chat.
   const latest = runService().store.latestChat(user.userId);
-  redirect(`/chat/${latest?.id ?? newConversationId()}`);
+  const requested = await searchParams;
+  const query = new URLSearchParams();
+  if (requested.view === 'learning') query.set('view', 'learning');
+  if (requested.settings === 'connection') query.set('settings', 'connection');
+  const suffix = query.size ? `?${query}` : '';
+  redirect(`/chat/${encodeURIComponent(latest?.id ?? newConversationId())}${suffix}`);
 }

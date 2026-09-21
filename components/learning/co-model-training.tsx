@@ -142,7 +142,13 @@ async function fetchRegistry(signal?: AbortSignal) {
   };
 }
 
-export function CoModelTraining() {
+export function CoModelTraining({
+  active = true,
+  revision = '',
+}: {
+  active?: boolean;
+  revision?: string;
+}) {
   const [registry, setRegistry] = useState<Registry | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState<ModelRequestError | Error | null>(null);
@@ -164,6 +170,7 @@ export function CoModelTraining() {
   const worker = useRef<{ instance: Worker; cancel: () => void } | null>(null);
   const request = useRef<AbortController | null>(null);
   const mounted = useRef(true);
+  const hasRegistry = useRef(false);
   const lock = useRef(false);
   const rows = drafts[language] ?? '';
   const versions = registry?.versions.filter((version) => version.language === language) ?? [];
@@ -180,6 +187,7 @@ export function CoModelTraining() {
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const next = await fetchRegistry(signal);
     if (signal?.aborted || !mounted.current) return;
+    hasRegistry.current = true;
     setRegistry(next.registry);
     if (next.waiting) {
       setWaiting(next.waiting);
@@ -208,12 +216,24 @@ export function CoModelTraining() {
 
   useEffect(() => {
     mounted.current = true;
+    return () => {
+      mounted.current = false;
+      request.current?.abort();
+      worker.current?.cancel();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active || busy) return;
+    request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
     void fetchRegistry(controller.signal)
       .then((next) => {
         if (!controller.signal.aborted) {
+          hasRegistry.current = true;
           setRegistry(next.registry);
+          setAccessError(null);
           if (next.waiting) {
             setWaiting(next.waiting);
             setQueueError('');
@@ -224,20 +244,22 @@ export function CoModelTraining() {
         }
       })
       .catch((cause) => {
-        if (!controller.signal.aborted && mounted.current)
-          setAccessError(
-            cause instanceof Error ? cause : new Error('Co-model training is unavailable.'),
-          );
+        if (!controller.signal.aborted && mounted.current) {
+          if (hasRegistry.current)
+            setError(
+              'Saved checkpoint versions could not be refreshed. Check again when your connection returns.',
+            );
+          else
+            setAccessError(
+              cause instanceof Error ? cause : new Error('Co-model training is unavailable.'),
+            );
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted && mounted.current) setLoading(false);
       });
-    return () => {
-      mounted.current = false;
-      request.current?.abort();
-      worker.current?.cancel();
-    };
-  }, []);
+    return () => controller.abort();
+  }, [active, revision, busy]);
 
   function parseDraft(): unknown[] {
     const parsed: unknown = JSON.parse(rows || '[]');

@@ -29,15 +29,22 @@ export function completedExchange(input: {
     )
   )
     return null;
-  // A later request can still refer to a file attached several turns ago.
-  // Without source-dependency tracking, conservatively exclude that history.
+  // A later answer can quote a file or connector result from several turns
+  // ago. Ordinary chat-learning consent is not consent to learn from imported
+  // respondent, CRM or filesystem data. Until source-dependency consent exists,
+  // conservatively exclude the whole history (including the current answer).
   if (
-    input.messages.some(
+    [...input.messages, assistant].some(
       (message) =>
         message &&
         typeof message === 'object' &&
         Array.isArray((message as Message).parts) &&
-        (message as Message).parts!.some((part) => part?.type === 'file'),
+        (message as Message).parts!.some(
+          (part) =>
+            part?.type === 'file' ||
+            part?.type === 'dynamic-tool' ||
+            part?.type?.startsWith('tool-'),
+        ),
     )
   )
     return null;

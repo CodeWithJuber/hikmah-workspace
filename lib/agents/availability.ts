@@ -20,6 +20,8 @@ export type Capabilities = {
   /** Whether this person's plan lets a run reach a machine. Absent means the
    * deployment decides alone, as it did before tiers. */
   execution?: boolean;
+  /** A managed Typeform connection with forms this account may read. */
+  typeform?: boolean;
 };
 
 /** Tools that exist only when the workbench does. */
@@ -48,6 +50,8 @@ export type ToolAvailability = { name: string; available: boolean; reason?: stri
  */
 export function toolAvailability(capabilities: Capabilities): ToolAvailability[] {
   return BUILT_IN_TOOLS.map((name) => {
+    if (name.startsWith('typeform_') && capabilities.typeform !== true)
+      return { name, available: false, reason: 'Ask the owner to connect Typeform and share a form with your account.' };
     if (WORKBENCH_TOOLS.has(name)) {
       if (!capabilities.workbench) return { name, available: false, reason: WORKBENCH_REASON };
       if (capabilities.execution === false)

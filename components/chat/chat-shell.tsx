@@ -9,15 +9,14 @@ import {
   BookOpen,
   BookOpenCheck,
   Bot,
-  Database,
+  ChevronDown,
   FileText,
-  LayoutGrid,
   Menu,
-  MessageSquare,
   Moon,
-  Search,
+  Plug,
   Settings,
   Sun,
+  Terminal,
   X,
 } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
@@ -26,6 +25,7 @@ import { ConversationList, type ConversationSummary } from './conversation-list'
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
 import { MemoryPanel } from './memory-panel';
+import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import { WorkspaceCommands } from './workspace-commands';
@@ -42,25 +42,24 @@ const LearningStudio = dynamic(
   {
     loading: () => (
       <div className="workspace-loading" role="status">
-        Opening Learning Studio…
+        Opening learning…
       </div>
     ),
   },
 );
 const NARROW = '(max-width: 900px)';
-type Panel = 'files' | 'agents' | 'memory' | 'settings';
+type Panel = 'files' | 'agents' | 'memory' | 'typeform' | 'settings';
 const PANEL_LABELS: Record<Panel, string> = {
   files: 'Files',
   agents: 'Agents',
-  memory: 'Memory',
+  memory: 'Saved memory',
+  typeform: 'Typeform',
   settings: 'Settings',
 };
-const NAV = [
-  { id: 'chat', label: 'Chats', icon: MessageSquare },
-  { id: 'learning', label: 'Learning studio', icon: BookOpen },
+const TOOLS = [
   { id: 'agents', label: 'Agents', icon: Bot },
   { id: 'files', label: 'Files', icon: FileText },
-  { id: 'memory', label: 'Memory', icon: Database },
+  { id: 'typeform', label: 'Typeform', icon: FileText },
 ] as const;
 function subscribeToWidth(change: () => void) {
   const media = window.matchMedia(NARROW);
@@ -85,6 +84,7 @@ export function ChatShell({
   const router = useRouter();
   const params = useSearchParams();
   const learning = params.get('view') === 'learning';
+  const requestedSettings = params.get('settings') === 'connection';
   const { settings, change, ready } = useChatSettings();
   const narrow = useSyncExternalStore(
     subscribeToWidth,
@@ -97,11 +97,18 @@ export function ChatShell({
     () => 'light',
   );
   const [revision, setRevision] = useState(0);
-  const [panel, setPanel] = useState<Panel | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(requestedSettings ? 'settings' : null);
+  const [settingsRequested, setSettingsRequested] = useState(requestedSettings);
+  if (requestedSettings !== settingsRequested) {
+    setSettingsRequested(requestedSettings);
+    setPanel(requestedSettings ? 'settings' : null);
+  }
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandsOpen, setCommandsOpen] = useState(false);
   const [learningVisited, setLearningVisited] = useState(learning);
   if (learning && !learningVisited) setLearningVisited(true);
+  const [settingsVisited, setSettingsVisited] = useState(requestedSettings);
+  if (panel === 'settings' && !settingsVisited) setSettingsVisited(true);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
@@ -109,10 +116,21 @@ export function ChatShell({
   const [managedKey, setManagedKey] = useState<boolean | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const navigationButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerOpenerRef = useRef<HTMLElement | null>(null);
   const settled = useCallback(() => setRevision((value) => value + 1), []);
   const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
   const onHistory = useCallback((rows: ConversationSummary[]) => setConversations(rows), []);
   const currentTitle = conversations.find((row) => row.id === conversationId)?.title || title;
+  const closePanel = useCallback(() => {
+    setPanel(null);
+    if (requestedSettings) {
+      router.replace(
+        `/chat/${encodeURIComponent(conversationId)}${learning ? '?view=learning' : ''}`,
+        { scroll: false },
+      );
+    }
+  }, [conversationId, learning, requestedSettings, router]);
   const selectView = useCallback(
     (view: 'chat' | 'learning') => {
       router.replace(
@@ -206,14 +224,30 @@ export function ChatShell({
   }, []);
   const modalOpen = narrow && (sidebarOpen || Boolean(panel) || (!learning && Boolean(artifact)));
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen) {
+      const previous = drawerOpenerRef.current;
+      if (previous) {
+        drawerOpenerRef.current = null;
+        const target =
+          previous.getClientRects().length && !previous.closest('[inert]')
+            ? previous
+            : navigationButtonRef.current;
+        target?.focus();
+      }
+      return;
+    }
     const root = sidebarOpen ? sidebarRef.current : panelRef.current;
     if (!root) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!drawerOpenerRef.current) {
+      drawerOpenerRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : navigationButtonRef.current;
+    }
     const focusable = () =>
       [
         ...root.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
+          'button:not(:disabled),a[href],summary,input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
         ),
       ].filter((item) => item.getClientRects().length > 0);
     const frame = requestAnimationFrame(() => (focusable()[0] ?? root).focus());
@@ -221,7 +255,7 @@ export function ChatShell({
       if (event.key === 'Escape') {
         event.preventDefault();
         setSidebarOpen(false);
-        setPanel(null);
+        closePanel();
         setArtifact(null);
       }
       if (event.key !== 'Tab') return;
@@ -251,9 +285,8 @@ export function ChatShell({
     return () => {
       cancelAnimationFrame(frame);
       root.removeEventListener('keydown', trap);
-      if (previous?.isConnected) previous.focus();
     };
-  }, [modalOpen, sidebarOpen, panel, artifact]);
+  }, [modalOpen, sidebarOpen, panel, artifact, closePanel]);
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -267,6 +300,7 @@ export function ChatShell({
       </a>
       <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
         <button
+          ref={navigationButtonRef}
           type="button"
           className="workspace-icon workspace-menu"
           aria-label="Conversations"
@@ -280,7 +314,7 @@ export function ChatShell({
           <Menu size={20} />
         </button>
         <div className="workspace-heading">
-          <span>{learning ? 'Learning studio' : currentTitle}</span>
+          <span>{learning ? 'Learning' : currentTitle}</span>
           {agent && !learning && (
             <button
               type="button"
@@ -293,40 +327,12 @@ export function ChatShell({
           )}
         </div>
         <div className="workspace-header-actions">
-          <button
-            type="button"
-            className="workspace-action"
-            title="Search workspace (Ctrl/⌘ K)"
-            onClick={() => setCommandsOpen(true)}
-          >
-            <Search size={16} />
-            <span>Search</span>
-          </button>
-          {learning ? (
+          {learning && (
             <button type="button" className="workspace-action" onClick={() => selectView('chat')}>
               <ArrowLeft size={16} />
               <span>Back to chat</span>
             </button>
-          ) : (
-            <button
-              type="button"
-              className="workspace-action"
-              onClick={() => selectView('learning')}
-            >
-              <BookOpen size={16} />
-              <span>Learning</span>
-            </button>
           )}
-          <button
-            type="button"
-            className="workspace-action"
-            aria-label="Files and agents"
-            aria-expanded={Boolean(panel)}
-            onClick={() => (panel ? setPanel(null) : openPanel('files'))}
-          >
-            <LayoutGrid size={16} />
-            <span>Workspace</span>
-          </button>
         </div>
       </header>
       <aside
@@ -361,29 +367,40 @@ export function ChatShell({
           onActivate={() => setSidebarOpen(false)}
           navigation={
             <div className="workspace-navigation" aria-label="Workspace sections">
-              {NAV.map(({ id, label, icon: Icon }) => (
-                <button
-                  type="button"
-                  key={id}
-                  aria-current={
-                    (
-                      id === 'learning'
-                        ? learning
-                        : id === 'chat'
-                          ? !learning && !panel
-                          : panel === id
-                    )
-                      ? 'page'
-                      : undefined
-                  }
-                  onClick={() =>
-                    id === 'chat' || id === 'learning' ? selectView(id) : openPanel(id)
-                  }
-                >
-                  <Icon size={20} />
-                  <span>{label}</span>
-                </button>
-              ))}
+              <button
+                type="button"
+                aria-current={learning ? 'page' : undefined}
+                onClick={() => selectView('learning')}
+              >
+                <BookOpen size={20} />
+                <span>Learning</span>
+              </button>
+              <details className="workspace-tool-disclosure">
+                <summary>
+                  <FileText size={20} />
+                  <span>Tools & files</span>
+                  <ChevronDown size={16} className="workspace-disclosure-chevron" />
+                </summary>
+                {TOOLS.map(({ id, label, icon: Icon }) => (
+                  <button
+                    type="button"
+                    key={id}
+                    aria-current={panel === id ? 'page' : undefined}
+                    onClick={() => openPanel(id)}
+                  >
+                    <Icon size={16} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+                <Link href="/workspace#/terminal">
+                  <Terminal size={16} />
+                  Terminal & SSH
+                </Link>
+                <Link href="/workspace#/connections">
+                  <Plug size={16} />
+                  Connected services
+                </Link>
+              </details>
             </div>
           }
         />
@@ -442,10 +459,14 @@ export function ChatShell({
             aria-label="Learning studio"
             inert={!learning || modalOpen || undefined}
           >
-            <LearningStudio revision={revision} />
+            <LearningStudio
+              revision={revision}
+              active={learning}
+              onOpenMemory={() => openPanel('memory')}
+            />
           </section>
         )}
-        {(panel || (!learning && artifact)) && (
+        {(settingsVisited || panel || (!learning && artifact)) && (
           <div
             ref={panelRef}
             className={
@@ -454,70 +475,72 @@ export function ChatShell({
             role={narrow ? 'dialog' : undefined}
             aria-modal={narrow || undefined}
             aria-label={panel ? PANEL_LABELS[panel] : 'Artifact preview'}
+            hidden={!panel && (learning || !artifact)}
+            inert={(!panel && (learning || !artifact)) || undefined}
             tabIndex={-1}
           >
-            {artifact && !panel ? (
+            {artifact && !panel && (
               <ArtifactPanel
                 files={artifact}
                 previewBase={previewBase || undefined}
                 onClose={() => setArtifact(null)}
                 onEdit={() => openPanel('files')}
               />
-            ) : (
-              panel && (
-                <aside className="workspace-panel" aria-label="Workspace">
-                  <div className="workspace-detail-heading">
-                    <h2>{PANEL_LABELS[panel]}</h2>
-                    <button
-                      type="button"
-                      className="workspace-icon"
-                      aria-label="Close workspace panel"
-                      onClick={() => setPanel(null)}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="workspace-detail-tabs" role="group" aria-label="Workspace tools">
-                    {(Object.keys(PANEL_LABELS) as Panel[]).map((key) => (
-                      <button
-                        type="button"
-                        key={key}
-                        aria-pressed={panel === key}
-                        onClick={() => setPanel(key)}
-                      >
-                        {PANEL_LABELS[key]}
-                      </button>
-                    ))}
-                  </div>
-                  {panel === 'files' ? (
-                    <FilesPanel revision={revision} />
-                  ) : panel === 'agents' ? (
-                    <AgentsPanel
-                      activeId={agent?.id ?? null}
-                      onPick={(next) => {
-                        setAgent(next);
-                        setPanel(null);
-                        selectView('chat');
-                      }}
+            )}
+            {(panel || settingsVisited) && (
+              <aside
+                className="workspace-panel"
+                aria-label="Workspace"
+                hidden={!panel}
+                inert={!panel || undefined}
+              >
+                <div className="workspace-detail-heading">
+                  <h2>{panel ? PANEL_LABELS[panel] : 'Settings'}</h2>
+                  <button
+                    type="button"
+                    className="workspace-icon"
+                    aria-label="Close workspace panel"
+                    onClick={closePanel}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                {panel === 'files' ? (
+                  <FilesPanel revision={revision} />
+                ) : panel === 'agents' ? (
+                  <AgentsPanel
+                    activeId={agent?.id ?? null}
+                    onPick={(next) => {
+                      setAgent(next);
+                      setPanel(null);
+                      selectView('chat');
+                    }}
+                  />
+                ) : panel === 'memory' ? (
+                  <MemoryPanel />
+                ) : panel === 'typeform' ? (
+                  <TypeformPanel embedded />
+                ) : null}
+                {settingsVisited && (
+                  <div
+                    className="workspace-settings-content"
+                    hidden={panel !== 'settings'}
+                    inert={panel !== 'settings' || undefined}
+                  >
+                    <RunSettings
+                      settings={settings}
+                      onChange={change}
+                      active={panel === 'settings'}
                     />
-                  ) : panel === 'memory' ? (
-                    <MemoryPanel />
-                  ) : (
-                    <>
-                      <RunSettings settings={settings} onChange={change} />
-                      <nav className="workspace-account-links" aria-label="Account">
-                        <Link href="/workspace" title="Workspace" aria-label="Workspace">
-                          Research labs & terminal
-                        </Link>
-                        <Link href="/billing">Plan and usage</Link>
-                        <Link href="/sign-out" title="Sign out" aria-label="Sign out">
-                          Sign out
-                        </Link>
-                      </nav>
-                    </>
-                  )}
-                </aside>
-              )
+                    <nav className="workspace-account-links" aria-label="Account">
+                      <Link href="/billing">Plan and usage</Link>
+                      <Link href="/sign-out" title="Sign out" aria-label="Sign out">
+                        Sign out
+                      </Link>
+                    </nav>
+                  </div>
+                )}
+              </aside>
             )}
           </div>
         )}
@@ -530,7 +553,7 @@ export function ChatShell({
           tabIndex={-1}
           onClick={() => {
             setSidebarOpen(false);
-            setPanel(null);
+            closePanel();
             setArtifact(null);
           }}
         />

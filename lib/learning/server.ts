@@ -4,6 +4,7 @@ import type { RunRow } from '../runs/store.ts';
 import { completedExchange } from './capture.ts';
 import { createLearningStore } from './store.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
+import { enqueueAutomaticLearning } from './automatic-server.ts';
 
 /** Never return these values from a route. If a saved credential cannot be
  * resolved, fail closed rather than silently make a less-redacted copy. */
@@ -37,7 +38,7 @@ export async function captureCompletedRun(input: {
     model?: string;
     baseUrl?: string;
     apiKey?: string;
-    learning?: { enabled?: boolean };
+    learning?: { enabled?: boolean; revision?: number };
   };
   const secrets = await learningSecrets(input.run.user_id, [config.apiKey ?? '']);
   const captured = completedExchange({
@@ -47,5 +48,15 @@ export async function captureCompletedRun(input: {
     baseUrl: config.baseUrl ?? '',
     secrets,
   });
-  if (captured) store.capture(input.run.user_id, input.run.id, captured);
+  if (captured && store.capture(input.run.user_id, input.run.id, captured)) {
+    const policy = store.policy(input.run.user_id);
+    if (policy.automatic)
+      enqueueAutomaticLearning({
+        userId: input.run.user_id,
+        runId: input.run.id,
+        revision: config.learning?.revision ?? -1,
+        exchange: captured,
+        config,
+      });
+  }
 }

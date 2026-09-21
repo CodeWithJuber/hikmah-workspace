@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
-  ArrowLeft,
+  Brain,
+  ChevronDown,
   ArrowUpRight,
   Check,
   ChevronLeft,
@@ -39,9 +41,29 @@ import {
   type LearningPolicy,
 } from '@/lib/learning/types';
 import { LEARNING_PAGE_SIZE, useLearning, type LearningAction } from '@/hooks/use-learning';
-import { CoModelTraining } from './co-model-training';
-import { ResearchEvidence } from './research-evidence';
+import { AutomaticLearningCard } from './automatic-learning-card';
 import { readableDate, saveDownload } from './shared';
+
+const CoModelTraining = dynamic(
+  () => import('./co-model-training').then((module) => module.CoModelTraining),
+  {
+    loading: () => (
+      <p className="learning-subtle-status" role="status">
+        Loading manual training…
+      </p>
+    ),
+  },
+);
+const ResearchEvidence = dynamic(
+  () => import('./research-evidence').then((module) => module.ResearchEvidence),
+  {
+    loading: () => (
+      <p className="learning-subtle-status" role="status">
+        Loading research evidence…
+      </p>
+    ),
+  },
+);
 
 const statusLabels: Record<ExampleStatus, string> = {
   pending: 'Pending',
@@ -49,18 +71,33 @@ const statusLabels: Record<ExampleStatus, string> = {
   rejected: 'Rejected',
 };
 
-export function LearningStudio({ revision = 0 }: { revision?: number }) {
+export function LearningStudio({
+  revision = 0,
+  active = true,
+  onOpenMemory,
+}: {
+  revision?: number;
+  active?: boolean;
+  onOpenMemory?: () => void;
+}) {
   const [status, setStatus] = useState<ExampleStatus>('pending');
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState('');
-  const [settings, setSettings] = useState<{ enable?: boolean } | null>(null);
+  const [settings, setSettings] = useState(false);
   const [selected, setSelected] = useState<LearningExample | null>(null);
   const [confirmation, setConfirmation] = useState<LearningExample | 'all' | null>(null);
   const [message, setMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedView, setAdvancedView] = useState('training');
   const [visited, setVisited] = useState({ training: false, research: false });
-  const { snapshot, loading, busy, error, refresh, send } = useLearning(status, offset, revision);
+  const { snapshot, loading, busy, error, refresh, send } = useLearning(
+    status,
+    offset,
+    revision,
+    active,
+  );
   const query = search.trim().toLocaleLowerCase();
   const examples = (snapshot?.examples ?? []).filter(
     (example) =>
@@ -106,55 +143,31 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
 
   return (
     <div className="learning-studio">
-      <div className="learning-topline">
-        <span>Learning studio</span>
-        <Link href="/chat" className="learning-back">
-          <ArrowLeft size={16} aria-hidden="true" />
-          Back to chat
-        </Link>
-      </div>
       <header className="learning-heading">
-        <h1>Learning you can inspect</h1>
-        <p>Review real model exchanges before they become reusable examples.</p>
+        <h1>Keep chatting. Learning follows.</h1>
+        <p>
+          Turn it on once. Hikmah prepares, trains, and checks your local co-model in the
+          background.
+        </p>
       </header>
 
-      <section className="learning-capture" aria-label="Exchange capture">
-        <div className="learning-capture-status">
-          <Switch
-            id="learning-capture-switch"
-            className="learning-capture-switch"
-            checked={snapshot?.policy.enabled ?? false}
-            disabled={!snapshot || busy || loading}
-            onCheckedChange={(enabled) => {
-              if (enabled) setSettings({ enable: true });
-              else
-                void mutate(
-                  { action: 'configure', enabled: false },
-                  'Capture paused. Your saved examples remain available.',
-                );
-            }}
-          />
-          <label htmlFor="learning-capture-switch">Capture new exchanges</label>
-          <span className={snapshot?.policy.enabled ? 'learning-running' : ''}>
-            {!snapshot
-              ? loading
-                ? 'Loading…'
-                : 'Unavailable'
-              : snapshot.policy.enabled
-                ? 'Active'
-                : 'Paused'}
-          </span>
-        </div>
-        <Button
-          variant="outline"
-          className="learning-button"
-          disabled={!snapshot || busy}
-          onClick={() => setSettings({})}
-        >
-          <Settings2 size={16} />
-          Capture settings
-        </Button>
-      </section>
+      <AutomaticLearningCard
+        snapshot={snapshot}
+        busy={busy}
+        loading={loading}
+        onConfigure={(automatic) =>
+          mutate(
+            { action: 'configure', automatic },
+            automatic
+              ? 'Automatic learning enabled. Continue chatting as usual.'
+              : 'Automatic learning paused. Your existing co-model stays available.',
+          )
+        }
+        onReset={() => {
+          setConfirmation('all');
+          setActionError('');
+        }}
+      />
 
       {(error || actionError) && (
         <div className="learning-alert" role="alert">
@@ -181,30 +194,32 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
         </p>
       )}
 
-      <Tabs
-        defaultValue="queue"
-        className="learning-tabs"
-        onValueChange={(tab) => {
-          if (tab === 'training' || tab === 'research')
-            setVisited((current) => ({ ...current, [tab]: true }));
-        }}
-      >
-        <TabsList variant="line" className="learning-tab-list" aria-label="Learning views">
-          <TabsTrigger className="learning-tab-trigger" value="queue">
-            Review queue
-            {snapshot && snapshot.counts.pending > 0 && (
-              <span className="learning-tab-count">{snapshot.counts.pending}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger className="learning-tab-trigger" value="training">
-            Co-model training
-          </TabsTrigger>
-          <TabsTrigger className="learning-tab-trigger" value="research">
-            Research evidence
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="queue" className="learning-tab-panel">
+      <details className="learning-disclosure">
+        <summary>
+          <span>
+            <strong>Saved examples</strong>
+            <small>Review and correct responses when you want to.</small>
+          </span>
+          {snapshot && snapshot.counts.total > 0 && (
+            <span className="learning-tab-count">{snapshot.counts.total}</span>
+          )}
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
+        <div className="learning-disclosure-content">
+          <div className="learning-example-intro">
+            <p>
+              Automatic training needs no review clicks. Approve examples here only if you want
+              similar future chats to reuse the answer as guidance.
+            </p>
+            <Button
+              variant="outline"
+              className="learning-button"
+              disabled={!snapshot || busy}
+              onClick={() => setSettings(true)}
+            >
+              <Settings2 size={16} aria-hidden="true" /> Data settings
+            </Button>
+          </div>
           <div className="learning-toolbar">
             <div className="learning-search">
               <Search size={20} aria-hidden="true" />
@@ -281,7 +296,7 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
                         </div>
                       </td>
                     </tr>
-                  ) : error ? (
+                  ) : error && !snapshot ? (
                     <tr>
                       <td colSpan={5}>
                         <div className="learning-blank-state">
@@ -369,9 +384,9 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
                               'Choose another status to see your saved examples.'
                             ) : (
                               <>
-                                Enable capture, then complete a conversation.
-                                <br />
-                                Successful responses will appear here for review.
+                                {snapshot?.policy.enabled
+                                  ? 'Completed text-only chats appear here. Chats using files or tools are excluded.'
+                                  : 'Enable automatic learning above, or turn on capture in Data settings.'}
                               </>
                             )}
                           </p>
@@ -419,67 +434,82 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
             )}
           </div>
 
-          <ol className="learning-process" aria-label="How learning works">
-            <li>
-              <span className="learning-step">1</span>
-              <div>
-                <strong>Capture</strong>
-                <p>Successful exchanges, with provenance</p>
-              </div>
-              <ChevronRight size={16} aria-hidden="true" />
-            </li>
-            <li>
-              <span className="learning-step">2</span>
-              <div>
-                <strong>Review</strong>
-                <p>Correct, approve, or reject</p>
-              </div>
-              <ChevronRight size={16} aria-hidden="true" />
-            </li>
-            <li>
-              <span className="learning-step">3</span>
-              <div>
-                <strong>Reuse</strong>
-                <p>Approved examples guide future answers</p>
-              </div>
-            </li>
-          </ol>
           <footer className="learning-footnote">
             <p>
-              <Info size={16} />
-              Saving examples does not change provider model weights.
+              <Info size={16} aria-hidden="true" /> Examples are private to your account. Known
+              secrets are redacted; check sensitive content before approving.
             </p>
-            {snapshot && (
-              <button
-                type="button"
-                className="learning-text-button"
-                onClick={() => {
-                  setConfirmation('all');
-                  setActionError('');
-                }}
-              >
-                Clear captured data
-              </button>
-            )}
           </footer>
-        </TabsContent>
-        <TabsContent value="training" className="learning-tab-panel" forceMount>
-          {visited.training && <CoModelTraining />}
-        </TabsContent>
-        <TabsContent value="research" className="learning-tab-panel" forceMount>
-          {visited.research && <ResearchEvidence />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </details>
+
+      <details
+        className="learning-disclosure learning-advanced"
+        onToggle={(event) => {
+          setAdvancedOpen(event.currentTarget.open);
+          if (event.currentTarget.open) setVisited((current) => ({ ...current, training: true }));
+        }}
+      >
+        <summary>
+          <span>
+            <strong>Advanced</strong>
+            <small>Manual training, saved memory, and research evidence.</small>
+          </span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
+        <div className="learning-disclosure-content">
+          <div className="learning-advanced-intro">
+            <p>These controls are optional. Automatic learning continues without them.</p>
+            {onOpenMemory && (
+              <Button variant="outline" onClick={onOpenMemory}>
+                <Brain size={16} aria-hidden="true" /> Saved memory
+              </Button>
+            )}
+          </div>
+          <Tabs
+            defaultValue="training"
+            className="learning-tabs"
+            onValueChange={(tab) => {
+              setAdvancedView(tab);
+              if (tab === 'training' || tab === 'research')
+                setVisited((current) => ({ ...current, [tab]: true }));
+            }}
+          >
+            <TabsList
+              variant="line"
+              className="learning-tab-list"
+              aria-label="Advanced learning tools"
+            >
+              <TabsTrigger className="learning-tab-trigger" value="training">
+                Manual co-model training
+              </TabsTrigger>
+              <TabsTrigger className="learning-tab-trigger" value="research">
+                Research evidence
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="training" className="learning-tab-panel" forceMount>
+              {visited.training && (
+                <CoModelTraining
+                  active={active && advancedOpen && advancedView === 'training'}
+                  revision={`${snapshot?.policy.revision ?? 0}:${snapshot?.automatic.checkpointId ?? 'released'}`}
+                />
+              )}
+            </TabsContent>
+            <TabsContent value="research" className="learning-tab-panel" forceMount>
+              {visited.research && <ResearchEvidence />}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </details>
 
       {settings && snapshot && (
         <CaptureSettings
           policy={snapshot.policy}
-          initialEnabled={settings.enable}
           busy={busy}
           error={actionError}
           onClose={() => {
             if (!busy) {
-              setSettings(null);
+              setSettings(false);
               setActionError('');
             }
           }}
@@ -492,7 +522,7 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
                   : 'Capture settings saved.',
               )
             )
-              setSettings(null);
+              setSettings(false);
           }}
         />
       )}
@@ -544,12 +574,12 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
         <DialogContent className="learning-dialog" showCloseButton={!busy}>
           <DialogHeader>
             <DialogTitle>
-              {confirmation === 'all' ? 'Clear captured learning data?' : 'Delete this example?'}
+              {confirmation === 'all' ? 'Reset automatic learning?' : 'Delete this example?'}
             </DialogTitle>
             <DialogDescription>
               {confirmation === 'all'
-                ? 'This permanently removes your captured examples and syntax review queue. Your conversations and trained checkpoints stay available. Existing runs keep their prepared context.'
-                : 'This permanently removes the example from capture and prevents reuse in new chat runs. Its original conversation stays available; existing runs keep their prepared context.'}
+                ? 'This erases captured examples, automatic training data and automatic checkpoints, restores the previous manual or released co-model, and turns learning and capture off. Your conversations and manual checkpoints stay available.'
+                : 'This deletes the saved example and cancels its pending learning work. It cannot remove what an existing checkpoint has already learned; use Reset learning for that. The original conversation and context already prepared for running chats stay available.'}
             </DialogDescription>
           </DialogHeader>
           {actionError && (
@@ -573,7 +603,9 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
                 if (
                   await mutate(
                     action,
-                    confirmation === 'all' ? 'Captured learning data cleared.' : 'Example deleted.',
+                    confirmation === 'all'
+                      ? 'Learning reset and paused. Your previous co-model has been restored.'
+                      : 'Example deleted.',
                   )
                 ) {
                   setConfirmation(null);
@@ -582,7 +614,7 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
               }}
             >
               {busy ? <LoaderCircle size={16} className="spin" /> : <Trash2 size={16} />}
-              {confirmation === 'all' ? 'Clear data' : 'Delete example'}
+              {confirmation === 'all' ? 'Reset learning' : 'Delete example'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -593,21 +625,19 @@ export function LearningStudio({ revision = 0 }: { revision?: number }) {
 
 function CaptureSettings({
   policy,
-  initialEnabled,
   busy,
   error,
   onClose,
   onSave,
 }: {
   policy: LearningPolicy;
-  initialEnabled?: boolean;
   busy: boolean;
   error: string;
   onClose: () => void;
-  onSave: (policy: Omit<LearningPolicy, 'revision'>) => Promise<void>;
+  onSave: (policy: Omit<LearningPolicy, 'revision' | 'automatic'>) => Promise<void>;
 }) {
   const [draft, setDraft] = useState({
-    enabled: initialEnabled ?? policy.enabled,
+    enabled: policy.enabled,
     useApproved: policy.useApproved,
     collectSyntax: policy.collectSyntax,
     retentionDays: policy.retentionDays,
@@ -626,7 +656,7 @@ function CaptureSettings({
       <DialogContent className="learning-dialog" showCloseButton={!busy}>
         <form onSubmit={submit} className="learning-settings-form">
           <DialogHeader>
-            <DialogTitle>Capture settings</DialogTitle>
+            <DialogTitle>Learning data settings</DialogTitle>
             <DialogDescription>
               Choose what is saved from future successful model exchanges and how it can be reused.
             </DialogDescription>
@@ -634,15 +664,17 @@ function CaptureSettings({
           <div className="learning-consent">
             <ShieldCheck size={20} />
             <p>
-              Capture saves prompt and answer text, model identity, and the source conversation.
-              Known secrets are redacted automatically; review for sensitive content before
-              approving an example.
+              Capture saves text-only chat prompts and answers, model identity, and the source
+              conversation. Chats with files or tools are excluded. Known secrets are redacted
+              automatically; review for sensitive content before approving an example.
             </p>
           </div>
           <label className="learning-setting-row">
             <div>
               <strong>Capture new exchanges</strong>
-              <span>Off by default. Pausing keeps existing examples.</span>
+              <span>
+                Pausing capture also pauses automatic learning. Existing examples stay saved.
+              </span>
             </div>
             <Switch
               checked={draft.enabled}
@@ -668,8 +700,8 @@ function CaptureSettings({
             <div>
               <strong>Collect syntax review candidates</strong>
               <span>
-                Opt in separately to local co-model annotation review. Owner access is required to
-                train.
+                Save additional candidates for manual annotation. Automatic learning prepares its
+                own training labels. Owner access is required for manual training.
               </span>
             </div>
             <Switch
@@ -684,8 +716,8 @@ function CaptureSettings({
             <div>
               <strong>Queue retention</strong>
               <span>
-                Older captured examples and syntax candidates expire. Original chats and saved
-                trained checkpoints are retained.
+                Older examples, syntax candidates, and automatic training labels expire. Trained
+                parameters remain until you reset learning. Original chats stay available.
               </span>
             </div>
             <select

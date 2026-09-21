@@ -1,50 +1,182 @@
 'use client';
-/** Which tools the run may use, as a menu on the composer.
- *
- * The switches themselves are `components/chat/tool-switches.tsx`, shared with
- * the workspace's Tools screen so the two cannot name different tools or write
- * different stores. This file is the popover around them.
- *
- * Not a port of the old `components/playground/tools-menu.tsx`, which toggled a
- * different set of names — half with no server equivalent — and whose connector
- * half drove the browser MCP client, a decision the server now makes for itself
- * in `lib/mcp/run-context.ts`.
- */
-import { Wrench } from 'lucide-react';
+/** One composer menu for optional help; attachment picking is a direct action. */
+import { useId, useRef, useState } from 'react';
+import { ArrowUpRight, Columns2, Globe, Microscope, Telescope, Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { ToolSwitches, useToolAvailability, activeToolCount } from './tool-switches';
+import { researchCapabilities } from '@/lib/client/research-brief';
 
 export function ToolsMenu({
   disabled,
   onChange,
   busy,
+  webSearch,
+  onWebSearch,
+  deepResearch,
+  onDeepResearch,
+  compare,
+  onCompare,
+  onBackgroundTask,
+  onCoScientist,
 }: {
-  /** Tool names the owner has switched off. */
   disabled: string[];
-  onChange: (disabledTools: string[]) => Promise<void> | void;
+  onChange?: (disabledTools: string[]) => Promise<void> | void;
   busy?: boolean;
+  webSearch: boolean;
+  onWebSearch: (enabled: boolean) => void;
+  deepResearch: boolean;
+  onDeepResearch: (enabled: boolean) => void;
+  compare: boolean;
+  onCompare: (enabled: boolean) => void;
+  onBackgroundTask?: () => void;
+  onCoScientist?: (capabilities: ReturnType<typeof researchCapabilities>) => void;
 }) {
   const tools = useToolAvailability();
-  if (!tools.length) return null;
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const openingDialog = useRef(false);
+  const titleId = useId();
+  const descriptionId = useId();
+  const options = [
+    {
+      label: 'Search the web',
+      description: 'Look for current information online.',
+      Icon: Globe,
+      checked: webSearch,
+      change: onWebSearch,
+    },
+    {
+      label: 'Research in parallel',
+      description: 'Check multiple sources with several model calls.',
+      Icon: Telescope,
+      checked: deepResearch,
+      change: onDeepResearch,
+    },
+    {
+      label: 'Compare answers',
+      description: 'Make one extra model call for an answer without tools.',
+      Icon: Columns2,
+      checked: compare,
+      change: onCompare,
+    },
+  ];
+
+  const saveTools = async (next: string[]) => {
+    if (!onChange || saving) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      await onChange(next);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Tool permissions could not be saved.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" className="chat-tools-trigger" disabled={busy}>
-          <Wrench size={16} />
-          {/* Wrapped so the word can go at phone width while the icon and the
-              count stay: the composer row has about 302px, and the model name
-              needs more of it than this label does. */}
-          <span className="chat-tools-label">Tools</span>
-          <span>{activeToolCount(tools, disabled)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          className="chat-composer-options-trigger"
+          disabled={busy}
+          title="Tools and extra help"
+        >
+          <Wrench size={16} aria-hidden="true" />
+          <span>Tools</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="chat-tools-menu" align="start">
-        <p className="chat-tools-note">
-          Applies from your next message. Connectors are managed under Connections in the workspace.
+      <PopoverContent
+        className="chat-composer-options"
+        align="start"
+        side="top"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        onCloseAutoFocus={(event) => {
+          // A newly opened dialog owns focus; returning it to Tools would
+          // interrupt the keyboard handoff from the menu.
+          if (openingDialog.current) {
+            event.preventDefault();
+            openingDialog.current = false;
+          }
+        }}
+      >
+        <h2 id={titleId}>Extra help</h2>
+        <p id={descriptionId} className="chat-options-description">
+          For this conversation, until turned off. Research and comparison use extra model calls.
         </p>
-        <ToolSwitches tools={tools} disabled={disabled} onChange={onChange} busy={busy} />
+        <div className="chat-composer-options-list">
+          {options.map(({ label, description, Icon, checked, change }) => (
+            <label key={label} className="chat-composer-action chat-composer-option">
+              <Icon size={20} aria-hidden="true" />
+              <span>
+                <strong>{label}</strong>
+                <small>{description}</small>
+              </span>
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={busy}
+                onChange={(event) => change(event.target.checked)}
+              />
+            </label>
+          ))}
+        </div>
+        {onCoScientist && (
+          <button
+            type="button"
+            className="chat-composer-action chat-background-task-action"
+            disabled={busy}
+            onClick={() => {
+              openingDialog.current = true;
+              setOpen(false);
+              onCoScientist(researchCapabilities(tools, disabled));
+            }}
+          >
+            <Microscope size={20} aria-hidden="true" />
+            <span>
+              <strong>Co-scientist</strong>
+              <small>Review evidence, challenge a hypothesis, or plan a test.</small>
+            </span>
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </button>
+        )}
+        {onBackgroundTask && (
+          <button
+            type="button"
+            className="chat-composer-action chat-background-task-action"
+            disabled={busy}
+            onClick={() => {
+              openingDialog.current = true;
+              setOpen(false);
+              onBackgroundTask();
+            }}
+          >
+            <Telescope size={20} aria-hidden="true" />
+            <span>
+              <strong>Background research task</strong>
+              <small>Work on another topic while you keep chatting.</small>
+            </span>
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </button>
+        )}
+        {onChange && tools.length > 0 && (
+          <details className="chat-composer-permissions">
+            <summary>Tool permissions · {activeToolCount(tools, disabled)} enabled</summary>
+            <p>Hikmah chooses from these tools when needed. Changes apply to future messages.</p>
+            <ToolSwitches
+              tools={tools}
+              disabled={disabled}
+              onChange={saveTools}
+              busy={busy || saving}
+            />
+            {saveError && <p role="alert">{saveError}</p>}
+          </details>
+        )}
       </PopoverContent>
     </Popover>
   );

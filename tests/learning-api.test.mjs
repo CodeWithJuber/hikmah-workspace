@@ -76,6 +76,7 @@ test('the learning API requires a real session, same-origin writes and bounded i
     403,
   );
   assert.equal((await post({ action: 'configure', enabled: 'yes' })).status, 400);
+  assert.equal((await post({ action: 'configure', automatic: 'yes' })).status, 400);
   assert.equal((await post({ action: 'configure', retentionDays: 365 })).status, 400);
   assert.equal((await post({ action: 'capture', prompt: 'fake', response: 'fake' })).status, 400);
   assert.equal((await get('?limit=1000')).status, 400);
@@ -84,6 +85,12 @@ test('the learning API requires a real session, same-origin writes and bounded i
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store, private');
   assert.equal((await response.json()).policy.enabled, true);
+  assert.equal((await (await get()).json()).policy.automatic, false);
+  const automatic = await (await post({ action: 'configure', automatic: true })).json();
+  assert.equal(automatic.policy.enabled, true);
+  assert.equal(automatic.policy.automatic, true);
+  assert.equal(automatic.automatic.dailyLimit, 3);
+  assert.equal(automatic.automatic.status, 'waiting');
 });
 
 test('the full review API keeps provenance, sanitises corrections and cannot cross tenant boundaries', async () => {

@@ -41,6 +41,8 @@ const LABELS: Record<string, string> = {
   simulate_plan: 'Simulate a plan',
   ssh_exec: 'Run a command over SSH',
   transition_estimate: 'Estimate a transition',
+  typeform_list_forms: 'Find shared Typeform forms',
+  typeform_read_responses: 'Read Typeform responses · asks permission',
   update_plan: 'Keep a task plan',
   write_file: 'Write a workspace file',
 };

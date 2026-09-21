@@ -12,6 +12,7 @@ import {
   type LearningSnapshot,
 } from './types.ts';
 import { redactLearningText } from './privacy.ts';
+import { createAutomaticStore } from './automatic-store.ts';
 
 export class LearningError extends Error {
   status: number;
@@ -68,6 +69,7 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
     const row = db.prepare('SELECT * FROM learning_policies WHERE user_id = ?').get(userId) as
       | {
           enabled: number;
+          automatic: number;
           use_approved: number;
           collect_syntax: number;
           retention_days: 7 | 30 | 90;
@@ -77,6 +79,7 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
     return row
       ? {
           enabled: row.enabled === 1,
+          automatic: row.automatic === 1,
           useApproved: row.use_approved === 1,
           collectSyntax: row.collect_syntax === 1,
           retentionDays: row.retention_days,
@@ -124,18 +127,21 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
       return { enabled: current.enabled, revision: current.revision };
     },
     configure(userId: string, patch: Partial<Omit<LearningPolicy, 'revision'>>) {
-      for (const key of ['enabled', 'useApproved', 'collectSyntax'] as const)
+      for (const key of ['enabled', 'automatic', 'useApproved', 'collectSyntax'] as const)
         if (patch[key] !== undefined && typeof patch[key] !== 'boolean')
           throw new LearningError('Learning switches must be true or false.');
       if (patch.retentionDays !== undefined && ![7, 30, 90].includes(patch.retentionDays))
         throw new LearningError('Choose 7, 30 or 90 days of retention.');
       const current = policy(userId),
         next = { ...current, ...patch };
+      if (patch.automatic === true && patch.enabled !== false) next.enabled = true;
+      if (patch.enabled === false) next.automatic = false;
       // Every change revokes old run snapshots, including an off/on cycle.
       db.prepare(
-        `INSERT INTO learning_policies (user_id,enabled,use_approved,collect_syntax,retention_days,revision,updated_at)
-        VALUES (?,?,?,?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET
+        `INSERT INTO learning_policies (user_id,enabled,use_approved,collect_syntax,retention_days,automatic,revision,updated_at)
+        VALUES (?,?,?,?,?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET
         enabled=excluded.enabled,use_approved=excluded.use_approved,collect_syntax=excluded.collect_syntax,
+        automatic=excluded.automatic,
         retention_days=excluded.retention_days,revision=learning_policies.revision+1,updated_at=excluded.updated_at`,
       ).run(
         userId,
@@ -143,8 +149,10 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
         Number(next.useApproved),
         Number(next.collectSyntax),
         next.retentionDays,
+        Number(next.automatic),
         now(),
       );
+      createAutomaticStore(db, now).cancel(userId);
       purge(userId);
       return policy(userId);
     },
@@ -174,6 +182,18 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
       )
         return false;
       purge(userId);
+      if (current.automatic && counts(userId).total >= MAX_LEARNING_EXAMPLES) {
+        // An unattended queue must keep accepting new chats. Preserve approved
+        // examples and in-flight jobs; rotate the oldest unreviewed copy.
+        db.prepare(
+          `DELETE FROM learning_examples WHERE id=(
+            SELECT e.id FROM learning_examples e WHERE e.user_id=? AND e.status<>'approved'
+              AND NOT EXISTS (SELECT 1 FROM automatic_learning_jobs j WHERE j.example_id=e.id
+                AND j.status IN ('queued','preparing','training','evaluating'))
+            ORDER BY e.created_at,e.id LIMIT 1
+          )`,
+        ).run(userId);
+      }
       if (counts(userId).total >= MAX_LEARNING_EXAMPLES) return false;
       const result = db
         .prepare(
@@ -231,6 +251,7 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
         examples: (rows as Row[]).map(example),
         hasMore: offset + rows.length < (options.status ? totals[options.status] : totals.total),
         capability: { mode: 'reviewed-examples', providerWeightsChanged: false },
+        automatic: createAutomaticStore(db, now).snapshot(userId),
       };
     },
     get,
@@ -292,11 +313,13 @@ export function createLearningStore(db: SqliteHandle, now = () => new Date().toI
     clear(userId: string) {
       db.exec('BEGIN IMMEDIATE');
       try {
+        const objects = createAutomaticStore(db, now).clear(userId);
         db.prepare('DELETE FROM learning_examples WHERE user_id = ?').run(userId);
         db.prepare('DELETE FROM context_candidates WHERE user_id = ?').run(userId);
         // A run already in flight cannot immediately repopulate the queue.
-        this.configure(userId, {});
+        this.configure(userId, { enabled: false, automatic: false, collectSyntax: false });
         db.exec('COMMIT');
+        return objects;
       } catch (error) {
         db.exec('ROLLBACK');
         throw error;

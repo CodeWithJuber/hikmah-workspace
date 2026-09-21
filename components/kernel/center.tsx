@@ -2,6 +2,7 @@
 import { randomId } from '../../lib/id.ts';
 
 import { ContextStudio } from '@/components/context-model/studio';
+import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,6 +93,7 @@ export function KernelCenter({
         'runs',
         'architecture',
         'controls',
+        'integrations',
       ]
     : ['context', 'overview', 'learning', 'versions', 'architecture'];
   return (
@@ -144,6 +146,7 @@ export function KernelCenter({
         ))}
       </nav>
       {tab === 'context' && <ContextStudio />}
+      {owner && tab === 'integrations' && <TypeformPanel manage />}
       {tab === 'training' && <ContextStudio initialTab="learn" />}
       {tab === 'overview' && (
         <>

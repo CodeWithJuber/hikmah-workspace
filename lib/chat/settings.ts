@@ -27,7 +27,7 @@ export type ChatConnection = {
   apiKeySecret: string;
 };
 
-export const DEFAULT_CONNECTION: ChatConnection = {
+const DEFAULT_CONNECTION: ChatConnection = {
   baseUrl: 'https://openrouter.ai/api/v1',
   model: 'openrouter/free',
   freeOnly: true,

@@ -40,13 +40,13 @@ export type ModelRequest = {
  * all per-owner state that can change between runs, and a cached provider would
  * keep using a key the owner has since rotated or revoked.
  */
-export function createLanguageModel(request: ModelRequest): LanguageModel {
+export function createLanguageModel(request: ModelRequest, fetcher?: typeof fetch): LanguageModel {
   const baseUrl = resolveProviderBaseUrl(request.baseUrl);
   const model = request.model.trim();
   assertModelAllowed({ baseUrl, model, freeOnly: request.freeOnly });
   // Read per call, not at import: a deployment sets HIKMAH_RUN_MAX_MS in its
   // environment, and the tests set it around individual cases.
-  const fetchWithWatchdog = withIdleTimeout(undefined, undefined, providerMaxMs());
+  const fetchWithWatchdog = withIdleTimeout(fetcher, undefined, providerMaxMs());
 
   if (baseUrl === OPENROUTER_BASE_URL) {
     const openrouter = createOpenRouter({

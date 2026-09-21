@@ -241,7 +241,6 @@ test('capture uses the final answer only and refuses uncompleted or attachment-d
       parts: [
         { type: 'step-start' },
         { type: 'text', text: 'Intermediate working' },
-        { type: 'tool-shell', input: 'private command' },
         { type: 'step-start' },
         { type: 'reasoning', text: 'private reasoning' },
         { type: 'text', text: 'Final answer' },
@@ -250,6 +249,32 @@ test('capture uses the final answer only and refuses uncompleted or attachment-d
   });
   assert.equal(result.response, 'Final answer');
   assert.doesNotMatch(JSON.stringify(result), /private|Intermediate/);
+  assert.equal(
+    completedExchange({
+      ...input,
+      message: {
+        ...answer(),
+        parts: [
+          { type: 'tool-typeform', state: 'output-available', output: 'respondent data' },
+          { type: 'text', text: 'Final answer quoting a private respondent' },
+        ],
+      },
+    }),
+    null,
+    'ordinary chat consent excludes tool-derived answer text',
+  );
+  assert.equal(
+    completedExchange({
+      ...input,
+      messages: [
+        userMessage(),
+        { role: 'assistant', parts: [{ type: 'dynamic-tool', output: 'private result' }] },
+        userMessage('Summarize that result again.'),
+      ],
+    }),
+    null,
+    'earlier connector results can still determine the final response',
+  );
 });
 
 test('known secrets and common credential/PII formats are removed before creating a learning copy', () => {
