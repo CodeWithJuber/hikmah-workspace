@@ -75,7 +75,8 @@ export function TypeformPanel({
     mounted.current = true;
     const active = new AbortController();
     controller.current = active;
-    void refresh(active.signal)
+    void Promise.resolve()
+      .then(() => refresh(active.signal))
       .catch((cause) => {
         if (!active.signal.aborted)
           setError(cause instanceof Error ? cause.message : 'Typeform is unavailable.');
