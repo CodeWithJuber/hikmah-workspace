@@ -60,7 +60,7 @@ jobs:
           SMOKE_REVISION: ${{ github.sha }}
         run: bash scripts/smoke-container.sh "hikmah-workspace:$GITHUB_SHA"
       - name: Package the verified image
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
         run: |
           mkdir artifact
           docker save "hikmah-workspace:$GITHUB_SHA" | gzip -1 > artifact/image.tar.gz
@@ -68,7 +68,7 @@ jobs:
           cd artifact
           sha256sum image.tar.gz workbench.tar.gz > image.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
         with:
           name: hikmah-image-${{ github.sha }}
           path: artifact/
