@@ -54,10 +54,15 @@ function form(value: unknown): TypeformForm {
   try {
     const parsed = new URL(display);
     if (
-      parsed.protocol === 'https:' && !parsed.username && !parsed.password &&
+      parsed.protocol === 'https:' &&
+      !parsed.username &&
+      !parsed.password &&
       (parsed.hostname === 'typeform.com' || parsed.hostname.endsWith('.typeform.com'))
-    ) url = parsed.href;
-  } catch { /* A display URL is optional. It is never used as an API endpoint. */ }
+    )
+      url = parsed.href;
+  } catch {
+    /* A display URL is optional. It is never used as an API endpoint. */
+  }
   return {
     id: typeformId(row.id),
     title: text(row.title, 300) || 'Untitled form',
@@ -87,27 +92,31 @@ export function createTypeformClient(
       });
     } catch {
       throw new TypeformError(
-        signal.aborted ? 'Typeform took too long. Try again.' : 'Could not reach Typeform. Try again.',
+        signal.aborted
+          ? 'Typeform took too long. Try again.'
+          : 'Could not reach Typeform. Try again.',
         502,
       );
     }
     if (!response.ok) {
       await response.body?.cancel().catch(() => {});
-      const message = response.status === 401
-        ? 'Typeform rejected the saved token. Ask the owner to reconnect it.'
-        : response.status === 403
-          ? 'The Typeform token needs forms:read and responses:read access to this form.'
-          : response.status === 404
-            ? 'This form is no longer available in the connected Typeform account.'
-            : response.status === 429
-              ? 'Typeform is receiving too many requests. Try again shortly.'
-              : 'Typeform could not complete this request. Try again.';
+      const message =
+        response.status === 401
+          ? 'Typeform rejected the saved token. Ask the owner to reconnect it.'
+          : response.status === 403
+            ? 'The Typeform token needs forms:read and responses:read access to this form.'
+            : response.status === 404
+              ? 'This form is no longer available in the connected Typeform account.'
+              : response.status === 429
+                ? 'Typeform is receiving too many requests. Try again shortly.'
+                : 'Typeform could not complete this request. Try again.';
       throw new TypeformError(message, response.status === 429 ? 429 : 502);
     }
     const reader = response.body?.getReader();
     if (!reader) throw new TypeformError('Typeform returned an empty response.', 502);
     const decoder = new TextDecoder();
-    let bytes = 0, body = '';
+    let bytes = 0,
+      body = '';
     try {
       while (true) {
         const part = await reader.read();
@@ -133,25 +142,41 @@ export function createTypeformClient(
   return {
     async forms(page = 1): Promise<TypeformForms> {
       page = typeformPage(page);
-      const payload = await request('/forms', new URLSearchParams({
-        page: String(page), page_size: String(PAGE_SIZE), sort_by: 'last_updated_at', order_by: 'desc',
-      }));
-      if (!Array.isArray(payload.items)) throw new TypeformError('Typeform returned no form list.', 502);
+      const payload = await request(
+        '/forms',
+        new URLSearchParams({
+          page: String(page),
+          page_size: String(PAGE_SIZE),
+          sort_by: 'last_updated_at',
+          order_by: 'desc',
+        }),
+      );
+      if (!Array.isArray(payload.items))
+        throw new TypeformError('Typeform returned no form list.', 502);
       return {
-        items: payload.items.slice(0, PAGE_SIZE).map(form), page,
-        pageCount: count(payload.page_count), total: count(payload.total_items),
+        items: payload.items.slice(0, PAGE_SIZE).map(form),
+        page,
+        pageCount: count(payload.page_count),
+        total: count(payload.total_items),
       };
     },
-    async form(id: string): Promise<TypeformForm> { return form(await detail(id)); },
+    async form(id: string): Promise<TypeformForm> {
+      return form(await detail(id));
+    },
     async responses(id: string, before?: string): Promise<TypeformResponses> {
       id = typeformId(id);
       const cursor = typeformCursor(before);
-      const query = new URLSearchParams({ page_size: String(PAGE_SIZE), response_type: 'completed' });
+      const query = new URLSearchParams({
+        page_size: String(PAGE_SIZE),
+        response_type: 'completed',
+      });
       if (cursor) query.set('before', cursor);
       const [definition, payload] = await Promise.all([
-        detail(id), request(`/forms/${id}/responses`, query),
+        detail(id),
+        request(`/forms/${id}/responses`, query),
       ]);
-      if (!Array.isArray(payload.items)) throw new TypeformError('Typeform returned no responses list.', 502);
+      if (!Array.isArray(payload.items))
+        throw new TypeformError('Typeform returned no responses list.', 502);
       const questions = new Map<string, string>();
       const collect = (fields: unknown, depth = 0) => {
         if (depth > 4) return;
@@ -168,24 +193,40 @@ export function createTypeformClient(
         return {
           id: text(row.response_id ?? row.token, 200),
           submittedAt: text(row.submitted_at, 40),
-          answers: array(row.answers).slice(0, 100).map((rawAnswer) => {
-            const answer = record(rawAnswer), field = record(answer.field);
-            let value = '[Unsupported answer type]';
-            if (['text', 'email', 'url', 'phone_number', 'date'].includes(String(answer.type)))
-              value = text(answer[String(answer.type)]);
-            else if (answer.type === 'number' && typeof answer.number === 'number') value = String(answer.number);
-            else if (answer.type === 'boolean' && typeof answer.boolean === 'boolean') value = answer.boolean ? 'Yes' : 'No';
-            else if (answer.type === 'choice') value = text(record(answer.choice).label ?? record(answer.choice).other);
-            else if (answer.type === 'choices') value = array(record(answer.choices).labels).slice(0, 100).map((v) => text(v, 200)).join(', ').slice(0, 4000);
-            else if (answer.type === 'file_url') value = '[Uploaded file; open in Typeform]';
-            return { question: questions.get(text(field.id, 100)) || text(field.ref, 200) || 'Question', value };
-          }),
+          answers: array(row.answers)
+            .slice(0, 100)
+            .map((rawAnswer) => {
+              const answer = record(rawAnswer),
+                field = record(answer.field);
+              let value = '[Unsupported answer type]';
+              if (['text', 'email', 'url', 'phone_number', 'date'].includes(String(answer.type)))
+                value = text(answer[String(answer.type)]);
+              else if (answer.type === 'number' && typeof answer.number === 'number')
+                value = String(answer.number);
+              else if (answer.type === 'boolean' && typeof answer.boolean === 'boolean')
+                value = answer.boolean ? 'Yes' : 'No';
+              else if (answer.type === 'choice')
+                value = text(record(answer.choice).label ?? record(answer.choice).other);
+              else if (answer.type === 'choices')
+                value = array(record(answer.choices).labels)
+                  .slice(0, 100)
+                  .map((v) => text(v, 200))
+                  .join(', ')
+                  .slice(0, 4000);
+              else if (answer.type === 'file_url') value = '[Uploaded file; open in Typeform]';
+              return {
+                question: questions.get(text(field.id, 100)) || text(field.ref, 200) || 'Question',
+                value,
+              };
+            }),
         };
       });
       const last = record(rows.at(-1));
       const next = text(last.token ?? last.response_id, 200);
       return {
-        form: form(definition), items, total: count(payload.total_items),
+        form: form(definition),
+        items,
+        total: count(payload.total_items),
         nextBefore: rows.length === PAGE_SIZE && /^[A-Za-z0-9_-]{1,200}$/.test(next) ? next : null,
         note: TYPEFORM_DELAY_NOTE,
       };

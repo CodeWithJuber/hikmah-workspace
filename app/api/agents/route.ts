@@ -28,7 +28,10 @@ export async function GET(request: Request) {
   // availability travels too: a menu offering bash on a box with no workbench
   // is a switch that changes nothing.
   const entitlements = entitlementsForUser(user);
-  const typeform = await typeformService().status(user.userId).then((status) => status.connected).catch(() => false);
+  const typeform = await typeformService()
+    .status(user.userId)
+    .then((status) => status.connected)
+    .catch(() => false);
   return Response.json(
     {
       agents: store().list(user.userId),

@@ -278,14 +278,25 @@ function ShellContent() {
               </div>
             </header>
             <div className="px-6 pb-4">
-              <Button variant="outline" onClick={() => setPage('typeform')}><FileText size={16} />Typeform forms</Button>
-              <p className="mt-2 text-sm text-muted-foreground">Read surveys shared with your account and use them in chat.</p>
+              <Button variant="outline" onClick={() => setPage('typeform')}>
+                <FileText size={16} />
+                Typeform forms
+              </Button>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Read surveys shared with your account and use them in chat.
+              </p>
             </div>
             <McpServers />
           </div>
         ) : page === 'typeform' ? (
           <div className="lab-page">
-            <header className="lab-header"><SidebarTrigger /><div><h1>Integrations</h1><p>Use your connected services in Hikmah.</p></div></header>
+            <header className="lab-header">
+              <SidebarTrigger />
+              <div>
+                <h1>Integrations</h1>
+                <p>Use your connected services in Hikmah.</p>
+              </div>
+            </header>
             <TypeformPanel />
           </div>
         ) : page === 'knowledge' ? (

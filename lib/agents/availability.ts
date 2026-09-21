@@ -51,7 +51,11 @@ export type ToolAvailability = { name: string; available: boolean; reason?: stri
 export function toolAvailability(capabilities: Capabilities): ToolAvailability[] {
   return BUILT_IN_TOOLS.map((name) => {
     if (name.startsWith('typeform_') && capabilities.typeform !== true)
-      return { name, available: false, reason: 'Ask the owner to connect Typeform and share a form with your account.' };
+      return {
+        name,
+        available: false,
+        reason: 'Ask the owner to connect Typeform and share a form with your account.',
+      };
     if (WORKBENCH_TOOLS.has(name)) {
       if (!capabilities.workbench) return { name, available: false, reason: WORKBENCH_REASON };
       if (capabilities.execution === false)

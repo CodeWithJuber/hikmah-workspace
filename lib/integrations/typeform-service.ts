@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 import type { SecretStore } from '../../server/workspace-secrets.mjs';
 import {
-  createTypeformClient, TypeformError, typeformId, typeformPage, typeformToken,
+  createTypeformClient,
+  TypeformError,
+  typeformId,
+  typeformPage,
+  typeformToken,
 } from './typeform-client.ts';
 import type { TypeformGrantStore } from './typeform-store.ts';
 import type { TypeformForms, TypeformStatus } from './typeform-types.ts';
@@ -22,7 +26,8 @@ export function createTypeformService(deps: {
     const now = Date.now();
     const previous = usage.get(userId);
     if (previous && now - previous.at < 60_000) {
-      if (previous.count >= 30) throw new TypeformError('Wait a minute before refreshing Typeform again.', 429);
+      if (previous.count >= 30)
+        throw new TypeformError('Wait a minute before refreshing Typeform again.', 429);
       previous.count += 1;
     } else usage.set(userId, { at: now, count: 1 });
     if (usage.size > 2000)
@@ -43,11 +48,19 @@ export function createTypeformService(deps: {
   }
   async function access(userId: string, formId?: string) {
     const connected = await connection();
-    if (userId !== connected.ownerId && formId && !grants.allows(connected.ownerId, connected.key, userId, formId))
+    if (
+      userId !== connected.ownerId &&
+      formId &&
+      !grants.allows(connected.ownerId, connected.key, userId, formId)
+    )
       throw new TypeformError('This form has not been shared with your account.', 403);
     return connected;
   }
-  async function unchanged(userId: string, connected: Awaited<ReturnType<typeof connection>>, formId?: string) {
+  async function unchanged(
+    userId: string,
+    connected: Awaited<ReturnType<typeof connection>>,
+    formId?: string,
+  ) {
     const current = await access(userId, formId);
     if (current.key !== connected.key || current.ownerId !== connected.ownerId)
       throw new TypeformError('The Typeform connection changed. Refresh and try again.', 409);
@@ -62,7 +75,8 @@ export function createTypeformService(deps: {
       const metadata = (await secrets.list(ownerId)).find(
         (entry) => entry.name === TYPEFORM_SECRET && entry.destination === TYPEFORM_DESTINATION,
       );
-      if (!metadata) return { connected: false, owner: isOwner, ...(isOwner ? { grants: [] } : {}) };
+      if (!metadata)
+        return { connected: false, owner: isOwner, ...(isOwner ? { grants: [] } : {}) };
       const connected = await connection();
       const visibleGrants = grants.list(ownerId, connected.key, isOwner ? undefined : userId);
       return {
@@ -79,7 +93,11 @@ export function createTypeformService(deps: {
       // Token replacement immediately invalidates old credential-bound grants,
       // even if a crash prevents the following cleanup from running.
       const previous = await secrets.resolve(ownerId, TYPEFORM_SECRET, TYPEFORM_DESTINATION, true);
-      await secrets.save(ownerId, { name: TYPEFORM_SECRET, destination: TYPEFORM_DESTINATION, value: token });
+      await secrets.save(ownerId, {
+        name: TYPEFORM_SECRET,
+        destination: TYPEFORM_DESTINATION,
+        value: token,
+      });
       if (previous !== token) grants.clear(ownerId);
     },
     async disconnect(userId: string) {
@@ -101,8 +119,12 @@ export function createTypeformService(deps: {
       if (userId !== connected.ownerId) {
         const own = grants.list(connected.ownerId, connected.key, userId);
         return {
-          items: own.slice((page - 1) * 25, page * 25).map((grant) => ({ id: grant.formId, title: grant.title })),
-          page, pageCount: Math.ceil(own.length / 25), total: own.length,
+          items: own
+            .slice((page - 1) * 25, page * 25)
+            .map((grant) => ({ id: grant.formId, title: grant.title })),
+          page,
+          pageCount: Math.ceil(own.length / 25),
+          total: own.length,
         };
       }
       rate(userId);
@@ -120,23 +142,34 @@ export function createTypeformService(deps: {
       return result;
     },
     async grant(userId: string, rawId: unknown, rawEmail: unknown, signal?: AbortSignal) {
-      const ownerId = owner(userId), id = typeformId(rawId);
+      const ownerId = owner(userId),
+        id = typeformId(rawId);
       if (typeof rawEmail !== 'string' || rawEmail.length > 254 || !rawEmail.includes('@'))
         throw new TypeformError('Enter the email of an existing Hikmah account.');
       const target = grants.findUser(rawEmail.trim().toLowerCase());
-      if (!target) throw new TypeformError('That person needs a Hikmah account before you can share this form.', 404);
+      if (!target)
+        throw new TypeformError(
+          'That person needs a Hikmah account before you can share this form.',
+          404,
+        );
       if (target === ownerId) throw new TypeformError('The owner already has access to this form.');
       rate(userId);
       const connected = await connection();
       const existing = grants.list(ownerId, connected.key);
-      if (existing.length >= 2000 || existing.filter((grant) => grant.userId === target).length >= 100)
-        throw new TypeformError('This connection has reached its sharing limit. Remove an unused grant first.');
+      if (
+        existing.length >= 2000 ||
+        existing.filter((grant) => grant.userId === target).length >= 100
+      )
+        throw new TypeformError(
+          'This connection has reached its sharing limit. Remove an unused grant first.',
+        );
       const detail = await client(connected.token, signal).form(id);
       await unchanged(userId, connected);
       grants.save(ownerId, connected.key, target, id, detail.title);
     },
     revoke(userId: string, rawId: unknown, rawTarget: unknown) {
-      const ownerId = owner(userId), id = typeformId(rawId);
+      const ownerId = owner(userId),
+        id = typeformId(rawId);
       if (typeof rawTarget !== 'string' || !rawTarget || rawTarget.length > 200)
         throw new TypeformError('Choose an account to remove.');
       grants.remove(ownerId, rawTarget, id);

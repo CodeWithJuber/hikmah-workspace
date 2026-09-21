@@ -14,7 +14,10 @@ export function typeformService(): TypeformService {
 }
 
 /** userId comes only from the authenticated run, never tool arguments. */
-export async function typeformRunContext(userId: string, signal?: AbortSignal): Promise<TypeformToolContext | undefined> {
+export async function typeformRunContext(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<TypeformToolContext | undefined> {
   const connected = typeformService();
   if (!(await connected.status(userId)).connected) return undefined;
   return {
