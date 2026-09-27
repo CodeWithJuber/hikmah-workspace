@@ -1,4 +1,4 @@
-{$HIKMAH_DOMAIN} {
+{$HIKMAH_SITE_SCHEME:https}://{$HIKMAH_DOMAIN} {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000"
@@ -50,6 +50,15 @@
       lb_try_interval 1s
       flush_interval -1
       header_up X-Real-IP {remote_host}
+      # Stated, not auto-detected: when this Caddy sits behind another edge
+      # (HIKMAH_SITE_SCHEME=http, a fronting Caddy terminates TLS), the
+      # immediate connection is plain http and the auto X-Forwarded-Proto
+      # would lie to the app — broken auth callbacks and http:// URLs.
+      # The public edge is https:443 in every layout this file ships in, so
+      # pinning both here is exact behind a front and a no-op when exposed
+      # directly.
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Port 443
       header_up -oai-authenticated-user-id
       header_up -oai-authenticated-user-email
       header_up -oai-authenticated-user-full-name

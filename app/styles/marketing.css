@@ -59,7 +59,7 @@
     position: fixed;
     left: -9999px;
     top: calc(8px + env(safe-area-inset-top, 0px));
-    z-index: 20;
+    z-index: var(--z-skip-link);
     padding: 10px 16px;
     border-radius: calc(var(--radius) - 2px);
     background: var(--foreground);

@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { clientFetch } from '@/lib/client/request';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export type Agent = {
   id: string;
@@ -149,7 +150,11 @@ export function AgentsPanel({
           </button>
         </p>
       ) : agents === null ? (
-        <p className="files-note">Loading…</p>
+        <div className="files-note grid gap-2" role="status" aria-label="Loading agents">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
+        </div>
       ) : agents.length === 0 ? (
         <p className="files-note">
           No agents yet. An agent is a named set of instructions and tools.

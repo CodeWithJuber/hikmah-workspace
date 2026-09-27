@@ -71,20 +71,22 @@ test('the theme has a source that does not depend on the workspace mounting', ()
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {
-  // Open the actual tool, rather than dropping the user into another home
-  // screen whose duplicate navigation they must learn first.
-  assert.match(shell, /href="\/workspace#\/terminal"/);
-  assert.match(shell, /href="\/workspace#\/connections"/);
+  // The chat's drawer renders the one ProductNav, so the chat can never drift
+  // from the routes the rest of the app uses — no duplicate navigation to
+  // learn, no hash links to rot.
+  assert.match(shell, /<ProductNav/);
   assert.match(shell, /href="\/sign-out"/);
 });
 
-test('workspace destinations keep their names in the mobile navigation', () => {
+test('workspace destinations keep their names in the mobile navigation', async () => {
+  // The destinations moved from /workspace#/<page> hashes to real routes; the
+  // labels travel with them in the single nav definition.
+  const nav = await readFile('components/app/product-nav.tsx', 'utf8');
   for (const [href, label] of [
-    ['/workspace#/terminal', 'Terminal & SSH'],
-    ['/workspace#/connections', 'Connected services'],
+    ['/terminal', 'Terminal'],
+    ['/connections', 'Connections'],
   ]) {
-    const link = shell.slice(shell.indexOf(`href="${href}"`));
-    assert.ok(link.slice(0, link.indexOf('</Link>')).includes(label), `${href} needs visible text`);
+    assert.match(nav, new RegExp(`href: '${href}', label: '${label}'`), `${href} needs visible text`);
   }
   for (const [href, label] of [['/sign-out', 'Sign out']]) {
     const link = shell.slice(shell.indexOf(`href="${href}"`));
@@ -100,16 +102,17 @@ test('the root opens the durable chat and the workspace keeps its own route', as
   // One place decides which conversation opens, so the two cannot disagree.
   assert.match(root, /redirect\('\/chat'\)/);
   assert.doesNotMatch(root, /Playground/);
-  assert.match(workspace, /<Playground \/>/);
-  // Both still need it: a redirect page that prerendered would call runService
-  // at build time, and the shell reads the session.
-  for (const source of [root, workspace])
-    assert.match(source, /export const dynamic = 'force-dynamic'/);
+  // The hash-routed shell is gone: /workspace is a bookmark-safe redirect to
+  // the Agents route (also where unknown hashes used to land), so the address
+  // keeps working while the route map stays the single source of truth.
+  assert.match(workspace, /redirect\('\/agents'\)/);
+  // A redirect page that prerendered would call runService at build time.
+  assert.match(root, /export const dynamic = 'force-dynamic'/);
 });
 
-test('the workspace shell links to the chat that now opens by default', async () => {
-  const playground = await readFile('components/playground/shell.tsx', 'utf8');
-  assert.match(playground, /<Link className="knowledge-nav" href="\/chat">/);
+test('the app shell links to the chat that now opens by default', async () => {
+  const shell = await readFile('components/app/app-shell.tsx', 'utf8');
+  assert.match(shell, /<Link className="new-chat" href="\/chat">/);
 });
 
 test('the side panels are drawers on a phone, not permanently open strips', () => {

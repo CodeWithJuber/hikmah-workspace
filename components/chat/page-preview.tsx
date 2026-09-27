@@ -13,9 +13,14 @@
  * the server adds to every served page.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ExternalLink, Link2, Monitor, Smartphone, TerminalSquare, X } from 'lucide-react';
 import { copyText } from '@/components/playground/error-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export function PagePreview({
   href,
@@ -54,14 +59,6 @@ export function PagePreview({
     return () => window.removeEventListener('message', receive);
   }, []);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const copy = useCallback(async () => {
     await copyText(new URL(href, window.location.origin).toString());
     setCopied(true);
@@ -69,14 +66,24 @@ export function PagePreview({
   }, [href]);
 
   if (typeof document === 'undefined') return null;
-  return createPortal(
-    <div
-      className="page-preview"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Preview of ${title}`}
+  return (
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <header className="page-preview-bar">
+      {/* The base dialog styles assume a centred card; the preview is a full
+          viewport surface, so the centred-card utilities are overridden here.
+          The `.page-preview` rules in chat.css own the layout. */}
+      <DialogContent
+        className="page-preview top-0 left-0 flex max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 p-0 shadow-none"
+        showCloseButton={false}
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{`Preview of ${title}`}</DialogTitle>
+        </DialogHeader>
+        <header className="page-preview-bar">
         <strong dir="auto">{title}</strong>
         <div className="page-preview-width" role="group" aria-label="Preview width">
           <button
@@ -141,7 +148,7 @@ export function PagePreview({
           )}
         </div>
       )}
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }

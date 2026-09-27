@@ -73,7 +73,7 @@
   code,
   pre,
   .mono {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
   }
   pre {
     white-space: pre-wrap;
@@ -228,7 +228,7 @@
     margin-top: -4px;
   }
   .meaning-graph text {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
     fill: var(--foreground);
     font-size: var(--font-size-lg);
   }
@@ -333,7 +333,7 @@
     margin: 18px 0 22px;
   }
   .formula {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--font-size-lg);
     overflow-x: auto;
     white-space: pre-wrap;
@@ -399,7 +399,7 @@
     min-height: 24px;
   }
   .train-input {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
   }
   .outcome {
     color: var(--success-text);
@@ -473,7 +473,7 @@
   }
   .number-row output {
     font-size: var(--font-size-base);
-    font-family: ui-monospace, monospace;
+    font-family: var(--font-mono);
   }
   .audio-upload {
     margin-top: 22px;
@@ -1396,7 +1396,7 @@
     height: 100%;
   }
   .syntax-editor .cm-scroller {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--font-size-base);
     line-height: 1.75;
     scrollbar-width: thin;

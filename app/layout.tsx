@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { isTheme, THEME_COOKIE, type Theme } from '@/lib/theme';
 import { savedTheme } from '@/lib/server/saved-theme';
 import { VitalsReporter } from '@/components/vitals-reporter';
+import { ToasterOnce } from '@/components/app/toaster';
 import './globals.css';
 
 /** Inter, actually loaded this time.
@@ -93,6 +94,9 @@ export default async function RootLayout({
             pages a stranger judges the product on — the landing page and
             sign-in — are the two nobody would have remembered to instrument. */}
         <VitalsReporter />
+        {/* The one toast host for the whole app; surfaces must not mount their
+            own. */}
+        <ToasterOnce />
       </body>
     </html>
   );

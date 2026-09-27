@@ -63,6 +63,7 @@ import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transp
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ConnectModelCard } from './connect-model';
 import { allModelsFree } from '@/lib/ai/endpoint';
 import { PricingContext } from './pricing-context';
@@ -988,41 +989,49 @@ export function ChatView({
           {messages.length === 0 &&
             !needsKey &&
             !draft.trim() &&
-            !editing &&
-            (starters?.length ? (
-              <div
-                className="chat-starters chat-agent-starters"
-                role="group"
-                aria-label="Try asking this agent"
-              >
-                {starters.map((prompt) => (
-                  <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div
-                className="chat-intent-shortcuts chat-outcome-starters"
-                role="group"
-                aria-label="Ideas to get started"
-              >
-                {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
-                  const Icon = STARTER_ICONS[choice];
-                  return (
-                    <button
-                      type="button"
-                      key={choice}
-                      onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
-                      title={CHAT_STARTERS[choice].detail}
+            !editing && (
+              <EmptyState
+                className="chat-empty-starters"
+                title={starters?.length ? 'Ask this agent' : 'Where do you want to start?'}
+                description="Pick a starting point — it fills an editable draft. Only Send starts a model call."
+                action={
+                  starters?.length ? (
+                    <div
+                      className="chat-starters chat-agent-starters"
+                      role="group"
+                      aria-label="Try asking this agent"
                     >
-                      <Icon size={20} aria-hidden="true" />
-                      {CHAT_STARTERS[choice].label}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                      {starters.map((prompt) => (
+                        <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className="chat-intent-shortcuts chat-outcome-starters"
+                      role="group"
+                      aria-label="Ideas to get started"
+                    >
+                      {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
+                        const Icon = STARTER_ICONS[choice];
+                        return (
+                          <button
+                            type="button"
+                            key={choice}
+                            onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
+                            title={CHAT_STARTERS[choice].detail}
+                          >
+                            <Icon size={20} aria-hidden="true" />
+                            {CHAT_STARTERS[choice].label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )
+                }
+              />
+            )}
           {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
           <div className="chat-composer-hint" id="chat-composer-hint">
             <span>Enter to send · Shift + Enter for a new line</span>

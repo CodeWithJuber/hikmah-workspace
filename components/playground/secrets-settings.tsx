@@ -79,7 +79,9 @@ export function SavedSecretSelect({
         disabled={disabled || loading}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">{loading ? 'Loading…' : 'Use a session key'}</option>
+        {/* A <select> option can only hold text — a Skeleton div is invalid
+            here — so this keeps a plain label while the list loads. */}
+        <option value="">{loading ? 'Loading' : 'Use a session key'}</option>
         {value && !available.some((r) => r.name === value) && (
           <option value={value}>{value} · unavailable for this service</option>
         )}

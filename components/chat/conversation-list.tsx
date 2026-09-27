@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -204,7 +205,15 @@ export function ConversationList({
           </button>
         </p>
       ) : conversations === null ? (
-        <p className="conversation-note">Loading…</p>
+        <div
+          className="conversation-note grid gap-2"
+          role="status"
+          aria-label="Loading conversations"
+        >
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
+        </div>
       ) : conversations.length === 0 ? (
         <p className="conversation-note">Your conversations appear here.</p>
       ) : null}

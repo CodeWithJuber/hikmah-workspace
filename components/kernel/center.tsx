@@ -4,12 +4,12 @@ import { randomId } from '../../lib/id.ts';
 import { ContextStudio } from '@/components/context-model/studio';
 import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
-import { usePlayground } from '@/components/playground/context';
 import { useKernel } from './context';
 import { HikmahIcon } from './icons';
 import {
@@ -32,7 +32,7 @@ export function KernelCenter({
   initialTab?: string;
 }) {
   const { state, ready, busy, error, act, refresh, model, role } = useKernel();
-  const { setWorkspacePage } = usePlayground();
+  const router = useRouter();
   const [tab, setTab] = useState(initialTab);
   const [probe, setProbe] = useState('Sara did help Lina.');
   const [language, setLanguage] = useState('en');
@@ -128,10 +128,13 @@ export function KernelCenter({
       )}
       <nav className="kernel-tabs" aria-label="Co-model sections">
         {tabs.map((t) => (
+          /* Owner tabs are routes (/superadmin/<tab>); the tab styling targets
+             button elements, so this stays a button and navigates with the
+             router. Non-owner tabs are in-page state. */
           <button
             key={t}
             aria-current={tab === t ? 'page' : undefined}
-            onClick={() => (owner ? setWorkspacePage('superadmin/' + t) : setTab(t))}
+            onClick={() => (owner ? router.push('/superadmin/' + t) : setTab(t))}
           >
             {t === 'training'
               ? 'Train context model'

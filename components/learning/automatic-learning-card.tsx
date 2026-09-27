@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { AutomaticStatus } from '@/lib/learning/automatic-types';
 import type { LearningSnapshot } from '@/lib/learning/types';
 import { readableDate } from './shared';
@@ -69,7 +70,21 @@ export function AutomaticLearningCard({
           <Sparkles size={16} aria-hidden="true" /> Automatic co-model learning
         </span>
         <span className={`learning-auto-indicator${enabled ? ' is-enabled' : ''}`}>
-          {!snapshot ? (loading ? 'Loading…' : 'Unavailable') : enabled ? 'On' : 'Off'}
+          {!snapshot ? (
+            loading ? (
+              <Skeleton
+                className="inline-block h-4 w-16 align-middle"
+                role="status"
+                aria-label="Loading learning status"
+              />
+            ) : (
+              'Unavailable'
+            )
+          ) : enabled ? (
+            'On'
+          ) : (
+            'Off'
+          )}
         </span>
       </div>
 

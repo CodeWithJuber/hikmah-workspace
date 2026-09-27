@@ -17,6 +17,11 @@ import {
 } from '@/components/ai-elements/confirmation';
 import { ApprovalCard, type GrantHandler } from './approval-card';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   AlertCircle,
   Bookmark,
   BookmarkCheck,
@@ -363,8 +368,13 @@ function ResearchCard({ view }: { view: ResearchView }) {
                 <span className="chat-plan-number">{index + 1}</span>
               )}
               {lane.status === 'done' && lane.summary ? (
-                <details>
-                  <summary>
+                // <details>, not the ui/collapsible: the finding and its source
+                // links are the payload of this card, and a closed Radix
+                // Collapsible does not render its content into the DOM at all
+                // (no find-in-page, nothing without JS, and the receipt test
+                // cannot see it). The chat.css rules target details too.
+                <details className="chat-research-lane">
+                  <summary className="chat-research-lane-trigger">
                     <span dir="auto">{lane.question}</span>
                     <span className="chat-research-state">
                       {lane.sources?.length
@@ -682,10 +692,14 @@ function MessagePartsInner({
     if (part.type === 'step-start') return null;
 
     return (
-      <details key={key} className="chat-unknown-part">
-        <summary>Unrecognised content ({part.type})</summary>
-        <pre>{JSON.stringify(part, null, 2)}</pre>
-      </details>
+      <Collapsible key={key} className="chat-unknown-part">
+        <CollapsibleTrigger className="chat-unknown-part-trigger">
+          Unrecognised content ({part.type})
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <pre>{JSON.stringify(part, null, 2)}</pre>
+        </CollapsibleContent>
+      </Collapsible>
     );
   };
 
@@ -737,10 +751,14 @@ function MessagePartsInner({
              steps it took — the question a reader is actually asking when
              they cannot tell where the MCP call happened. Closed by
              default: the answer is what they came for. */
-          <details className="chat-working">
-            <summary>{summary || 'How this was worked out'}</summary>
-            <div className="chat-working-body">{working.map(renderPart)}</div>
-          </details>
+          <Collapsible className="chat-working">
+            <CollapsibleTrigger className="chat-working-trigger">
+              {summary || 'How this was worked out'}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="chat-working-body">
+              {working.map(renderPart)}
+            </CollapsibleContent>
+          </Collapsible>
         )}
         {rest.map(renderPart)}
 

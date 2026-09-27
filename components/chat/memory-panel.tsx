@@ -19,6 +19,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useMemory } from '@/hooks/use-memory';
 import type { Memory, MemoryKind } from '@/lib/memory/store';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PROVENANCE: Record<Memory['provenance'], string> = {
   quote: 'Your words',
@@ -232,7 +233,11 @@ export function MemoryPanel() {
         />
       )}
       {loading ? (
-        <p className="memory-empty">Loading…</p>
+        <div className="memory-empty grid gap-2" role="status" aria-label="Loading memories">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-3/6" />
+        </div>
       ) : failed ? (
         // Not "nothing saved yet": that sentence is a claim about what this
         // person has written, and a failed load knows nothing about it.

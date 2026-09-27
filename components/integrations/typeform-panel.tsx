@@ -301,13 +301,13 @@ export function TypeformPanel({
               ? 'Connect your Typeform account to browse forms and read responses here.'
               : 'Ask the workspace owner to share a Typeform form with your account.'}
           </p>
-          {status.owner && <a href="/workspace#/superadmin/integrations">Connect Typeform</a>}
+          {status.owner && <a href="/superadmin/integrations">Connect Typeform</a>}
         </div>
       )}
       {status?.connected && (
         <>
           {!manage && status.owner && (
-            <a className={styles.manageLink} href="/workspace#/superadmin/integrations">
+            <a className={styles.manageLink} href="/superadmin/integrations">
               Manage connection and sharing
             </a>
           )}

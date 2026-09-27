@@ -17,6 +17,11 @@ import { Check, ExternalLink, Eye, EyeOff, LoaderCircle, RefreshCw } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -265,23 +270,27 @@ export function ConnectionSettings({
             onChange={(event) => edit({ baseUrl: event.target.value, apiKeySecret: '', model: '' })}
           />
           {ollama ? (
-            <details className="chat-settings-disclosure">
-              <summary>Ollama setup help</summary>
-              <small>
-                The app server connects to Ollama. If it runs in Docker, use{' '}
-                <button
-                  type="button"
-                  className="chat-inline-link"
-                  disabled={Boolean(busy)}
-                  onClick={() => edit({ baseUrl: OLLAMA_DOCKER_URL })}
-                >
-                  {OLLAMA_DOCKER_URL}
-                </button>{' '}
-                and add <code>host.docker.internal</code> to{' '}
-                <code>HIKMAH_PROVIDER_ALLOW_PRIVATE</code> on the server. Pull a model first (
-                <code>ollama pull llama3.2</code>); installed models appear below.
-              </small>
-            </details>
+            <Collapsible className="chat-settings-disclosure">
+              <CollapsibleTrigger className="chat-settings-disclosure-trigger">
+                Ollama setup help
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <small>
+                  The app server connects to Ollama. If it runs in Docker, use{' '}
+                  <button
+                    type="button"
+                    className="chat-inline-link"
+                    disabled={Boolean(busy)}
+                    onClick={() => edit({ baseUrl: OLLAMA_DOCKER_URL })}
+                  >
+                    {OLLAMA_DOCKER_URL}
+                  </button>{' '}
+                  and add <code>host.docker.internal</code> to{' '}
+                  <code>HIKMAH_PROVIDER_ALLOW_PRIVATE</code> on the server. Pull a model first (
+                  <code>ollama pull llama3.2</code>); installed models appear below.
+                </small>
+              </CollapsibleContent>
+            </Collapsible>
           ) : (
             <small>Use the OpenAI-compatible base URL, without /chat/completions.</small>
           )}
@@ -391,25 +400,27 @@ export function ConnectionSettings({
       </div>
 
       {freeTier && !allModelsFree(draft.baseUrl) ? (
-        <details className="chat-settings-disclosure">
-          <summary>
+        <Collapsible className="chat-settings-disclosure">
+          <CollapsibleTrigger className="chat-settings-disclosure-trigger">
             Model options <span>{draft.freeOnly ? 'Free only' : 'Paid models allowed'}</span>
-          </summary>
-          <label className="chat-setting-toggle">
-            <input
-              type="checkbox"
-              checked={draft.freeOnly}
-              disabled={Boolean(busy)}
-              onChange={(event) => edit({ freeOnly: event.target.checked })}
-            />
-            <span>
-              Free models only
-              <small>
-                Only allow models verified as free. Turn off to use paid models with your key.
-              </small>
-            </span>
-          </label>
-        </details>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <label className="chat-setting-toggle">
+              <input
+                type="checkbox"
+                checked={draft.freeOnly}
+                disabled={Boolean(busy)}
+                onChange={(event) => edit({ freeOnly: event.target.checked })}
+              />
+              <span>
+                Free models only
+                <small>
+                  Only allow models verified as free. Turn off to use paid models with your key.
+                </small>
+              </span>
+            </label>
+          </CollapsibleContent>
+        </Collapsible>
       ) : !freeTier ? (
         <p className="chat-connection-note">
           Paid usage is billed by {preset?.name ?? 'your provider'} to your key.

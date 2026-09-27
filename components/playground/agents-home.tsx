@@ -22,10 +22,8 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { AgentsPanel } from '@/components/chat/agents-panel';
-import { usePlayground } from './context';
 
 export function AgentsHome() {
-  const { setWorkspacePage } = usePlayground();
   return (
     <div className="destination-page">
       <header className="workspace-header">
@@ -46,9 +44,9 @@ export function AgentsHome() {
             Reusable instructions and a chosen tool set, saved to your workspace. Pick one in the
             chat to apply it to the next message; the model stays yours unless the agent names one.
           </p>
-          <button className="text-link" onClick={() => setWorkspacePage('tools')}>
+          <Link className="text-link" href="/tools">
             Explore tools &amp; runtimes <ArrowUpRight size={16} />
-          </button>
+          </Link>
         </section>
         {/* No picker here: this screen manages agents, and there is no
             conversation on it to apply one to. Choosing one happens where it

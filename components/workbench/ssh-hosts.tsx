@@ -11,6 +11,7 @@ import { Fingerprint, Loader2, Plus, ServerCog, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { clientFetch } from '@/lib/client/request';
 
 type Host = {
@@ -288,7 +289,7 @@ export function SshHosts() {
       )}
 
       {hosts === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Skeleton className="h-4 w-32" aria-label="Loading saved servers" />
       ) : hosts.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No servers saved. Until you add one, the assistant has no way to reach any machine.
