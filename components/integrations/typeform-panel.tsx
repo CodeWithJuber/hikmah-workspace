@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink, FileText, Plug, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -301,15 +302,15 @@ export function TypeformPanel({
               ? 'Connect your Typeform account to browse forms and read responses here.'
               : 'Ask the workspace owner to share a Typeform form with your account.'}
           </p>
-          {status.owner && <a href="/superadmin/integrations">Connect Typeform</a>}
+          {status.owner && <Link href="/superadmin/integrations">Connect Typeform</Link>}
         </div>
       )}
       {status?.connected && (
         <>
           {!manage && status.owner && (
-            <a className={styles.manageLink} href="/superadmin/integrations">
+            <Link className={styles.manageLink} href="/superadmin/integrations">
               Manage connection and sharing
-            </a>
+            </Link>
           )}
           <div className={styles.browser}>
             <div className={styles.formList}>
