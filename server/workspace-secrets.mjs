@@ -93,10 +93,18 @@ export function validateDestination(destination) {
   }
 }
 function key() {
-  const master = process.env.HIKMAH_VAULT_KEY || process.env.BETTER_AUTH_SECRET;
+  // v10: no fallback to the auth secret — one secret must not serve both
+  // session signing and credential encryption. Fail closed instead.
+  // Upgrading from the old default? Set HIKMAH_VAULT_KEY to your existing
+  // BETTER_AUTH_SECRET value: derived keys stay identical, sealed secrets
+  // keep working.
+  const master = process.env.HIKMAH_VAULT_KEY;
   if (!master || master.length < 32)
     throw new SecretError(
-      'Workspace encryption is unavailable. Configure a stable server secret of at least 32 characters.',
+      'HIKMAH_VAULT_KEY is not set (or shorter than 32 characters). ' +
+        'Generate one with `openssl rand -hex 32`. If you are upgrading and ' +
+        'previously relied on the implicit default, set HIKMAH_VAULT_KEY to ' +
+        'your existing BETTER_AUTH_SECRET value to keep already-sealed secrets readable.',
       503,
     );
   return Buffer.from(hkdfSync('sha256', master, 'hikmah-workspace-vault-v1', 'aes-256-gcm', 32));

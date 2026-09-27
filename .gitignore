@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+# v10: the workbench's node_modules was committed by accident (1228 files);
+# un-vendored. The workbench image builds with `npm ci`, it never used it.
+/workbench/node_modules
 /.pnp
 .pnp.*
 .yarn/*

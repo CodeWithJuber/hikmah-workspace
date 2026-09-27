@@ -59,10 +59,10 @@ const ALLOW = [
   /^tests\//,
   // Configuration and generated declarations. Read by the toolchain rather than
   // imported by the app, so "no route reaches this" is true and means nothing.
-  // db/schema.ts belongs here for a different reason worth stating: Drizzle is
-  // schema-only in this project and no runtime query goes through it, so the
-  // file is the written record of what the hand-written migrations build.
-  /^db\/schema\.ts$/,
+  // v10: db/schema.ts was deleted — it covered 17 of ~35 migrated tables with
+  // zero indexes and had drifted from the SQL. The migrations in drizzle/ are
+  // the single source of truth (sha256-pinned at apply time); a second,
+  // wrong record of the schema is worse than none.
   /^next-env\.d\.ts$/,
   /\.config\.(ts|mjs|js)$/,
 ];

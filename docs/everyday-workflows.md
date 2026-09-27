@@ -8,7 +8,7 @@ This change responds to a concrete usability problem: the same destinations appe
 - Learning has one front door with automatic status, Enable/Pause and Reset. Saved examples and manual training/research controls remain available behind disclosures.
 - Settings has one provider/key/model flow. A key can be saved before loading a private catalogue. Errors remain errors and unsaved drafts survive unrelated preference changes or closing the panel.
 - Terminal and connected services open their actual destinations. Files and agents stay in contextual panels. The learning return action preserves the current conversation.
-- Co-scientist asks for a question and a useful outcome: review evidence, challenge an idea or plan a test. It prepares an editable brief and uses the existing research tools after the user sends it. Tool progress and results remain in the conversation.
+- Research brief asks for a question and a useful outcome: review evidence, challenge an idea or plan a test. It prepares an editable brief and uses the existing research tools after the user sends it. Tool progress and results remain in the conversation.
 
 The design decisions are informed by official documentation, rather than a claim that Hikmah reproduces these products exactly:
 

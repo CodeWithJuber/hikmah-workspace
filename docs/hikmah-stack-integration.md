@@ -1,6 +1,6 @@
 # Hikmah Stack integration note
 
-The Hikmah Stack repository was reviewed alongside ForgeKit. Its Rust kernel and evidence-ledger ideas are treated as a lower-level reference, not a second user-facing workflow. Hikmah keeps the existing durable run and approval boundaries, then exposes the useful parts through the chat, Learning and Co-scientist surfaces.
+The Hikmah Stack repository was reviewed alongside ForgeKit. Its Rust kernel and evidence-ledger ideas are treated as a lower-level reference, not a second user-facing workflow. Hikmah keeps the existing durable run and approval boundaries, then exposes the useful parts through the chat, Learning and Research brief surfaces.
 
 The production crosswalk is:
 
