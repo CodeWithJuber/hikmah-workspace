@@ -97,9 +97,13 @@ services:
       # Started, not healthy: a sidecar that fails to come up must cost the
       # owner their terminal, not their whole site.
       workbench: { condition: service_started }
+    # Host bindings are operator-chosen. Default owns 80/443 directly; a host
+    # that already serves the web on those ports (portal Caddy in front) sets
+    # HIKMAH_HTTP_BIND / HIKMAH_HTTPS_BIND to free ports in /opt/hikmah/.env —
+    # configure.py carries unknown keys forward, so they survive every release.
     ports:
-      - '80:80'
-      - '443:443'
+      - '${HIKMAH_HTTP_BIND:-80}:80'
+      - '${HIKMAH_HTTPS_BIND:-443}:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
