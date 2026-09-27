@@ -75,6 +75,12 @@ type AppContext = {
   storageMessage: string;
   /** The stored workspace could not be read, so nothing is being saved. */
   restoreFailed: boolean;
+  /** Re-run the workspace restore: clears the failure flags, then fetches
+   * `/api/workspace-state` and applies it exactly like the mount load. */
+  retryRestore: () => Promise<void>;
+  /** Ask first, then delete the locally stored session blob and reload from
+   * the server. Server data is never touched. */
+  resetWorkspace: () => Promise<void>;
   openSettings: () => void;
   preferences: Preferences;
   setPreferences: Setter<Preferences>;
@@ -322,10 +328,24 @@ export function PlaygroundProvider({
     setConnectorTools({});
     setActiveId(s.conversations[0]?.id ?? '');
   };
+  // `retryRestore` is a stable useCallback but `restore` is re-created every
+  // render; the ref keeps it callable without re-creating the callback, the
+  // same pattern as `sessionRef` below.
+  const restoreRef = useRef(restore);
+  restoreRef.current = restore;
   const cloudRevision = useRef(-1);
-  useEffect(() => {
-    let mounted = true;
-    void (async () => {
+  // True while a restore is in flight: the save loop stands down so it cannot
+  // persist the pre-restore state over the session being fetched.
+  const restoring = useRef(false);
+  /** The workspace restore, shared by the mount effect and the Retry button:
+   * fetches `/api/workspace-state`, falls back to the local blob when the
+   * server has no session, and marks the failure visibly when neither works. */
+  const retryRestore = useCallback(async () => {
+    restoring.current = true;
+    restoreFailed.current = false;
+    setRestoreError(false);
+    setStorageMessage('Loading your workspace…');
+    try {
       const response = await clientFetch('/api/workspace-state', { cache: 'no-store' });
       const data = (await response.json()) as {
         session?: string;
@@ -335,20 +355,60 @@ export function PlaygroundProvider({
       if (!response.ok) throw Error(data.error);
       cloudRevision.current = data.revision;
       const raw = data.session ?? (await readWorkspaceSession());
-      if (mounted && raw) restore(parseSession(raw));
-    })()
-      .catch(() => {
-        restoreFailed.current = true;
-        setRestoreError(true);
-        setStorageMessage('Workspace not loaded — saving is off');
-      })
-      .finally(() => {
-        if (mounted) setLoaded(true);
-      });
-    return () => {
-      mounted = false;
-    };
+      if (raw) restoreRef.current(parseSession(raw));
+    } catch {
+      restoreFailed.current = true;
+      setRestoreError(true);
+      setStorageMessage('Workspace not loaded — saving is off');
+    } finally {
+      restoring.current = false;
+      setLoaded(true);
+    }
   }, []);
+  /** Behind a confirm: delete the locally stored session blob — the same keys
+   * `readWorkspaceSession` reads (localStorage `hikmah-playground-v1` /
+   * `hikmah-session-store`, IndexedDB `hikmah-workspace` → `state` →
+   * `session`), mirrored here because storage.ts exposes no clear — then
+   * reload from the server. */
+  const resetWorkspace = useCallback(async () => {
+    if (
+      !window.confirm(
+        'Clear the workspace copy stored on this device and reload it from the server? ' +
+          'Anything saved to the server is untouched.',
+      )
+    )
+      return;
+    try {
+      localStorage.removeItem('hikmah-playground-v1');
+      localStorage.removeItem('hikmah-session-store');
+    } catch {
+      /* Unavailable storage cannot hold a stale blob either. */
+    }
+    try {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('hikmah-workspace', 2);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('state', 'readwrite');
+          tx.objectStore('state').delete('session');
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    } catch {
+      /* Best effort: the retry below still pulls the server copy. */
+    }
+    await retryRestore();
+  }, [retryRestore]);
+  useEffect(() => {
+    void retryRestore();
+  }, [retryRestore]);
   useEffect(() => {
     // Not before the saved session arrives: see canPublishTheme. Until then
     // `preferences` is the default object and its theme is `light`, which would
@@ -429,7 +489,13 @@ export function PlaygroundProvider({
     let saving = false;
     let disposed = false;
     const save = async () => {
-      if (restoreFailed.current || saving || savedRevision.current === revision.current) return;
+      if (
+        restoreFailed.current ||
+        restoring.current ||
+        saving ||
+        savedRevision.current === revision.current
+      )
+        return;
       saving = true;
       const at = revision.current;
       try {
@@ -521,6 +587,8 @@ export function PlaygroundProvider({
         },
         storageMessage,
         restoreFailed: restoreError,
+        retryRestore,
+        resetWorkspace,
         openSettings: onSettings,
         preferences,
         setPreferences,

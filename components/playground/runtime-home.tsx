@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Play, Square, ArrowUpRight, Download } from 'lucide-react';
+import { Play, Square, ArrowUpRight, Download, Plug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Textarea } from '@/components/ui/textarea';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePlayground } from './context';
@@ -186,14 +187,16 @@ export function RuntimeHome() {
             </div>
           ))
         ) : (
-          <div className="plain-callout">
-            <strong>No external runtime connected</strong>
-            <p>
-              Your OpenRouter key supplies the model. A separate runtime supplies Python, Node, SSH
-              or browser control. The app never claims those actions ran without a connected tool
-              result.
-            </p>
-          </div>
+          <EmptyState
+            icon={<Plug size={20} />}
+            title="No external runtime connected"
+            description="Your OpenRouter key supplies the model. A separate runtime supplies Python, Node, SSH or browser control. The app never claims those actions ran without a connected tool result."
+            action={
+              <Button variant="outline" asChild>
+                <Link href="/admin/connectors">Connect a service</Link>
+              </Button>
+            }
+          />
         )}
       </div>
     </div>

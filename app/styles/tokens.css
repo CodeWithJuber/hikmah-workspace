@@ -133,6 +133,6 @@
 
     /* The single monospace stack, matching the design source's own code
      * fallbacks (design/hikmah-theme.ts). */
-    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   }
 }

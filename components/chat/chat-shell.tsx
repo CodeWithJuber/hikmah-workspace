@@ -329,7 +329,11 @@ export function ChatShell({
         </div>
       </aside>
       <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
-        <section className="workspace-chat-pane" inert={modalOpen || undefined} aria-label="Conversation">
+        <section
+          className="workspace-chat-pane"
+          inert={modalOpen || undefined}
+          aria-label="Conversation"
+        >
           <ChatPreview
             key={conversationId}
             conversationId={conversationId}

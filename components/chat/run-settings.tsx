@@ -10,11 +10,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { MAX_INSTRUCTIONS, type ChatSettings } from '@/lib/chat/settings';
 import { GATED_TOOLS, withGrant, withoutGrant } from '@/lib/chat/approvals';
 import { ConnectionSettings } from './connection-settings';

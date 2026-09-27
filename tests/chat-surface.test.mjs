@@ -86,7 +86,11 @@ test('workspace destinations keep their names in the mobile navigation', async (
     ['/terminal', 'Terminal'],
     ['/connections', 'Connections'],
   ]) {
-    assert.match(nav, new RegExp(`href: '${href}', label: '${label}'`), `${href} needs visible text`);
+    assert.match(
+      nav,
+      new RegExp(`href: '${href}', label: '${label}'`),
+      `${href} needs visible text`,
+    );
   }
   for (const [href, label] of [['/sign-out', 'Sign out']]) {
     const link = shell.slice(shell.indexOf(`href="${href}"`));

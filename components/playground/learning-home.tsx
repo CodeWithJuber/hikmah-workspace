@@ -13,6 +13,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePlayground } from './context';
 import { useMemory } from '@/hooks/use-memory';
@@ -264,12 +265,17 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
                 </article>
               ))
             ) : (
-              <div className="learning-empty">
-                <BrainCircuit size={32} />
-                <p>
-                  No updates yet. Save a memory, review an example or rate a completed response.
-                </p>
-              </div>
+              <EmptyState
+                icon={<BrainCircuit size={20} />}
+                title="No updates yet"
+                description="Save a memory, review an example or rate a completed response."
+                action={
+                  <Button onClick={() => setDraft(newKnowledge())}>
+                    <BookOpen size={16} />
+                    Remember something
+                  </Button>
+                }
+              />
             )}
           </section>
         </div>

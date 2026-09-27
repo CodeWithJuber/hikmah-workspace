@@ -4,11 +4,7 @@ import { useId, useRef, useState } from 'react';
 import { ArrowUpRight, Columns2, Globe, Microscope, Telescope, Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ToolSwitches, useToolAvailability, activeToolCount } from './tool-switches';
 import { researchCapabilities } from '@/lib/client/research-brief';
 

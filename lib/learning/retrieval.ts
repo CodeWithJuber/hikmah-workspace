@@ -1,16 +1,19 @@
 import type { LearningExample } from './types.ts';
+import { terms as canonicalTerms } from '../text/normalise.ts';
 
 const STOP = new Set(
   'a an and are as at be by can do for from how i in is it me my of on or our please that the their this to us was we what when where which with you your'.split(
     ' ',
   ),
 );
+// Tokenisation is the canonical one from lib/text/normalise.ts (NFKC, Arabic
+// harakat/tatweel removed, Arabic/Urdu letter folding, virama and other marks
+// kept inside words). Retrieval keeps only its own vocabulary filter on top —
+// stop words and single characters are noise for overlap scoring, not a
+// normalisation choice — so the retriever and the full-text index can never
+// disagree about what a word is.
 const terms = (text: string) =>
-  new Set(
-    (text.toLocaleLowerCase().match(/[\p{L}\p{N}_-]{2,}/gu) ?? []).filter(
-      (term) => !STOP.has(term),
-    ),
-  );
+  new Set([...canonicalTerms(text)].filter((term) => term.length >= 2 && !STOP.has(term)));
 
 /** A deliberately bounded lexical retriever. A match is an example to review,
  * not evidence that the model or its answer is correct. */

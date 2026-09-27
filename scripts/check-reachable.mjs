@@ -57,6 +57,19 @@ const ALLOW = [
   /^design\//,
   // Test-only helpers live beside their tests.
   /^tests\//,
+  // v5 control layer (Phase 3, 2026-09-28): tested library modules staged for
+  // Phase-4 agent-loop wiring. Budgets are stamped on every run via
+  // enqueueRun() and visible in the run card; the feedback-recording and
+  // enforcement callers are not yet in the run lifecycle — deliberate, because
+  // enforcing ARM_CALL_CAP today would break working multi-tool runs.
+  // Delete each entry when its caller lands, do not keep.
+  // outcomes.ts: V_h outcome weighting + assertObserved for the policy loop.
+  /^lib\/workflow\/outcomes\.ts$/,
+  // procedures.ts: procedure DSL learner + promotion gate.
+  /^lib\/workflow\/procedures\.ts$/,
+  // episode-annotations.ts: episode-solver bridge (approved-only annotations;
+  // the solver itself is untouched and has no production caller yet).
+  /^lib\/research\/episode-annotations\.ts$/,
   // Configuration and generated declarations. Read by the toolchain rather than
   // imported by the app, so "no route reaches this" is true and means nothing.
   // v10: db/schema.ts was deleted — it covered 17 of ~35 migrated tables with
@@ -93,7 +106,15 @@ const ALLOW = [
 // cannot be tested without a way to empty it).
 // 79 → 82 and 44 → 47 for the Typeform integration: its client cursor/delay
 // helpers and service constants are asserted directly by integration tests.
-const BASELINE = { orphanFiles: 0, testedOnly: 82, dead: 47 };
+// 82 → 91 and 47 → 50 for the Phase 3 v5 control layer (2026-09-28):
+// the nine testedOnly are tuning constants and pure helpers the 78 new
+// workflow tests name deliberately (DEFAULT_BUDGET, TERMINAL_STATES,
+// validatePlan, agreement, createLedger, FEATURE_DIM, LAMBDA, LAMBDA_COST,
+// LAMBDA_TIME) — the same "assert against the constant" pattern as above;
+// the four dead-category additions are caps used inside their own modules and
+// exported as the modules' public API for the Phase-4 agent-loop wiring
+// (DECOMPOSE_MAX_LEAVES, DECOMPOSE_MAX_DEPTH, ALPHA, SPARSE_UPDATE_THRESHOLD).
+const BASELINE = { orphanFiles: 0, testedOnly: 91, dead: 50 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

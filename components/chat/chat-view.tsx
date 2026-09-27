@@ -918,7 +918,9 @@ export function ChatView({
                   compare={compare}
                   onCompare={setCompare}
                   onBackgroundTask={needsKey ? undefined : () => setLearning(true)}
-                  onResearchBrief={(capabilities) => setResearchDialog({ open: true, capabilities })}
+                  onResearchBrief={(capabilities) =>
+                    setResearchDialog({ open: true, capabilities })
+                  }
                 />
                 {onModel && (
                   <ModelPicker
@@ -986,52 +988,49 @@ export function ChatView({
               </button>
             </p>
           )}
-          {messages.length === 0 &&
-            !needsKey &&
-            !draft.trim() &&
-            !editing && (
-              <EmptyState
-                className="chat-empty-starters"
-                title={starters?.length ? 'Ask this agent' : 'Where do you want to start?'}
-                description="Pick a starting point — it fills an editable draft. Only Send starts a model call."
-                action={
-                  starters?.length ? (
-                    <div
-                      className="chat-starters chat-agent-starters"
-                      role="group"
-                      aria-label="Try asking this agent"
-                    >
-                      {starters.map((prompt) => (
-                        <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
-                          {prompt}
+          {messages.length === 0 && !needsKey && !draft.trim() && !editing && (
+            <EmptyState
+              className="chat-empty-starters"
+              title={starters?.length ? 'Ask this agent' : 'Where do you want to start?'}
+              description="Pick a starting point — it fills an editable draft. Only Send starts a model call."
+              action={
+                starters?.length ? (
+                  <div
+                    className="chat-starters chat-agent-starters"
+                    role="group"
+                    aria-label="Try asking this agent"
+                  >
+                    {starters.map((prompt) => (
+                      <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className="chat-intent-shortcuts chat-outcome-starters"
+                    role="group"
+                    aria-label="Ideas to get started"
+                  >
+                    {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
+                      const Icon = STARTER_ICONS[choice];
+                      return (
+                        <button
+                          type="button"
+                          key={choice}
+                          onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
+                          title={CHAT_STARTERS[choice].detail}
+                        >
+                          <Icon size={20} aria-hidden="true" />
+                          {CHAT_STARTERS[choice].label}
                         </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div
-                      className="chat-intent-shortcuts chat-outcome-starters"
-                      role="group"
-                      aria-label="Ideas to get started"
-                    >
-                      {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
-                        const Icon = STARTER_ICONS[choice];
-                        return (
-                          <button
-                            type="button"
-                            key={choice}
-                            onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
-                            title={CHAT_STARTERS[choice].detail}
-                          >
-                            <Icon size={20} aria-hidden="true" />
-                            {CHAT_STARTERS[choice].label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )
-                }
-              />
-            )}
+                      );
+                    })}
+                  </div>
+                )
+              }
+            />
+          )}
           {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
           <div className="chat-composer-hint" id="chat-composer-hint">
             <span>Enter to send · Shift + Enter for a new line</span>

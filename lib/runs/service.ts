@@ -28,6 +28,7 @@ import { nameAnswer } from './answer-id.ts';
 import { createLanguageModel } from '../ai/models.ts';
 import { createBillingStore } from '../billing/store.ts';
 import { createWorker, type Worker } from './worker.ts';
+import { runConcurrency } from './concurrency.ts';
 import { createChatSettingsStore } from '../chat/settings-store.ts';
 import { grantsFor } from '../chat/approvals.ts';
 import { captureCompletedRun } from '../learning/server.ts';
@@ -99,6 +100,19 @@ export type RunConfig = {
    * only while no other task is running. `brief` is what the person asked it
    * to learn, kept here so the list and the report can say so. */
   task?: { kind: 'learn'; brief: string };
+  /** v5 workflow plan, stamped by enqueueRun (lib/runs/enqueue.ts): which arm
+   * the policy chose and why, and the budget the run may spend. Streamed as a
+   * `data-workflow` part when the run starts so the run card can show it.
+   * Structural, not the lib/workflow types: this crosses the sealed-config
+   * JSON boundary, and the seal spreads unknown keys through untouched. */
+  workflow?: {
+    arm: string;
+    budget: { maxCalls: number; maxTokens: number; maxCost: number; deadlineMs: number };
+    selection:
+      | { scores: Record<string, number>; propensity: number; featureVersion: number }
+      | { overridden: true };
+    terminalState?: string;
+  };
 };
 
 /** One memory an answer drew on, as the receipt names it. */
@@ -315,6 +329,16 @@ async function driveWithAgent({
                     id: 'memories',
                     data: { used: config.memories ?? [], conversations: config.recalled ?? [] },
                   });
+                // The v5 workflow plan for this run: which arm the policy
+                // chose and why, and the budget it may spend. Right after the
+                // message opens, so the fold has a message to attach it to —
+                // the same placement as data-memories above. Skipped when the
+                // resumed turn already carries one, so a resume does not stack
+                // a second card. Read by the run card in
+                // components/chat/message-parts.tsx. A model judgment about
+                // how to work, never a promise about the answer.
+                if (config.workflow && !workflowPartPresent)
+                  push({ type: 'data-workflow', id: 'workflow-plan', data: config.workflow });
               }
             }
           })(),
@@ -347,6 +371,12 @@ async function driveWithAgent({
     // handed in and the fold opens a new turn as before.
     const last = messages[messages.length - 1] as UIMessage | undefined;
     const paused = last?.role === 'assistant' ? structuredClone(last) : undefined;
+    // Whether the resumed turn already carries its workflow plan card, so the
+    // start-chunk push above does not stack a second one. See the data-memories
+    // precedent: the same resume would otherwise duplicate that part too.
+    const workflowPartPresent = (
+      paused as { parts?: { type?: string }[] } | undefined
+    )?.parts?.some((p) => p?.type === 'data-workflow');
     let message: unknown = paused;
     for await (const value of readUIMessageStream({ stream: replay as never, message: paused }))
       message = value;
@@ -414,15 +444,8 @@ function memoryContext(
   };
 }
 
-/** How many runs the worker drives at once. */
-const DEFAULT_RUN_CONCURRENCY = 2;
-
-/** The configured concurrency, or the default for anything that is not a
- * positive whole number. */
-function runConcurrency(value: string | undefined): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_RUN_CONCURRENCY;
-}
+/** Re-exported for any importer that reached for it on the service. */
+export { DEFAULT_RUN_CONCURRENCY, runConcurrency } from './concurrency.ts';
 
 export function runService(): Worker {
   if (globalThis.__hikmahRunService) return globalThis.__hikmahRunService;

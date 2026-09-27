@@ -16,6 +16,7 @@ const tabs = [
   'training',
   'learning',
   'runs',
+  'policy',
   'controls',
   'integrations',
 ];

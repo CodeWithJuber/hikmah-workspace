@@ -4,6 +4,8 @@ import { publicOrigin } from '@/lib/server/origin';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { conversationTitle } from '@/lib/chat/title';
 import { newConversationId, newMessageId, newRunId, runService } from '@/lib/runs/service';
+import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
+import { createWorkflowStore } from '@/lib/workflow/store';
 import { knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
 import { LEARNER_BRIEF, TASK_TITLE_PREFIX } from '@/lib/runs/learner';
 import { getStorage } from '@/server/storage.mjs';
@@ -16,8 +18,6 @@ export const dynamic = 'force-dynamic';
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 const fail = (error: string, status: number) => Response.json({ error }, { status, headers });
 
-/** The same bound the chat route applies, for the same reason. */
-const MAX_ACTIVE_RUNS = 3;
 /** A brief is a paragraph, not a document: what to learn, not the material. */
 const MAX_BRIEF = 4000;
 /** Below every chat on every tier, so a task never makes a conversation wait
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
   const worker = runService();
   const store = worker.store;
-  if (store.countActive(user.userId) >= MAX_ACTIVE_RUNS)
+  if (store.countActive(user.userId) >= enqueueCap())
     return fail('Too many runs are already in progress. Wait for one to finish.', 429);
 
   const { access, refused } = await resolveRunAccess(user, parsed);
@@ -107,11 +107,23 @@ export async function POST(request: Request) {
       parts: turn.parts,
       metadata: undefined,
     });
-    store.createRun({
-      id: runId,
-      conversationId,
+  } catch {
+    return fail('The task could not be started. Try again.', 503);
+  }
+  try {
+    enqueueRun({
+      runId,
       userId: user.userId,
+      conversationId,
       priority: TASK_PRIORITY,
+      selection: {
+        promptText: brief,
+        taskCategory: 'task',
+        hasProviderKey: access.apiKey !== '',
+        localFrame: null,
+      },
+      store,
+      workflowStore: createWorkflowStore(getStorage().raw),
       config: {
         baseUrl: parsed.baseUrl,
         model: parsed.model,
@@ -140,7 +152,9 @@ export async function POST(request: Request) {
         enabledTools: parsed.enabledTools,
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof EnqueueFullError)
+      return fail('Too many runs are already in progress. Wait for one to finish.', 429);
     return fail('The task could not be started. Try again.', 503);
   }
 
