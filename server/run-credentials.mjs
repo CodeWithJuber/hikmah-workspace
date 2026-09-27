@@ -4,10 +4,18 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:cr
  * A paused run must keep the exact credential it started with even if a vault
  * variable is later rotated; resolving a live reference would change that. */
 function key() {
-  const master = process.env.HIKMAH_VAULT_KEY || process.env.BETTER_AUTH_SECRET;
+  // v10: no fallback to the auth secret — one secret must not serve both
+  // session signing and credential encryption. Fail closed instead.
+  // Upgrading from the old default? Set HIKMAH_VAULT_KEY to your existing
+  // BETTER_AUTH_SECRET value: derived keys stay identical, sealed secrets
+  // keep working.
+  const master = process.env.HIKMAH_VAULT_KEY;
   if (!master || master.length < 32)
     throw Error(
-      'Run encryption is unavailable. Restore a stable vault key or authentication secret of at least 32 characters.',
+      'HIKMAH_VAULT_KEY is not set (or shorter than 32 characters). ' +
+        'Generate one with `openssl rand -hex 32`. If you are upgrading and ' +
+        'previously relied on the implicit default, set HIKMAH_VAULT_KEY to ' +
+        'your existing BETTER_AUTH_SECRET value to keep already-sealed secrets readable.',
     );
   return Buffer.from(hkdfSync('sha256', master, 'hikmah-run-credential-v1', 'aes-256-gcm', 32));
 }

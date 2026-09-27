@@ -42,10 +42,8 @@ export function createAuth({
     trustedOrigins: [url.origin],
     emailAndPassword: {
       enabled: true,
-      // Open, unless the deployment says otherwise. It used to be closed to
-      // everyone but the bootstrap owner, which is right for one person and
-      // wrong for a product; HIKMAH_PRIVATE=1 puts it back for a deployment
-      // that wants to stay private.
+      // v10: closed by default — a forgotten flag must never mean open signup
+      // on a box holding the owner's provider keys. HIKMAH_PUBLIC=1 opens it.
       disableSignUp: bootstrap ? false : privateDeployment(),
       minPasswordLength: 12,
       maxPasswordLength: 128,
@@ -152,12 +150,15 @@ function stripePlugin() {
 
 /** Whether this deployment keeps registration closed.
  *
- * The default is open, because the app is now something people sign up for. A
- * self-hosted single-owner install sets HIKMAH_PRIVATE=1 and gets the old
- * behaviour back.
+ * v10: closed by default. A self-hosted workspace holding the owner's provider
+ * keys must not depend on the operator remembering a flag. Set HIKMAH_PUBLIC=1
+ * to open registration. (HIKMAH_PRIVATE=1 still forces closed for explicitness;
+ * HIKMAH_PRIVATE=0 forces open.)
  */
 export function privateDeployment() {
-  return /^(1|true|yes)$/i.test(process.env.HIKMAH_PRIVATE ?? '');
+  if (/^(1|true|yes)$/i.test(process.env.HIKMAH_PUBLIC ?? '')) return false;
+  if (/^(0|false|no)$/i.test(process.env.HIKMAH_PRIVATE ?? '')) return false;
+  return true;
 }
 
 let instance;
