@@ -10,6 +10,11 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { MAX_INSTRUCTIONS, type ChatSettings } from '@/lib/chat/settings';
 import { GATED_TOOLS, withGrant, withoutGrant } from '@/lib/chat/approvals';
 import { ConnectionSettings } from './connection-settings';
@@ -113,11 +118,11 @@ export function RunSettings({
         </div>
       </section>
 
-      <details className="chat-settings-disclosure">
-        <summary>
+      <Collapsible className="chat-settings-disclosure">
+        <CollapsibleTrigger className="chat-settings-disclosure-trigger">
           Personalization <span>Instructions & display</span>
-        </summary>
-        <div className="chat-settings-disclosure-body">
+        </CollapsibleTrigger>
+        <CollapsibleContent className="chat-settings-disclosure-body">
           <label className="chat-settings-toggle">
             <input
               type="checkbox"
@@ -165,14 +170,14 @@ export function RunSettings({
               </Button>
             )}
           </div>
-        </div>
-      </details>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <details className="chat-settings-disclosure">
-        <summary>
+      <Collapsible className="chat-settings-disclosure">
+        <CollapsibleTrigger className="chat-settings-disclosure-trigger">
           Memory <span>Previous chats & preferences</span>
-        </summary>
-        <div className="chat-settings-disclosure-body">
+        </CollapsibleTrigger>
+        <CollapsibleContent className="chat-settings-disclosure-body">
           <label className="chat-settings-toggle">
             <input
               type="checkbox"
@@ -208,14 +213,14 @@ export function RunSettings({
               </small>
             </span>
           </label>
-        </div>
-      </details>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <details className="chat-settings-disclosure">
-        <summary>
+      <Collapsible className="chat-settings-disclosure">
+        <CollapsibleTrigger className="chat-settings-disclosure-trigger">
           Tool permissions <span>Approval rules</span>
-        </summary>
-        <div className="chat-settings-disclosure-body">
+        </CollapsibleTrigger>
+        <CollapsibleContent className="chat-settings-disclosure-body">
           <p>Choose what can run without asking. Other tools still request approval in chat.</p>
           <ul className="chat-permissions" aria-label="Tools that reach a machine">
             {GATED_TOOLS.map((tool) => {
@@ -325,14 +330,14 @@ export function RunSettings({
               </button>
             </p>
           )}
-        </div>
-      </details>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <details className="chat-settings-disclosure">
-        <summary>
+      <Collapsible className="chat-settings-disclosure">
+        <CollapsibleTrigger className="chat-settings-disclosure-trigger">
           Advanced <span>Run limits & context</span>
-        </summary>
-        <div className="chat-settings-disclosure-body">
+        </CollapsibleTrigger>
+        <CollapsibleContent className="chat-settings-disclosure-body">
           <section>
             <h4>Tool rounds</h4>
             <p>Maximum tool rounds per answer. Higher limits can take longer and cost more.</p>
@@ -385,8 +390,8 @@ export function RunSettings({
               </small>
             </span>
           </label>
-        </div>
-      </details>
+        </CollapsibleContent>
+      </Collapsible>
 
       {failure && (
         <p className="chat-connection-error" role="alert">

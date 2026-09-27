@@ -1,5 +1,6 @@
 'use client';
 import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import {
   BookOpen,
   BrainCircuit,
@@ -58,7 +59,7 @@ export function OwnerAccess({ children }: { children: ReactNode }) {
 }
 
 export function LearningHome({ owner = false }: { owner?: boolean }) {
-  const { setWorkspacePage, storageMessage, preferences, provider } = usePlayground();
+  const { storageMessage, preferences, provider } = usePlayground();
   // Counts and recent activity from the memories table, the store every
   // answer reads — not the workspace blob this screen used to count.
   const { memories, counts } = useMemory();
@@ -186,19 +187,21 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
               </strong>{' '}
               ready to review before use.
             </span>
-            <Button onClick={() => setWorkspacePage('knowledge')}>Review</Button>
+            <Button asChild>
+              <Link href="/knowledge">Review</Link>
+            </Button>
           </div>
         )}
         <div className="learning-links">
           {links.map((l) => (
-            <button key={l.page} onClick={() => setWorkspacePage(l.page)}>
+            <Link key={l.page} href={'/' + l.page} className="learning-link">
               <l.icon size={24} />
               <div>
                 <strong>{l.title}</strong>
                 <p>{l.text}</p>
               </div>
               <ArrowUpRight size={20} />
-            </button>
+            </Link>
           ))}
         </div>
         {owner && <VitalsPanel />}

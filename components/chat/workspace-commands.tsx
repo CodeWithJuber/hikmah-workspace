@@ -9,7 +9,7 @@ import {
   MessageSquare,
   Plus,
   Settings,
-  Terminal,
+  TerminalSquare,
 } from 'lucide-react';
 import {
   Command,
@@ -28,14 +28,12 @@ export function WorkspaceCommands({
   onOpenChange,
   conversations,
   onNew,
-  onLearning,
   onPanel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   conversations: ConversationSummary[];
   onNew: () => void;
-  onLearning: () => void;
   onPanel: (panel: 'files' | 'agents' | 'memory' | 'settings') => void;
 }) {
   const router = useRouter();
@@ -62,9 +60,13 @@ export function WorkspaceCommands({
                 <Plus />
                 New chat
               </CommandItem>
-              <CommandItem onSelect={() => select(onLearning)}>
+              <CommandItem onSelect={() => select(() => router.push('/learning'))}>
                 <BookOpen />
                 Learning
+              </CommandItem>
+              <CommandItem onSelect={() => select(() => router.push('/terminal'))}>
+                <TerminalSquare />
+                Terminal & SSH
               </CommandItem>
               <CommandItem onSelect={() => select(() => onPanel('agents'))}>
                 <Bot />
@@ -81,10 +83,6 @@ export function WorkspaceCommands({
               <CommandItem onSelect={() => select(() => onPanel('settings'))}>
                 <Settings />
                 Settings and model connections
-              </CommandItem>
-              <CommandItem onSelect={() => select(() => router.push('/workspace#/terminal'))}>
-                <Terminal />
-                Terminal and SSH
               </CommandItem>
             </CommandGroup>
             {conversations.length > 0 && (

@@ -2,6 +2,7 @@
 import { randomId } from '../../lib/id.ts';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Settings2,
@@ -67,8 +68,8 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
     files,
     connectorTools,
     connectConnector,
-    setWorkspacePage,
   } = usePlayground();
+  const router = useRouter();
   const [tab, setTab] = useState(initialTab);
   const [busy, setBusy] = useState('');
   const [connection, setConnection] = useState<McpConnection | null>(null);
@@ -161,10 +162,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
         </div>
         <Tabs
           value={tab}
-          onValueChange={(v) => {
-            setTab(v);
-            setWorkspacePage('admin/' + v);
-          }}
+          // Admin tabs are routes (/admin/<tab>); the page remounts per tab via
+          // key, so navigation alone switches the tab.
+          onValueChange={(v) => router.push('/admin/' + v)}
           className="admin-tabs"
         >
           <TabsList>
@@ -197,7 +197,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               </div>
             </div>
             <div className="admin-action-list">
-              <button onClick={() => setWorkspacePage('tools')}>
+              {/* These stay buttons because the list styling targets button
+                  elements; they navigate to real routes via the router. */}
+              <button onClick={() => router.push('/tools')}>
                 <Plug size={24} />
                 <div>
                   <strong>Tools & runtimes</strong>
@@ -205,7 +207,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 </div>
                 <ArrowRight size={20} />
               </button>
-              <button onClick={() => setWorkspacePage('agents')}>
+              <button onClick={() => router.push('/agents')}>
                 <Workflow size={24} />
                 <div>
                   <strong>Your agents</strong>
@@ -213,7 +215,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 </div>
                 <ArrowRight size={20} />
               </button>
-              <button onClick={() => setWorkspacePage('superadmin')}>
+              <button onClick={() => router.push('/superadmin')}>
                 <BrainCircuit size={24} />
                 <div>
                   <strong>Owner console · Super Admin</strong>

@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { PagePreview } from './page-preview';
 import { clientFetch } from '@/lib/client/request';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Dynamic, and without SSR: CodeMirror is a large chunk and has no business in
 // the first paint of a conversation.
@@ -149,7 +150,11 @@ export function FilesPanel({ revision }: { revision: number }) {
           </button>
         </p>
       ) : entries === null ? (
-        <p className="files-note">Loading…</p>
+        <div className="files-note grid gap-2" role="status" aria-label="Loading files">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
+        </div>
       ) : entries.length === 0 ? (
         <p className="files-note">Nothing here yet. Ask for something to be written.</p>
       ) : null}

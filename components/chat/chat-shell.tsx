@@ -1,24 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  BookOpen,
-  BookOpenCheck,
-  Bot,
-  ChevronDown,
-  FileText,
-  Menu,
-  Moon,
-  Plug,
-  Settings,
-  Sun,
-  Terminal,
-  X,
-} from 'lucide-react';
+import { BookOpenCheck, Bot, Menu, Moon, Settings, Sun, X } from 'lucide-react';
+import { ProductNav } from '@/components/app/product-nav';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { ChatPreview } from './chat-preview';
 import { ConversationList, type ConversationSummary } from './conversation-list';
@@ -34,19 +20,9 @@ import { useChatSettings } from '@/hooks/use-chat-settings';
 import { withGrant, type Grant } from '@/lib/chat/approvals';
 import { providerDestination } from '@/lib/ai/endpoint';
 import { themeCookie, type Theme } from '@/lib/theme';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { clientFetch } from '@/lib/client/request';
 
-const LearningStudio = dynamic(
-  () => import('@/components/learning/learning-studio').then((module) => module.LearningStudio),
-  {
-    loading: () => (
-      <div className="workspace-loading" role="status">
-        Opening learning…
-      </div>
-    ),
-  },
-);
 const NARROW = '(max-width: 900px)';
 type Panel = 'files' | 'agents' | 'memory' | 'typeform' | 'settings';
 const PANEL_LABELS: Record<Panel, string> = {
@@ -56,11 +32,6 @@ const PANEL_LABELS: Record<Panel, string> = {
   typeform: 'Typeform',
   settings: 'Settings',
 };
-const TOOLS = [
-  { id: 'agents', label: 'Agents', icon: Bot },
-  { id: 'files', label: 'Files', icon: FileText },
-  { id: 'typeform', label: 'Typeform', icon: FileText },
-] as const;
 function subscribeToWidth(change: () => void) {
   const media = window.matchMedia(NARROW);
   media.addEventListener('change', change);
@@ -83,7 +54,6 @@ export function ChatShell({
 }) {
   const router = useRouter();
   const params = useSearchParams();
-  const learning = params.get('view') === 'learning';
   const requestedSettings = params.get('settings') === 'connection';
   const { settings, change, ready } = useChatSettings();
   const narrow = useSyncExternalStore(
@@ -105,8 +75,6 @@ export function ChatShell({
   }
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandsOpen, setCommandsOpen] = useState(false);
-  const [learningVisited, setLearningVisited] = useState(learning);
-  if (learning && !learningVisited) setLearningVisited(true);
   const [settingsVisited, setSettingsVisited] = useState(requestedSettings);
   if (panel === 'settings' && !settingsVisited) setSettingsVisited(true);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -125,23 +93,9 @@ export function ChatShell({
   const closePanel = useCallback(() => {
     setPanel(null);
     if (requestedSettings) {
-      router.replace(
-        `/chat/${encodeURIComponent(conversationId)}${learning ? '?view=learning' : ''}`,
-        { scroll: false },
-      );
+      router.replace(`/chat/${encodeURIComponent(conversationId)}`, { scroll: false });
     }
-  }, [conversationId, learning, requestedSettings, router]);
-  const selectView = useCallback(
-    (view: 'chat' | 'learning') => {
-      router.replace(
-        `/chat/${encodeURIComponent(conversationId)}${view === 'learning' ? '?view=learning' : ''}`,
-        { scroll: false },
-      );
-      setSidebarOpen(false);
-      setPanel(null);
-    },
-    [conversationId, router],
-  );
+  }, [conversationId, requestedSettings, router]);
   const openPanel = useCallback((next: Panel) => {
     setPanel(next);
     setArtifact(null);
@@ -222,7 +176,7 @@ export function ChatShell({
     window.addEventListener('keydown', shortcuts);
     return () => window.removeEventListener('keydown', shortcuts);
   }, []);
-  const modalOpen = narrow && (sidebarOpen || Boolean(panel) || (!learning && Boolean(artifact)));
+  const modalOpen = narrow && (sidebarOpen || Boolean(panel) || Boolean(artifact));
   useEffect(() => {
     if (!modalOpen) {
       const previous = drawerOpenerRef.current;
@@ -294,7 +248,6 @@ export function ChatShell({
   }
   return (
     <div className={'chat-shell workspace-experience' + (narrow ? ' is-narrow' : '')}>
-      <Toaster position="top-center" />
       <a className="workspace-skip" href="#workspace-main">
         Skip to conversation
       </a>
@@ -314,8 +267,8 @@ export function ChatShell({
           <Menu size={20} />
         </button>
         <div className="workspace-heading">
-          <span>{learning ? 'Learning' : currentTitle}</span>
-          {agent && !learning && (
+          <span>{currentTitle}</span>
+          {agent && (
             <button
               type="button"
               className="workspace-agent-chip"
@@ -323,14 +276,6 @@ export function ChatShell({
             >
               <Bot size={12} />
               {agent.name}
-            </button>
-          )}
-        </div>
-        <div className="workspace-header-actions">
-          {learning && (
-            <button type="button" className="workspace-action" onClick={() => selectView('chat')}>
-              <ArrowLeft size={16} />
-              <span>Back to chat</span>
             </button>
           )}
         </div>
@@ -365,44 +310,7 @@ export function ChatShell({
           onNew={newChat}
           onConversations={onHistory}
           onActivate={() => setSidebarOpen(false)}
-          navigation={
-            <div className="workspace-navigation" aria-label="Workspace sections">
-              <button
-                type="button"
-                aria-current={learning ? 'page' : undefined}
-                onClick={() => selectView('learning')}
-              >
-                <BookOpen size={20} />
-                <span>Learning</span>
-              </button>
-              <details className="workspace-tool-disclosure">
-                <summary>
-                  <FileText size={20} />
-                  <span>Tools & files</span>
-                  <ChevronDown size={16} className="workspace-disclosure-chevron" />
-                </summary>
-                {TOOLS.map(({ id, label, icon: Icon }) => (
-                  <button
-                    type="button"
-                    key={id}
-                    aria-current={panel === id ? 'page' : undefined}
-                    onClick={() => openPanel(id)}
-                  >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-                <Link href="/workspace#/terminal">
-                  <Terminal size={16} />
-                  Terminal & SSH
-                </Link>
-                <Link href="/workspace#/connections">
-                  <Plug size={16} />
-                  Connected services
-                </Link>
-              </details>
-            </div>
-          }
+          navigation={<ProductNav onNavigate={() => setSidebarOpen(false)} />}
         />
         <div className="workspace-sidebar-footer">
           <button type="button" onClick={openSettings}>
@@ -421,12 +329,7 @@ export function ChatShell({
         </div>
       </aside>
       <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
-        <section
-          className="workspace-chat-pane"
-          hidden={learning}
-          inert={learning || modalOpen || undefined}
-          aria-label="Conversation"
-        >
+        <section className="workspace-chat-pane" inert={modalOpen || undefined} aria-label="Conversation">
           <ChatPreview
             key={conversationId}
             conversationId={conversationId}
@@ -452,21 +355,7 @@ export function ChatShell({
             }
           />
         </section>
-        {learningVisited && (
-          <section
-            className="workspace-learning-pane"
-            hidden={!learning}
-            aria-label="Learning studio"
-            inert={!learning || modalOpen || undefined}
-          >
-            <LearningStudio
-              revision={revision}
-              active={learning}
-              onOpenMemory={() => openPanel('memory')}
-            />
-          </section>
-        )}
-        {(settingsVisited || panel || (!learning && artifact)) && (
+        {(settingsVisited || panel || artifact) && (
           <div
             ref={panelRef}
             className={
@@ -475,8 +364,8 @@ export function ChatShell({
             role={narrow ? 'dialog' : undefined}
             aria-modal={narrow || undefined}
             aria-label={panel ? PANEL_LABELS[panel] : 'Artifact preview'}
-            hidden={!panel && (learning || !artifact)}
-            inert={(!panel && (learning || !artifact)) || undefined}
+            hidden={!panel && !artifact}
+            inert={(!panel && !artifact) || undefined}
             tabIndex={-1}
           >
             {artifact && !panel && (
@@ -513,7 +402,6 @@ export function ChatShell({
                     onPick={(next) => {
                       setAgent(next);
                       setPanel(null);
-                      selectView('chat');
                     }}
                   />
                 ) : panel === 'memory' ? (
@@ -563,7 +451,6 @@ export function ChatShell({
         onOpenChange={setCommandsOpen}
         conversations={conversations}
         onNew={() => void newChat()}
-        onLearning={() => selectView('learning')}
         onPanel={openPanel}
       />
     </div>

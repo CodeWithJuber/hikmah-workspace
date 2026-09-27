@@ -2,6 +2,7 @@
 import { randomId } from '../../lib/id.ts';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { BookOpen, Plus, Search, Pencil, Trash2, BrainCircuit, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,7 +157,7 @@ export function newKnowledge(content = '', source = 'Added by you'): KnowledgeIt
   };
 }
 export function Knowledge() {
-  const { sharedKnowledge, refreshSharedKnowledge, setWorkspacePage } = usePlayground();
+  const { sharedKnowledge, refreshSharedKnowledge } = usePlayground();
   const kernel = useKernel();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<KnowledgeItem | null>(null);
@@ -290,9 +291,11 @@ export function Knowledge() {
               workflow preferences; reviewed labels train the context model.
             </p>
           </div>
-          <Button variant="ghost" onClick={() => setWorkspacePage('learning')}>
-            View learning
-            <ArrowUpRight size={16} />
+          <Button variant="ghost" asChild>
+            <Link href="/learning">
+              View learning
+              <ArrowUpRight size={16} />
+            </Link>
           </Button>
         </div>
         <details className="knowledge-learning-details">

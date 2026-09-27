@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { createAuthClient } from 'better-auth/react';
 import { stripeClient } from '@better-auth/stripe/client';
 import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { clientFetch } from '@/lib/client/request';
 
 const auth = createAuthClient({ plugins: [stripeClient({ subscription: true })] });
@@ -97,10 +98,12 @@ export function BillingPanel() {
     );
   if (!data)
     return (
-      <p className="billing-loading" aria-busy="true">
-        <LoaderCircle className="spin" size={20} aria-hidden />
-        Loading your plan…
-      </p>
+      <div className="billing-loading grid gap-3" role="status" aria-label="Loading your plan">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-10 w-40" />
+      </div>
     );
 
   const cap = data.monthlyTokenCap;

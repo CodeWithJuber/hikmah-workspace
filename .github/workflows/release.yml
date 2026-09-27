@@ -11,7 +11,10 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    runs-on: ubuntu-24.04
+    # Self-hosted runner on the production server: GitHub-hosted minutes are
+    # billed, self-hosted runners are free and unlimited. The runner carries
+    # the 'hikmah-prod' label so no other runner can pick up this pipeline.
+    runs-on: [self-hosted, hikmah-prod]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -76,7 +79,9 @@ jobs:
   deploy:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-24.04
+    # Same self-hosted runner: the deploy lands from the machine it runs on.
+    # DEPLOY_HOST should be the server's own address (SSH to self).
+    runs-on: [self-hosted, hikmah-prod]
     timeout-minutes: 20
     environment: test-server
     steps:

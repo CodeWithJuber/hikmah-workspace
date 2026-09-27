@@ -24,6 +24,12 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
   contextLabel,
   formatPrice,
   priceKind,
@@ -147,32 +153,41 @@ export function ModelPicker({
           value={query}
           onValueChange={setQuery}
         />
-        <details className="model-dialog-filter-disclosure">
-          <summary>
-            Filter models <span>{loading ? 'Loading…' : `${models.length} available`}</span>
-          </summary>
-          <div className="model-dialog-filters" role="group" aria-label="Filter models">
-            {(
-              [
-                ['all', 'All'],
-                ['free', 'Free'],
-                ['tools', 'Tools'],
-                ['reasoning', 'Reasoning'],
-              ] as [Filter, string][]
-            )
-              .filter(([key]) => key !== 'free' || hasFree)
-              .map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={filter === key}
-                  onClick={() => setFilter(key)}
-                >
-                  {label}
-                </button>
-              ))}
-          </div>
-        </details>
+        {/* The summary rules in chat.css target `> summary`; the trigger keeps
+            the disclosure's footprint with utilities instead. */}
+        <Collapsible className="model-dialog-filter-disclosure">
+          <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between px-3 py-2.5 text-sm">
+            <span>Filter models</span>
+            {loading ? (
+              <Skeleton className="h-4 w-20" aria-label="Loading model count" role="status" />
+            ) : (
+              <span className="text-muted-foreground">{models.length} available</span>
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="model-dialog-filters" role="group" aria-label="Filter models">
+              {(
+                [
+                  ['all', 'All'],
+                  ['free', 'Free'],
+                  ['tools', 'Tools'],
+                  ['reasoning', 'Reasoning'],
+                ] as [Filter, string][]
+              )
+                .filter(([key]) => key !== 'free' || hasFree)
+                .map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
         <CommandList className="model-dialog-list">
           {loading && !models.length ? (
             <div className="model-dialog-empty" role="status">

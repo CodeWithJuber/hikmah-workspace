@@ -88,7 +88,7 @@
 
   .chat-composer-option:focus-within,
   .chat-background-task-action:focus-visible,
-  .chat-composer-permissions > summary:focus-visible {
+  .chat-composer-permissions > .chat-composer-permissions-trigger:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -103,8 +103,16 @@
     border-top: 1px solid var(--border);
   }
 
-  .chat-composer-permissions > summary {
+  /* CollapsibleTrigger renders a button: the display/width/border/background/
+     text-align/font declarations match the old summary's block layout. */
+  .chat-composer-permissions > .chat-composer-permissions-trigger {
+    display: block;
+    width: 100%;
     padding-block: 14px;
+    border: 0;
+    background: none;
+    text-align: start;
+    font: inherit;
     color: var(--muted-foreground);
     font-size: var(--font-size-sm);
     cursor: pointer;

@@ -119,5 +119,20 @@
     --hk-border: color-mix(in srgb, var(--ax-text-primary) 12%, var(--ax-background-body));
 
     --radius: 0.75rem;
+
+    /* The one stacking ladder. Chat's small values are a local stack inside
+     * its containers; the global values are the modal layers. Nothing outside
+     * this list may set z-index. */
+    --z-chat-scrim: 2;
+    --z-chat-drawer: 3;
+    --z-chat-panel: 4;
+    --z-chat-float: 5;
+    --z-scrim: 35;
+    --z-drawer: 40;
+    --z-skip-link: 100;
+
+    /* The single monospace stack, matching the design source's own code
+     * fallbacks (design/hikmah-theme.ts). */
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
 }

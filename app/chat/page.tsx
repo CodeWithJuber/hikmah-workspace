@@ -27,8 +27,10 @@ export default async function ChatPage({
   // reason for the next visit to open on its report instead of the chat.
   const latest = runService().store.latestChat(user.userId);
   const requested = await searchParams;
+  // Learning has its own route now; the chat's embedded ?view=learning mode is
+  // gone.
+  if (requested.view === 'learning') redirect('/learning');
   const query = new URLSearchParams();
-  if (requested.view === 'learning') query.set('view', 'learning');
   if (requested.settings === 'connection') query.set('settings', 'connection');
   const suffix = query.size ? `?${query}` : '';
   redirect(`/chat/${encodeURIComponent(latest?.id ?? newConversationId())}${suffix}`);

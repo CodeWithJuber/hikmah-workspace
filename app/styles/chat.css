@@ -296,7 +296,7 @@
     }
     .chat-drawer {
       position: absolute;
-      z-index: 3;
+      z-index: var(--z-chat-drawer);
       background: var(--background);
       box-shadow: 0 0 0 1px var(--border);
       visibility: hidden;
@@ -332,7 +332,7 @@
     .chat-drawer-scrim {
       position: absolute;
       inset: 0;
-      z-index: 2;
+      z-index: var(--z-chat-scrim);
       background: color-mix(in oklab, var(--foreground) 38%, transparent);
       border: 0;
       cursor: pointer;
@@ -509,7 +509,7 @@
   .files-editor textarea {
     width: 100%;
     min-height: 240px;
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-mono);
     font-size: var(--font-size-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius-element);
@@ -705,29 +705,32 @@
     background: color-mix(in oklab, var(--muted) 45%, transparent);
     font-size: var(--font-size-base);
   }
-  .chat-working > summary {
+  /* CollapsibleTrigger renders a button: the width/border/background/text-align/
+     font declarations match the old summary's block layout. */
+  .chat-working > .chat-working-trigger {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: 8px;
     padding: 8px 12px;
+    border: 0;
+    background: none;
+    text-align: start;
+    font: inherit;
     color: var(--muted-foreground);
     cursor: pointer;
-    list-style: none;
     border-radius: calc(var(--radius) - 2px);
     transition: background 140ms ease;
   }
-  .chat-working > summary::-webkit-details-marker {
-    display: none;
-  }
-  .chat-working > summary::before {
+  .chat-working > .chat-working-trigger::before {
     content: '▸';
     font-size: var(--font-size-sm);
     transition: transform 140ms ease;
   }
-  .chat-working[open] > summary::before {
+  .chat-working[data-state='open'] > .chat-working-trigger::before {
     transform: rotate(90deg);
   }
-  .chat-working > summary:hover {
+  .chat-working > .chat-working-trigger:hover {
     background: color-mix(in oklab, var(--muted) 70%, transparent);
   }
   .chat-working-body {
@@ -829,7 +832,7 @@
     .chat-body > .artifact-panel {
       position: absolute;
       inset: 0;
-      z-index: 4;
+      z-index: var(--z-chat-panel);
       width: auto;
       border-left: 0;
     }
@@ -866,7 +869,7 @@
   .page-preview {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: var(--z-drawer);
     display: flex;
     flex-direction: column;
     background: var(--background);
@@ -948,7 +951,7 @@
     padding: 8px 12px;
     border-top: 1px solid var(--border);
     background: var(--muted);
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--font-size-sm);
     line-height: 1.6;
   }
@@ -1048,7 +1051,7 @@
     color: var(--muted-foreground);
   }
   .chat-receipt-model {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: var(--font-mono);
     overflow-wrap: anywhere;
   }
   .chat-tools-trigger {
@@ -1411,7 +1414,7 @@
       position: absolute;
       top: 10px;
       right: 12px;
-      z-index: 5;
+      z-index: var(--z-chat-float);
       min-height: 36px;
       padding: 6px 12px;
       border: 1px solid var(--border);
@@ -1460,19 +1463,30 @@
     border-top: 1px solid var(--border);
     padding-top: 12px;
   }
-  .chat-settings-disclosure > summary {
+  /* CollapsibleTrigger renders a button: the display/width/padding/border/
+     background/text-align/font/color declarations match the old summary's
+     block layout. */
+  .chat-settings-disclosure > .chat-settings-disclosure-trigger {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: start;
+    font: inherit;
+    color: inherit;
     cursor: pointer;
     font-weight: 600;
     font-size: var(--font-size-sm);
     line-height: 1.5;
   }
-  .chat-settings-disclosure > summary > span {
+  .chat-settings-disclosure > .chat-settings-disclosure-trigger > span {
     display: block;
     padding-inline-start: 15px;
     font-weight: 400;
     color: var(--muted-foreground);
   }
-  .chat-settings-disclosure[open] > summary {
+  .chat-settings-disclosure[data-state='open'] > .chat-settings-disclosure-trigger {
     margin-bottom: 14px;
   }
   .chat-settings-disclosure-body {
@@ -2047,7 +2061,7 @@
     padding: 10px 12px;
     border-radius: var(--radius-element);
     background: color-mix(in oklab, var(--muted) 70%, transparent);
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-mono);
     font-size: var(--font-size-base);
     line-height: 1.45;
     white-space: pre-wrap;

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Play, Square, ArrowUpRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +11,7 @@ import { runJavascript, warmSandbox } from '@/lib/playground/sandbox-client';
 import { ToolSwitches, useToolAvailability } from '@/components/chat/tool-switches';
 import { useChatSettings } from '@/hooks/use-chat-settings';
 export function RuntimeHome() {
-  const { workspace, connectorTools, setWorkspacePage } = usePlayground();
+  const { workspace, connectorTools } = usePlayground();
   // The one store a run actually reads. This page used to toggle
   // `preferences.enabledTools` in the workspace blob, which nothing had read
   // since the browser run loop was retired — so the switches looked live and
@@ -51,8 +52,10 @@ export function RuntimeHome() {
       <header className="workspace-header">
         <SidebarTrigger />
         <h1>Tools & runtimes</h1>
-        <Button variant="outline" onClick={() => setWorkspacePage('admin/connectors')}>
-          Manage connections <ArrowUpRight size={16} />
+        <Button variant="outline" asChild>
+          <Link href="/admin/connectors">
+            Manage connections <ArrowUpRight size={16} />
+          </Link>
         </Button>
       </header>
       <div className="destination-scroll">
@@ -146,8 +149,8 @@ export function RuntimeHome() {
               Connect Playwright, browser automation, or a search MCP service. Tool discovery shows
               exactly which actions your server exposes.
             </p>
-            <Button variant="outline" onClick={() => setWorkspacePage('admin/connectors')}>
-              Connect an MCP server
+            <Button variant="outline" asChild>
+              <Link href="/admin/connectors">Connect an MCP server</Link>
             </Button>
           </section>
           <section>
@@ -157,8 +160,8 @@ export function RuntimeHome() {
               Use chat dictation and read-aloud. For phone calls, CRM actions and media rendering,
               connect the service that owns those capabilities.
             </p>
-            <Button variant="outline" onClick={() => setWorkspacePage('agents')}>
-              Explore workflow templates
+            <Button variant="outline" asChild>
+              <Link href="/agents">Explore workflow templates</Link>
             </Button>
           </section>
         </div>
@@ -177,8 +180,8 @@ export function RuntimeHome() {
                     : 'Tools will be discovered when this connection is used'}
                 </p>
               </div>
-              <Button variant="ghost" onClick={() => setWorkspacePage('admin/connectors')}>
-                Configure
+              <Button variant="ghost" asChild>
+                <Link href="/admin/connectors">Configure</Link>
               </Button>
             </div>
           ))

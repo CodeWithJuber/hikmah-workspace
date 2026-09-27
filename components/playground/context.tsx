@@ -1,5 +1,4 @@
 'use client';
-import { DEFAULT_PAGE, workspaceDestination } from '@/lib/playground/navigation';
 import { parseKnowledge, type KnowledgeItem } from '@/lib/playground/knowledge';
 import {
   createContext,
@@ -55,8 +54,6 @@ type AppContext = {
   workspaceLoaded: boolean;
   workspace: WorkspaceConfig;
   setWorkspace: Setter<WorkspaceConfig>;
-  workspacePage: string;
-  setWorkspacePage: Setter<string>;
   mediaKey: string;
   setMediaKey: Setter<string>;
   connectorKeys: Record<string, string>;
@@ -134,25 +131,9 @@ export function PlaygroundProvider({
   const [workspace, setWorkspace] = useState<WorkspaceConfig>(() =>
     structuredClone(defaultWorkspaceConfig),
   );
-  // 'workspace' was the browser-run chat, which is gone. The hash effect below
-  // corrects this on the first paint, but a default naming a page that does
-  // not exist is how it stayed wrong in three other places.
-  const [workspacePage, setWorkspacePage] = useState(DEFAULT_PAGE);
   const [mediaKey, setMediaKey] = useState('');
   const [connectorKeys, setConnectorKeys] = useState<Record<string, string>>({});
   const [connectorTools, setConnectorTools] = useState<Record<string, McpTool[]>>({});
-  const [routeReady, setRouteReady] = useState(false);
-  useEffect(() => {
-    const read = () => setWorkspacePage(workspaceDestination(window.location.hash));
-    read();
-    setRouteReady(true);
-    window.addEventListener('hashchange', read);
-    return () => window.removeEventListener('hashchange', read);
-  }, []);
-  useEffect(() => {
-    if (routeReady && workspaceDestination(window.location.hash) !== workspacePage)
-      window.location.hash = '/' + workspacePage;
-  }, [workspacePage, routeReady]);
   const [connectorStatus, setConnectorStatus] = useState<
     Record<string, { status: 'ready' | 'error'; message: string; at: number }>
   >({});
@@ -515,8 +496,6 @@ export function PlaygroundProvider({
         workspaceLoaded: loaded,
         workspace,
         setWorkspace,
-        workspacePage,
-        setWorkspacePage,
         mediaKey,
         setMediaKey,
         connectorKeys,

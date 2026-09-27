@@ -4,6 +4,11 @@ import { useId, useRef, useState } from 'react';
 import { ArrowUpRight, Columns2, Globe, Microscope, Telescope, Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { ToolSwitches, useToolAvailability, activeToolCount } from './tool-switches';
 import { researchCapabilities } from '@/lib/client/research-brief';
 
@@ -165,17 +170,21 @@ export function ToolsMenu({
           </button>
         )}
         {onChange && tools.length > 0 && (
-          <details className="chat-composer-permissions">
-            <summary>Tool permissions · {activeToolCount(tools, disabled)} enabled</summary>
-            <p>Hikmah chooses from these tools when needed. Changes apply to future messages.</p>
-            <ToolSwitches
-              tools={tools}
-              disabled={disabled}
-              onChange={saveTools}
-              busy={busy || saving}
-            />
-            {saveError && <p role="alert">{saveError}</p>}
-          </details>
+          <Collapsible className="chat-composer-permissions">
+            <CollapsibleTrigger className="chat-composer-permissions-trigger">
+              Tool permissions · {activeToolCount(tools, disabled)} enabled
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <p>Hikmah chooses from these tools when needed. Changes apply to future messages.</p>
+              <ToolSwitches
+                tools={tools}
+                disabled={disabled}
+                onChange={saveTools}
+                busy={busy || saving}
+              />
+              {saveError && <p role="alert">{saveError}</p>}
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </PopoverContent>
     </Popover>
