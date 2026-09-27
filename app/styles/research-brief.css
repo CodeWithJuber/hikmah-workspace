@@ -1,5 +1,5 @@
 @layer overrides {
-  .co-scientist-dialog {
+  .research-brief-dialog {
     width: min(620px, calc(100vw - 32px));
     max-width: min(620px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
@@ -8,18 +8,18 @@
     padding: 28px;
     border-radius: var(--radius-container);
   }
-  .co-scientist-form {
+  .research-brief-form {
     display: grid;
     gap: 22px;
     min-width: 0;
   }
-  .co-scientist-header {
+  .research-brief-header {
     align-items: flex-start;
     gap: 9px;
     padding-inline-end: 15px;
     text-align: start;
   }
-  .co-scientist-mark {
+  .research-brief-mark {
     display: grid;
     place-items: center;
     width: 42px;
@@ -30,27 +30,27 @@
     background: color-mix(in srgb, var(--primary) 7%, var(--card));
     color: var(--primary);
   }
-  .co-scientist-title {
+  .research-brief-title {
     font-size: var(--font-size-xl);
     line-height: 1.25;
     letter-spacing: -0.025em;
   }
-  .co-scientist-description {
+  .research-brief-description {
     max-width: 440px;
     line-height: 1.55;
   }
-  .co-scientist-field {
+  .research-brief-field {
     display: grid;
     gap: 8px;
     min-width: 0;
   }
-  .co-scientist-field > label {
+  .research-brief-field > label {
     color: var(--foreground);
     font-size: var(--font-size-sm);
     font-weight: 600;
     line-height: 1.4;
   }
-  .co-scientist-field > textarea {
+  .research-brief-field > textarea {
     width: 100%;
     min-height: 98px;
     max-height: 240px;
@@ -64,32 +64,32 @@
     line-height: 1.6;
     resize: vertical;
   }
-  .co-scientist-field > textarea:focus-visible {
+  .research-brief-field > textarea:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  .co-scientist-field > textarea::placeholder {
+  .research-brief-field > textarea::placeholder {
     color: var(--muted-foreground);
   }
-  .co-scientist-outcomes {
+  .research-brief-outcomes {
     min-width: 0;
     margin: 0;
     padding: 0;
     border: 0;
   }
-  .co-scientist-outcomes > legend {
+  .research-brief-outcomes > legend {
     margin-bottom: 10px;
     color: var(--foreground);
     font-size: var(--font-size-sm);
     font-weight: 600;
     line-height: 1.4;
   }
-  .co-scientist-outcome-list {
+  .research-brief-outcome-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
-  .co-scientist-outcome-list > label {
+  .research-brief-outcome-list > label {
     display: flex;
     gap: 8px;
     align-items: flex-start;
@@ -99,54 +99,54 @@
     border-radius: var(--radius-element);
     cursor: pointer;
   }
-  .co-scientist-outcome-list > label.is-selected {
+  .research-brief-outcome-list > label.is-selected {
     border-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 5%, var(--card));
   }
-  .co-scientist-outcome-list input {
+  .research-brief-outcome-list input {
     flex-shrink: 0;
     margin-top: 2px;
     accent-color: var(--primary);
   }
-  .co-scientist-outcome-list strong,
-  .co-scientist-sources strong {
+  .research-brief-outcome-list strong,
+  .research-brief-sources strong {
     display: block;
     color: var(--foreground);
     font-size: var(--font-size-sm);
     font-weight: 500;
     line-height: 1.4;
   }
-  .co-scientist-outcome-list small,
-  .co-scientist-sources small,
-  .co-scientist-sources p > span {
+  .research-brief-outcome-list small,
+  .research-brief-sources small,
+  .research-brief-sources p > span {
     display: block;
     margin-top: 4px;
     color: var(--muted-foreground);
     font-size: var(--font-size-xs);
     line-height: 1.5;
   }
-  .co-scientist-context > summary,
-  .co-scientist-preview > summary {
+  .research-brief-context > summary,
+  .research-brief-preview > summary {
     width: fit-content;
     padding-block: 4px;
     color: var(--muted-foreground);
     font-size: var(--font-size-sm);
     cursor: pointer;
   }
-  .co-scientist-context > summary > span {
+  .research-brief-context > summary > span {
     margin-inline-start: 6px;
     font-size: var(--font-size-xs);
   }
-  .co-scientist-context .co-scientist-field {
+  .research-brief-context .research-brief-field {
     margin-top: 12px;
   }
-  .co-scientist-context p {
+  .research-brief-context p {
     margin: 0;
     color: var(--muted-foreground);
     font-size: var(--font-size-xs);
     line-height: 1.55;
   }
-  .co-scientist-sources {
+  .research-brief-sources {
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -154,11 +154,11 @@
     border-block: 1px solid var(--border);
     color: var(--muted-foreground);
   }
-  .co-scientist-sources > svg {
+  .research-brief-sources > svg {
     flex-shrink: 0;
     margin-top: 2px;
   }
-  .co-scientist-sources > label {
+  .research-brief-sources > label {
     display: flex;
     flex: 1;
     gap: 16px;
@@ -166,16 +166,16 @@
     justify-content: space-between;
     cursor: pointer;
   }
-  .co-scientist-sources input {
+  .research-brief-sources input {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
     accent-color: var(--primary);
   }
-  .co-scientist-sources > p {
+  .research-brief-sources > p {
     margin: 0;
   }
-  .co-scientist-preview > p {
+  .research-brief-preview > p {
     max-height: 220px;
     overflow-y: auto;
     margin: 12px 0 0;
@@ -189,48 +189,48 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
-  .co-scientist-error {
+  .research-brief-error {
     margin: 0;
     color: var(--destructive);
     font-size: var(--font-size-sm);
     line-height: 1.5;
   }
-  .co-scientist-footer {
+  .research-brief-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
   }
-  .co-scientist-footer > p {
+  .research-brief-footer > p {
     max-width: 310px;
     margin: 0;
     color: var(--muted-foreground);
     font-size: var(--font-size-xs);
     line-height: 1.55;
   }
-  .co-scientist-footer > button {
+  .research-brief-footer > button {
     flex-shrink: 0;
     min-height: 44px;
   }
   @media (max-width: 520px) {
-    .co-scientist-dialog {
+    .research-brief-dialog {
       padding: 22px 18px;
     }
-    .co-scientist-outcome-list {
+    .research-brief-outcome-list {
       grid-template-columns: 1fr;
     }
-    .co-scientist-outcome-list > label {
+    .research-brief-outcome-list > label {
       padding: 10px 12px;
     }
-    .co-scientist-footer {
+    .research-brief-footer {
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
     }
-    .co-scientist-footer > p {
+    .research-brief-footer > p {
       max-width: none;
     }
-    .co-scientist-field > textarea {
+    .research-brief-field > textarea {
       font-size: 1rem;
     }
   }

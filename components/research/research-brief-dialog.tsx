@@ -21,7 +21,7 @@ import {
 } from '@/lib/client/research-brief';
 import { assessTask } from '@/lib/agentic/preflight';
 
-export type CoScientistDialogProps = {
+export type ResearchBriefDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialQuestion?: string;
@@ -30,10 +30,10 @@ export type CoScientistDialogProps = {
   onPrepare: (brief: PreparedResearchBrief) => void | Promise<void>;
 };
 
-export function CoScientistDialog({ open, onOpenChange, ...props }: CoScientistDialogProps) {
+export function ResearchBriefDialog({ open, onOpenChange, ...props }: ResearchBriefDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="co-scientist-dialog">
+      <DialogContent className="research-brief-dialog">
         {open && <ResearchBriefForm {...props} onClose={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
@@ -47,7 +47,7 @@ function ResearchBriefForm({
   capabilities,
   onPrepare,
   onClose,
-}: Omit<CoScientistDialogProps, 'open' | 'onOpenChange'> & { onClose: () => void }) {
+}: Omit<ResearchBriefDialogProps, 'open' | 'onOpenChange'> & { onClose: () => void }) {
   const formId = useId();
   const [question, setQuestion] = useState(initialQuestion);
   const [context, setContext] = useState('');
@@ -81,18 +81,18 @@ function ResearchBriefForm({
   };
 
   return (
-    <form onSubmit={prepare} className="co-scientist-form">
-      <DialogHeader className="co-scientist-header">
-        <span className="co-scientist-mark" aria-hidden="true">
+    <form onSubmit={prepare} className="research-brief-form">
+      <DialogHeader className="research-brief-header">
+        <span className="research-brief-mark" aria-hidden="true">
           <FlaskConical size={24} />
         </span>
-        <DialogTitle className="co-scientist-title">Co-scientist</DialogTitle>
-        <DialogDescription className="co-scientist-description">
+        <DialogTitle className="research-brief-title">Research brief</DialogTitle>
+        <DialogDescription className="research-brief-description">
           Turn a question into a clear investigation. Continue with the findings in this chat.
         </DialogDescription>
       </DialogHeader>
 
-      <div className="co-scientist-field">
+      <div className="research-brief-field">
         <label htmlFor={`${formId}-question`}>What would you like to investigate?</label>
         <textarea
           id={`${formId}-question`}
@@ -110,15 +110,15 @@ function ResearchBriefForm({
           aria-describedby={error ? `${formId}-error` : undefined}
         />
         {preflight?.shouldAsk && preflight.questions[0] && (
-          <p className="co-scientist-hint">
+          <p className="research-brief-hint">
             A clearer brief will improve the investigation: {preflight.questions[0]}
           </p>
         )}
       </div>
 
-      <fieldset className="co-scientist-outcomes" disabled={preparing}>
+      <fieldset className="research-brief-outcomes" disabled={preparing}>
         <legend>What do you need?</legend>
-        <div className="co-scientist-outcome-list">
+        <div className="research-brief-outcome-list">
           {RESEARCH_OUTPUTS.map((choice) => (
             <label key={choice.value} className={output === choice.value ? 'is-selected' : ''}>
               <input
@@ -137,11 +137,11 @@ function ResearchBriefForm({
         </div>
       </fieldset>
 
-      <details className="co-scientist-context">
+      <details className="research-brief-context">
         <summary>
           Add context or constraints <span>Optional</span>
         </summary>
-        <div className="co-scientist-field">
+        <div className="research-brief-field">
           <label htmlFor={`${formId}-context`}>Useful background</label>
           <textarea
             id={`${formId}-context`}
@@ -160,7 +160,7 @@ function ResearchBriefForm({
         </div>
       </details>
 
-      <div className="co-scientist-sources">
+      <div className="research-brief-sources">
         <Globe size={20} aria-hidden="true" />
         {capabilities.webSearch ? (
           <label>
@@ -190,19 +190,19 @@ function ResearchBriefForm({
       </div>
 
       {preview && (
-        <details className="co-scientist-preview">
+        <details className="research-brief-preview">
           <summary>Preview the research brief</summary>
           <p>{preview.prompt}</p>
         </details>
       )}
 
       {error && (
-        <p id={`${formId}-error`} className="co-scientist-error" role="alert">
+        <p id={`${formId}-error`} className="research-brief-error" role="alert">
           {error}
         </p>
       )}
 
-      <div className="co-scientist-footer">
+      <div className="research-brief-footer">
         <p>
           Edit the brief in chat, then send it. Experiment plans are proposals, not executed tests.
         </p>

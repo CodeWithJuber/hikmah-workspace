@@ -18,7 +18,7 @@ export function ToolsMenu({
   compare,
   onCompare,
   onBackgroundTask,
-  onCoScientist,
+  onResearchBrief,
 }: {
   disabled: string[];
   onChange?: (disabledTools: string[]) => Promise<void> | void;
@@ -30,7 +30,7 @@ export function ToolsMenu({
   compare: boolean;
   onCompare: (enabled: boolean) => void;
   onBackgroundTask?: () => void;
-  onCoScientist?: (capabilities: ReturnType<typeof researchCapabilities>) => void;
+  onResearchBrief?: (capabilities: ReturnType<typeof researchCapabilities>) => void;
 }) {
   const tools = useToolAvailability();
   const [open, setOpen] = useState(false);
@@ -126,7 +126,7 @@ export function ToolsMenu({
             </label>
           ))}
         </div>
-        {onCoScientist && (
+        {onResearchBrief && (
           <button
             type="button"
             className="chat-composer-action chat-background-task-action"
@@ -134,12 +134,12 @@ export function ToolsMenu({
             onClick={() => {
               openingDialog.current = true;
               setOpen(false);
-              onCoScientist(researchCapabilities(tools, disabled));
+              onResearchBrief(researchCapabilities(tools, disabled));
             }}
           >
             <Microscope size={20} aria-hidden="true" />
             <span>
-              <strong>Co-scientist</strong>
+              <strong>Research brief</strong>
               <small>Review evidence, challenge a hypothesis, or plan a test.</small>
             </span>
             <ArrowUpRight size={16} aria-hidden="true" />

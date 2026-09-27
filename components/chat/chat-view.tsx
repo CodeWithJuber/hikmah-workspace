@@ -68,7 +68,7 @@ import { allModelsFree } from '@/lib/ai/endpoint';
 import { PricingContext } from './pricing-context';
 import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
-import { CoScientistDialog } from '@/components/research/co-scientist-dialog';
+import { ResearchBriefDialog } from '@/components/research/research-brief-dialog';
 import type { PreparedResearchBrief } from '@/lib/client/research-brief';
 import { MessageParts, messageText } from './message-parts';
 import type { GrantHandler } from './approval-card';
@@ -917,7 +917,7 @@ export function ChatView({
                   compare={compare}
                   onCompare={setCompare}
                   onBackgroundTask={needsKey ? undefined : () => setLearning(true)}
-                  onCoScientist={(capabilities) => setResearchDialog({ open: true, capabilities })}
+                  onResearchBrief={(capabilities) => setResearchDialog({ open: true, capabilities })}
                 />
                 {onModel && (
                   <ModelPicker
@@ -1039,7 +1039,7 @@ export function ChatView({
           run={run as unknown as Record<string, unknown>}
           onStarted={onSettled}
         />
-        <CoScientistDialog
+        <ResearchBriefDialog
           open={researchDialog.open}
           onOpenChange={(open) => setResearchDialog((current) => ({ ...current, open }))}
           capabilities={researchDialog.capabilities}

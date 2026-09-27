@@ -6,7 +6,7 @@ ForgeKit was read recursively before this integration. Its research is useful as
 
 - `lib/agentic/preflight.ts` is a bounded assumption gate. It scores input, output, scope, success criteria, and constraints, then produces at most three clarifying questions. It is advisory so a normal chat stays fast.
 - `lib/integrations/jev-client.ts` is a fail-safe TypeSafe System One client. It calls the native `/v1/systemone` contract and validates typed answers. JEV can propose a route or confidence; deterministic gates remain authoritative. A missing key, timeout, or invalid answer returns `null`.
-- Research and co-scientist flows already produce durable evidence and editable briefs. These are the product-level equivalent of ForgeKit's receipt and provenance ideas without pretending that a graph oracle has been proven.
+- Research and research-brief flows already produce durable evidence and editable briefs. These are the product-level equivalent of ForgeKit's receipt and provenance ideas without pretending that a graph oracle has been proven.
 
 ## What is deliberately not copied
 
