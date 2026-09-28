@@ -23,6 +23,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { usePlayground } from './context';
+import { EmptyState } from '@/components/ui/empty-state';
 import { MemoryPanel } from '@/components/chat/memory-panel';
 import { type KnowledgeItem, parseKnowledge } from '@/lib/playground/knowledge';
 import { toast } from 'sonner';
@@ -274,11 +275,23 @@ export function Knowledge() {
               ))}
             </div>
             {!visible.length && (
-              <div className="knowledge-empty">
-                <BookOpen size={32} />
-                <h3>{search ? 'No matching knowledge' : 'Shared knowledge starts with review'}</h3>
-                <p>The owner can publish approved facts and references here.</p>
-              </div>
+              <EmptyState
+                icon={<BookOpen size={20} />}
+                title={search ? 'No matching knowledge' : 'Shared knowledge starts with review'}
+                description="The owner can publish approved facts and references here."
+                action={
+                  search ? (
+                    <Button variant="ghost" onClick={() => setSearch('')}>
+                      Clear search
+                    </Button>
+                  ) : owner ? (
+                    <Button onClick={() => setDraft(newKnowledge())}>
+                      <Plus size={16} />
+                      Publish knowledge
+                    </Button>
+                  ) : undefined
+                }
+              />
             )}
           </>
         )}

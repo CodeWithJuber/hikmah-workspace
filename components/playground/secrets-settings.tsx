@@ -2,6 +2,7 @@
 import { useEffect, useId, useState } from 'react';
 import { KeyRound, LoaderCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { clientFetch } from '@/lib/client/request';
@@ -295,7 +296,11 @@ export function SecretsSettings() {
       )}
       <div className="secret-list" aria-label="Saved secret variables">
         {loading ? (
-          <p role="status">Loading saved variables…</p>
+          <div className="grid gap-2" role="status" aria-label="Loading saved variables">
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-5 w-1/3" />
+          </div>
         ) : !rows.length ? (
           <p className="small-note">No secrets saved yet.</p>
         ) : (

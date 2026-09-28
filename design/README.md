@@ -20,12 +20,12 @@ app/globals.css @theme inline     ← turns tokens into Tailwind utilities
 
 ## Which file to edit
 
-| Change | Edit |
-|---|---|
-| Brand seed, pinned surfaces, type/radius/motion scales | `design/hikmah-theme.ts`, then run `npm run design:build` to regenerate. `npm run design:check` (CI) fails if the committed CSS is stale. |
+| Change                                                  | Edit                                                                                                                                                                                                                    |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brand seed, pinned surfaces, type/radius/motion scales  | `design/hikmah-theme.ts`, then run `npm run design:build` to regenerate. `npm run design:check` (CI) fails if the committed CSS is stale.                                                                               |
 | New semantic token (e.g. `--z-toast`, a new state fill) | `app/styles/tokens.css`, inside the existing `:root` block — do not add a second `:root`; the styles ratchet counts repeated selectors. Value must be a `light-dark()` pair or mode-independent (z-index, font stacks). |
-| A token's value looks wrong in one mode | Almost always fix the seed in `design/hikmah-theme.ts` and regenerate, not the semantic token — the semantic token is just a name. |
-| A component needs a one-off value | It doesn't. Use the token. If the scale genuinely lacks the step, add the token in `tokens.css` and say why. |
+| A token's value looks wrong in one mode                 | Almost always fix the seed in `design/hikmah-theme.ts` and regenerate, not the semantic token — the semantic token is just a name.                                                                                      |
+| A component needs a one-off value                       | It doesn't. Use the token. If the scale genuinely lacks the step, add the token in `tokens.css` and say why.                                                                                                            |
 
 ## Notes
 

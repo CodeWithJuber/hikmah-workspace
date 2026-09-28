@@ -92,22 +92,14 @@ services:
     restart: unless-stopped
     environment:
       HIKMAH_DOMAIN: ${HIKMAH_DOMAIN:?Set the HTTPS domain}
-      # The Caddyfile reads this for its site address (http in edge mode, when a
-      # fronting Caddy terminates TLS). It must exist inside the container —
-      # .env alone only feeds compose interpolation, not the Caddy process.
-      HIKMAH_SITE_SCHEME: ${HIKMAH_SITE_SCHEME:-https}
     depends_on:
       app: { condition: service_healthy }
       # Started, not healthy: a sidecar that fails to come up must cost the
       # owner their terminal, not their whole site.
       workbench: { condition: service_started }
-    # Host bindings are operator-chosen. Default owns 80/443 directly; a host
-    # that already serves the web on those ports (portal Caddy in front) sets
-    # HIKMAH_HTTP_BIND / HIKMAH_HTTPS_BIND to free ports in /opt/hikmah/.env —
-    # configure.py carries unknown keys forward, so they survive every release.
     ports:
-      - '${HIKMAH_HTTP_BIND:-80}:80'
-      - '${HIKMAH_HTTPS_BIND:-443}:443'
+      - '80:80'
+      - '443:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

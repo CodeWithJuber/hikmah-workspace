@@ -23,11 +23,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   contextLabel,
@@ -90,6 +86,7 @@ export function ModelPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   if (!active && open) {
     setOpen(false);
     setQuery('');
@@ -155,9 +152,20 @@ export function ModelPicker({
         />
         {/* The summary rules in chat.css target `> summary`; the trigger keeps
             the disclosure's footprint with utilities instead. */}
-        <Collapsible className="model-dialog-filter-disclosure">
+        <Collapsible
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          className="model-dialog-filter-disclosure"
+        >
           <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between px-3 py-2.5 text-sm">
-            <span>Filter models</span>
+            <span className="flex items-center gap-1.5">
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={'shrink-0 transition-transform' + (filtersOpen ? ' rotate-180' : '')}
+              />
+              Filter models
+            </span>
             {loading ? (
               <Skeleton className="h-4 w-20" aria-label="Loading model count" role="status" />
             ) : (

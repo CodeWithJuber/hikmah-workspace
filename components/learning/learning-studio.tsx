@@ -41,6 +41,7 @@ import {
   type LearningPolicy,
 } from '@/lib/learning/types';
 import { LEARNING_PAGE_SIZE, useLearning, type LearningAction } from '@/hooks/use-learning';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AutomaticLearningCard } from './automatic-learning-card';
 import { readableDate, saveDownload } from './shared';
 
@@ -48,9 +49,10 @@ const CoModelTraining = dynamic(
   () => import('./co-model-training').then((module) => module.CoModelTraining),
   {
     loading: () => (
-      <p className="learning-subtle-status" role="status">
-        Loading manual training…
-      </p>
+      <div className="grid gap-2" role="status" aria-label="Loading manual training">
+        <Skeleton className="h-5 w-2/3" />
+        <Skeleton className="h-4 w-full" />
+      </div>
     ),
   },
 );
@@ -58,9 +60,10 @@ const ResearchEvidence = dynamic(
   () => import('./research-evidence').then((module) => module.ResearchEvidence),
   {
     loading: () => (
-      <p className="learning-subtle-status" role="status">
-        Loading research evidence…
-      </p>
+      <div className="grid gap-2" role="status" aria-label="Loading research evidence">
+        <Skeleton className="h-5 w-1/2" />
+        <Skeleton className="h-4 w-full" />
+      </div>
     ),
   },
 );
@@ -290,9 +293,14 @@ export function LearningStudio({
                   {loading ? (
                     <tr>
                       <td colSpan={5}>
-                        <div className="learning-blank-state learning-loading" role="status">
-                          <LoaderCircle size={24} className="spin" />
-                          <p>Loading your exchanges…</p>
+                        <div
+                          className="learning-blank-state grid gap-2"
+                          role="status"
+                          aria-label="Loading exchanges"
+                        >
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-11/12" />
+                          <Skeleton className="h-4 w-4/5" />
                         </div>
                       </td>
                     </tr>

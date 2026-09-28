@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -488,10 +489,10 @@ export function CoModelTraining({
 
   if (loading)
     return (
-      <div className="learning-blank-state learning-training-loading" role="status">
-        <LoaderCircle size={24} className="spin" />
-        <h2>Loading your co-model workspace</h2>
-        <p>Checking access and saved checkpoint versions.</p>
+      <div className="grid gap-3" role="status" aria-label="Loading co-model workspace">
+        <Skeleton className="h-7 w-1/2" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-28 w-full" />
       </div>
     );
   if (accessError) {

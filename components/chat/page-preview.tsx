@@ -15,12 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink, Link2, Monitor, Smartphone, TerminalSquare, X } from 'lucide-react';
 import { copyText } from '@/components/playground/error-card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export function PagePreview({
   href,
@@ -84,70 +79,70 @@ export function PagePreview({
           <DialogTitle>{`Preview of ${title}`}</DialogTitle>
         </DialogHeader>
         <header className="page-preview-bar">
-        <strong dir="auto">{title}</strong>
-        <div className="page-preview-width" role="group" aria-label="Preview width">
+          <strong dir="auto">{title}</strong>
+          <div className="page-preview-width" role="group" aria-label="Preview width">
+            <button
+              type="button"
+              aria-pressed={width === 'phone'}
+              title="Phone width"
+              onClick={() => setWidth('phone')}
+            >
+              <Smartphone size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-pressed={width === 'desktop'}
+              title="Full width"
+              onClick={() => setWidth('desktop')}
+            >
+              <Monitor size={16} aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="button"
-            aria-pressed={width === 'phone'}
-            title="Phone width"
-            onClick={() => setWidth('phone')}
+            onClick={() => void copy()}
+            title="Copy a private link, valid for a week"
           >
-            <Smartphone size={16} aria-hidden="true" />
+            <Link2 size={16} aria-hidden="true" />
+            <span>{copied ? 'Copied' : 'Copy link'}</span>
           </button>
+          <a href={href} target="_blank" rel="noopener noreferrer" title="Open in a new tab">
+            <ExternalLink size={16} aria-hidden="true" />
+            <span>New tab</span>
+          </a>
           <button
             type="button"
-            aria-pressed={width === 'desktop'}
-            title="Full width"
-            onClick={() => setWidth('desktop')}
+            aria-pressed={showLogs}
+            title="Console"
+            onClick={() => setShowLogs((value) => !value)}
           >
-            <Monitor size={16} aria-hidden="true" />
+            <TerminalSquare size={16} aria-hidden="true" />
+            {logs.length > 0 && <span className="page-preview-count">{logs.length}</span>}
           </button>
+          <button type="button" aria-label="Close preview" onClick={onClose}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </header>
+        <div className={'page-preview-stage' + (width === 'phone' ? ' is-phone' : '')}>
+          <iframe
+            ref={frame}
+            title={title}
+            src={href}
+            // Scripts, forms, popups and downloads, and nothing that would make
+            // the page this origin.
+            sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+            referrerPolicy="no-referrer"
+          />
         </div>
-        <button
-          type="button"
-          onClick={() => void copy()}
-          title="Copy a private link, valid for a week"
-        >
-          <Link2 size={16} aria-hidden="true" />
-          <span>{copied ? 'Copied' : 'Copy link'}</span>
-        </button>
-        <a href={href} target="_blank" rel="noopener noreferrer" title="Open in a new tab">
-          <ExternalLink size={16} aria-hidden="true" />
-          <span>New tab</span>
-        </a>
-        <button
-          type="button"
-          aria-pressed={showLogs}
-          title="Console"
-          onClick={() => setShowLogs((value) => !value)}
-        >
-          <TerminalSquare size={16} aria-hidden="true" />
-          {logs.length > 0 && <span className="page-preview-count">{logs.length}</span>}
-        </button>
-        <button type="button" aria-label="Close preview" onClick={onClose}>
-          <X size={20} aria-hidden="true" />
-        </button>
-      </header>
-      <div className={'page-preview-stage' + (width === 'phone' ? ' is-phone' : '')}>
-        <iframe
-          ref={frame}
-          title={title}
-          src={href}
-          // Scripts, forms, popups and downloads, and nothing that would make
-          // the page this origin.
-          sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-      {showLogs && (
-        <div className="page-preview-console" aria-label="Preview console">
-          {logs.length === 0 ? (
-            <p>Nothing logged yet.</p>
-          ) : (
-            logs.map((line, index) => <p key={index}>{line}</p>)
-          )}
-        </div>
-      )}
+        {showLogs && (
+          <div className="page-preview-console" aria-label="Preview console">
+            {logs.length === 0 ? (
+              <p>Nothing logged yet.</p>
+            ) : (
+              logs.map((line, index) => <p key={index}>{line}</p>)
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

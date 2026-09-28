@@ -16,11 +16,7 @@ import {
   ConfirmationTitle,
 } from '@/components/ai-elements/confirmation';
 import { ApprovalCard, type GrantHandler } from './approval-card';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertCircle,
   Bookmark,
@@ -50,6 +46,8 @@ import {
 } from '@/components/ai-elements/tool';
 import { ReadAloud } from './voice-controls';
 import { ChatReceipt } from './chat-receipt';
+import { usePricing } from './pricing-context';
+import { estimatedCost } from '@/lib/playground/model-catalog';
 import { InlineArtifact } from '@/components/kernel/artifact';
 import { ClarificationCard } from '@/components/kernel/question';
 import { messageArtifact } from '@/lib/chat/artifact';
@@ -426,6 +424,261 @@ function sourceParts(message: UIMessage) {
   );
 }
 
+type WorkflowPlanData = {
+  arm: string;
+  budget: { maxCalls: number; maxTokens: number; maxCost: number; deadlineMs: number };
+  selection:
+    | { scores: Record<string, number>; propensity: number; featureVersion: number }
+    | { overridden: true };
+  terminalState?: string;
+};
+
+type AnswerUsage = {
+  model?: string;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+};
+
+const fmtCount = (value: number) => new Intl.NumberFormat('en-US').format(Math.round(value));
+const fmtCost = (value: number) => '$' + (value < 0.01 ? value.toFixed(4) : value.toFixed(3));
+
+/** One budget leg as a meter: used versus cap, from observed spend only. */
+function BudgetMeter({
+  label,
+  used,
+  cap,
+  text,
+}: {
+  label: string;
+  used: number;
+  cap: number;
+  text: string;
+}) {
+  const ratio = cap > 0 ? used / cap : used > 0 ? 1 : 0;
+  const pct = Math.max(0, Math.min(1, ratio)) * 100;
+  const hit = ratio >= 1;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <span style={{ width: 44, flex: 'none', fontSize: 12, opacity: 0.65 }}>{label}</span>
+      <div
+        role="img"
+        aria-label={`${label}: ${text}`}
+        style={{
+          flex: '1 1 auto',
+          height: 6,
+          borderRadius: 3,
+          background: 'color-mix(in srgb, currentColor 16%, transparent)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            borderRadius: 3,
+            background: hit ? 'var(--error-text)' : 'currentColor',
+            opacity: hit ? 0.9 : 0.55,
+          }}
+        />
+      </div>
+      <span
+        style={{
+          flex: 'none',
+          fontSize: 12,
+          fontVariantNumeric: 'tabular-nums',
+          opacity: hit ? 1 : 0.75,
+          fontWeight: hit ? 600 : 400,
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+
+/** The v5 workflow plan, streamed as a `data-workflow` part when the run
+ * starts (see lib/runs/service.ts). A closed-by-default inspector: the answer
+ * below is what the reader came for, but which arm the policy chose, why, and
+ * what budget it may spend is one tap away.
+ *
+ * Honesty contract, kept in the copy: scores are the policy's judgment, never
+ * P(correct); a terminal state is named as a limit, not a success; spend is
+ * counted from this message's own parts and metadata, never predicted.
+ */
+function WorkflowPlanCard({
+  plan,
+  callsUsed,
+  meta,
+}: {
+  plan: WorkflowPlanData;
+  callsUsed: number;
+  meta: AnswerUsage;
+}) {
+  const pricing = usePricing();
+  const inputTokens = Number(meta.usage?.inputTokens ?? 0);
+  const outputTokens = Number(meta.usage?.outputTokens ?? 0);
+  const tokensUsed = Number(meta.usage?.totalTokens ?? inputTokens + outputTokens);
+  const cost = estimatedCost(
+    meta.model ? pricing.get(meta.model) : undefined,
+    inputTokens,
+    outputTokens,
+  );
+  const sel = plan.selection;
+  const overridden = typeof sel === 'object' && sel !== null && 'overridden' in sel;
+  const scores = !overridden
+    ? Object.entries((sel as { scores: Record<string, number> }).scores ?? {})
+        .filter(([, s]) => typeof s === 'number' && Number.isFinite(s))
+        .sort((a, b) => b[1] - a[1])
+    : [];
+  const top = scores.slice(0, 2);
+  const topMax = Math.max(0, ...top.map(([, s]) => Math.abs(s)), 0.0001);
+  const { maxCalls, maxTokens, maxCost } = plan.budget;
+  const terminal = typeof plan.terminalState === 'string' ? plan.terminalState : undefined;
+
+  return (
+    <Collapsible
+      style={{
+        border: '1px solid color-mix(in srgb, currentColor 14%, transparent)',
+        borderRadius: 10,
+        padding: '6px 10px',
+        marginBottom: 8,
+        fontSize: 13,
+      }}
+    >
+      <CollapsibleTrigger
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 8,
+          width: '100%',
+          textAlign: 'left',
+          cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          color: 'inherit',
+          font: 'inherit',
+        }}
+      >
+        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Run plan · {plan.arm}</span>
+        {terminal ? (
+          <span style={{ color: 'var(--error-text)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            ended: {terminal.replace(/_/g, ' ')}
+          </span>
+        ) : (
+          <span style={{ opacity: 0.6, whiteSpace: 'nowrap' }}>
+            {callsUsed}/{maxCalls} calls
+          </span>
+        )}
+        <span style={{ marginLeft: 'auto', opacity: 0.45, flex: 'none' }}>▾</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent style={{ paddingTop: 8 }}>
+        {terminal && (
+          <p style={{ margin: '0 0 8px', color: 'var(--error-text)', fontWeight: 600 }}>
+            The run reached its limit ({terminal.replace(/_/g, ' ')}). A limit is not a success —
+            the answer above is whatever was finished before it.
+          </p>
+        )}
+        {overridden ? (
+          <p style={{ margin: '0 0 8px', opacity: 0.75 }}>
+            Arm chosen explicitly — the policy did not choose this run&apos;s arm.
+          </p>
+        ) : (
+          <div style={{ marginBottom: 8 }}>
+            <p style={{ margin: '0 0 4px', opacity: 0.65, fontSize: 12 }}>
+              Why {plan.arm} — policy v{(sel as { featureVersion: number }).featureVersion ?? '?'} ·
+              selection chance{' '}
+              {typeof (sel as { propensity: number }).propensity === 'number'
+                ? (sel as { propensity: number }).propensity.toFixed(2)
+                : '—'}
+            </p>
+            {top.map(([arm, score]) => (
+              <div
+                key={arm}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 2,
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  style={{
+                    width: 120,
+                    flex: 'none',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontSize: 12,
+                    fontWeight: arm === plan.arm ? 600 : 400,
+                  }}
+                >
+                  {arm}
+                </span>
+                <div
+                  style={{
+                    flex: '1 1 auto',
+                    height: 5,
+                    borderRadius: 3,
+                    background: 'color-mix(in srgb, currentColor 14%, transparent)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${(Math.abs(score) / topMax) * 100}%`,
+                      height: '100%',
+                      borderRadius: 3,
+                      background: 'currentColor',
+                      opacity: arm === plan.arm ? 0.8 : 0.35,
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    flex: 'none',
+                    fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums',
+                    opacity: 0.75,
+                  }}
+                >
+                  {score.toFixed(3)}
+                </span>
+              </div>
+            ))}
+            <p style={{ margin: '4px 0 0', opacity: 0.6, fontSize: 12 }}>
+              The policy&apos;s judgment about how to work — not the probability the answer is
+              right.
+            </p>
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <BudgetMeter
+            label="calls"
+            used={callsUsed}
+            cap={maxCalls}
+            text={`${callsUsed}/${maxCalls}`}
+          />
+          <BudgetMeter
+            label="tokens"
+            used={tokensUsed}
+            cap={maxTokens}
+            text={`${fmtCount(tokensUsed)}/${fmtCount(maxTokens)}`}
+          />
+          {cost !== undefined && (
+            <BudgetMeter
+              label="cost"
+              used={cost}
+              cap={maxCost}
+              text={`${fmtCost(cost)}/$${maxCost}`}
+            />
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 function MessagePartsInner({
   message,
   status,
@@ -686,6 +939,26 @@ function MessagePartsInner({
     // Which saved memories the prompt carried. The receipt below the answer
     // reads it; here it would be a line above the answer saying the same.
     if (part.type === 'data-memories') return null;
+
+    // The v5 workflow plan for this run. Rendered as its own inspector card,
+    // closed by default: the answer below is what the reader came for. Spend
+    // is counted from this message's own parts and metadata — observed, never
+    // predicted. Hidden with the rest of the run's activity.
+    if (part.type === 'data-workflow') {
+      if (!showActivity) return null;
+      const plan = (part as { data?: unknown }).data as WorkflowPlanData | undefined;
+      const budget = plan?.budget;
+      if (!plan || typeof plan.arm !== 'string' || !budget || typeof budget.maxCalls !== 'number')
+        return null;
+      return (
+        <WorkflowPlanCard
+          key={key}
+          plan={plan}
+          callsUsed={message.parts.filter(isToolUIPart).length}
+          meta={(message.metadata as AnswerUsage | undefined) ?? {}}
+        />
+      );
+    }
 
     // A step boundary in a multi-step run. It carries no content of its
     // own; the tool cards around it already show what happened.

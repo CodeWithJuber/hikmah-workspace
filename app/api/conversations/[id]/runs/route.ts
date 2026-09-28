@@ -5,6 +5,8 @@ import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/c
 import { conversationTitle } from '@/lib/chat/title';
 import { releases } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
+import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
+import { createWorkflowStore } from '@/lib/workflow/store';
 import { answerIdFor } from '@/lib/runs/answer-id';
 import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
 import { getStorage } from '@/server/storage.mjs';
@@ -16,10 +18,6 @@ export const dynamic = 'force-dynamic';
 
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
 const fail = (error: string, status: number) => Response.json({ error }, { status, headers });
-
-/** At most one run in flight per conversation, and this many per owner, so a
- * stuck or looping client cannot queue work without bound. */
-const MAX_ACTIVE_RUNS = 3;
 
 /** The composer inlines an attachment as a data URL rather than uploading it,
  * so a message body is now bounded by what the owner attached. Five files at
@@ -41,6 +39,21 @@ async function readBody(request: Request): Promise<unknown> {
   } catch {
     return null;
   }
+}
+
+/** The latest user turn's text, for the arm-selection policy's features. */
+function lastUserText(messages: UIMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message?.role !== 'user') continue;
+    const text = (message.parts ?? [])
+      .filter((part) => part?.type === 'text')
+      .map((part) => (part as { text?: string }).text ?? '')
+      .join('\n')
+      .trim();
+    if (text) return text.slice(0, 4000);
+  }
+  return '';
 }
 
 /**
@@ -165,7 +178,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       { headers, status: 409 },
     );
   }
-  if (store.countActive(user.userId) >= MAX_ACTIVE_RUNS)
+  if (store.countActive(user.userId) >= enqueueCap())
     return fail('Too many runs are already in progress. Wait for one to finish.', 429);
 
   const incoming = incomingMessage;
@@ -230,11 +243,22 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const runId = newRunId();
   try {
-    store.createRun({
-      id: runId,
-      conversationId,
+    enqueueRun({
+      runId,
       userId: user.userId,
+      conversationId,
       priority: entitlements.queuePriority,
+      // The policy's view of this turn: what was asked, in which category,
+      // and whether a remote arm is even allowed. The policy never overrides
+      // eligibility — no key means no remote arms, whatever it scores.
+      selection: {
+        promptText: lastUserText(messages),
+        taskCategory: 'chat',
+        hasProviderKey: access.apiKey !== '',
+        localFrame: null,
+      },
+      store,
+      workflowStore: createWorkflowStore(getStorage().raw),
       config: {
         baseUrl: parsed.baseUrl,
         model: parsed.model,
@@ -275,7 +299,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         webSearch: parsed.webSearch,
       },
     });
-  } catch {
+  } catch (error) {
+    // enqueueRun re-checks the cap at queue time, so a burst that filled the
+    // last slot between the pre-check above and here still gets a 429 rather
+    // than a silently queued run nobody will drive soon.
+    if (error instanceof EnqueueFullError)
+      return fail('Too many runs are already in progress. Wait for one to finish.', 429);
     return fail('The run could not be queued. Try again.', 503);
   }
 

@@ -3,6 +3,7 @@ import { randomId } from '../../lib/id.ts';
 
 import { ContextStudio } from '@/components/context-model/studio';
 import { TypeformPanel } from '@/components/integrations/typeform-panel';
+import { PolicyPanel } from '@/components/kernel/policy-panel';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,7 @@ export function KernelCenter({
         'learning',
         'versions',
         'runs',
+        'policy',
         'architecture',
         'controls',
         'integrations',
@@ -144,7 +146,9 @@ export function KernelCenter({
                   ? 'Legacy model'
                   : t === 'learning'
                     ? 'Rule learning'
-                    : t[0].toUpperCase() + t.slice(1)}
+                    : t === 'policy'
+                      ? 'Workflow policy'
+                      : t[0].toUpperCase() + t.slice(1)}
           </button>
         ))}
       </nav>
@@ -541,6 +545,9 @@ export function KernelCenter({
           )}
         </section>
       )}
+      {/* The v5 workflow policy inspector: per-arm A_a diagonals, the feedback
+          it learned from, and the selection audit log. Owner only. */}
+      {owner && tab === 'policy' && <PolicyPanel />}
       {tab === 'architecture' && (
         <>
           <div className="kernel-section-intro">

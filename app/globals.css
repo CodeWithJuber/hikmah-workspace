@@ -123,9 +123,7 @@
      Arial fallback it size-adjusts to Inter's metrics, then the system stack.
      Every Tailwind `font-sans` reads it, so one line moves the utilities too. */
   --font-sans: var(--font-inter);
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-    monospace;
+  /* --font-mono lives in app/styles/tokens.css (the token layer owns it). */
 }
 
 /* ---------------------------------------------------------------------------

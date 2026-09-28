@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -634,7 +635,20 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               </a>
             </div>
             <div className="product-plan">
-              <MessageContent text={plan || 'Loading product plan…'} />
+              {/* An empty `plan` is the only loading signal: the fetch either
+                  fills it or sets an error sentence into it. */}
+              {plan ? (
+                <MessageContent text={plan} />
+              ) : (
+                <div className="grid gap-2" role="status" aria-label="Loading product plan">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/5" />
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

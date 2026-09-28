@@ -3657,8 +3657,7 @@
     box-shadow: none;
     resize: vertical;
     min-height: 220px;
-    font:
-      13px/1.7 var(--font-mono);
+    font: 13px/1.7 var(--font-mono);
   }
   .sandbox-split pre {
     background: var(--muted);

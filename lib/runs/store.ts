@@ -146,6 +146,13 @@ export function createRunStore(
       `INSERT INTO runs (id, conversation_id, user_id, status, config, created_at, priority)
        VALUES (?, ?, ?, 'queued', ?, ?, ?)`,
     ),
+    // Idempotency keys for enqueueRun: the same key always resolves to the
+    // same run id, so a retried request never starts a second run. Claimed
+    // with INSERT OR IGNORE so two racing enqueues cannot both win.
+    idempotencyHit: db.prepare('SELECT run_id FROM run_idempotency WHERE key = ?'),
+    claimIdempotency: db.prepare(
+      'INSERT OR IGNORE INTO run_idempotency (key, run_id, created_at) VALUES (?, ?, ?)',
+    ),
     // Claim the next queued run and mark it running in one statement, so two
     // workers (or a worker racing its own restart) cannot take the same run.
     //
@@ -462,6 +469,24 @@ export function createRunStore(
      * it is. */
     claimNext(options: { chatOnly?: boolean } = {}): RunRow | null {
       return one<RunRow>((options.chatOnly ? statements.claimChat : statements.claim).get());
+    },
+
+    /** The run id already filed under this idempotency key, or null when the
+     * key is new. Used by enqueueRun before any selection work, so a retry
+     * returns the original run without re-running the policy. */
+    idempotencyHit(key: string): string | null {
+      const row = one<{ run_id: string }>(statements.idempotencyHit.get(key));
+      return row?.run_id ?? null;
+    },
+
+    /** Claim an idempotency key for a run id. False when another run claimed
+     * it first — the caller must then re-read the hit rather than create a
+     * second run. */
+    claimIdempotency(key: string, runId: string): boolean {
+      const result = statements.claimIdempotency.run(key, runId, now()) as {
+        changes?: number;
+      };
+      return Number(result?.changes ?? 0) > 0;
     },
 
     getRun(id: string): RunRow | null {

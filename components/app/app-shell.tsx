@@ -32,7 +32,8 @@ function Brand({ compact = false }: { compact?: boolean }) {
 /** Renders inside PlaygroundProvider: it reads the workspace state for the
  * footer (model connection, storage status, release label). */
 function ShellContent({ children }: { children: ReactNode }) {
-  const { openSettings, storageMessage, restoreFailed } = usePlayground();
+  const { openSettings, storageMessage, restoreFailed, retryRestore, resetWorkspace } =
+    usePlayground();
   const { setOpenMobile } = useSidebar();
   return (
     <>
@@ -65,6 +66,26 @@ function ShellContent({ children }: { children: ReactNode }) {
           >
             {storageMessage}
           </span>
+          {restoreFailed && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <button
+                type="button"
+                className="text-link"
+                title="Try loading your workspace again"
+                onClick={retryRestore}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                className="text-link"
+                title="Clear the workspace copy stored on this device and reload from the server"
+                onClick={resetWorkspace}
+              >
+                Reset
+              </button>
+            </div>
+          )}
           <span className="release-label" title={'Deployed revision: ' + BUILD_ID}>
             App v{APP_RELEASE} · {BUILD_ID.slice(0, 7)} <a href="/sign-out">Sign out</a>
           </span>

@@ -5,7 +5,7 @@
  * payment code here and no card detail anywhere near this deployment: the
  * buttons redirect to Stripe and Stripe redirects back.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createAuthClient } from 'better-auth/react';
 import { stripeClient } from '@better-auth/stripe/client';
@@ -39,27 +39,71 @@ type Billing = {
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
 
+/** Which failed action the Retry button re-runs: the billing-details fetch, a
+ * checkout open for a plan, or the billing-portal open. */
+type FailedAction = { kind: 'billing' } | { kind: 'checkout'; plan: string } | { kind: 'portal' };
+
 export function BillingPanel() {
   const [data, setData] = useState<Billing | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [failedAction, setFailedAction] = useState<FailedAction | null>(null);
+
+  /** The billing-details fetch, shared by the mount effect and the Retry
+   * button. Returns the payload instead of setting state: the React Compiler
+   * lint treats a component-scope function containing setState as a
+   * synchronous setState when an effect calls it, so the effect below wires
+   * the promise with inline callbacks, the way the old `.then` chain did. */
+  const loadBilling = useCallback(async (): Promise<Billing | null> => {
+    const r = await clientFetch('/api/billing', {});
+    const payload = r.ok ? await r.json() : null;
+    return (payload as Billing) ?? null;
+  }, []);
+
+  /** A billing fetch that failed or came back empty: the honest error plus
+   * the action the Retry button re-runs. */
+  function failBillingLoad() {
+    setError('Your billing details could not be loaded.');
+    setFailedAction({ kind: 'billing' });
+  }
 
   useEffect(() => {
     let live = true;
-    void clientFetch('/api/billing', {})
-      .then((r) => (r.ok ? r.json() : null))
+    void loadBilling()
       .then((payload) => {
-        if (live && payload) setData(payload as Billing);
+        if (!live) return;
+        if (payload) setData(payload);
+        else failBillingLoad();
       })
-      .catch(() => setError('Your billing details could not be loaded. Reload to try again.'));
+      .catch(() => {
+        if (live) failBillingLoad();
+      });
     return () => {
       live = false;
     };
-  }, []);
+  }, [loadBilling]);
+
+  /** Re-run whichever action failed last. Clears the error first so the panel
+   * shows its loading state, never a dead Retry button. */
+  function retry() {
+    if (!failedAction) return;
+    setError('');
+    setFailedAction(null);
+    if (failedAction.kind === 'billing')
+      void loadBilling()
+        .then((payload) => {
+          if (payload) setData(payload);
+          else failBillingLoad();
+        })
+        .catch(failBillingLoad);
+    else if (failedAction.kind === 'portal') void portal();
+    else void upgrade(failedAction.plan);
+  }
 
   async function upgrade(plan: string) {
     setBusy(plan);
     setError('');
+    setFailedAction(null);
     try {
       // A success redirects away from this page, so reaching the next line with
       // an error is the only outcome there is anything to say about.
@@ -68,9 +112,13 @@ export function BillingPanel() {
         successUrl: '/billing',
         cancelUrl: '/billing',
       });
-      if (result?.error) setError(result.error.message ?? 'Checkout could not be opened.');
+      if (result?.error) {
+        setError(result.error.message ?? 'Checkout could not be opened.');
+        setFailedAction({ kind: 'checkout', plan });
+      }
     } catch {
       setError('Checkout could not be opened. Try again in a moment.');
+      setFailedAction({ kind: 'checkout', plan });
     } finally {
       setBusy('');
     }
@@ -79,12 +127,16 @@ export function BillingPanel() {
   async function portal() {
     setBusy('portal');
     setError('');
+    setFailedAction(null);
     try {
       const result = await auth.subscription.billingPortal({ returnUrl: '/billing' });
-      if (result?.error)
+      if (result?.error) {
         setError(result.error.message ?? 'The billing portal could not be opened.');
+        setFailedAction({ kind: 'portal' });
+      }
     } catch {
       setError('The billing portal could not be opened. Try again in a moment.');
+      setFailedAction({ kind: 'portal' });
     } finally {
       setBusy('');
     }
@@ -92,9 +144,16 @@ export function BillingPanel() {
 
   if (error && !data)
     return (
-      <p role="alert" className="auth-error">
-        {error}
-      </p>
+      <section className="billing-current" aria-label="Billing unavailable">
+        <p role="alert" className="auth-error">
+          {error}
+        </p>
+        {failedAction && (
+          <button type="button" onClick={retry}>
+            Retry
+          </button>
+        )}
+      </section>
     );
   if (!data)
     return (
@@ -168,9 +227,16 @@ export function BillingPanel() {
       </section>
 
       {error && (
-        <p role="alert" className="auth-error">
-          {error}
-        </p>
+        <div>
+          <p role="alert" className="auth-error">
+            {error}
+          </p>
+          {failedAction && (
+            <button type="button" className="text-link" onClick={retry}>
+              Retry
+            </button>
+          )}
+        </div>
       )}
 
       <section className="billing-plans">

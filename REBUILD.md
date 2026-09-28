@@ -3,6 +3,7 @@
 Branch: `rebuild/v10` · Base: `main` @ 7d331ee9 · Started: 2026-09-27
 
 Full production-ready rebuild of hikmah-workspace. Audits that drove this plan:
+
 - `~/workspace/hikmah-research/audit-backend.md`
 - `~/workspace/hikmah-research/audit-frontend.md`
 - `~/workspace/hikmah-research/audit-research.md`
@@ -12,7 +13,7 @@ Full production-ready rebuild of hikmah-workspace. Audits that drove this plan:
 1. **Reuse best-of-breed** frameworks/libraries/SDKs (Vercel AI SDK, better-auth, Radix, streamdown,
    CodeMirror, xterm). Custom code only where the product is genuinely custom (the co-model research).
 2. **Keep the research substrate untouched**: `public/research/v6/` fitted artifacts, `lib/context-model/`
-   math, gate discipline, honesty contract. Rebuild *around* it, never re-derive it.
+   math, gate discipline, honesty contract. Rebuild _around_ it, never re-derive it.
 3. **One product**: one shell, one design system, real routes everywhere (no hash routing).
 4. **Production-ready**: P0 security fixes first, then UX, then the missing v5 control layer.
 
