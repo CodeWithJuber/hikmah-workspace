@@ -1171,7 +1171,9 @@ export function ChatView({
               <strong>
                 {recovery === 'reconnect'
                   ? 'Connection interrupted'
-                  : 'This request needs attention'}
+                  : /Free models only/i.test(failure ?? '')
+                    ? 'Model not allowed'
+                    : 'This request needs attention'}
               </strong>
               <p>{failure}</p>
               {/* A run paused on a card this tab has lost track of — answered
@@ -1183,9 +1185,11 @@ export function ChatView({
                   {recovery === 'reconnect' ? 'Reconnect to saved run' : 'Reload conversation'}
                 </button>
               ) : recovery === 'configure' && onOpenSettings ? (
-                // The fix is a key, not a retry: open where it goes.
+                // The fix is in settings, not a retry: open where it goes.
+                // For a missing key it's "Add a key"; for the free-only block
+                // it's "Open settings" (turn it off or pick a free model).
                 <button type="button" onClick={onOpenSettings}>
-                  Add a key
+                  {/Free models only/i.test(failure ?? '') ? 'Open settings' : 'Add a key'}
                 </button>
               ) : (
                 <button
