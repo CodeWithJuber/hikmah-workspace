@@ -148,43 +148,49 @@ function blastRadius(changed) {
 }
 
 /**
- * Classify the change with a small free OpenRouter model.
+ * Classify the change with a small free OpenRouter model via the openrouter-chat CLI
+ * (uses the stored custom.openrouter credential — never an env var).
  * Returns 'behavioral' | 'refactor' | 'cosmetic' | 'config' | null (unavailable/uncertain).
  * Only used to DOWNGRADE risk when confident; null -> no downgrade.
  */
 async function llmClassify(changed, diffSample) {
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return null;
+  const cli = process.env.HOME + '/workspace/skills/openrouter/bin/openrouter-chat';
   const prompt = `Classify this code change. Changed files: ${changed.slice(0, 15).join(', ')}.
-Diff sample (first 60 lines):
-${diffSample.split('\n').slice(0, 60).join('\n')}
+Diff sample (first 40 lines):
+${diffSample.split('\n').slice(0, 40).join('\n')}
 Reply with exactly one word: behavioral, refactor, cosmetic, or config.
 - behavioral: logic, control flow, or data handling changed
 - refactor: code restructured but behavior preserved (renames, moves, extraction)
 - cosmetic: comments, formatting, whitespace only
 - config: config files, dependencies, CI (not application logic)`;
+  // Write prompt to a temp file to avoid shell-quoting issues.
+  const tmp = `/tmp/smart-select-prompt-${process.pid}.txt`;
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/CodeWithJuber/hikmah-workspace',
-        'X-Title': 'hikmah-workspace smart-test-select',
-      },
-      body: JSON.stringify({
-        // Free-tier small model; change if unavailable.
-        model: process.env.SMART_SELECT_MODEL || 'meta-llama/llama-3.2-3b-instruct:free',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 10,
-        temperature: 0,
-      }),
-      signal: AbortSignal.timeout(25000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const word = (data.choices?.[0]?.message?.content || '').trim().toLowerCase();
-    return ['behavioral', 'refactor', 'cosmetic', 'config'].includes(word) ? word : null;
+    const { writeFileSync, unlinkSync, readFileSync } = await import('node:fs');
+    const { execFileSync } = await import('node:child_process');
+    writeFileSync(tmp, prompt);
+    const promptText = readFileSync(tmp, 'utf8');
+    let out = null;
+    try {
+      out = execFileSync(cli, ['--prompt', promptText, '--max-tokens', '100'], {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 60000,
+        stdio: 'pipe',
+      }).trim();
+    } catch {
+      out = null;
+    }
+    try {
+      unlinkSync(tmp);
+    } catch {}
+    if (!out) return null;
+    // Robust parse: find the first category word in the output (models may be verbose).
+    const lower = out.toLowerCase();
+    for (const cat of ['behavioral', 'refactor', 'cosmetic', 'config']) {
+      if (lower.includes(cat)) return cat;
+    }
+    return null;
   } catch {
     return null;
   }
