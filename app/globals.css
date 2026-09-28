@@ -48,6 +48,12 @@
 @import './styles/composer-flow.css';
 @import './styles/learning.css';
 @import './styles/research-brief.css';
+/* Admin/Superadmin presentational polish (WS5). Imported last so its
+ * `@layer components` rules win over the older workspace rules by source
+ * order on equal specificity. Every selector is scoped under `.admin-polish`
+ * (see the admin and superadmin layouts), so shared components never
+ * restyle on their non-admin surfaces. */
+@import './styles/admin-polish.css';
 
 /* The workspace stamps its theme on the root element, and Tailwind's `dark:`
    variant otherwise means `prefers-color-scheme`. Without this the two

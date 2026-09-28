@@ -226,10 +226,108 @@
   .conversation-delete:focus-visible {
     opacity: 1;
   }
+  /* The row's ⋯ menu wears the same dimmed treatment as the delete button:
+   * quiet enough to stay out of the title's way, present enough to press on a
+   * phone. Hover-only would repeat the mistake the comment above documents. */
+  .conversation-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-radius: var(--radius-element);
+    opacity: 0.45;
+  }
+  .conversation-list li:hover .conversation-more,
+  .conversation-more:hover,
+  .conversation-more:focus-visible,
+  .conversation-project-header:hover .conversation-more {
+    opacity: 1;
+  }
+  .conversation-more:hover {
+    background: var(--muted);
+  }
+  /* A project folder: its header is a collapsible toggle plus the folder's
+   own ⋯ menu. The count is a quiet pill, not a second heading. */
+  .conversation-project {
+    margin-top: 4px;
+  }
+  .conversation-project-header {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: var(--radius-element);
+  }
+  .conversation-project-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 7px 8px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-radius: var(--radius-element);
+  }
+  .conversation-project-toggle:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .conversation-project-toggle > svg {
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+  .conversation-project-collapsed {
+    transform: rotate(-90deg);
+  }
+  .conversation-project-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .conversation-project-count {
+    flex-shrink: 0;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: var(--muted);
+    border-radius: 999px;
+    padding: 1px 8px;
+    letter-spacing: normal;
+  }
+  /* The inline rename field sits where the title was, so the row does not
+   * jump while the name is being edited. */
+  .conversation-rename {
+    height: 32px;
+    font-size: var(--font-size-base);
+    margin: 2px 0;
+  }
+  /* Secondary to New chat on purpose: projects are filed into, not started
+   * from, and the button must not compete with the primary action. */
+  .conversation-new-project {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 8px;
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
   .conversation-note {
     color: var(--muted-foreground);
     font-size: var(--font-size-base);
     padding: 12px 8px;
+  }
+  /* The welcome hint under an empty list: smaller and quieter than the note,
+   * so it reads as a suggestion rather than a second announcement. */
+  .conversation-note.conversation-hint {
+    padding-top: 0;
+    font-size: var(--font-size-sm);
   }
   /* Tasks under their own heading: handed off rather than had, and a finished
    one must not read as the last thing the owner said. */

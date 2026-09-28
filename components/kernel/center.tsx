@@ -7,6 +7,7 @@ import { PolicyPanel } from '@/components/kernel/policy-panel';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -533,7 +534,23 @@ export function KernelCenter({
                       <td>{new Date(r.at).toLocaleString()}</td>
                       <td>{r.model}</td>
                       <td>{r.evaluation ? 'comparison' : r.strategy}</td>
-                      <td>{r.status}</td>
+                      {/* The runs tab is owner-only (not in the non-owner tab
+                          list), so this badge mapping restyles nothing on
+                          /kernel: complete reads evergreen, error reads
+                          destructive, the rest neutral. */}
+                      <td>
+                        <Badge
+                          variant={
+                            r.status === 'complete'
+                              ? 'default'
+                              : r.status === 'error'
+                                ? 'destructive'
+                                : 'secondary'
+                          }
+                        >
+                          {r.status}
+                        </Badge>
+                      </td>
                       <td>{r.tokens.toLocaleString()}</td>
                       <td>{(r.latencyMs / 1000).toFixed(1)}s</td>
                       <td>{r.rating ?? 'Unrated'}</td>

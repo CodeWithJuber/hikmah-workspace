@@ -48,6 +48,7 @@ import { ModelPicker, ModelDetails } from './model-picker';
 import { Choice, downloadJson, errorMessage } from './common';
 import { MessageContent } from './message-content';
 import { SavedSecretSelect, SecretsSettings } from './secrets-settings';
+import { AdminBreadcrumb } from '@/components/admin/admin-breadcrumb';
 import { mcpSecretDestination } from '@/lib/playground/secret-reference';
 import {
   parseWorkspaceConfig,
@@ -59,6 +60,17 @@ import { mediaModels, type MediaKind, type MediaModel } from '@/lib/playground/m
 import { toast } from 'sonner';
 import { clientFetch } from '@/lib/client/request';
 export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: string }) {
+  // The breadcrumb follows the live tab state, not the route's initialTab:
+  // several overview shortcuts switch tabs in place without navigating.
+  const tabLabels: Record<string, string> = {
+    overview: 'Overview',
+    providers: 'Models',
+    media: 'Media',
+    connectors: 'Connectors',
+    secrets: 'Secrets',
+    skills: 'Skills',
+    plan: 'Product plan',
+  };
   const {
     workspace,
     setWorkspace,
@@ -151,6 +163,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
         </Button>
       </header>
       <div className="admin-scroll">
+        <AdminBreadcrumb
+          trail={[{ label: 'Admin', href: '/admin/overview' }, { label: tabLabels[tab] ?? tab }]}
+        />
         <div className="admin-intro">
           <div>
             <h2>Your workspace, your controls</h2>
@@ -584,6 +599,29 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 </section>
               ))}
             </div>
+            {/* Unlike connectors, this tab never had an empty state: with no
+                skills the section rendered as a bare export/import row. */}
+            {!workspace.skills.length && (
+              <div className="admin-empty">
+                <BrainCircuit size={32} />
+                <h4>No skills yet</h4>
+                <p>Write reusable instructions for the work you do, then switch them on here.</p>
+                <Button
+                  onClick={() =>
+                    setSkill({
+                      id: randomId(),
+                      name: '',
+                      description: '',
+                      instructions: '',
+                      enabled: false,
+                    })
+                  }
+                >
+                  <Plus size={16} />
+                  New skill
+                </Button>
+              </div>
+            )}
             <div className="bundle-controls">
               <Button
                 variant="outline"
@@ -727,6 +765,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
           />
           <Button
             disabled={!connection?.name.trim()}
+            className="pointer-coarse:min-h-11"
             onClick={() => {
               if (!connection) return;
               try {
@@ -780,6 +819,7 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
           />
           <Button
             disabled={!skill?.name.trim() || !skill?.instructions.trim()}
+            className="pointer-coarse:min-h-11"
             onClick={() => {
               if (!skill) return;
               setWorkspace((p) => ({
@@ -802,8 +842,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel className="pointer-coarse:min-h-11">Keep it</AlertDialogCancel>
             <AlertDialogAction
+              className="pointer-coarse:min-h-11"
               onClick={() => {
                 if (!remove) return;
                 setWorkspace((p) =>

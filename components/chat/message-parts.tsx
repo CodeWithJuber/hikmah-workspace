@@ -23,6 +23,7 @@ import {
   BookmarkCheck,
   Check,
   Copy,
+  GitFork,
   LoaderCircle,
   Pencil,
   RefreshCw,
@@ -52,6 +53,10 @@ import { InlineArtifact } from '@/components/kernel/artifact';
 import { ClarificationCard } from '@/components/kernel/question';
 import { messageArtifact } from '@/lib/chat/artifact';
 import type { WorkspaceFiles } from '@/lib/playground/session';
+import { SiblingSwitcher } from './branch-ui';
+import { FeedbackButtons } from './message-feedback';
+import type { FeedbackValue } from '@/lib/chat/feedback-store';
+import { GeneratedImage } from './generated-image';
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -679,6 +684,17 @@ function WorkflowPlanCard({
   );
 }
 
+/** Sibling info for the "‹ 1/3 ›" switcher (Chat v2 message branching), from
+ * the messages route. Absent (or total < 2) means no switcher. */
+export type BranchInfo = {
+  /** Zero-based index of this message among its siblings. */
+  index: number;
+  /** Number of siblings sharing this message's parent. */
+  total: number;
+  /** Sibling message ids in order, for prev/next switching. */
+  siblings: string[];
+};
+
 function MessagePartsInner({
   message,
   status,
@@ -693,6 +709,11 @@ function MessagePartsInner({
   onRemember,
   showActivity = true,
   isLast = false,
+  branch,
+  onSwitchBranch,
+  onForkMessage,
+  feedback,
+  onRate,
 }: {
   message: UIMessage;
   status: ChatStatus;
@@ -726,6 +747,18 @@ function MessagePartsInner({
   /** The newest message in the transcript — the only one a run can be writing
    * into. Everything above it is finished, whatever the run is doing. */
   isLast?: boolean;
+  /** Sibling info for the branch switcher; see BranchInfo above. A scalar
+   * object the parent replaces (never mutates), so the memo still holds. */
+  branch?: BranchInfo;
+  /** Switch to a sibling branch. Takes ids, so one function serves every
+   * message — the same stability rule as onRegenerateMessage. */
+  onSwitchBranch?: (messageId: string, siblingId: string) => void;
+  /** Fork the conversation into a new one from this message. */
+  onForkMessage?: (messageId: string) => void;
+  /** This owner's thumbs rating for the message, if any. */
+  feedback?: FeedbackValue | null;
+  /** Rate the message; the parent PUTs it and updates `feedback`. */
+  onRate?: (messageId: string, value: FeedbackValue | null) => void;
 }) {
   // Only the message actually being written is animating.
   //
@@ -753,6 +786,17 @@ function MessagePartsInner({
   // parent hands down one stable function instead of one closure per message.
   const canRegenerate = actionsReady && !!onRegenerateMessage && message.role === 'assistant';
   const canEdit = actionsReady && !!onEditMessage && message.role === 'user';
+  // Forking is offered on any settled message: it copies the active path up
+  // to and including this message into a new conversation.
+  const canFork = actionsReady && !!onForkMessage;
+  // The "‹ 1/3 ›" switcher, only when this message actually has siblings and
+  // the transcript is settled enough to rewrite.
+  const showSwitcher = !!branch && branch.total > 1 && !!onSwitchBranch && actionsReady;
+  const switchToSibling = (direction: -1 | 1) => {
+    if (!branch || !onSwitchBranch) return;
+    const target = branch.siblings[branch.index + direction];
+    if (target) onSwitchBranch(message.id, target);
+  };
   // Only once the answer has settled: a page assembled from a half-written file
   // would render as a broken preview and then change under the reader.
   //
@@ -917,12 +961,27 @@ function MessagePartsInner({
     // same source do not each open their own list.
     if (part.type === 'source-url' || part.type === 'source-document') return null;
 
-    if (part.type === 'file')
+    // A generated image is the answer, not an attachment note: rendered as
+    // the picture itself, with the generation prompt as alt text. (Chat v2
+    // /image command — the part carries an /api/media/assets/... URL, and
+    // the message metadata carries the prompt and model.)
+    if (part.type === 'file') {
+      const filePart = part as { mediaType?: string; url?: string };
+      if (typeof filePart.mediaType === 'string' && filePart.mediaType.startsWith('image/'))
+        return (
+          <GeneratedImage
+            key={key}
+            url={filePart.url ?? ''}
+            alt={(message.metadata as { prompt?: string } | undefined)?.prompt}
+            model={(message.metadata as { model?: string } | undefined)?.model}
+          />
+        );
       return (
         <p key={key} className="chat-attachment-note">
           Attached: {part.filename ?? part.mediaType}
         </p>
       );
+    }
 
     if (part.type === 'data-plan') {
       if (!showActivity) return null;
@@ -1076,13 +1135,36 @@ function MessagePartsInner({
               {onRemember && <RememberAction message={message} onRemember={onRemember} />}
               {canRegenerate && (
                 <MessageAction
-                  tooltip="Answer again, replacing everything after this"
+                  tooltip="Answer again — this answer is kept as a branch"
                   onClick={() => onRegenerateMessage?.(message.id)}
                 >
                   <RefreshCw size={16} />
                 </MessageAction>
               )}
+              {canFork && (
+                <MessageAction
+                  tooltip="Fork the conversation from here into a new chat"
+                  onClick={() => onForkMessage?.(message.id)}
+                >
+                  <GitFork size={16} />
+                </MessageAction>
+              )}
+              {onRate && (
+                <FeedbackButtons
+                  messageId={message.id}
+                  value={feedback ?? null}
+                  onRate={(value) => onRate(message.id, value)}
+                />
+              )}
             </MessageActions>
+            {showSwitcher && branch && (
+              <SiblingSwitcher
+                index={branch.index}
+                total={branch.total}
+                onPrev={() => switchToSibling(-1)}
+                onNext={() => switchToSibling(1)}
+              />
+            )}
           </MessageToolbar>
         )}
       </MessageContent>
@@ -1098,11 +1180,27 @@ function MessagePartsInner({
           {onRemember && <RememberAction message={message} onRemember={onRemember} />}
           {canEdit && (
             <MessageAction
-              tooltip="Edit and ask again, replacing everything after this"
+              tooltip="Edit and ask again — this question is kept as a branch"
               onClick={() => onEditMessage?.(message)}
             >
               <Pencil size={16} />
             </MessageAction>
+          )}
+          {canFork && (
+            <MessageAction
+              tooltip="Fork the conversation from here into a new chat"
+              onClick={() => onForkMessage?.(message.id)}
+            >
+              <GitFork size={16} />
+            </MessageAction>
+          )}
+          {showSwitcher && branch && (
+            <SiblingSwitcher
+              index={branch.index}
+              total={branch.total}
+              onPrev={() => switchToSibling(-1)}
+              onNext={() => switchToSibling(1)}
+            />
           )}
         </div>
       )}

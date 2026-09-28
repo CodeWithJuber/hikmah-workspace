@@ -22,9 +22,20 @@ import { KnowledgeEditor, newKnowledge } from './knowledge';
 import { VitalsPanel } from '@/components/settings/vitals-panel';
 import type { KnowledgeItem } from '@/lib/playground/knowledge';
 
-export function OwnerAccess({ children }: { children: ReactNode }) {
+export function OwnerAccess({ children, crumb }: { children: ReactNode; crumb?: ReactNode }) {
   const kernel = useKernel();
-  if (kernel.ready && kernel.role === 'super_admin') return children;
+  if (kernel.ready && kernel.role === 'super_admin')
+    // The crumb is passed by the superadmin route pages and rendered above
+    // the page's own scroller, so the shared LearningHome/KernelCenter markup
+    // never learns about routes. Denied access keeps the plain panel.
+    return crumb ? (
+      <div className="admin-crumb-above">
+        <div className="admin-crumb-strip">{crumb}</div>
+        <div className="admin-crumb-body">{children}</div>
+      </div>
+    ) : (
+      children
+    );
   return (
     <div className="knowledge-page">
       <header className="workspace-header">

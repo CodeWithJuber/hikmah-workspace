@@ -24,6 +24,7 @@ import { providerDestination } from '@/lib/ai/endpoint';
 import { themeCookie, type Theme } from '@/lib/theme';
 import { toast } from 'sonner';
 import { clientFetch } from '@/lib/client/request';
+import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
 
 const NARROW = '(max-width: 900px)';
 type Panel = 'files' | 'agents' | 'memory' | 'typeform' | 'settings';
@@ -76,6 +77,12 @@ export function ChatShell({
     setPanel(requestedSettings ? 'settings' : null);
   }
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // ⌘. toggles the conversation sidebar. The chat view wires its own
+  // instance of this hook for the composer-scoped chords; this one owns the
+  // shell-scoped chord, and each instance only handles the ids it is given.
+  useKeyboardShortcuts({
+    'toggle-sidebar': () => setSidebarOpen((open) => !open),
+  });
   const [commandsOpen, setCommandsOpen] = useState(false);
   const [settingsVisited, setSettingsVisited] = useState(requestedSettings);
   if (panel === 'settings' && !settingsVisited) setSettingsVisited(true);

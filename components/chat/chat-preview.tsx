@@ -24,6 +24,7 @@ import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { GrantHandler } from './approval-card';
+import type { FeedbackValue } from '@/lib/chat/feedback-store';
 import { clientFetch } from '@/lib/client/request';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -71,7 +72,13 @@ const FALLBACK: RunConfig = {
   instructions: HIKMAH_CORE,
 };
 
-type Loaded = { conversationId: string; config: RunConfig; messages: UIMessage[]; error?: string };
+type Loaded = {
+  conversationId: string;
+  config: RunConfig;
+  messages: UIMessage[];
+  error?: string;
+  feedback?: Record<string, FeedbackValue>;
+};
 
 /** What a catalogue depends on: change any of these and it is stale. */
 const catalogueKey = (config?: RunConfig) =>
@@ -138,7 +145,7 @@ type SavedConnection = {
  */
 async function loadMessages(
   conversationId: string,
-): Promise<{ messages: UIMessage[]; error?: string }> {
+): Promise<{ messages: UIMessage[]; error?: string; feedback?: Record<string, FeedbackValue> }> {
   const response = await clientFetch(
     `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
     { signal: AbortSignal.timeout(20_000) },
@@ -146,12 +153,13 @@ async function loadMessages(
   const payload = (await response.json().catch(() => null)) as {
     messages?: UIMessage[];
     error?: string;
+    feedback?: Record<string, FeedbackValue>;
   } | null;
   if (!response.ok)
     throw new Error(payload?.error || 'Your conversation could not be loaded. Please try again.');
   if (!Array.isArray(payload?.messages))
     throw new Error('The saved conversation could not be read. Please try again.');
-  return { messages: payload.messages, error: payload.error };
+  return { messages: payload.messages, error: payload.error, feedback: payload.feedback };
 }
 
 export function ChatPreview({
@@ -377,6 +385,7 @@ export function ChatPreview({
             disabledTools: settings.disabledTools,
           }}
           initialMessages={loaded.messages}
+          initialFeedback={loaded.feedback}
           initialError={loaded.error}
           onSettled={onSettled}
           starters={(agent && AGENT_STARTERS[agent.name]) || STARTERS}

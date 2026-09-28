@@ -203,15 +203,35 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   //
   // Scoped to the trigger and to this conversation: a plain new turn never
   // deletes anything, and truncateFrom is a no-op for an id it cannot find.
+  //
+  // Branching (Chat v2): the replayed message keeps its place in the tree.
+  // Its parent is read before the truncate, so the re-appended row lands
+  // under the same parent — an edited question becomes a sibling of the one
+  // it replaces, not a new root or a misplaced child. A plain new turn
+  // answers whatever the active path ends at.
+  const turnParentId =
+    parsed.regenerate && incoming.id
+      ? store.getMessageParent(conversationId, incoming.id)
+      : store.lastActiveMessageId(conversationId);
   if (parsed.regenerate && incoming.id) store.truncateFrom(conversationId, incoming.id);
 
+  // The id the user message is stored under: the run's answer is its child
+  // in the tree, which is what makes a regenerated answer a sibling of the
+  // preserved one rather than a stranger. Computed once so the row and the
+  // run config below can never disagree.
+  const userMessageId = incoming.id ?? newMessageId();
+
   try {
-    store.appendMessage(conversationId, {
-      id: incoming.id ?? newMessageId(),
-      role: incoming.role,
-      parts: incoming.parts,
-      metadata: undefined,
-    });
+    store.appendMessage(
+      conversationId,
+      {
+        id: userMessageId,
+        role: incoming.role,
+        parts: incoming.parts,
+        metadata: undefined,
+      },
+      turnParentId,
+    );
   } catch {
     // The only way here is a message id that already exists, which means this
     // turn has already been recorded. Say so rather than returning a 500 with
@@ -263,6 +283,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         baseUrl: parsed.baseUrl,
         model: parsed.model,
         freeOnly: parsed.freeOnly,
+        // The tree parent for the run's answer (Chat v2 message branching):
+        // the user message this turn was stored under, so the answer lands
+        // as its child and a regenerated answer becomes a sibling of the
+        // preserved one.
+        replyParentId: userMessageId,
         apiKey: access.apiKey,
         metered: access.metered,
         execution: access.execution,
