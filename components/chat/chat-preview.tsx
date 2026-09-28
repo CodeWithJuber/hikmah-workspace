@@ -22,7 +22,6 @@ import type { PickerModel } from './model-picker';
 import { defaultProvider } from '@/lib/playground/session';
 import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
 import type { WorkspaceFiles } from '@/lib/playground/session';
-import { HikmahIcon } from '@/components/kernel/icons';
 import type { GrantHandler } from './approval-card';
 import type { FeedbackValue } from '@/lib/chat/feedback-store';
 import { clientFetch } from '@/lib/client/request';
@@ -400,13 +399,8 @@ export function ChatPreview({
           needsKey={needsKey}
           onOpenSettings={onOpenSettings}
           onGrant={onGrant}
-          empty={
-            <div className="chat-greeting">
-              <HikmahIcon name="orbit" size={32} />
-              <h2>What are we working on?</h2>
-              <p>Research, build, and learn in one conversation.</p>
-            </div>
-          }
+          // No `empty` prop: ChatView renders the onboarding empty state
+          // (EmptyStateOnboarding) when the conversation is empty.
         />
       ) : (
         // A line of grey text on an empty screen reads as a page that failed,

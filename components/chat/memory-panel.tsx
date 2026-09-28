@@ -11,7 +11,7 @@
  * Every memory shows where it came from, because that is what decides how far
  * to trust it: the person's own words, a named source, or the model's guess.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookmarkPlus, Check, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,12 +20,95 @@ import { Textarea } from '@/components/ui/textarea';
 import { useMemory } from '@/hooks/use-memory';
 import type { Memory, MemoryKind } from '@/lib/memory/store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { clientFetch } from '@/lib/client/request';
+import type { LearningExample, LearningSnapshot } from '@/lib/learning/types';
+import { dayWord, growthStory } from './memory-annotations';
 
 const PROVENANCE: Record<Memory['provenance'], string> = {
   quote: 'Your words',
   source: 'From a source',
   inference: 'Model’s inference',
 };
+
+/** Trim for the learned-examples list: long enough to recognise, short enough
+ * to scan. */
+const clip = (value: string, max: number) =>
+  value.length > max ? value.slice(0, max - 1).trimEnd() + '…' : value;
+
+/** What the workspace learned, in plain language — from /api/learning.
+ *
+ * The snapshot's `capability.mode` is 'reviewed-examples' with
+ * `providerWeightsChanged: false`: these are demonstrations the person
+ * reviewed and the workspace applies, and the header says exactly that.
+ * There is no per-example observation count in the API, so the surface shows
+ * the aggregate approved/pending counts instead of inventing one. */
+function LearnedRules() {
+  const [snapshot, setSnapshot] = useState<LearningSnapshot | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void clientFetch('/api/learning')
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return (await response.json()) as LearningSnapshot;
+      })
+      .then((payload) => {
+        if (live) setSnapshot(payload);
+      })
+      .catch(() => {
+        if (live) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // A failed load says nothing here rather than claiming an empty brain; the
+  // memory list above is the main story.
+  if (failed || !snapshot) return null;
+  const counts = snapshot.counts ?? { pending: 0, approved: 0, rejected: 0, total: 0 };
+  const approved = (snapshot.examples ?? [])
+    .filter((example) => example.status === 'approved')
+    .slice(0, 5);
+
+  const ruleFor = (example: LearningExample) =>
+    example.correction
+      ? // A reviewed correction: what the person taught, in their own words.
+        `You corrected an answer — it now says: “${clip(example.effectiveResponse, 140)}”`
+      : // An approved demonstration: the answer the person endorsed.
+        `You approved this answer: “${clip(example.effectiveResponse, 140)}”`;
+
+  return (
+    <section>
+      <h3>What your workspace learned</h3>
+      <p className="text-sm text-muted-foreground">
+        {counts.approved} approved {counts.approved === 1 ? 'example' : 'examples'} your workspace
+        applies
+        {counts.pending > 0 && ` · ${counts.pending} waiting for your review`}. Nothing here
+        re-trains the AI model — your workspace learns from reviewed examples, not by changing model
+        weights.
+      </p>
+      {approved.length > 0 ? (
+        <ul>
+          {approved.map((example) => (
+            <li key={example.id} className="memory-item">
+              <p dir="auto">{ruleFor(example)}</p>
+              <span className="memory-source">
+                From: “{clip(example.prompt, 90)}” · reviewed{' '}
+                {dayWord(example.reviewedAt ?? example.createdAt)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="memory-empty">
+          Nothing approved yet — corrections you review land here, and answers start using them.
+        </p>
+      )}
+    </section>
+  );
+}
 
 const EMPTY_DRAFT = { title: '', content: '', kind: 'reference' as MemoryKind };
 
@@ -104,6 +187,7 @@ export function MemoryPanel() {
     return (
       <li
         key={memory.id}
+        id={'memory-' + memory.id}
         className={'memory-item' + (memory.status === 'suggested' ? ' is-suggested' : '')}
       >
         <header>
@@ -121,9 +205,15 @@ export function MemoryPanel() {
         </header>
         <p dir="auto">{memory.content}</p>
         <span className="memory-source">
-          {memory.kind === 'preference' ? 'Preference' : 'Reference'}
-          {memory.source ? ' · ' + memory.source : ''}
-          {memory.uses > 0 ? ` · used ${memory.uses}×` : ''}
+          {(() => {
+            const bits = [memory.kind === 'preference' ? 'Preference' : 'Reference'];
+            if (memory.source) bits.push(memory.source);
+            // What it learned is above; this is where from, and how often the
+            // person’s answers have actually drawn on it.
+            bits.push(memory.uses > 0 ? `used ${memory.uses}×` : 'not used yet');
+            if (memory.lastUsedAt) bits.push(`last used ${dayWord(memory.lastUsedAt)}`);
+            return bits.join(' · ');
+          })()}
         </span>
         <div className="memory-actions">
           {memory.status === 'suggested' && (
@@ -171,6 +261,26 @@ export function MemoryPanel() {
           <BookmarkPlus size={16} /> Remember something
         </Button>
       </h2>
+      {/* The growth story: what the person owns, and that it is being used.
+       * Compounding value made visible — the habit forms from seeing the
+       * second brain grow, not from streaks or badges. */}
+      {!loading && !failed && memories && (
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+          <p className="text-sm font-medium text-foreground">Your second brain</p>
+          <p className="text-sm text-muted-foreground">
+            {(() => {
+              const story = growthStory(memories);
+              return `${story.total} ${story.total === 1 ? 'memory' : 'memories'} · ${story.usedThisWeek} used this week`;
+            })()}
+          </p>
+        </div>
+      )}
+      {/* Honesty, exactly: the workspace learns — reviewed examples, routing
+       * the person checks — and no memory here fine-tunes the model. */}
+      <p className="text-sm text-muted-foreground">
+        Your workspace learns from saved memories and reviewed examples. The AI model itself is
+        never re-trained.
+      </p>
       {adding && (
         <form
           className="memory-form"
@@ -276,6 +386,10 @@ export function MemoryPanel() {
               </ul>
             </section>
           )}
+          {/* Learned rules surface: reviewed examples, in plain language.
+           * Proposed placement (coordinator): move into a shadcn Tabs on this
+           * panel — "Memories" / "What it learned" — when the tab bar lands. */}
+          <LearnedRules />
         </>
       )}
     </div>
