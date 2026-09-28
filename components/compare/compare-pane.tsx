@@ -32,7 +32,7 @@ const statusLine = (status: LaneStatus, stage: string): ReactNode => {
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
         role="status"
       >
-        <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+        <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
         {stage}
       </span>
     );
