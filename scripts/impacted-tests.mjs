@@ -239,7 +239,10 @@ function getChangedFromGit(baseRef) {
       encoding: 'utf8',
       timeout: 15000,
     });
-    return out.split('\n').map((s) => s.trim()).filter(Boolean);
+    return out
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
   } catch {
     return null;
   }
@@ -252,7 +255,10 @@ function getChangedStaged() {
       encoding: 'utf8',
       timeout: 15000,
     });
-    return out.split('\n').map((s) => s.trim()).filter(Boolean);
+    return out
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
   } catch {
     return null;
   }
@@ -306,7 +312,7 @@ function main() {
 
   // 4. Source files -> tests that reference them (direct + 1-level transitive).
   const sourceChanged = changed.filter(
-    (c) => !isTestFile(c) && !isStyleFile(c) && scriptCheckTests(c).length === 0
+    (c) => !isTestFile(c) && !isStyleFile(c) && scriptCheckTests(c).length === 0,
   );
 
   if (sourceChanged.length > 0) {
@@ -342,7 +348,10 @@ function main() {
           impacted.add(testFile);
           break;
         }
-        const base = norm.split('/').pop().replace(/\.(ts|tsx|js|mjs)$/, '');
+        const base = norm
+          .split('/')
+          .pop()
+          .replace(/\.(ts|tsx|js|mjs)$/, '');
         if (base.length > 6 && text.includes(base)) {
           const dirPart = norm.split('/').slice(-2, -1)[0] || '';
           if (dirPart && text.includes(dirPart + '/' + base)) {
