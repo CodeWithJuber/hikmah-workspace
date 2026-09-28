@@ -17,6 +17,7 @@ import {
 } from '@/components/ai-elements/confirmation';
 import { ApprovalCard, type GrantHandler } from './approval-card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
 import {
   AlertCircle,
   Bookmark,
@@ -1071,9 +1072,15 @@ function MessagePartsInner({
               : 'This turn produced nothing.'}{' '}
             Answer again, or choose a different model.
             {canRegenerate && (
-              <button type="button" onClick={() => onRegenerateMessage?.(message.id)}>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto px-1"
+                onClick={() => onRegenerateMessage?.(message.id)}
+              >
                 Answer again
-              </button>
+              </Button>
             )}
           </p>
         )}

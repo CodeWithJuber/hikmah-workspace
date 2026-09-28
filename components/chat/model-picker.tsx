@@ -173,7 +173,7 @@ export function ModelPicker({
             )}
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="model-dialog-filters" role="group" aria-label="Filter models">
+            <div className="flex flex-wrap gap-2 px-3 pb-3" role="group" aria-label="Filter models">
               {(
                 [
                   ['all', 'All'],
@@ -184,14 +184,16 @@ export function ModelPicker({
               )
                 .filter(([key]) => key !== 'free' || hasFree)
                 .map(([key, label]) => (
-                  <button
+                  <Button
                     key={key}
                     type="button"
+                    size="sm"
+                    variant={filter === key ? 'secondary' : 'outline'}
                     aria-pressed={filter === key}
                     onClick={() => setFilter(key)}
                   >
                     {label}
-                  </button>
+                  </Button>
                 ))}
             </div>
           </CollapsibleContent>

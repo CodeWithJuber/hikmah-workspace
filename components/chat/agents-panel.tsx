@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { clientFetch } from '@/lib/client/request';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export type Agent = {
   id: string;
@@ -196,9 +197,9 @@ export function AgentsPanel({
         ))}
       </ul>
 
-      <button type="button" className="conversation-new" onClick={() => edit(null)}>
+      <Button type="button" variant="outline" className="w-full" onClick={() => edit(null)}>
         New agent
-      </button>
+      </Button>
 
       {open && (
         <div className="files-editor">

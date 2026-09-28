@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   DropdownMenu,
@@ -194,13 +195,15 @@ function ChatRow({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button
             type="button"
-            className="conversation-more"
+            variant="ghost"
+            size="icon"
+            className="size-8"
             aria-label={`More actions for ${title}`}
           >
             <MoreHorizontal size={16} aria-hidden="true" />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => onBeginRename(entry)}>
@@ -246,14 +249,16 @@ function ChatRow({
           </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
-      <button
+      <Button
         type="button"
-        className="conversation-delete"
+        variant="ghost"
+        size="icon"
+        className="size-8"
         aria-label={`Delete ${title}`}
         onClick={() => onDelete(entry)}
       >
         <Trash2 size={12} aria-hidden="true" />
-      </button>
+      </Button>
     </li>
   );
 }
@@ -299,9 +304,10 @@ function ProjectSection({
     <Collapsible open={open} onOpenChange={setOpen} className="conversation-project">
       <div className="conversation-project-header">
         <CollapsibleTrigger asChild>
-          <button
+          <Button
             type="button"
-            className="conversation-project-toggle"
+            variant="ghost"
+            className="flex-1 justify-start gap-2"
             aria-label={`${open ? 'Collapse' : 'Expand'} project ${project.name}`}
           >
             <ChevronDown
@@ -311,17 +317,19 @@ function ProjectSection({
             />
             <span className="conversation-project-name">{project.name}</span>
             <span className="conversation-project-count">{entries.length}</span>
-          </button>
+          </Button>
         </CollapsibleTrigger>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="conversation-more"
+              variant="ghost"
+              size="icon"
+              className="size-8"
               aria-label={`More actions for project ${project.name}`}
             >
               <MoreHorizontal size={16} aria-hidden="true" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => onRenameProject(project)}>
@@ -673,14 +681,14 @@ export function ConversationList({
 
   return (
     <nav className="conversation-list" aria-label="Conversations">
-      <button
+      <Button
         type="button"
-        className="conversation-new"
+        className="w-full justify-start"
         onClick={() => void startNew()}
         disabled={busy}
       >
         <Plus size={16} aria-hidden="true" /> {busy ? 'Opening…' : 'New chat'}
-      </button>
+      </Button>
 
       <label className="workspace-conversation-search">
         <Search size={16} aria-hidden="true" />
@@ -696,12 +704,14 @@ export function ConversationList({
       <h2 className="workspace-history-heading">Recent conversations</h2>
 
       {failed ? (
-        <p className="conversation-note conversation-failed" role="status">
-          Couldn&rsquo;t load your conversations.
-          <button type="button" onClick={() => setAttempt((n) => n + 1)}>
-            Try again
-          </button>
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center justify-between gap-2">
+            <span>Couldn&rsquo;t load your conversations.</span>
+            <Button size="sm" variant="outline" onClick={() => setAttempt((n) => n + 1)}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
       ) : conversations === null ? (
         <div
           className="conversation-note grid gap-2"
@@ -804,14 +814,16 @@ export function ConversationList({
                     {taskState(task)}
                   </span>
                 </Link>
-                <button
+                <Button
                   type="button"
-                  className="conversation-delete"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
                   aria-label={`Delete ${task.title || 'this task'}`}
                   onClick={() => setDeleting(task)}
                 >
                   <Trash2 size={12} aria-hidden="true" />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

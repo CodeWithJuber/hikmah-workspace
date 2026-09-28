@@ -30,6 +30,7 @@ import {
 } from '@/components/ai-elements/prompt-input';
 import type { FileUIPart, LanguageModelUsage } from 'ai';
 import {
+  AlertTriangle,
   ArrowUp,
   BookOpen,
   Check,
@@ -66,6 +67,10 @@ import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConnectModelCard } from './connect-model';
 import { allModelsFree } from '@/lib/ai/endpoint';
 import { PricingContext } from './pricing-context';
@@ -194,16 +199,19 @@ function StagedAttachments() {
   return (
     <ul className="chat-attachments">
       {attachments.files.map((file) => (
-        <li key={file.id}>
+        <li key={file.id} className="flex items-center gap-2">
           <Paperclip size={12} aria-hidden="true" />
-          <span>{file.filename || file.mediaType || 'Attachment'}</span>
-          <button
+          <span className="text-sm">{file.filename || file.mediaType || 'Attachment'}</span>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
+            className="size-6"
             aria-label={`Remove ${file.filename || 'attachment'}`}
             onClick={() => attachments.remove(file.id)}
           >
             <X size={12} />
-          </button>
+          </Button>
         </li>
       ))}
     </ul>
@@ -983,31 +991,41 @@ export function ChatView({
       <div className={'chat-view' + (messages.length === 0 ? ' is-empty' : '')}>
         {banner}
         {messages.length > 0 && (
-          <div className="chat-transcript-toolbar">
-            <span>
+          <div className="flex items-center justify-between gap-2 px-1 py-2">
+            <span className="text-sm text-muted-foreground">
               {messages.filter((message) => message.role === 'user').length} prompts in this
               conversation
             </span>
-            <div className="chat-transcript-toolbar-actions">
-              <button
+            <div className="flex items-center gap-1">
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setSearchOpen((open) => !open)}
                 title="Search in this conversation"
                 aria-expanded={searchOpen}
               >
                 <Search size={16} aria-hidden="true" />
                 Search
-              </button>
-              <button
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShortcutsOpen(true)}
+                    aria-label="Keyboard shortcuts"
+                  >
+                    <Keyboard size={16} aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Keyboard shortcuts</TooltipContent>
+              </Tooltip>
+              <Button
                 type="button"
-                onClick={() => setShortcutsOpen(true)}
-                title="Keyboard shortcuts"
-                aria-label="Keyboard shortcuts"
-              >
-                <Keyboard size={16} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={exportTranscript}
                 title="Download the visible answers and sources as Markdown"
               >
@@ -1017,7 +1035,7 @@ export function ChatView({
                   <Download size={16} aria-hidden="true" />
                 )}
                 Export chat
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1032,9 +1050,16 @@ export function ChatView({
           <ConversationContent className="chat-transcript-content">
             {messages.length === 0 && <div className="chat-welcome">{empty}</div>}
             {hidden > 0 && (
-              <button type="button" className="chat-earlier" onClick={() => setShowEarlier(true)}>
-                Show {hidden} earlier {hidden === 1 ? 'message' : 'messages'}
-              </button>
+              <div className="flex justify-center py-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEarlier(true)}
+                >
+                  Show {hidden} earlier {hidden === 1 ? 'message' : 'messages'}
+                </Button>
+              </div>
             )}
             {visible.map((message, index) => (
               <div
@@ -1128,98 +1153,118 @@ export function ChatView({
 
         <div className="chat-composer-area">
           {!online && (
-            <div className="chat-connection-notice" role="status">
-              <WifiOff size={16} aria-hidden="true" />
-              <span>
-                You’re offline. Your draft is still here. Reconnect to check the latest response.
-              </span>
-              <button type="button" onClick={() => window.location.reload()}>
-                Reconnect
-              </button>
-            </div>
+            <Alert className="mb-3">
+              <WifiOff className="size-4" aria-hidden="true" />
+              <AlertTitle>You’re offline</AlertTitle>
+              <AlertDescription>
+                <p>Your draft is still here. Reconnect to check the latest response.</p>
+                <div className="mt-2">
+                  <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                    Reconnect
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
           {stopState !== 'idle' && !busy && (
-            <div className="chat-connection-notice" role="status">
-              <span>
-                {stopState === 'stopping'
-                  ? 'Stopping the run…'
-                  : stopState === 'stopped'
-                    ? 'Response stopped. You can continue from here.'
-                    : 'The stream stopped, but the server has not confirmed cancellation.'}
-              </span>
-              {stopState === 'unconfirmed' && (
-                <button type="button" onClick={() => window.location.reload()}>
-                  Check status
-                </button>
-              )}
-              {stopState === 'stopped' && (
-                <button
-                  type="button"
-                  onClick={() => setStopState('idle')}
-                  aria-label="Dismiss stopped notice"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+            <Alert className="mb-3">
+              <Square className="size-4" aria-hidden="true" />
+              <AlertDescription className="col-start-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p>
+                    {stopState === 'stopping'
+                      ? 'Stopping the run…'
+                      : stopState === 'stopped'
+                        ? 'Response stopped. You can continue from here.'
+                        : 'The stream stopped, but the server has not confirmed cancellation.'}
+                  </p>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {stopState === 'unconfirmed' && (
+                      <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                        Check status
+                      </Button>
+                    )}
+                    {stopState === 'stopped' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setStopState('idle')}
+                        aria-label="Dismiss stopped notice"
+                      >
+                        Dismiss
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
           {/* The live failure first; the stored one only while nothing has been
           sent since, so pressing Try again cannot leave the old reason sitting
           under the new answer. */}
           {!!failure && (
-            <div className="chat-error" role="alert">
-              <strong>
+            <Alert variant="destructive" className="mb-3">
+              <AlertTriangle className="size-4" aria-hidden="true" />
+              <AlertTitle>
                 {recovery === 'reconnect'
                   ? 'Connection interrupted'
                   : /Free models only/i.test(failure ?? '')
                     ? 'Model not allowed'
                     : 'This request needs attention'}
-              </strong>
-              <p>{failure}</p>
-              {/* A run paused on a card this tab has lost track of — answered
+              </AlertTitle>
+              <AlertDescription>
+                <p>{failure}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {/* A run paused on a card this tab has lost track of — answered
                 once and refused, or answered from another tab — is put right by
                 reloading, which shows the card again from the stored turn.
                 Try again would re-send into the same refusal. */}
-              {recovery === 'reload' || recovery === 'reconnect' ? (
-                <button type="button" onClick={() => window.location.reload()}>
-                  {recovery === 'reconnect' ? 'Reconnect to saved run' : 'Reload conversation'}
-                </button>
-              ) : recovery === 'configure' && onOpenSettings ? (
-                // The fix is in settings, not a retry: open where it goes.
-                // For a missing key it's "Add a key"; for the free-only block
-                // it's "Open settings" (turn it off or pick a free model).
-                <button type="button" onClick={onOpenSettings}>
-                  {/Free models only/i.test(failure ?? '') ? 'Open settings' : 'Add a key'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy || !online}
-                  onClick={() => {
-                    setRetried(true);
-                    setStopState('idle');
-                    void regenerate();
-                  }}
-                >
-                  Try again
-                </button>
-              )}
-            </div>
+                  {recovery === 'reload' || recovery === 'reconnect' ? (
+                    <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                      {recovery === 'reconnect' ? 'Reconnect to saved run' : 'Reload conversation'}
+                    </Button>
+                  ) : recovery === 'configure' && onOpenSettings ? (
+                    // The fix is in settings, not a retry: open where it goes.
+                    // For a missing key it's "Add a key"; for the free-only block
+                    // it's "Open settings" (turn it off or pick a free model).
+                    <Button size="sm" variant="outline" onClick={onOpenSettings}>
+                      {/Free models only/i.test(failure ?? '') ? 'Open settings' : 'Add a key'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy || !online}
+                      onClick={() => {
+                        setRetried(true);
+                        setStopState('idle');
+                        void regenerate();
+                      }}
+                    >
+                      Try again
+                    </Button>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Temporary chat: nothing typed here is kept. The notice sits
             above the composer rather than in it, so the input row keeps its
             shape and the state is visible before anything is typed. */}
           {tempActive && (
-            <p className="chat-temp-notice" role="status">
-              <Ghost size={16} aria-hidden="true" />
-              <span>
-                <strong>Temporary chat</strong> — nothing here is saved to your history.
-              </span>
-              <button type="button" onClick={() => void toggleTemp()}>
-                Turn off
-              </button>
-            </p>
+            <Alert className="mb-3">
+              <Ghost className="size-4" aria-hidden="true" />
+              <AlertTitle>Temporary chat</AlertTitle>
+              <AlertDescription>
+                <p>Nothing here is saved to your history.</p>
+                <div className="mt-2">
+                  <Button size="sm" variant="outline" onClick={() => void toggleTemp()}>
+                    Turn off
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
           <PromptInput
             className={'chat-composer' + (tempActive ? ' chat-composer-temp' : '')}
@@ -1239,42 +1284,58 @@ export function ChatView({
           >
             <PromptInputBody>
               {editing && (
-                <p className="chat-editing" role="status">
-                  Editing an earlier question. Sending replaces it, and every reply after it.
-                  <button type="button" onClick={cancelEdit}>
-                    Cancel
-                  </button>
-                </p>
+                <Alert className="mb-3">
+                  <AlertDescription className="flex items-center justify-between gap-2">
+                    <span>
+                      Editing an earlier question. Sending replaces it, and every reply after it.
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
+                      Cancel
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               )}
               <StagedAttachments />
               {(webSearch || deepResearch || compare) && (
-                <div className="chat-selected-modes" aria-label="Extra help for this conversation">
+                <div className="flex flex-wrap gap-2" aria-label="Extra help for this conversation">
                   {webSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setWebSearch(false)}
-                      aria-label="Turn off web search"
-                    >
-                      <Globe size={12} /> Search <X size={12} />
-                    </button>
+                    <Badge variant="secondary" className="gap-1 py-1.5">
+                      <Globe size={12} aria-hidden="true" /> Search
+                      <button
+                        type="button"
+                        onClick={() => setWebSearch(false)}
+                        aria-label="Turn off web search"
+                        className="ml-1 rounded-full hover:bg-muted"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    </Badge>
                   )}
                   {deepResearch && (
-                    <button
-                      type="button"
-                      onClick={() => setDeepResearch(false)}
-                      aria-label="Turn off deep research"
-                    >
-                      <Telescope size={12} /> Research <X size={12} />
-                    </button>
+                    <Badge variant="secondary" className="gap-1 py-1.5">
+                      <Telescope size={12} aria-hidden="true" /> Research
+                      <button
+                        type="button"
+                        onClick={() => setDeepResearch(false)}
+                        aria-label="Turn off deep research"
+                        className="ml-1 rounded-full hover:bg-muted"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    </Badge>
                   )}
                   {compare && (
-                    <button
-                      type="button"
-                      onClick={() => setCompare(false)}
-                      aria-label="Turn off comparison"
-                    >
-                      <Columns2 size={12} /> Compare answers <X size={12} />
-                    </button>
+                    <Badge variant="secondary" className="gap-1 py-1.5">
+                      <Columns2 size={12} aria-hidden="true" /> Compare answers
+                      <button
+                        type="button"
+                        onClick={() => setCompare(false)}
+                        aria-label="Turn off comparison"
+                        className="ml-1 rounded-full hover:bg-muted"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    </Badge>
                   )}
                 </div>
               )}
@@ -1405,16 +1466,20 @@ export function ChatView({
             </PromptInputFooter>
           </PromptInput>
           {attachmentError && (
-            <p className="chat-attachment-error" role="alert">
-              {attachmentError}{' '}
-              <button
-                type="button"
-                onClick={() => setAttachmentError('')}
-                aria-label="Dismiss attachment error"
-              >
-                <X size={12} />
-              </button>
-            </p>
+            <Alert variant="destructive" className="mt-3">
+              <AlertDescription className="flex items-center justify-between gap-2">
+                <span>{attachmentError}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAttachmentError('')}
+                  aria-label="Dismiss attachment error"
+                >
+                  Dismiss
+                </Button>
+              </AlertDescription>
+            </Alert>
           )}
           {messages.length === 0 && !needsKey && !draft.trim() && !editing && (
             <EmptyState
@@ -1424,34 +1489,41 @@ export function ChatView({
               action={
                 starters?.length ? (
                   <div
-                    className="chat-starters chat-agent-starters"
+                    className="flex flex-wrap justify-center gap-2"
                     role="group"
                     aria-label="Try asking this agent"
                   >
                     {starters.map((prompt) => (
-                      <button key={prompt} type="button" onClick={() => chooseStarter(prompt)}>
+                      <Button
+                        key={prompt}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => chooseStarter(prompt)}
+                      >
                         {prompt}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 ) : (
                   <div
-                    className="chat-intent-shortcuts chat-outcome-starters"
+                    className="flex flex-wrap justify-center gap-2"
                     role="group"
                     aria-label="Ideas to get started"
                   >
                     {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
                       const Icon = STARTER_ICONS[choice];
                       return (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
                           key={choice}
                           onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
                           title={CHAT_STARTERS[choice].detail}
                         >
-                          <Icon size={20} aria-hidden="true" />
+                          <Icon size={16} aria-hidden="true" />
                           {CHAT_STARTERS[choice].label}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>

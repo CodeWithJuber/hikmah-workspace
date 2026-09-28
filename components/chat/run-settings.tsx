@@ -9,7 +9,12 @@
  * `buildRunAgent`, and `showActivity` decides what the transcript renders.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, Check } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { MAX_INSTRUCTIONS, type ChatSettings } from '@/lib/chat/settings';
 import { GATED_TOOLS, withGrant, withoutGrant } from '@/lib/chat/approvals';
@@ -99,19 +104,20 @@ export function RunSettings({
       </section>
       <section>
         <h3>Response length</h3>
-        <div className="chat-settings-choices" role="group" aria-label="Response style">
+        <ButtonGroup aria-label="Response style">
           {STYLES.map((choice) => (
-            <button
+            <Button
               key={choice.value}
               type="button"
-              disabled={saving}
+              variant={settings.responseStyle === choice.value ? 'secondary' : 'outline'}
               aria-pressed={settings.responseStyle === choice.value}
+              disabled={saving}
               onClick={() => void apply({ responseStyle: choice.value })}
             >
               {choice.label}
-            </button>
+            </Button>
           ))}
-        </div>
+        </ButtonGroup>
       </section>
 
       <Collapsible className="chat-settings-disclosure">
@@ -119,35 +125,40 @@ export function RunSettings({
           Personalization <span>Instructions & display</span>
         </CollapsibleTrigger>
         <CollapsibleContent className="chat-settings-disclosure-body">
-          <label className="chat-settings-toggle">
-            <input
-              type="checkbox"
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Show activity</p>
+              <p className="text-sm text-muted-foreground">
+                Tool activity and usage details beneath each answer.
+              </p>
+            </div>
+            <Switch
               checked={settings.showActivity}
               disabled={saving}
-              onChange={(event) => void apply({ showActivity: event.target.checked })}
+              aria-label="Show activity"
+              onCheckedChange={(checked) => void apply({ showActivity: checked })}
             />
-            <span>
-              <strong>Show activity</strong>
-              <small>Tool activity and usage details beneath each answer.</small>
-            </span>
-          </label>
-          <label className="chat-settings-toggle">
-            <input
-              type="checkbox"
+          </div>
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Explain decisions</p>
+              <p className="text-sm text-muted-foreground">
+                Include the evidence and trade-offs behind recommendations.
+              </p>
+            </div>
+            <Switch
               checked={settings.explainDecisions}
               disabled={saving}
-              onChange={(event) => void apply({ explainDecisions: event.target.checked })}
+              aria-label="Explain decisions"
+              onCheckedChange={(checked) => void apply({ explainDecisions: checked })}
             />
-            <span>
-              <strong>Explain decisions</strong>
-              <small>Include the evidence and trade-offs behind recommendations.</small>
-            </span>
-          </label>
-          <div className="chat-setting">
-            <label htmlFor="chat-instructions">Your instructions</label>
-            <textarea
+          </div>
+          <div className="space-y-2 pt-2">
+            <label htmlFor="chat-instructions" className="text-sm font-medium">
+              Your instructions
+            </label>
+            <Textarea
               id="chat-instructions"
-              className="chat-settings-instructions"
               rows={4}
               maxLength={MAX_INSTRUCTIONS}
               value={instructions}
@@ -155,7 +166,9 @@ export function RunSettings({
               placeholder="For example: reply in Hindi, keep explanations brief, cite sources."
               onChange={(event) => setInstructions(event.target.value)}
             />
-            <small>Included in future chats. Save to apply your changes.</small>
+            <p className="text-sm text-muted-foreground">
+              Included in future chats. Save to apply your changes.
+            </p>
             {instructions !== settings.instructions && (
               <Button
                 variant="outline"
@@ -174,41 +187,41 @@ export function RunSettings({
           Memory <span>Previous chats & preferences</span>
         </CollapsibleTrigger>
         <CollapsibleContent className="chat-settings-disclosure-body">
-          <label className="chat-settings-toggle">
-            <input
-              type="checkbox"
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Recall earlier conversations</p>
+              <p className="text-sm text-muted-foreground">
+                Use relevant excerpts from your other chats. Usage appears below the answer.
+              </p>
+            </div>
+            <Switch
               checked={settings.memory.recallConversations}
               disabled={saving}
-              onChange={(event) =>
+              aria-label="Recall earlier conversations"
+              onCheckedChange={(checked) =>
                 void apply({
-                  memory: { ...settings.memory, recallConversations: event.target.checked },
+                  memory: { ...settings.memory, recallConversations: checked },
                 })
               }
             />
-            <span>
-              <strong>Recall earlier conversations</strong>
-              <small>
-                Use relevant excerpts from your other chats. Usage appears below the answer.
-              </small>
-            </span>
-          </label>
-          <label className="chat-settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.memory.autoSaveQuotes}
-              disabled={saving}
-              onChange={(event) =>
-                void apply({ memory: { ...settings.memory, autoSaveQuotes: event.target.checked } })
-              }
-            />
-            <span>
-              <strong>Save quoted preferences automatically</strong>
-              <small>
+          </div>
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Save quoted preferences automatically</p>
+              <p className="text-sm text-muted-foreground">
                 Exact preference quotes from your messages are saved without review. Facts and
                 inferred preferences still need your approval in Memory.
-              </small>
-            </span>
-          </label>
+              </p>
+            </div>
+            <Switch
+              checked={settings.memory.autoSaveQuotes}
+              disabled={saving}
+              aria-label="Save quoted preferences automatically"
+              onCheckedChange={(checked) =>
+                void apply({ memory: { ...settings.memory, autoSaveQuotes: checked } })
+              }
+            />
+          </div>
         </CollapsibleContent>
       </Collapsible>
 
@@ -218,19 +231,17 @@ export function RunSettings({
         </CollapsibleTrigger>
         <CollapsibleContent className="chat-settings-disclosure-body">
           <p>Choose what can run without asking. Other tools still request approval in chat.</p>
-          <ul className="chat-permissions" aria-label="Tools that reach a machine">
+          <ul className="space-y-3" aria-label="Tools that reach a machine">
             {GATED_TOOLS.map((tool) => {
               const auto = settings.approvals.auto.includes(tool);
               return (
-                <li key={tool}>
-                  <span>{PERMISSION_LABELS[tool]}</span>
-                  <div
-                    className="chat-settings-choices"
-                    role="group"
-                    aria-label={PERMISSION_LABELS[tool]}
-                  >
-                    <button
+                <li key={tool} className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{PERMISSION_LABELS[tool]}</span>
+                  <ButtonGroup aria-label={PERMISSION_LABELS[tool]}>
+                    <Button
                       type="button"
+                      size="sm"
+                      variant={!auto ? 'secondary' : 'outline'}
                       aria-pressed={!auto}
                       disabled={saving}
                       onClick={() =>
@@ -243,9 +254,11 @@ export function RunSettings({
                       }
                     >
                       Ask
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      size="sm"
+                      variant={auto ? 'secondary' : 'outline'}
                       aria-pressed={auto}
                       disabled={saving}
                       onClick={() =>
@@ -255,19 +268,20 @@ export function RunSettings({
                       }
                     >
                       Auto
-                    </button>
-                  </div>
+                    </Button>
+                  </ButtonGroup>
                 </li>
               );
             })}
             {settings.approvals.auto
               .filter((tool) => !(GATED_TOOLS as readonly string[]).includes(tool))
               .map((tool) => (
-                <li key={tool}>
-                  <code>{tool}</code>
-                  <button
+                <li key={tool} className="flex items-center justify-between gap-4">
+                  <code className="text-sm">{tool}</code>
+                  <Button
                     type="button"
-                    className="chat-permissions-remove"
+                    size="sm"
+                    variant="ghost"
                     disabled={saving}
                     onClick={() =>
                       void apply({
@@ -276,20 +290,23 @@ export function RunSettings({
                     }
                   >
                     Ask again
-                  </button>
+                  </Button>
                 </li>
               ))}
           </ul>
           {settings.approvals.commands.length > 0 && (
             <>
               <p>Commands allowed without asking, with any arguments after them:</p>
-              <ul className="chat-permissions" aria-label="Commands allowed without asking">
+              <ul className="space-y-2" aria-label="Commands allowed without asking">
                 {settings.approvals.commands.map((command) => (
-                  <li key={command}>
-                    <code dir="ltr">{command}</code>
-                    <button
+                  <li key={command} className="flex items-center justify-between gap-4">
+                    <code dir="ltr" className="text-sm">
+                      {command}
+                    </code>
+                    <Button
                       type="button"
-                      className="chat-permissions-remove"
+                      size="sm"
+                      variant="ghost"
                       aria-label={`Ask again for ${command}`}
                       disabled={saving}
                       onClick={() =>
@@ -302,29 +319,32 @@ export function RunSettings({
                       }
                     >
                       Remove
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
             </>
           )}
           {Object.keys(settings.approvals.conversations).length > 0 && (
-            <p>
-              {Object.keys(settings.approvals.conversations).length === 1
-                ? 'One conversation has'
-                : `${Object.keys(settings.approvals.conversations).length} conversations have`}{' '}
-              their own grants.{' '}
-              <button
+            <div className="flex items-center justify-between gap-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                {Object.keys(settings.approvals.conversations).length === 1
+                  ? 'One conversation has'
+                  : `${Object.keys(settings.approvals.conversations).length} conversations have`}{' '}
+                their own grants.
+              </p>
+              <Button
                 type="button"
-                className="chat-permissions-remove"
+                size="sm"
+                variant="ghost"
                 disabled={saving}
                 onClick={() =>
                   void apply({ approvals: { ...settings.approvals, conversations: {} } })
                 }
               >
                 Clear them
-              </button>
-            </p>
+              </Button>
+            </div>
           )}
         </CollapsibleContent>
       </Collapsible>
@@ -337,67 +357,70 @@ export function RunSettings({
           <section>
             <h4>Tool rounds</h4>
             <p>Maximum tool rounds per answer. Higher limits can take longer and cost more.</p>
-            <div className="chat-settings-choices" role="group" aria-label="Tool rounds">
+            <ButtonGroup aria-label="Tool rounds">
               {STEP_CHOICES.map((value) => (
-                <button
+                <Button
                   key={value}
                   type="button"
+                  size="sm"
+                  variant={settings.maxSteps === value ? 'secondary' : 'outline'}
                   aria-pressed={settings.maxSteps === value}
                   disabled={saving}
                   onClick={() => void apply({ maxSteps: value })}
                 >
                   {value}
-                </button>
+                </Button>
               ))}
-            </div>
+            </ButtonGroup>
           </section>
           <section>
             <h4>Conversation context</h4>
             <p>How much of the current chat accompanies each message. Longer context costs more.</p>
-            <div className="chat-settings-choices" role="group" aria-label="Earlier conversation">
+            <ButtonGroup aria-label="Earlier conversation">
               {CONTEXT_CHOICES.map((choice) => (
-                <button
+                <Button
                   key={choice.value}
                   type="button"
+                  size="sm"
+                  variant={settings.contextCharacters === choice.value ? 'secondary' : 'outline'}
                   aria-pressed={settings.contextCharacters === choice.value}
                   disabled={saving}
                   onClick={() => void apply({ contextCharacters: choice.value })}
                 >
                   {choice.label}
-                </button>
+                </Button>
               ))}
-            </div>
+            </ButtonGroup>
           </section>
-          {/* The workspace called this the co-model and had it on. It reached the
-            run through the same function the standing instructions did, so it
-            stopped doing anything at the same moment and for the same reason. */}
-          <label className="chat-settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.contextModel}
-              disabled={saving}
-              onChange={(event) => void apply({ contextModel: event.target.checked })}
-            />
-            <span>
-              <strong>Local context notes</strong>
-              <small>
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Local context notes</p>
+              <p className="text-sm text-muted-foreground">
                 Add locally generated syntax hints from your recent messages. They may be wrong and
                 add a few tokens per turn.
-              </small>
-            </span>
-          </label>
+              </p>
+            </div>
+            <Switch
+              checked={settings.contextModel}
+              disabled={saving}
+              aria-label="Local context notes"
+              onCheckedChange={(checked) => void apply({ contextModel: checked })}
+            />
+          </div>
         </CollapsibleContent>
       </Collapsible>
 
       {failure && (
-        <p className="chat-connection-error" role="alert">
-          {failure}
-        </p>
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" aria-hidden="true" />
+          <AlertDescription>{failure}</AlertDescription>
+        </Alert>
       )}
       {note && (
-        <p className="chat-settings-note" role="status">
-          {note}
-        </p>
+        <Alert>
+          <Check className="size-4" aria-hidden="true" />
+          <AlertDescription>{note}</AlertDescription>
+        </Alert>
       )}
     </div>
   );
