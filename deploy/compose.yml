@@ -92,14 +92,21 @@ services:
     restart: unless-stopped
     environment:
       HIKMAH_DOMAIN: ${HIKMAH_DOMAIN:?Set the HTTPS domain}
+      # The site scheme the edge serves (https when Caddy terminates TLS,
+      # http when an outer proxy does — the placeholder in the Caddyfile
+      # defaults to https, so a missing value here must not silently flip it).
+      HIKMAH_SITE_SCHEME: ${HIKMAH_SITE_SCHEME:-https}
     depends_on:
       app: { condition: service_healthy }
       # Started, not healthy: a sidecar that fails to come up must cost the
       # owner their terminal, not their whole site.
       workbench: { condition: service_started }
     ports:
-      - '80:80'
-      - '443:443'
+      # Host bindings are operator-configurable so this stack can sit behind
+      # an outer proxy that already owns 80/443 on the host. Defaults keep a
+      # standalone install unchanged.
+      - '${HIKMAH_HTTP_BIND:-80}:80'
+      - '${HIKMAH_HTTPS_BIND:-443}:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
