@@ -72,7 +72,7 @@ export function AhaMoment({
 }) {
   const inner = (
     <>
-      <Sparkles size={14} aria-hidden className="mt-px shrink-0 text-primary" />
+      <Sparkles size={16} aria-hidden className="mt-px shrink-0 text-primary" />
       <span>
         <strong className="font-medium text-foreground">{sourceLabel}</strong>
         {detail ? <span className="text-muted-foreground"> — {detail}</span> : null}
