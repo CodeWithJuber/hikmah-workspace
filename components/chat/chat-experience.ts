@@ -117,7 +117,11 @@ export function transcriptMarkdown(messages: readonly UIMessage[]): string {
 export type FailureAction = 'configure' | 'reload' | 'reconnect' | 'retry';
 
 export function failureAction(message: string): FailureAction {
-  if (/No API key|API key.*(?:invalid|missing)|(?:invalid|missing).*API key/i.test(message))
+  if (
+    /No API key|API key.*(?:invalid|missing)|(?:invalid|missing).*API key|Missing Authentication header|authentication.*(?:required|missing|failed)|unauthorized/i.test(
+      message,
+    )
+  )
     return 'configure';
   // The model is blocked by the "Free models only" setting — retrying won't
   // help. The fix is in Settings (turn it off or pick a free model).
