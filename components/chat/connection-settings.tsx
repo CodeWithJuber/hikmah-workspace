@@ -14,8 +14,12 @@
  */
 import { useEffect, useState } from 'react';
 import { Check, ExternalLink, Eye, EyeOff, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
@@ -273,14 +277,16 @@ export function ConnectionSettings({
               <CollapsibleContent>
                 <small>
                   The app server connects to Ollama. If it runs in Docker, use{' '}
-                  <button
+                  <Button
                     type="button"
-                    className="chat-inline-link"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-xs"
                     disabled={Boolean(busy)}
                     onClick={() => edit({ baseUrl: OLLAMA_DOCKER_URL })}
                   >
                     {OLLAMA_DOCKER_URL}
-                  </button>{' '}
+                  </Button>{' '}
                   and add <code>host.docker.internal</code> to{' '}
                   <code>HIKMAH_PROVIDER_ALLOW_PRIVATE</code> on the server. Pull a model first (
                   <code>ollama pull llama3.2</code>); installed models appear below.
@@ -322,13 +328,20 @@ export function ConnectionSettings({
                 setFailure('');
               }}
             />
-            <button
-              type="button"
-              aria-label={reveal ? 'Hide the key' : 'Show the key'}
-              onClick={() => setReveal((on) => !on)}
-            >
-              {reveal ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={reveal ? 'Hide the key' : 'Show the key'}
+                  onClick={() => setReveal((on) => !on)}
+                >
+                  {reveal ? <EyeOff size={16} /> : <Eye size={16} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{reveal ? 'Hide the key' : 'Show the key'}</TooltipContent>
+            </Tooltip>
           </div>
           <small>
             Stored encrypted.{' '}
@@ -384,37 +397,42 @@ export function ConnectionSettings({
                 : catalogueError || 'Search by name or enter an exact model ID.'}
         </small>
         {catalogueError && (
-          <button
+          <Button
             type="button"
-            className="chat-inline-link"
+            variant="link"
+            size="sm"
+            className="h-auto px-0"
             disabled={Boolean(busy)}
             onClick={() => setReload((value) => value + 1)}
           >
             <RefreshCw size={12} aria-hidden="true" /> Retry loading models
-          </button>
+          </Button>
         )}
       </div>
 
       {freeTier && !allModelsFree(draft.baseUrl) ? (
         <Collapsible className="chat-settings-disclosure">
           <CollapsibleTrigger className="chat-settings-disclosure-trigger">
-            Model options <span>{draft.freeOnly ? 'Free only' : 'Paid models allowed'}</span>
+            Model options{' '}
+            <Badge variant={draft.freeOnly ? 'secondary' : 'outline'}>
+              {draft.freeOnly ? 'Free only' : 'Paid models allowed'}
+            </Badge>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <label className="chat-setting-toggle">
-              <input
-                type="checkbox"
+            <div className="flex items-start justify-between gap-4 py-2">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Free models only</p>
+                <p className="text-sm text-muted-foreground">
+                  Only allow models verified as free. Turn off to use paid models with your key.
+                </p>
+              </div>
+              <Switch
                 checked={draft.freeOnly}
                 disabled={Boolean(busy)}
-                onChange={(event) => edit({ freeOnly: event.target.checked })}
+                aria-label="Free models only"
+                onCheckedChange={(checked) => edit({ freeOnly: checked })}
               />
-              <span>
-                Free models only
-                <small>
-                  Only allow models verified as free. Turn off to use paid models with your key.
-                </small>
-              </span>
-            </label>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       ) : !freeTier ? (
@@ -445,14 +463,15 @@ export function ConnectionSettings({
         )}
       </div>
       {failure && (
-        <p className="chat-connection-error" role="alert">
-          {failure} Your unsaved changes are still here.
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{failure} Your unsaved changes are still here.</AlertDescription>
+        </Alert>
       )}
       {note && (
-        <p className="chat-connection-note" role="status">
-          {note}
-        </p>
+        <Alert>
+          <Check className="size-4" aria-hidden="true" />
+          <AlertDescription>{note}</AlertDescription>
+        </Alert>
       )}
     </section>
   );

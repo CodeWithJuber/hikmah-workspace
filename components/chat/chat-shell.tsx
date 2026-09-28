@@ -9,6 +9,7 @@ import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { PlaygroundProvider } from '@/components/playground/context';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import { ChatPreview } from './chat-preview';
 import { ConversationList, type ConversationSummary } from './conversation-list';
 import { FilesPanel } from './files-panel';
@@ -265,10 +266,11 @@ export function ChatShell({
               Skip to conversation
             </a>
             <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
-              <button
+              <Button
                 ref={navigationButtonRef}
                 type="button"
-                className="workspace-icon workspace-menu"
+                variant="ghost"
+                size="icon"
                 aria-label="Conversations"
                 aria-expanded={sidebarOpen}
                 onClick={() => {
@@ -278,7 +280,7 @@ export function ChatShell({
                 }}
               >
                 <Menu size={20} />
-              </button>
+              </Button>
               <div className="workspace-heading">
                 <span>{currentTitle}</span>
                 {agent && (
@@ -308,14 +310,15 @@ export function ChatShell({
               <div className="workspace-brand">
                 <HikmahIcon name="orbit" size={32} />
                 <strong>Hikmah</strong>
-                <button
+                <Button
                   type="button"
-                  className="workspace-icon workspace-sidebar-close"
+                  variant="ghost"
+                  size="icon"
                   aria-label="Close navigation"
                   onClick={() => setSidebarOpen(false)}
                 >
                   <X size={20} />
-                </button>
+                </Button>
               </div>
               <ConversationList
                 activeId={conversationId}
@@ -325,20 +328,30 @@ export function ChatShell({
                 onActivate={() => setSidebarOpen(false)}
                 navigation={<ProductNav onNavigate={() => setSidebarOpen(false)} />}
               />
-              <div className="workspace-sidebar-footer">
-                <button type="button" onClick={openSettings}>
-                  <Settings size={16} />
-                  Settings
-                </button>
-                <button
+              <div className="flex flex-col gap-1 border-t border-border p-2">
+                <Button
                   type="button"
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={openSettings}
+                >
+                  <Settings size={16} aria-hidden="true" />
+                  Settings
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="justify-start"
                   onClick={toggleTheme}
                   aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
-                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                  <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
-                  <span className="workspace-theme-state">Change</span>
-                </button>
+                  {theme === 'dark' ? (
+                    <Sun size={16} aria-hidden="true" />
+                  ) : (
+                    <Moon size={16} aria-hidden="true" />
+                  )}
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </Button>
               </div>
             </aside>
             <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
@@ -400,16 +413,19 @@ export function ChatShell({
                       hidden={!panel}
                       inert={!panel || undefined}
                     >
-                      <div className="workspace-detail-heading">
-                        <h2>{panel ? PANEL_LABELS[panel] : 'Settings'}</h2>
-                        <button
+                      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                        <h2 className="text-base font-semibold">
+                          {panel ? PANEL_LABELS[panel] : 'Settings'}
+                        </h2>
+                        <Button
                           type="button"
-                          className="workspace-icon"
+                          variant="ghost"
+                          size="icon"
                           aria-label="Close workspace panel"
                           onClick={closePanel}
                         >
                           <X size={16} />
-                        </button>
+                        </Button>
                       </div>
                       {panel === 'files' ? (
                         <FilesPanel revision={revision} />
