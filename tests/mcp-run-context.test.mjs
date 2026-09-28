@@ -222,24 +222,35 @@ test('a stdio server is refused with an explanation when there is no workbench',
 test('a stdio server is connected through the bridge, carrying its command', async () => {
   // The command travels with the request so an edited config cannot be answered
   // by a process started from the previous one.
-  const { connectServer } = await import('../lib/mcp/manager.ts');
-  await connectServer(
-    {
-      id: 's1',
-      name: 'filesystem',
-      config: { type: 'stdio', command: 'npx', args: ['-y', 'pkg'], env: { A: 'b' } },
-      trusted: false,
-      approval: 'ask',
-    },
-    {
-      secret: () => undefined,
-      bridge: { url: 'http://workbench:3001', token: 'tok' },
-    },
-  ).catch((error) => {
-    // The transport is real, so the connection itself fails here. What matters
-    // is where it tried to go, which the error carries.
-    assert.match(String(error), /workbench:3001|fetch|ECONN/i);
-  });
+  //
+  // The bridge is stubbed, not real: a real fetch to an unresolvable host can
+  // hang forever at DNS (no failure, no timeout), which stalls the whole suite.
+  // What this test owns is where the client tried to go, which the error carries.
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = () =>
+    Promise.reject(Object.assign(new Error('fetch failed'), { cause: { code: 'ECONNREFUSED' } }));
+  try {
+    const { connectServer } = await import('../lib/mcp/manager.ts');
+    await connectServer(
+      {
+        id: 's1',
+        name: 'filesystem',
+        config: { type: 'stdio', command: 'npx', args: ['-y', 'pkg'], env: { A: 'b' } },
+        trusted: false,
+        approval: 'ask',
+      },
+      {
+        secret: () => undefined,
+        bridge: { url: 'http://workbench:3001', token: 'tok' },
+      },
+    ).catch((error) => {
+      // The transport is stubbed, so the connection itself fails here. What matters
+      // is where it tried to go, which the error carries.
+      assert.match(String(error), /workbench:3001|fetch|ECONN/i);
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test('the seeded catalogue offers a stdio server, disabled', async () => {

@@ -199,7 +199,24 @@ export async function connectServer(
     transport = { type: config.type, url: config.url, headers: config.headers };
   }
 
-  const client = await createMCPClient({ transport });
+  // Bound the handshake: without this, a bridge URL that blackholes (DNS that
+  // never answers, a firewall that drops packets) leaves connectServer pending
+  // forever — and a test that expects the failure hangs the whole suite.
+  let client;
+  try {
+    client = await createMCPClient({
+      transport,
+      initializationOptions: { timeout: MCP_CONNECT_TIMEOUT_MS },
+    });
+  } catch (error) {
+    // A bare timeout/fetch error says nothing about *which* server failed.
+    // Name it, so the failure is diagnosable where it surfaces.
+    const where = (transport as { url?: string }).url;
+    throw new Error(
+      `could not reach MCP server "${server.name}"${where ? ` at ${where}` : ''}: ${String(error)}`,
+      { cause: error },
+    );
+  }
 
   const discovered = await client.tools();
   const fingerprints = new Map<string, string>();
