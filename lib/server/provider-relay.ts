@@ -133,7 +133,9 @@ export async function relayProviderRequest(
       provider.id === 'custom' ? providerDestination(provider.baseUrl) : 'provider:' + provider.id;
     if (!resolveSecret || !destination) return relayFailure('key');
     try {
-      key = await resolveSecret(reference, destination);
+      // Trim: a vault entry of only whitespace is no key at all, and must
+      // refuse here rather than reach the provider without an auth header.
+      key = (await resolveSecret(reference, destination)).trim();
     } catch {
       return relayFailure('key');
     }

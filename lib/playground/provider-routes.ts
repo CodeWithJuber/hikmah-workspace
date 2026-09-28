@@ -39,7 +39,7 @@ export const RELAY_ERRORS = {
   key: {
     status: 400,
     message:
-      'Select a saved secret assigned to this provider, or enter a valid session key in Settings → Connection.',
+      'No API key is configured for this provider. Add your key in Settings → Connections, then try again.',
   },
   limit: {
     status: 413,
