@@ -29,6 +29,7 @@ docker run -d --name "$container" -p 127.0.0.1:3210:3000 \
   --cap-drop=ALL --security-opt=no-new-privileges --memory=1g --pids-limit=256 \
   -e BETTER_AUTH_URL="$SMOKE_URL" -e BETTER_AUTH_SECRET="$session_secret" \
   -e HIKMAH_VAULT_KEY="$vault_key" \
+  -e HIKMAH_PRIVATE=0 \
   -e HIKMAH_OWNER_EMAIL="$SMOKE_EMAIL" \
   -e HIKMAH_PROVIDER_KEY=smoke-provider-key "$image" >/dev/null
 node scripts/smoke-http.mjs write
