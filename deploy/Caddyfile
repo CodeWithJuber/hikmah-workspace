@@ -1,4 +1,4 @@
-{$HIKMAH_DOMAIN} {
+{$HIKMAH_SITE_SCHEME:https}://{$HIKMAH_DOMAIN} {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000"
@@ -50,6 +50,11 @@
       lb_try_interval 1s
       flush_interval -1
       header_up X-Real-IP {remote_host}
+      # An outer proxy terminates TLS in edge mode; left to its own devices
+      # Caddy copies the scheme/port of its own HTTP listener here, and the
+      # app would build http URLs and downgrade cookie security.
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Port 443
       header_up -oai-authenticated-user-id
       header_up -oai-authenticated-user-email
       header_up -oai-authenticated-user-full-name
