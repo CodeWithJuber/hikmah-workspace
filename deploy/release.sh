@@ -130,8 +130,21 @@ mkdir -p workbench-data && chown 0:0 workbench-data && chmod 0755 workbench-data
 "${compose[@]}" up -d app workbench --wait --wait-timeout 120
 actual=$("${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>console.log(x.revision))")
 [[ "$actual" == "$revision" ]]
-# A no-op while Caddy's service is unchanged; cp wrote the Caddyfile in place,
-# so the running Caddy sees the new text and a reload applies it.
+# Caddy binds host ports 80/443. When its service definition changed, `up -d`
+# recreates it in one step — but the new container can fail with "port is
+# already allocated" because Docker releases the old container's ports
+# asynchronously after removal. Stop Caddy explicitly and wait for the ports
+# to clear before bringing it back up.
+"${compose[@]}" stop -t 30 caddy 2>/dev/null || true
+"${compose[@]}" rm -f caddy 2>/dev/null || true
+for _ in $(seq 1 30); do
+  ss -H -ltn '( sport = :80 or sport = :443 )' | grep -q . || break
+  sleep 1
+done
+if ss -H -ltn '( sport = :80 or sport = :443 )' | grep -q .; then
+  echo 'Ports 80/443 are still occupied after stopping our Caddy. Not taking over an unrelated service.' >&2
+  exit 1
+fi
 "${compose[@]}" up -d caddy --wait --wait-timeout 120
 "${compose[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 trap - ERR
