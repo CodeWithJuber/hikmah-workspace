@@ -279,3 +279,83 @@ export function previewDocument(files: WorkspaceFiles): string {
   const script = (files['script.js'] ?? '').replace(/<\/script/gi, '<\\/script');
   return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body>${files['index.html'] ?? '<p>Add index.html to preview a page.</p>'}<script>${script}</script></body></html>`;
 }
+
+/** What kind of artifact these files are, so the UI can pick the right
+ * preview. 'web' wins when any HTML file is present (the classic three-file
+ * page); 'markdown' when there's a Markdown document and no HTML; 'code'
+ * for anything else with files (Python, scripts, configs…); 'empty' when
+ * there is nothing to show yet. */
+export type ArtifactKind = 'web' | 'markdown' | 'code' | 'empty';
+
+export function detectArtifactKind(files: WorkspaceFiles): ArtifactKind {
+  const names = Object.keys(files);
+  if (names.length === 0) return 'empty';
+  if (names.some((n) => /\.html?$/i.test(n))) return 'web';
+  if (names.some((n) => /\.m(?:ar)?k?d(?:own)?$/i.test(n))) return 'markdown';
+  return 'code';
+}
+
+/** Short human label for the artifact's main language, for subtitles like
+ * "3 files · Python". Falls back to "Code" when the extension is unknown. */
+const EXTENSION_LABELS: Record<string, string> = {
+  py: 'Python',
+  js: 'JavaScript',
+  jsx: 'JavaScript',
+  ts: 'TypeScript',
+  tsx: 'TypeScript',
+  mjs: 'JavaScript',
+  cjs: 'JavaScript',
+  css: 'CSS',
+  json: 'JSON',
+  md: 'Markdown',
+  markdown: 'Markdown',
+  html: 'HTML',
+  htm: 'HTML',
+  sh: 'Shell',
+  bash: 'Shell',
+  yml: 'YAML',
+  yaml: 'YAML',
+  toml: 'TOML',
+  xml: 'XML',
+  sql: 'SQL',
+  rs: 'Rust',
+  go: 'Go',
+  java: 'Java',
+  rb: 'Ruby',
+  php: 'PHP',
+  c: 'C',
+  h: 'C',
+  cpp: 'C++',
+  hpp: 'C++',
+  cs: 'C#',
+  swift: 'Swift',
+  kt: 'Kotlin',
+  txt: 'Text',
+};
+
+export function artifactLanguageLabel(files: WorkspaceFiles): string {
+  const names = Object.keys(files);
+  // Prefer a non-HTML source file so a web page reports its script/style, not "HTML".
+  const pick =
+    names.find((n) => /\.(py|js|jsx|ts|tsx|mjs|cjs|css|json|sh|rs|go|java|rb|php|sql)$/i.test(n)) ??
+    names[0];
+  if (!pick) return 'Code';
+  const ext = pick.split('.').pop()?.toLowerCase() ?? '';
+  return EXTENSION_LABELS[ext] ?? 'Code';
+}
+
+/** The file to feature in compact previews: README/markdown first, then the
+ * largest source file, so the inline card shows the most meaningful content. */
+export function primaryArtifactFile(files: WorkspaceFiles): string | null {
+  const names = Object.keys(files);
+  if (names.length === 0) return null;
+  const kind = detectArtifactKind(files);
+  if (kind === 'markdown') {
+    return names.find((n) => /\.m(?:ar)?k?d(?:own)?$/i.test(n)) ?? names[0];
+  }
+  if (kind === 'web') {
+    return names.find((n) => /\.html?$/i.test(n)) ?? names[0];
+  }
+  const ranked = [...names].sort((a, b) => (files[b]?.length ?? 0) - (files[a]?.length ?? 0));
+  return ranked[0] ?? null;
+}

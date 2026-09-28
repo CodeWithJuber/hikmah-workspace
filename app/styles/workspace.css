@@ -1119,8 +1119,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 55px;
-    padding: 0 17px;
+    min-height: 55px;
+    padding: 8px 12px 8px 17px;
     border-bottom: 1px solid var(--border);
     font-size: var(--font-size-base);
   }
@@ -1210,6 +1210,165 @@
   .artifact-sheet > .unified-code-panel {
     height: 100%;
     border: 0;
+  }
+  /* ---- Smart artifact previews: code / markdown / empty states ---- */
+  .inline-artifact-code {
+    display: grid;
+    gap: 0;
+  }
+  .inline-artifact-files {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    background: var(--secondary);
+  }
+  .inline-artifact-files li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    background: var(--card);
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+  .inline-artifact-files li.is-primary {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .inline-artifact-snippet {
+    min-width: 0;
+  }
+  .inline-artifact-snippet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+  }
+  .inline-artifact-snippet pre {
+    margin: 0;
+    padding: 14px 16px;
+    max-height: 260px;
+    overflow: auto;
+    font-size: var(--font-size-sm);
+    line-height: 1.65;
+    background: var(--card);
+  }
+  .inline-artifact-more {
+    display: block;
+    padding: 8px 16px;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    border-top: 1px dashed var(--border);
+  }
+  .inline-artifact-markdown {
+    padding: 16px 18px;
+    max-height: 320px;
+    overflow: auto;
+    font-size: var(--font-size-base);
+    line-height: 1.7;
+    background: var(--card);
+  }
+  .inline-artifact-markdown > *:first-child {
+    margin-top: 0;
+  }
+  .inline-artifact-markdown > *:last-child {
+    margin-bottom: 0;
+  }
+  .inline-artifact-empty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 18px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+  }
+  .inline-artifact-empty p {
+    margin: 0;
+  }
+  /* ---- Artifact panel: clearer hierarchy ---- */
+  .artifact-panel-heading {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .artifact-panel-heading strong {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+  }
+  .artifact-panel-heading span {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .artifact-panel-close {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .artifact-panel-tabs [data-slot='tabs-list'] {
+    gap: 2px;
+  }
+  .artifact-panel-tabs [data-slot='tabs-trigger'] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .artifact-panel-markdown {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 20px 22px;
+    font-size: var(--font-size-base);
+    line-height: 1.75;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+  }
+  .artifact-panel-markdown > *:first-child {
+    margin-top: 0;
+  }
+  .artifact-preview-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px 24px;
+    text-align: center;
+    color: var(--muted-foreground);
+    background: var(--card);
+    border: 1px dashed var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    min-height: 220px;
+  }
+  .artifact-preview-empty p {
+    margin: 0;
+    display: grid;
+    gap: 6px;
+    max-width: 340px;
+  }
+  .artifact-preview-empty strong {
+    font-size: var(--font-size-base);
+    color: var(--foreground);
+  }
+  .artifact-preview-empty span {
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
   }
   .clarification-card {
     padding: 22px;
@@ -1800,10 +1959,27 @@
       gap: 9px;
     }
     .inline-artifact iframe {
-      height: 225px;
+      /* Taller on phones: the old 225px made pages unreadable without
+         expanding. 320px shows real content while staying in the flow. */
+      height: 320px;
+      min-height: 320px;
+    }
+    .inline-artifact footer {
+      padding: 10px 12px;
     }
     .inline-artifact footer button {
       font-size: var(--font-size-base);
+      min-height: 44px;
+    }
+    .inline-artifact > header button {
+      min-height: 44px;
+    }
+    .inline-artifact-markdown {
+      max-height: 380px;
+      padding: 14px 16px;
+    }
+    .inline-artifact-snippet pre {
+      max-height: 300px;
     }
     .clarification-card {
       padding: 17px;
@@ -1898,6 +2074,14 @@
     }
     .artifact-panel-preview {
       padding: 10px;
+    }
+    .artifact-panel-actions > button {
+      /* 44px touch targets on phones for Run / Full page / Edit. */
+      min-height: 44px;
+      padding: 0 14px;
+    }
+    .artifact-panel-markdown {
+      padding: 16px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
