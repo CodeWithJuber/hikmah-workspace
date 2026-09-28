@@ -57,7 +57,7 @@ function InlineCodePreview({ files }: { files: WorkspaceFiles }) {
       <ul className="inline-artifact-files" aria-label="Files in this artifact">
         {names.map((name) => (
           <li key={name} className={name === primary ? 'is-primary' : undefined}>
-            <FileCode2 size={14} aria-hidden="true" />
+            <FileCode2 size={16} aria-hidden="true" />
             <span>{name}</span>
           </li>
         ))}
@@ -189,11 +189,11 @@ export function ArtifactPanel({
         <div className="artifact-panel-toolbar">
           <TabsList aria-label="Artifact view">
             <TabsTrigger value="preview">
-              <Eye size={14} aria-hidden="true" />
+              <Eye size={16} aria-hidden="true" />
               Preview
             </TabsTrigger>
             <TabsTrigger value="code">
-              <FileCode2 size={14} aria-hidden="true" />
+              <FileCode2 size={16} aria-hidden="true" />
               Source
             </TabsTrigger>
           </TabsList>
