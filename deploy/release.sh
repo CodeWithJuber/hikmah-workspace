@@ -71,12 +71,14 @@ stop_present() {
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 previous=false
 backup="backups/pre-$stamp.tar.gz"
-# Caddy is never stopped here. It used to be, first thing, and started again
-# last, so every release was several minutes of "connection refused" for
-# everyone. It stays up: the app is stopped under it for the snapshot and
-# recreated under it, and the Caddyfile has it hold a request while the app
-# is away rather than fail it (lb_try_duration). Caddy itself is only
-# recreated when its own service definition changed.
+# Caddy is never stopped for the snapshot. It used to be, first thing, and
+# started again last, so every release was several minutes of "connection
+# refused" for everyone. It stays up: the app is stopped under it for the
+# snapshot and recreated under it, and the Caddyfile has it hold a request
+# while the app is away rather than fail it (lb_try_duration). Caddy does get
+# stopped and recreated near the end of this script — after the new app is
+# verified healthy — because Docker releases a removed container's ports
+# asynchronously and an in-place recreate can hit "port is already allocated".
 if [[ -f release.env && -f compose.yml ]]; then
   previous=true
   stop_present 30 app workbench
@@ -130,20 +132,37 @@ mkdir -p workbench-data && chown 0:0 workbench-data && chmod 0755 workbench-data
 "${compose[@]}" up -d app workbench --wait --wait-timeout 120
 actual=$("${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>console.log(x.revision))")
 [[ "$actual" == "$revision" ]]
-# Caddy binds host ports 80/443. When its service definition changed, `up -d`
-# recreates it in one step — but the new container can fail with "port is
-# already allocated" because Docker releases the old container's ports
-# asynchronously after removal. Stop Caddy explicitly and wait for the ports
-# to clear before bringing it back up.
+# Caddy's host ports are operator-configurable (HIKMAH_HTTP_BIND /
+# HIKMAH_HTTPS_BIND) so this stack can sit behind an outer proxy that owns
+# 80/443. When its service definition changed, `up -d` recreates it in one
+# step — but the new container can fail with "port is already allocated"
+# because Docker releases the old container's ports asynchronously after
+# removal. Stop Caddy explicitly and wait for the ports it ACTUALLY binds to
+# clear before bringing it back up.
+bind_port() {
+  local key=$1 value
+  value=$(grep -hE "^$key=" .env release.env 2>/dev/null | tail -1 | cut -d= -f2-)
+  [[ $value =~ ^[0-9]+$ ]] || value=''
+  printf '%s' "$value"
+}
+http_port=$(bind_port HIKMAH_HTTP_BIND); http_port=${http_port:-80}
+https_port=$(bind_port HIKMAH_HTTPS_BIND); https_port=${https_port:-443}
 "${compose[@]}" stop -t 30 caddy 2>/dev/null || true
 "${compose[@]}" rm -f caddy 2>/dev/null || true
+ports_clear() {
+  ! ss -H -ltn "( sport = :$http_port or sport = :$https_port )" | grep -q .
+}
 for _ in $(seq 1 30); do
-  ss -H -ltn '( sport = :80 or sport = :443 )' | grep -q . || break
+  ports_clear && break
   sleep 1
 done
-if ss -H -ltn '( sport = :80 or sport = :443 )' | grep -q .; then
-  echo 'Ports 80/443 are still occupied after stopping our Caddy. Not taking over an unrelated service.' >&2
-  exit 1
+if ! ports_clear; then
+  # Put the edge back before letting the ERR trap roll the release back: an
+  # explicit `exit` here would skip the trap and leave the site without its
+  # Caddy exactly as the app behind it comes healthy.
+  "${compose[@]}" up -d caddy --wait --wait-timeout 120 || true
+  echo "Ports $http_port/$https_port are still occupied after stopping our Caddy. Not taking over an unrelated service." >&2
+  false
 fi
 "${compose[@]}" up -d caddy --wait --wait-timeout 120
 "${compose[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile

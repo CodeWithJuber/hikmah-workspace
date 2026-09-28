@@ -13,8 +13,13 @@ case "$ID:$VERSION_ID" in
 esac
 [[ $(uname -m) == x86_64 ]] || { echo 'This workflow builds for x86_64. Change its image platform before using another architecture.' >&2; exit 1; }
 project=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' hikmah-caddy-1 2>/dev/null || true)
-if [[ "$project" != hikmah ]]; then
-  # No takeover of an existing web server or unrelated containers.
+# A host counts as already running Hikmah when our Caddy exists OR the release
+# marker is on disk. The marker matters: containers can be absent mid-recovery
+# (a failed release recreates them), and that must not turn an established
+# deployment into a "fresh host" that this guard then refuses to touch.
+if [[ "$project" != hikmah && ! -f /opt/hikmah/DEPLOYED_REVISION ]]; then
+  # First install only: the stack binds 80/443 by default, so refuse to take
+  # those ports from an existing web server or unrelated containers.
   if [[ -n $(ss -H -ltn '( sport = :80 or sport = :443 )') ]]; then
     echo 'Ports 80 or 443 are occupied. Resolve the existing service before deploying Hikmah.' >&2; exit 1
   fi
