@@ -1024,8 +1024,10 @@ export function ChatView({
         {messages.length > 0 && (
           <div className="flex items-center justify-between gap-2 px-1 py-2">
             <span className="text-sm text-muted-foreground">
-              {messages.filter((message) => message.role === 'user').length} prompts in this
-              conversation
+              {messages.filter((message) => message.role === 'user').length}{' '}
+              {messages.filter((message) => message.role === 'user').length === 1
+                ? 'message'
+                : 'messages'}
             </span>
             <div className="flex items-center gap-1">
               <Button
@@ -1150,7 +1152,7 @@ export function ChatView({
                   onRate={rateMessage}
                   memoryById={memoryById}
                   onJumpToMemory={jumpToMemory}
-                  onFollowUpSelect={pickFollowUp}
+                  onFollowUpSelect={failure ? undefined : pickFollowUp}
                 />
               </div>
             ))}
@@ -1256,10 +1258,16 @@ export function ChatView({
                   ? 'Connection interrupted'
                   : /Free models only/i.test(failure ?? '')
                     ? 'Model not allowed'
-                    : 'This request needs attention'}
+                    : recovery === 'configure'
+                      ? 'API key needed'
+                      : 'This request needs attention'}
               </AlertTitle>
               <AlertDescription>
-                <p>{failure}</p>
+                <p>
+                  {recovery === 'configure' && !/Free models only/i.test(failure ?? '')
+                    ? 'Your chat is not connected yet. Add your API key in Settings to start chatting.'
+                    : failure}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {/* A run paused on a card this tab has lost track of — answered
                 once and refused, or answered from another tab — is put right by
