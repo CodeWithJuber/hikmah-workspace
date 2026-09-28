@@ -20,12 +20,12 @@ export function ImageCommandHint({ visible }: { visible: boolean }) {
     <div className="flex justify-start px-1 pb-1" data-testid="image-command-hint">
       <Badge
         variant="secondary"
-        className="gap-1.5 border border-[#17664f]/25 bg-[#17664f]/8 py-1 pr-3 pl-2 text-[#17664f] dark:border-[#17664f]/40 dark:bg-[#17664f]/15 dark:text-[#7fd6ae]"
+        className="gap-1.5 border border-primary/25 bg-primary/8 py-1 pr-3 pl-2 text-primary dark:border-primary/40 dark:bg-primary/15"
       >
         <Sparkles className="size-3.5" aria-hidden />
         <span className="font-medium">Image mode</span>
         <span className="font-normal opacity-80">— describe the picture after</span>
-        <kbd className="rounded bg-[#17664f]/12 px-1 py-px font-mono text-[11px] font-semibold dark:bg-white/10">
+        <kbd className="rounded bg-primary/12 px-1 py-px font-mono text-[11px] font-semibold dark:bg-white/10">
           /image
         </kbd>
       </Badge>
@@ -46,7 +46,7 @@ export function ImageCommandButton({ onInsert }: { onInsert: (prefix: string) =>
       type="button"
       variant="ghost"
       size="icon"
-      className="size-8 shrink-0 text-muted-foreground hover:text-[#17664f] dark:hover:text-[#7fd6ae]"
+      className="size-8 shrink-0 text-muted-foreground hover:text-primary"
       title="Generate an image (/image)"
       aria-label="Generate an image"
       onClick={() => onInsert('/image ')}

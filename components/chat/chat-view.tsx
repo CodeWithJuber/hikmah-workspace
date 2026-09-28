@@ -1341,7 +1341,7 @@ export function ChatView({
                 >
                   <Ghost
                     size={16}
-                    className={tempActive ? 'text-[#17664f] dark:text-[#7fd6ae]' : undefined}
+                    className={tempActive ? 'text-primary' : undefined}
                     aria-hidden="true"
                   />
                 </PromptInputButton>

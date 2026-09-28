@@ -54,7 +54,7 @@ export default async function SharedConversationPage({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-5 py-10">
       <header className="border-b border-neutral-200 pb-6 dark:border-neutral-800">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#17664f] dark:text-emerald-300">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">
           Shared conversation
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">
@@ -73,7 +73,7 @@ export default async function SharedConversationPage({
               'rounded-2xl border px-5 py-4 ' +
               (message.role === 'user'
                 ? 'border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/60'
-                : 'border-[#17664f]/15 bg-white dark:border-emerald-900/40 dark:bg-neutral-950')
+                : 'border-primary/15 bg-white dark:border-primary/40 dark:bg-neutral-950')
             }
           >
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">

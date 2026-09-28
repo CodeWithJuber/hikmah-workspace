@@ -116,13 +116,13 @@ export function ImageGeneratingState({
 
   return (
     <div
-      className="w-full max-w-md rounded-xl border border-[#17664f]/25 bg-[#17664f]/[0.04] p-4 dark:border-[#17664f]/40 dark:bg-[#17664f]/10"
+      className="w-full max-w-md rounded-xl border border-primary/25 bg-primary/[0.04] p-4 dark:border-primary/40 dark:bg-primary/10"
       role="status"
       aria-live="polite"
       data-testid="image-generating"
     >
       <div className="flex items-center gap-3">
-        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-[#17664f]/12 text-[#17664f] dark:bg-[#17664f]/25 dark:text-[#7fd6ae]">
+        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary dark:bg-primary/25">
           <Sparkles className="size-4 animate-pulse" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -136,7 +136,7 @@ export function ImageGeneratingState({
         </span>
       </div>
       <div
-        className="mt-3 aspect-square w-full animate-pulse rounded-lg bg-gradient-to-br from-[#17664f]/15 via-[#17664f]/5 to-transparent"
+        className="mt-3 aspect-square w-full animate-pulse rounded-lg bg-gradient-to-br from-primary/15 via-primary/5 to-transparent"
         aria-hidden
       />
       <div className="mt-3 flex items-center justify-between gap-2">

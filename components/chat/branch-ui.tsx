@@ -23,7 +23,7 @@ type SiblingSwitcherProps = {
 export function SiblingSwitcher({ index, total, onPrev, onNext }: SiblingSwitcherProps) {
   if (total < 2) return null;
   const button =
-    'rounded p-1.5 text-muted-foreground transition-colors hover:bg-[#17664f]/10 hover:text-[#17664f] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#17664f] disabled:pointer-events-none disabled:opacity-30';
+    'rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-30';
   return (
     <div className="flex items-center gap-0.5" role="group" aria-label="Message branches">
       <Tooltip>
@@ -96,7 +96,7 @@ export function BranchActions({
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-[#17664f]/10 hover:text-[#17664f] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#17664f] disabled:pointer-events-none disabled:opacity-30"
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-30"
               onClick={onClick}
               disabled={disabled}
               aria-label={label}

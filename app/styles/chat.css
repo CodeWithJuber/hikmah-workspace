@@ -242,12 +242,12 @@
     opacity: 0.45;
   }
   .conversation-list li:hover .conversation-more,
-  .conversation-more:hover,
   .conversation-more:focus-visible,
   .conversation-project-header:hover .conversation-more {
     opacity: 1;
   }
   .conversation-more:hover {
+    opacity: 1;
     background: var(--muted);
   }
   /* A project folder: its header is a collapsible toggle plus the folder's
