@@ -36,7 +36,9 @@ import {
   Code2,
   Columns2,
   Download,
+  Ghost,
   Globe,
+  Keyboard,
   LoaderCircle,
   Paperclip,
   Scale,
@@ -71,9 +73,19 @@ import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { ResearchBriefDialog } from '@/components/research/research-brief-dialog';
 import type { PreparedResearchBrief } from '@/lib/client/research-brief';
-import { MessageParts, messageText } from './message-parts';
+import { MessageParts, messageText, type BranchInfo } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
+import type { FeedbackValue } from '@/lib/chat/feedback-store';
+import { useRouter } from 'next/navigation';
+import { ShortcutsDialog } from './shortcuts-dialog';
+import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
+import { ConversationSearch } from './conversation-search';
+import { useTempChat } from './temp-chat';
+import { ContextEstimate } from './context-estimate';
+import { ImageCommandButton, ImageCommandHint, IMAGE_COMMANDS } from './image-command';
+import { ImageGeneratingState } from './generated-image';
+import { parseImageCommand } from '@/lib/chat/image-gen';
 import { clientFetch } from '@/lib/client/request';
 import {
   CHAT_STARTERS,
@@ -247,6 +259,9 @@ export type ChatViewProps = {
   /** The stored transcript, loaded before this mounts. useChat captures it when
    * the conversation is created, so it cannot be supplied later. */
   initialMessages?: UIMessage[];
+  /** This owner's thumbs ratings, loaded with the transcript. The messages
+   * route returns them as a map alongside the messages. */
+  initialFeedback?: Record<string, FeedbackValue>;
   /** Why the last run for this conversation failed, from the stored row.
    *
    * A live failure arrives through useChat; this is the one that already
@@ -291,6 +306,7 @@ export function ChatView({
   id,
   run,
   initialMessages,
+  initialFeedback,
   initialError,
   onSettled,
   empty,
@@ -376,6 +392,27 @@ export function ChatView({
     'idle',
   );
   const [exported, setExported] = useState(false);
+  const router = useRouter();
+  // This owner's thumbs ratings for the transcript, seeded from the messages
+  // route and refreshed with the transcript whenever a run settles.
+  const [feedback, setFeedback] = useState<Record<string, FeedbackValue>>(
+    () => initialFeedback ?? {},
+  );
+  // Chat v2: keyboard shortcuts dialog, in-conversation search, temp chat.
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { temp, exitTemp, adoptTemp } = useTempChat();
+  const isTempRoute = id.startsWith('temp-');
+  // A temp conversation is recognised by its route: adopting the id tells the
+  // hook which conversation to delete when this is left. (enterTemp is not
+  // used here because this view remounts on navigation — the instance that
+  // called enterTemp unmounts, and its cleanup would delete the id it issued.)
+  useEffect(() => {
+    if (isTempRoute) adoptTemp(id);
+  }, [isTempRoute, id, adoptTemp]);
+  // An /image turn in flight: the prompt being generated, shown as a
+  // placeholder row until the finished message replaces it.
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null);
   const online = useSyncExternalStore(subscribeOnline, onlineSnapshot, serverOnlineSnapshot);
   const updateDraft = useCallback(
     (value: string) => {
@@ -471,11 +508,39 @@ export function ChatView({
 
   // Report the edge, not the state: firing on every render while idle would
   // refetch the conversation list forever.
+  // Re-read the transcript from the server. Branch switches, edits and
+  // regenerations rewrite which messages sit on the active path, and the
+  // local list only learns the authoritative shape this way; the feedback
+  // map comes along too. Runs when a run settles and after branch
+  // operations. A failed refresh keeps the local transcript rather than
+  // blanking the chat.
+  const refreshTranscript = useCallback(async () => {
+    try {
+      const response = await clientFetch(`/api/conversations/${encodeURIComponent(id)}/messages`);
+      if (!response.ok) return;
+      const payload = (await response.json().catch(() => null)) as {
+        messages?: UIMessage[];
+        feedback?: Record<string, FeedbackValue>;
+      } | null;
+      if (payload && Array.isArray(payload.messages)) setMessages(payload.messages);
+      if (payload && payload.feedback && typeof payload.feedback === 'object')
+        setFeedback(payload.feedback);
+    } catch {
+      // Keep the local transcript.
+    }
+  }, [id, setMessages]);
+
   const wasBusy = useRef(false);
   useEffect(() => {
-    if (wasBusy.current && !busy) onSettled?.();
+    if (wasBusy.current && !busy) {
+      onSettled?.();
+      // The run may have written a new branch (regenerate/edit), so the
+      // local list re-reads the authoritative active path: sibling counts,
+      // switcher positions and feedback all come from the server.
+      void refreshTranscript();
+    }
     wasBusy.current = busy;
-  }, [busy, onSettled]);
+  }, [busy, onSettled, refreshTranscript]);
 
   // Two halves, and both are needed: stop() ends this tab's stream, and the
   // cancel aborts the provider call the worker is still driving. Without the
@@ -494,9 +559,9 @@ export function ChatView({
   // Keep text controlled while retaining PromptInput's validated attachments.
   const composer = useRef<HTMLTextAreaElement>(null);
 
-  // The question being rewritten, if any. Sending while this is set replaces
-  // that message rather than adding one, and the server truncates the turns it
-  // started — so the conversation reads as though it had been asked that way.
+  // The question being rewritten, if any. Sending while this is set creates
+  // a sibling question (the old one is kept as a branch) rather than adding
+  // a new turn — see submitEdit below for the full flow.
   const [editing, setEditing] = useState<string | null>(null);
   const draftBeforeEdit = useRef('');
   const dictate = useCallback(
@@ -560,6 +625,163 @@ export function ChatView({
     setExported(true);
   }, [id, messages]);
 
+  // In-conversation search: the row ids are the anchors.
+  const searchableMessages = useMemo(
+    () => messages.map((message) => ({ id: message.id, text: messageText(message) })),
+    [messages],
+  );
+  const jumpToMessage = useCallback((messageId: string) => {
+    const row = document.getElementById(`message-${messageId}`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // So keyboard users land where the scroll went.
+    (row as HTMLElement).focus({ preventScroll: true });
+  }, []);
+
+  // Switch the visible branch to a sibling message. The server flips the
+  // active path in one transaction; the refresh then shows the sibling's
+  // whole subtree.
+  const switchBranch = useCallback(
+    async (messageId: string, siblingId: string) => {
+      if (messageId === siblingId) return;
+      try {
+        const response = await clientFetch(
+          `/api/conversations/${encodeURIComponent(id)}/branches`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messageId: siblingId }),
+          },
+        );
+        if (!response.ok) return;
+        await refreshTranscript();
+      } catch {
+        // The transcript is unchanged; the switcher stays where it was.
+      }
+    },
+    [id, refreshTranscript],
+  );
+
+  // Fork the conversation from any message into a new one, and open it.
+  const forkMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        const response = await clientFetch(`/api/conversations/${encodeURIComponent(id)}/fork`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId }),
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          id?: string;
+        } | null;
+        if (!response.ok || !payload?.id) return;
+        router.push(`/chat/${encodeURIComponent(payload.id)}`);
+      } catch {
+        // Stay where the conversation is; nothing was changed.
+      }
+    },
+    [id, router],
+  );
+
+  // Thumbs up/down on an answer. Optimistic: the thumb flips at once, the
+  // PUT follows, and a failure re-syncs from the server.
+  const rateMessage = useCallback(
+    async (messageId: string, value: FeedbackValue | null) => {
+      setFeedback((previous) => {
+        const next = { ...previous };
+        if (value === null) delete next[messageId];
+        else next[messageId] = value;
+        return next;
+      });
+      try {
+        const response = await clientFetch(
+          `/api/conversations/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/feedback`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value }),
+          },
+        );
+        if (!response.ok) await refreshTranscript();
+      } catch {
+        await refreshTranscript();
+      }
+    },
+    [id, refreshTranscript],
+  );
+
+  // Inserts "/image " at the composer caret for the ImageCommandButton.
+  const insertImageCommand = useCallback(
+    (prefix: string) => {
+      const field = composer.current;
+      if (!field) {
+        updateDraft(prefix + draft);
+        return;
+      }
+      const start = field.selectionStart ?? draft.length;
+      const end = field.selectionEnd ?? start;
+      updateDraft(draft.slice(0, start) + prefix + draft.slice(end));
+      window.requestAnimationFrame(() => {
+        field.focus();
+        const caret = start + prefix.length;
+        field.setSelectionRange(caret, caret);
+      });
+    },
+    [draft, updateDraft],
+  );
+
+  // Temporary chat: on means navigating to a temp- id (the route, not the
+  // hook, issues it — see the adoptTemp note above); off means deleting the
+  // temp conversation and going back to the landing.
+  const tempActive = temp || isTempRoute;
+  const toggleTemp = useCallback(async () => {
+    if (tempActive) {
+      await exitTemp();
+      router.push('/chat');
+    } else {
+      router.push(`/chat/temp-${crypto.randomUUID()}`);
+    }
+  }, [tempActive, exitTemp, router]);
+
+  // ⌘⇧O: a genuinely new conversation, the same call the sidebar's New chat
+  // button makes — not the landing, which would reopen the latest chat.
+  const startNewChat = useCallback(async () => {
+    try {
+      const response = await clientFetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        id?: string;
+      } | null;
+      if (!response.ok || !payload?.id) return;
+      router.push(`/chat/${encodeURIComponent(payload.id)}`);
+    } catch {
+      // Stay where the conversation is.
+    }
+  }, [router]);
+
+  // Chat v2 keyboard shortcuts. The kill-switch (`enabled`) lives in chat
+  // settings once that ships; the hook defaults it on. toggle-sidebar is
+  // owned by the shell, which wires its own instance of this hook.
+  useKeyboardShortcuts({
+    'new-chat': () => void startNewChat(),
+    'focus-composer': () => composer.current?.focus(),
+    'open-shortcuts-dialog': () => setShortcutsOpen(true),
+    'stop-generation': () => {
+      if (busy) halt();
+    },
+    'scroll-bottom': () => {
+      const transcript = document.querySelector('.chat-transcript');
+      transcript?.scrollTo({ top: transcript.scrollHeight, behavior: 'smooth' });
+    },
+  });
+
+  // Whether the /image hint shows under the composer.
+  const imageHintVisible = IMAGE_COMMANDS.some((command) =>
+    draft.toLowerCase().startsWith(command),
+  );
+
   // The three handlers the transcript needs, each created once.
   //
   // They used to be arrows built inside `messages.map`, so every message got a
@@ -573,9 +795,141 @@ export function ChatView({
       addToolOutput({ tool: 'ask_user', toolCallId, output: answer }),
     [addToolOutput],
   );
+  // Regenerating now branches: the old answer is preserved as a sibling
+  // first (POST preserve takes it off the active path), then the normal
+  // regenerate replays the parent question. useChat drops the preserved
+  // answer from its own list and re-sends the question; the server
+  // truncates only the active path — the preserved sibling survives — and
+  // the worker writes the new answer under the same parent, so it lands as
+  // a sibling. The settle refresh brings back the "‹ 1/2 ›" switcher.
   const regenerateMessage = useCallback(
-    (messageId: string) => void regenerate({ messageId }),
-    [regenerate],
+    async (messageId: string) => {
+      try {
+        const response = await clientFetch(
+          `/api/conversations/${encodeURIComponent(id)}/branches/preserve`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messageId }),
+          },
+        );
+        if (!response.ok) return;
+      } catch {
+        return;
+      }
+      try {
+        await regenerate({ messageId });
+      } catch {
+        // The answer was preserved but the replay never started: re-sync so
+        // the transcript shows the preserved branch rather than a stale row.
+        await refreshTranscript();
+      }
+    },
+    [id, regenerate, refreshTranscript],
+  );
+
+  // Editing a question now branches it: the PATCH creates a sibling question
+  // and takes the old one (plus its answers) off the active path. The new
+  // question is spliced into the local list in the old one's place, then
+  // replayed through the normal regenerate flow — the server truncates and
+  // re-appends it under its old parent, and the worker's answer lands as
+  // its child. The settle refresh brings back authoritative sibling counts.
+  const submitEdit = useCallback(
+    async (editingId: string, newText: string) => {
+      const original = messages.find((message) => message.id === editingId) as
+        (UIMessage & { branch?: BranchInfo }) | undefined;
+      setEditing(null);
+      try {
+        const response = await clientFetch(
+          `/api/conversations/${encodeURIComponent(id)}/messages/${encodeURIComponent(editingId)}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              parts: [
+                { type: 'text', text: newText },
+                ...(original?.parts.filter((part) => part.type !== 'text') ?? []),
+              ],
+            }),
+          },
+        );
+        const payload = (await response.json().catch(() => null)) as {
+          newId?: string;
+        } | null;
+        if (!response.ok || !payload?.newId) throw new Error('The edit was not saved.');
+        const newId = payload.newId;
+        const sibling = original?.branch;
+        setMessages(
+          messages.map((message) =>
+            message.id === editingId
+              ? {
+                  ...message,
+                  id: newId,
+                  parts: [
+                    { type: 'text' as const, text: newText },
+                    ...message.parts.filter((part) => part.type !== 'text'),
+                  ],
+                  branch: sibling
+                    ? {
+                        index: sibling.total,
+                        total: sibling.total + 1,
+                        siblings: [...sibling.siblings, newId],
+                      }
+                    : undefined,
+                }
+              : message,
+          ),
+        );
+        updateDraft(draftBeforeEdit.current);
+        try {
+          await regenerate({ messageId: newId });
+        } catch {
+          await refreshTranscript();
+        }
+      } catch {
+        // The edit did not land: back into editing so the words are not
+        // lost, and re-sync the transcript.
+        setEditing(editingId);
+        await refreshTranscript();
+      }
+    },
+    [id, messages, regenerate, refreshTranscript, setMessages, updateDraft],
+  );
+
+  // An /image turn: no agent run, just the picture. The route stores both
+  // the command text (as the user turn) and the generated image (as the
+  // answer), so the transcript reads like any other exchange.
+  const generateImage = useCallback(
+    async (rawText: string, prompt: string) => {
+      setGeneratingImage(prompt);
+      updateDraft('');
+      try {
+        const response = await clientFetch(`/api/conversations/${encodeURIComponent(id)}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, userText: rawText }),
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          message?: UIMessage;
+          userMessage?: UIMessage | null;
+          error?: string;
+        } | null;
+        const finished = payload?.message;
+        if (!response.ok || !finished)
+          throw new Error(payload?.error || 'The image could not be generated.');
+        const userTurn = payload?.userMessage;
+        setMessages((previous) => [...previous, ...(userTurn ? [userTurn] : []), finished]);
+        // A first /image turn created this conversation; the list catches up.
+        onSettled?.();
+      } catch (error) {
+        setAttachmentError(
+          error instanceof Error ? error.message : 'The image could not be generated.',
+        );
+      } finally {
+        setGeneratingImage(null);
+      }
+    },
+    [id, setMessages, updateDraft, onSettled],
   );
 
   const submit = useCallback(
@@ -589,31 +943,16 @@ export function ChatView({
       setStopState('idle');
       setAttachmentError('');
 
+      // /image and /imagine never reach the agent: they are a media turn,
+      // not a chat turn. Not while editing — there the text is the question.
+      const imagePrompt = !editing && !files?.length ? parseImageCommand(trimmed) : null;
+      if (imagePrompt !== null) {
+        void generateImage(trimmed, imagePrompt);
+        return;
+      }
+
       if (editing) {
-        setEditing(null);
-        // Rewrite the stored message, then replay it. setMessages assigns
-        // straight onto the chat instance that regenerate reads, so the edit is
-        // in place by the time the request is built — no waiting for a render.
-        //
-        // Only the text is replaced. Attachments on the original are file parts
-        // carrying data URLs, and re-staging them into the composer would mean
-        // rebuilding files nobody re-picked; leaving them attached is what the
-        // owner meant by editing the words.
-        setMessages(
-          messages.map((message) =>
-            message.id === editing
-              ? {
-                  ...message,
-                  parts: [
-                    { type: 'text' as const, text: trimmed },
-                    ...message.parts.filter((part) => part.type !== 'text'),
-                  ],
-                }
-              : message,
-          ),
-        );
-        void regenerate({ messageId: editing });
-        updateDraft(draftBeforeEdit.current);
+        void submitEdit(editing, trimmed);
         return;
       }
 
@@ -623,10 +962,9 @@ export function ChatView({
     [
       busy,
       editing,
-      messages,
-      regenerate,
+      generateImage,
+      submitEdit,
       sendMessage,
-      setMessages,
       stopState,
       needsKey,
       online,
@@ -650,19 +988,45 @@ export function ChatView({
               {messages.filter((message) => message.role === 'user').length} prompts in this
               conversation
             </span>
-            <button
-              type="button"
-              onClick={exportTranscript}
-              title="Download the visible answers and sources as Markdown"
-            >
-              {exported ? (
-                <Check size={16} aria-hidden="true" />
-              ) : (
-                <Download size={16} aria-hidden="true" />
-              )}
-              Export chat
-            </button>
+            <div className="chat-transcript-toolbar-actions">
+              <button
+                type="button"
+                onClick={() => setSearchOpen((open) => !open)}
+                title="Search in this conversation"
+                aria-expanded={searchOpen}
+              >
+                <Search size={16} aria-hidden="true" />
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => setShortcutsOpen(true)}
+                title="Keyboard shortcuts"
+                aria-label="Keyboard shortcuts"
+              >
+                <Keyboard size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={exportTranscript}
+                title="Download the visible answers and sources as Markdown"
+              >
+                {exported ? (
+                  <Check size={16} aria-hidden="true" />
+                ) : (
+                  <Download size={16} aria-hidden="true" />
+                )}
+                Export chat
+              </button>
+            </div>
           </div>
+        )}
+        {searchOpen && messages.length > 0 && (
+          <ConversationSearch
+            messages={searchableMessages}
+            onJump={jumpToMessage}
+            className="chat-transcript-search"
+          />
         )}
         <Conversation className="chat-transcript" aria-label="Conversation messages">
           <ConversationContent className="chat-transcript-content">
@@ -673,39 +1037,61 @@ export function ChatView({
               </button>
             )}
             {visible.map((message, index) => (
-              <MessageParts
+              <div
                 key={message.id}
-                message={message}
-                status={status}
-                // Only the newest message can be the one being written. The
-                // slice keeps the end of the conversation, so its last entry is
-                // the transcript's last entry either way.
-                isLast={index === visible.length - 1}
-                onApproval={addToolApprovalResponse}
-                conversationId={id}
-                onGrant={onGrant}
-                // Every handler below is stable across renders, and that is the
-                // point: MessageParts is memoised, and a fresh arrow per message
-                // per render would defeat it entirely — which is what the three
-                // inline closures here used to do. They take the message (or its
-                // id) instead of closing over it.
-                onAnswer={answerQuestion}
-                showActivity={showActivity}
-                onArtifact={onArtifact}
-                onRemember={remember}
-                // Offered on every settled answer, not just the last: the server
-                // truncates from the message being replayed, so an earlier one
-                // rewinds the conversation to that point rather than corrupting
-                // it. The tooltip says so, because it is not reversible.
-                //
-                // A boolean rather than an absent handler: `undefined` when busy
-                // was a prop that changed identity on every status change, and a
-                // memoised child needs a value it can compare.
-                actionsReady={!busy && !editing}
-                onRegenerateMessage={regenerateMessage}
-                onEditMessage={beginEdit}
-              />
+                id={`message-${message.id}`}
+                className="chat-message-row"
+                data-message-id={message.id}
+                // A jump target for in-conversation search: focusable so
+                // keyboard users land where the scroll went.
+                tabIndex={-1}
+              >
+                <MessageParts
+                  message={message}
+                  status={status}
+                  // Only the newest message can be the one being written. The
+                  // slice keeps the end of the conversation, so its last entry is
+                  // the transcript's last entry either way.
+                  isLast={index === visible.length - 1}
+                  onApproval={addToolApprovalResponse}
+                  conversationId={id}
+                  onGrant={onGrant}
+                  // Every handler below is stable across renders, and that is the
+                  // point: MessageParts is memoised, and a fresh arrow per message
+                  // per render would defeat it entirely — which is what the three
+                  // inline closures here used to do. They take the message (or its
+                  // id) instead of closing over it.
+                  onAnswer={answerQuestion}
+                  showActivity={showActivity}
+                  onArtifact={onArtifact}
+                  onRemember={remember}
+                  // Offered on every settled answer. Regenerating branches now:
+                  // the old answer is kept as a sibling ("‹ 1/2 ›") rather than
+                  // replaced, and editing a question branches it the same way.
+                  // Forking copies the active path up to the message into a new
+                  // conversation.
+                  //
+                  // A boolean rather than an absent handler: `undefined` when busy
+                  // was a prop that changed identity on every status change, and a
+                  // memoised child needs a value it can compare.
+                  actionsReady={!busy && !editing}
+                  onRegenerateMessage={regenerateMessage}
+                  onEditMessage={beginEdit}
+                  branch={(message as UIMessage & { branch?: BranchInfo }).branch}
+                  onSwitchBranch={switchBranch}
+                  onForkMessage={forkMessage}
+                  feedback={feedback[message.id] ?? null}
+                  onRate={rateMessage}
+                />
+              </div>
             ))}
+            {/* An /image turn in flight: the finished GeneratedImage replaces
+              this row when the POST returns, so the thread never shows a gap. */}
+            {generatingImage && (
+              <div className="chat-message-row">
+                <ImageGeneratingState prompt={generatingImage} />
+              </div>
+            )}
             {/* Something on the screen while the work happens.
               A screen reader was told by the live region below, and a sighted
               person was told by a spinner inside the send button and nothing
@@ -817,8 +1203,22 @@ export function ChatView({
             </div>
           )}
 
+          {/* Temporary chat: nothing typed here is kept. The notice sits
+            above the composer rather than in it, so the input row keeps its
+            shape and the state is visible before anything is typed. */}
+          {tempActive && (
+            <p className="chat-temp-notice" role="status">
+              <Ghost size={16} aria-hidden="true" />
+              <span>
+                <strong>Temporary chat</strong> — nothing here is saved to your history.
+              </span>
+              <button type="button" onClick={() => void toggleTemp()}>
+                Turn off
+              </button>
+            </p>
+          )}
           <PromptInput
-            className="chat-composer"
+            className={'chat-composer' + (tempActive ? ' chat-composer-temp' : '')}
             onSubmit={submit}
             accept={ACCEPT}
             multiple
@@ -903,6 +1303,9 @@ export function ChatView({
                     : 'Ask a question, attach a file, or describe a task…'
                 }
               />
+              {/* The /image command hint: only while the draft actually starts
+                a command, so the composer stays clean the rest of the time. */}
+              <ImageCommandHint visible={imageHintVisible && !editing} />
             </PromptInputBody>
             <PromptInputFooter className="chat-composer-row chat-composer-simple-row">
               <PromptInputTools className="chat-composer-tools">
@@ -922,6 +1325,27 @@ export function ChatView({
                     setResearchDialog({ open: true, capabilities })
                   }
                 />
+                {/* Temporary chat: nothing is saved. The toggle navigates to
+                  (or away from) a temp- conversation the hook deletes on
+                  exit; the sidebar and landing never list temp- ids. */}
+                <PromptInputButton
+                  type="button"
+                  onClick={() => void toggleTemp()}
+                  title={
+                    tempActive
+                      ? 'Temporary chat is on — nothing is saved. Turn it off to go back.'
+                      : 'Temporary chat — ask without saving anything'
+                  }
+                  aria-pressed={tempActive}
+                  aria-label="Temporary chat"
+                >
+                  <Ghost
+                    size={16}
+                    className={tempActive ? 'text-primary' : undefined}
+                    aria-hidden="true"
+                  />
+                </PromptInputButton>
+                {!editing && <ImageCommandButton onInsert={insertImageCommand} />}
                 {onModel && (
                   <ModelPicker
                     models={models ?? []}
@@ -1039,6 +1463,16 @@ export function ChatView({
                 <Check size={12} aria-hidden="true" /> Draft saved in this tab
               </span>
             )}
+            {/* The always-on estimate of context use, so the window filling
+              is visible before the run's own meter appears (which stays
+              hidden until the window is actually crowded). */}
+            {messages.length > 0 && (
+              <ContextEstimate
+                messages={messages}
+                contextWindow={run.contextWindow || ASSUMED_CONTEXT_TOKENS}
+                className="chat-context-estimate"
+              />
+            )}
           </div>
         </div>
         <LearnTaskDialog
@@ -1053,6 +1487,10 @@ export function ChatView({
           capabilities={researchDialog.capabilities}
           onPrepare={prepareResearch}
         />
+        {/* The keyboard shortcut reference, opened with ⌘/ (or the toolbar
+          button). Mounted here rather than in the composer: the chords reach
+          the whole window. */}
+        <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       </div>
     </PricingContext.Provider>
   );

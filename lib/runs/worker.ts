@@ -178,9 +178,22 @@ export function createWorker(options: WorkerOptions): Worker {
             const message = result.message as {
               id?: string;
               role?: string;
-              parts?: unknown;
-              metadata?: unknown;
+              // The tree parent the run's answer belongs under, stamped onto
+              // the run config by the runs route (Chat v2 message branching):
+              // a regenerated answer is a sibling of the one it replaces, not
+              // a child of whatever the active path ended at mid-run.
+              [key: string]: unknown;
             };
+            let replyParentId: string | null = null;
+            try {
+              const config = JSON.parse(run.config ?? '{}') as {
+                replyParentId?: unknown;
+              };
+              replyParentId =
+                typeof config.replyParentId === 'string' ? config.replyParentId : null;
+            } catch {
+              replyParentId = null;
+            }
             // Idempotent: a resumed run's message carries the id of the turn
             // it is continuing, so this is an update, not a second row.
             //
@@ -192,14 +205,18 @@ export function createWorker(options: WorkerOptions): Worker {
             // same conversation quietly overwrote the first. The run id is the
             // right fallback because it is stable across a resume of this run
             // and unique across every other.
-            store.saveAssistantMessage(run.conversation_id, {
-              id: message.id?.trim() ? message.id : answerIdFor(run.id),
-              role: message.role ?? 'assistant',
-              parts: message.parts ?? [],
-              // Model and token usage, so a reload can still say what the
-              // answer cost.
-              metadata: message.metadata,
-            });
+            store.saveAssistantMessage(
+              run.conversation_id,
+              {
+                id: message.id?.trim() ? message.id : answerIdFor(run.id),
+                role: message.role ?? 'assistant',
+                parts: message.parts ?? [],
+                // Model and token usage, so a reload can still say what the
+                // answer cost.
+                metadata: message.metadata,
+              },
+              replyParentId,
+            );
           }
           store.pruneEvents(run.id);
           // Waiting on a person is not finishing. The run keeps its place so the

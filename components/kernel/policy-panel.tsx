@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ARMS } from '@/lib/workflow/arms';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { clientFetch } from '@/lib/client/request';
 
 type RewardBreakdown = { total: number; quality: number; cost: number; latency: number };
@@ -202,9 +204,14 @@ export function PolicyPanel() {
       <div className="kernel-card" role="alert">
         <h2>Workflow policy</h2>
         <p>Could not load the policy state ({error}).</p>
-        <button type="button" onClick={() => setReloadKey((k) => k + 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          className="pointer-coarse:min-h-11"
+          onClick={() => setReloadKey((k) => k + 1)}
+        >
           Retry
-        </button>
+        </Button>
       </div>
     );
 
@@ -212,7 +219,11 @@ export function PolicyPanel() {
     return (
       <div className="kernel-card">
         <h2>Workflow policy</h2>
-        <p>Loading the policy state…</p>
+        <div className="grid gap-2" role="status" aria-label="Loading workflow policy">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
       </div>
     );
 

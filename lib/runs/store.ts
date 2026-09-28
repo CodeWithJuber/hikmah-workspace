@@ -88,8 +88,20 @@ export function createRunStore(
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ),
     insertMessage: db.prepare(
-      `INSERT INTO messages (id, conversation_id, seq, role, parts, metadata, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO messages (id, conversation_id, seq, role, parts, metadata, parent_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ),
+    // The tree link for message branching (Chat v2): the message this one
+    // answers, or null for the root of a thread. New rows default to the
+    // active path; the branch store flips paths when siblings are switched.
+    messageParent: db.prepare(
+      'SELECT parent_id FROM messages WHERE conversation_id = ? AND id = ?',
+    ),
+    lastActiveMessage: db.prepare(
+      `SELECT id FROM messages
+       WHERE conversation_id = ? AND on_active_path = 1
+       ORDER BY seq DESC
+       LIMIT 1`,
     ),
     getConversation: db.prepare('SELECT id, user_id, mode FROM conversations WHERE id = ?'),
     messageSeq: db.prepare('SELECT seq FROM messages WHERE conversation_id = ? AND id = ?'),
@@ -98,7 +110,12 @@ export function createRunStore(
     // from inside this one.
     messageById: db.prepare('SELECT id FROM messages WHERE id = ?'),
     countMessages: db.prepare('SELECT COUNT(*) AS total FROM messages WHERE conversation_id = ?'),
-    deleteFromSeq: db.prepare('DELETE FROM messages WHERE conversation_id = ? AND seq >= ?'),
+    // Branched messages live off the active path: truncating for a new turn
+    // only removes what the person is actually reading, never a sibling they
+    // switched away from. (Chat v2 message branching.)
+    deleteFromSeq: db.prepare(
+      'DELETE FROM messages WHERE conversation_id = ? AND seq >= ? AND on_active_path = 1',
+    ),
     // Joined to the active run because "in flight" and "stopped to ask you
     // something" look identical from the conversation row alone, and a run
     // paused on an approval nobody can see is a conversation that never
@@ -113,6 +130,9 @@ export function createRunStore(
        FROM conversations c
        LEFT JOIN runs r ON r.id = c.active_run_id
        WHERE c.user_id = ?
+       -- Temp chats (Chat v2) are ephemeral: they exist so the send flow has
+       -- a conversation id, but they must never surface in the list.
+       AND c.id NOT LIKE 'temp-%'
        -- updated_at is a millisecond timestamp, so two conversations touched in
        -- the same millisecond tie. Ordering on it alone leaves SQLite free to
        -- return them either way round, and the sidebar would reshuffle between
@@ -125,7 +145,7 @@ export function createRunStore(
     // background task is not that, however recently it finished.
     latestChat: db.prepare(
       `SELECT id FROM conversations
-       WHERE user_id = ? AND mode <> 'task'
+       WHERE user_id = ? AND mode <> 'task' AND id NOT LIKE 'temp-%'
        ORDER BY updated_at DESC, created_at DESC, id DESC
        LIMIT 1`,
     ),
@@ -140,7 +160,11 @@ export function createRunStore(
       'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM messages WHERE conversation_id = ?',
     ),
     listMessages: db.prepare(
-      'SELECT id, role, parts, metadata FROM messages WHERE conversation_id = ? ORDER BY seq',
+      // The active path only: branched-away siblings are read through the
+      // branch store, never the transcript. (Chat v2 message branching.)
+      `SELECT id, role, parts, metadata FROM messages
+       WHERE conversation_id = ? AND on_active_path = 1
+       ORDER BY seq`,
     ),
     insertRun: db.prepare(
       `INSERT INTO runs (id, conversation_id, user_id, status, config, created_at, priority)
@@ -383,7 +407,7 @@ export function createRunStore(
       return one<{ id: string; user_id: string; mode: string }>(statements.getConversation.get(id));
     },
 
-    appendMessage(conversationId: string, message: StoredMessage) {
+    appendMessage(conversationId: string, message: StoredMessage, parentId?: string | null) {
       const seq = (statements.nextSeq.get(conversationId) as { next: number }).next;
       statements.insertMessage.run(
         message.id,
@@ -392,9 +416,25 @@ export function createRunStore(
         message.role,
         JSON.stringify(message.parts ?? []),
         message.metadata === undefined ? null : JSON.stringify(message.metadata),
+        parentId ?? null,
         now(),
       );
       return seq;
+    },
+
+    /** The tree parent of a message, or null for a root. Used when a turn is
+     * re-appended after truncation (regenerate / edit-into-branch) so the new
+     * row keeps the old row's place in the tree. */
+    getMessageParent(conversationId: string, messageId: string): string | null {
+      const row = statements.messageParent.get(conversationId, messageId) as
+        { parent_id: string | null } | undefined;
+      return row?.parent_id ?? null;
+    },
+
+    /** The last message on the active path: the parent a fresh turn answers. */
+    lastActiveMessageId(conversationId: string): string | null {
+      const row = statements.lastActiveMessage.get(conversationId) as { id: string } | undefined;
+      return row?.id ?? null;
     },
 
     /**
@@ -663,7 +703,11 @@ export function createRunStore(
      * waited for is not. Losing one to a collision is exactly how
      * `UNIQUE constraint failed: messages.id` reached the transcript.
      */
-    saveAssistantMessage(conversationId: string, message: StoredMessage): void {
+    saveAssistantMessage(
+      conversationId: string,
+      message: StoredMessage,
+      parentId?: string | null,
+    ): void {
       const parts = JSON.stringify(message.parts ?? []);
       const metadata = message.metadata === undefined ? null : JSON.stringify(message.metadata);
       const changed = statements.replaceMessage.run(
@@ -678,7 +722,16 @@ export function createRunStore(
       const seq = (statements.nextSeq.get(conversationId) as { next: number }).next;
       const taken = statements.messageById.get(message.id) as { id: string } | undefined;
       const id = taken ? message.id + '-' + conversationId + '-' + seq : message.id;
-      statements.insertMessage.run(id, conversationId, seq, message.role, parts, metadata, now());
+      statements.insertMessage.run(
+        id,
+        conversationId,
+        seq,
+        message.role,
+        parts,
+        metadata,
+        parentId ?? null,
+        now(),
+      );
     },
 
     /** Why the last run for this conversation failed, or null.

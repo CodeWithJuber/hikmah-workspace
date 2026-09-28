@@ -346,6 +346,55 @@
     background: var(--muted);
     color: var(--foreground);
   }
+  .workspace-experience .chat-transcript-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .workspace-experience .chat-transcript-search {
+    width: min(calc(100% - 40px), 800px);
+    margin: 10px auto 0;
+  }
+  /* Temporary chat: the notice above the composer plus a dashed composer
+  border, so the state reads before anything is typed. */
+  .workspace-experience .chat-temp-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-container);
+    background: color-mix(in srgb, var(--primary) 5%, var(--background));
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+  .workspace-experience .chat-temp-notice > span {
+    flex: 1;
+  }
+  .workspace-experience .chat-temp-notice > svg {
+    flex-shrink: 0;
+    color: var(--primary);
+  }
+  .workspace-experience .chat-temp-notice button {
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .workspace-experience .chat-composer-temp {
+    border-style: dashed;
+  }
+  /* Search jumps and feedback focus land here: the row is the scroll
+  target, and the programmatic focus must not draw a focus ring. */
+  .workspace-experience .chat-message-row {
+    scroll-margin-top: 12px;
+    border-radius: var(--radius-element);
+  }
+  .workspace-experience .chat-message-row:focus {
+    outline: none;
+  }
   .workspace-experience .chat-message {
     max-width: 100%;
     min-width: 0;

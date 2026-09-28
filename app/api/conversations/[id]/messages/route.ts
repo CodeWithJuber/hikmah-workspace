@@ -1,5 +1,8 @@
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { runService } from '@/lib/runs/service';
+import { createBranchStore } from '@/lib/runs/branches';
+import { createFeedbackStore } from '@/lib/chat/feedback-store';
+import { getStorage } from '@/server/storage.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,8 +44,33 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   // conversation that had failed showed the question, no answer, and nothing
   // to say why: the browser only tails a run it thinks is active, and a failed
   // run is not.
+  //
+  // Chat v2 additions, both additive fields the old client ignores:
+  // - branch: per-message sibling info {index, total, siblings} for the
+  //   "‹ 1/3 ›" switcher. Only messages with siblings carry it.
+  // - feedback: this owner's thumbs up/down per message id.
+  const raw = getStorage().raw;
+  const branchStore = createBranchStore(raw);
+  const messages = store.listMessages(id).map((message) => {
+    const group = branchStore.siblingsOf(id, message.id);
+    return {
+      ...message,
+      branch:
+        group && group.siblings.length > 1
+          ? {
+              index: group.index,
+              total: group.siblings.length,
+              siblings: group.siblings.map((s) => s.id),
+            }
+          : undefined,
+    };
+  });
   return Response.json(
-    { messages: store.listMessages(id), error: store.lastFailure(id) ?? undefined },
+    {
+      messages,
+      error: store.lastFailure(id) ?? undefined,
+      feedback: createFeedbackStore(raw).getFeedback(id, user.userId),
+    },
     { headers },
   );
 }
