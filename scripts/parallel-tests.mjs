@@ -82,17 +82,27 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--help' || a === '-h') usage(0);
   else if (a === '--shards') {
     const n = parseInt(args[++i], 10);
-    if (!Number.isFinite(n) || n < 1) { console.error('--shards needs a positive integer'); usage(); }
+    if (!Number.isFinite(n) || n < 1) {
+      console.error('--shards needs a positive integer');
+      usage();
+    }
     shards = n;
   } else if (a === '--timeout') {
     const n = parseInt(args[++i], 10);
-    if (!Number.isFinite(n) || n < 0) { console.error('--timeout needs seconds >= 0'); usage(); }
+    if (!Number.isFinite(n) || n < 0) {
+      console.error('--timeout needs seconds >= 0');
+      usage();
+    }
     timeoutSecs = n;
   } else if (a === '--durations') {
     durationsFile = args[++i];
-    if (!durationsFile) { console.error('--durations needs a file path'); usage(); }
+    if (!durationsFile) {
+      console.error('--durations needs a file path');
+      usage();
+    }
   } else if (a.startsWith('--')) {
-    console.error(`unknown flag: ${a}`); usage();
+    console.error(`unknown flag: ${a}`);
+    usage();
   } else {
     files.push(a);
   }
@@ -139,7 +149,11 @@ async function main() {
         testFiles = parsed.map((f) => normalizeFile(String(f)));
       } catch {
         // Fall back: one path per line.
-        testFiles = stdin.split('\n').map((l) => l.trim()).filter(Boolean).map(normalizeFile);
+        testFiles = stdin
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map(normalizeFile);
       }
     }
   }
@@ -169,7 +183,9 @@ async function main() {
     try {
       durations = JSON.parse(readFileSync(resolve(root, durationsFile), 'utf8'));
     } catch (e) {
-      console.error(`could not read durations file ${durationsFile}: ${e.message} — using round-robin`);
+      console.error(
+        `could not read durations file ${durationsFile}: ${e.message} — using round-robin`,
+      );
     }
   }
 
@@ -200,21 +216,30 @@ async function main() {
   const startedAt = Date.now();
 
   const results = await Promise.all(
-    shardFiles.map((sFiles, idx) => runShard(idx, nShards, sFiles, { failFast, verbose, timeoutSecs })),
+    shardFiles.map((sFiles, idx) =>
+      runShard(idx, nShards, sFiles, { failFast, verbose, timeoutSecs }),
+    ),
   );
 
   // --- report -------------------------------------------------------------
   const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  let totalPass = 0, totalFail = 0, totalTests = 0, shardErrors = 0;
+  let totalPass = 0,
+    totalFail = 0,
+    totalTests = 0,
+    shardErrors = 0;
   console.log('\n═══ shard results ═══');
   for (const r of results) {
-    totalPass += r.pass; totalFail += r.fail; totalTests += r.tests;
+    totalPass += r.pass;
+    totalFail += r.fail;
+    totalTests += r.tests;
     if (r.error) shardErrors++;
     const status = r.error ? `ERROR: ${r.error}` : `${r.pass} pass, ${r.fail} fail`;
     console.log(`shard ${r.index + 1}/${nShards}: ${r.files} files, ${status} (${r.secs}s)`);
     for (const f of r.failedTests) console.log(`  ✖ [shard ${r.index + 1}] ${f}`);
   }
-  console.log(`═══ total: ${totalTests} tests, ${totalPass} pass, ${totalFail} fail in ${elapsed}s (${nShards} shards) ═══`);
+  console.log(
+    `═══ total: ${totalTests} tests, ${totalPass} pass, ${totalFail} fail in ${elapsed}s (${nShards} shards) ═══`,
+  );
 
   // Print full output of failed shards for diagnosis.
   for (const r of results) {
@@ -255,7 +280,13 @@ function runShard(index, nShards, sFiles, opts) {
       if (settled) return;
       settled = true;
       if (timeout) clearTimeout(timeout);
-      resolve({ index, files: sFiles.length, secs: ((Date.now() - start) / 1000).toFixed(1), output, ...result });
+      resolve({
+        index,
+        files: sFiles.length,
+        secs: ((Date.now() - start) / 1000).toFixed(1),
+        output,
+        ...result,
+      });
     };
 
     // Per-shard timeout: a hung test file must fail its shard, not hang CI.
@@ -263,7 +294,13 @@ function runShard(index, nShards, sFiles, opts) {
     if (opts.timeoutSecs > 0) {
       timeout = setTimeout(() => {
         child.kill('SIGKILL');
-        finish({ tests: 0, pass: 0, fail: 0, failedTests: [], error: `timed out after ${opts.timeoutSecs}s` });
+        finish({
+          tests: 0,
+          pass: 0,
+          fail: 0,
+          failedTests: [],
+          error: `timed out after ${opts.timeoutSecs}s`,
+        });
       }, opts.timeoutSecs * 1000);
       timeout.unref?.();
     }
@@ -279,7 +316,9 @@ function runShard(index, nShards, sFiles, opts) {
       child.on('exit', () => clearInterval(killer));
     }
 
-    child.on('error', (e) => finish({ tests: 0, pass: 0, fail: 0, failedTests: [], error: `spawn failed: ${e.message}` }));
+    child.on('error', (e) =>
+      finish({ tests: 0, pass: 0, fail: 0, failedTests: [], error: `spawn failed: ${e.message}` }),
+    );
     child.on('exit', (code) => {
       const parsed = parseSummary(output);
       const failedTests = parseFailures(output);
@@ -288,7 +327,13 @@ function runShard(index, nShards, sFiles, opts) {
         if (opts.verbose) console.log(`[${label}] failed — fail-fast: stopping other shards`);
       }
       if (!parsed) {
-        finish({ tests: 0, pass: 0, fail: 0, failedTests, error: `exited ${code} with no test summary` });
+        finish({
+          tests: 0,
+          pass: 0,
+          fail: 0,
+          failedTests,
+          error: `exited ${code} with no test summary`,
+        });
       } else {
         finish({ tests: parsed.tests, pass: parsed.pass, fail: parsed.fail, failedTests });
       }
@@ -302,7 +347,9 @@ function parseSummary(output) {
     const m = output.match(new RegExp(`^ℹ ${name} (\\d+)`, 'm'));
     return m ? parseInt(m[1], 10) : null;
   };
-  const tests = num('tests'), pass = num('pass'), fail = num('fail');
+  const tests = num('tests'),
+    pass = num('pass'),
+    fail = num('fail');
   if (tests === null || pass === null || fail === null) return null;
   return { tests, pass, fail };
 }
@@ -315,7 +362,10 @@ function parseFailures(output) {
     const m = line.match(/^\s*✖\s+(.+?)\s*(\(\d[\d.,]*ms\))?\s*$/);
     if (!m || m[1].trim() === 'failing tests:') continue;
     const name = m[1].trim().slice(0, 160);
-    if (!seen.has(name)) { seen.add(name); out.push(name); }
+    if (!seen.has(name)) {
+      seen.add(name);
+      out.push(name);
+    }
   }
   return out;
 }
