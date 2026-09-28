@@ -154,7 +154,24 @@ function blastRadius(changed) {
  * Only used to DOWNGRADE risk when confident; null -> no downgrade.
  */
 async function llmClassify(changed, diffSample) {
-  const cli = process.env.HOME + '/workspace/skills/openrouter/bin/openrouter-chat';
+  const { writeFileSync, unlinkSync, readFileSync, existsSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
+
+  // Find the CLI: check multiple locations, skip gracefully if not found.
+  // In CI, the CLI won't exist — that's fine, the LLM layer is optional.
+  const candidates = [
+    process.env.HOME + '/workspace/skills/openrouter/bin/openrouter-chat',
+    new URL('../../../skills/openrouter/bin/openrouter-chat', import.meta.url).pathname,
+  ];
+  const cli = candidates.find((p) => {
+    try {
+      return existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+  if (!cli) return null; // LLM unavailable — deterministic core handles it
+
   const prompt = `Classify this code change. Changed files: ${changed.slice(0, 15).join(', ')}.
 Diff sample (first 40 lines):
 ${diffSample.split('\n').slice(0, 40).join('\n')}
@@ -166,8 +183,6 @@ Reply with exactly one word: behavioral, refactor, cosmetic, or config.
   // Write prompt to a temp file to avoid shell-quoting issues.
   const tmp = `/tmp/smart-select-prompt-${process.pid}.txt`;
   try {
-    const { writeFileSync, unlinkSync, readFileSync } = await import('node:fs');
-    const { execFileSync } = await import('node:child_process');
     writeFileSync(tmp, prompt);
     const promptText = readFileSync(tmp, 'utf8');
     let out = null;
