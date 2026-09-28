@@ -66,7 +66,7 @@ export function LearningStrip({
           className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
           aria-hidden="true"
         >
-          <Sprout size={18} />
+          <Sprout size={16} />
         </span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">How your workspace learns</h3>
