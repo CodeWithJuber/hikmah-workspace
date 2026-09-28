@@ -355,6 +355,21 @@ test('relay sign-in failures are distinguished from an invalid provider key in t
   );
 });
 
+test('a whitespace-only vault key is refused like a missing one', async (t) => {
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => {
+    throw Error('must not fetch');
+  });
+  const req = request({
+    provider: 'openrouter',
+    headers: { 'X-Hikmah-Secret-Ref': 'whitespace-key', 'X-Hikmah-Provider-Key': '' },
+  });
+  req.headers.delete('X-Hikmah-Provider-Key');
+  const chat = await relayProviderRequest(req, true, async () => '   \n  ');
+  assert.equal(chat.status, 400);
+  assert.equal(chat.headers.get('X-Hikmah-Relay-Error'), 'key');
+  assert.equal(fetchMock.mock.callCount(), 0, 'the chat never reached upstream');
+});
+
 test('a model list is relayed without a key; a chat is not', async (t) => {
   // OpenRouter's /models is public. Refusing the request for want of a key
   // left the chat's model picker with one entry until a key was saved.

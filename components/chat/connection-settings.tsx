@@ -37,7 +37,7 @@ import {
   providerFor,
   secretNameFor,
 } from '@/lib/ai/providers';
-import { listModels } from '@/lib/playground/transport';
+import { listModels, complete } from '@/lib/playground/transport';
 import { defaultProvider } from '@/lib/playground/session';
 import { priceKind } from '@/lib/playground/model-catalog';
 import { ModelPicker, type PickerModel } from './model-picker';
@@ -59,7 +59,7 @@ export function ConnectionSettings({
   const [providerOpen, setProviderOpen] = useState(false);
   if (!active && providerOpen) setProviderOpen(false);
   if (!active && reveal) setReveal(false);
-  const [busy, setBusy] = useState<'key' | 'connection' | null>(null);
+  const [busy, setBusy] = useState<'key' | 'connection' | 'test' | null>(null);
   const [dirty, setDirty] = useState(false);
   const [note, setNote] = useState('');
   const [failure, setFailure] = useState('');
@@ -225,6 +225,53 @@ export function ConnectionSettings({
       window.dispatchEvent(new Event('hikmah-secrets-changed'));
     } catch (error) {
       setFailure(error instanceof Error ? error.message : 'Connection not saved. Try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Verify the key actually works before the owner returns to chat: a saved
+   * key that the provider rejects is the "Missing Authentication header"
+   * class of failure, caught here with a clear message instead of in chat. */
+  const testConnection = async () => {
+    setBusy('test');
+    setNote('');
+    setFailure('');
+    try {
+      // A typed-but-unsaved key is saved first, so the test runs against
+      // what "Save connection" would store.
+      let secretRef = draft.apiKeySecret;
+      if (key.trim()) {
+        const next = await saveProviderKey(draft, key);
+        secretRef = next.apiKeySecret;
+        setDraft(next);
+        setSaved((current) => new Set([...current, secretRef]));
+        setKey('');
+        setDirty(true);
+      }
+      if (!secretRef) {
+        setFailure('Save your API key first, then test the connection.');
+        return;
+      }
+      const model = draft.model.trim() || rows[0]?.id || '';
+      if (!model) {
+        setFailure('Choose a model first, then test the connection.');
+        return;
+      }
+      await complete(
+        {
+          ...defaultProvider,
+          baseUrl: draft.baseUrl,
+          model,
+          apiKeySecret: secretRef,
+          maxTokens: 5,
+          temperature: 0,
+        },
+        [{ role: 'user', content: 'Reply with the single word: ok' }],
+      );
+      setNote('Connection works — the provider accepted your key.');
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : 'Connection test failed. Check the key.');
     } finally {
       setBusy(null);
     }
@@ -446,6 +493,16 @@ export function ConnectionSettings({
           {busy === 'connection' && <LoaderCircle size={16} className="spin" />}
           Save connection
         </Button>
+        {takesKey && (
+          <Button
+            variant="outline"
+            onClick={() => void testConnection()}
+            disabled={Boolean(busy) || (!key.trim() && !keySaved)}
+          >
+            {busy === 'test' && <LoaderCircle size={16} className="spin" />}
+            Test connection
+          </Button>
+        )}
         {dirty && (
           <Button
             variant="ghost"
