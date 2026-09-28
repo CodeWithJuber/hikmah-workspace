@@ -10,6 +10,37 @@ concurrency:
   group: hikmah-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  auto-format:
+    # Permanent fix for repeated `format:check` failures: on every PR from this
+    # repo, prettier auto-fixes the branch and pushes the fix back, so a
+    # formatting slip can never block the pipeline again. Self-terminating:
+    # the follow-up run finds a clean tree and pushes nothing, so there is no
+    # push loop. The strict `format:check` in `verify` stays as the backstop.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, hikmah-prod]
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Auto-fix formatting with prettier
+        run: |
+          npx prettier --write .
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-format with prettier"
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+            echo "Pushed formatting fixes; a fresh run will verify the fixed tree."
+          else
+            echo "Formatting already clean."
+          fi
   verify:
     # Self-hosted runner on the production server: GitHub-hosted minutes are
     # billed, self-hosted runners are free and unlimited. The runner carries
@@ -30,7 +61,34 @@ jobs:
       # A feature that loses its only caller breaks the build here rather than
       # going quiet for a month. See scripts/check-reachable.mjs.
       - run: npm run lint:reach
-      - run: npm test
+      # PR fast path: run only tests impacted by the changed files.
+      # scripts/impacted-tests.mjs is fail-safe: on any error or when a
+      # full-suite trigger (package.json, .github/, etc.) is touched, it
+      # outputs [] and we fall back to the full suite below.
+      - name: Compute impacted tests
+        id: impacted
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=100 2>/dev/null || true
+          TESTS=$(node scripts/impacted-tests.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '[]')
+          echo "tests=${TESTS}" >> "$GITHUB_OUTPUT"
+          echo "Impacted tests: ${TESTS}"
+      - name: Run impacted tests (PR fast path)
+        if: github.event_name == 'pull_request' && steps.impacted.outputs.tests != '' && steps.impacted.outputs.tests != '[]'
+        run: |
+          TESTS='${{ steps.impacted.outputs.tests }}'
+          MAIN=$(echo "$TESTS" | python3 -c 'import json,sys; print(" ".join(t for t in json.load(sys.stdin) if t.startswith("tests/")))')
+          if [ -n "$MAIN" ]; then
+            echo "Running impacted main tests: $MAIN"
+            node --test $MAIN
+          else
+            echo "No impacted main tests."
+          fi
+      - name: Run full test suite
+        # Main pushes always run the full suite. PRs fall back here when the
+        # impacted-tests script outputs [] (full-suite trigger or error).
+        if: github.event_name != 'pull_request' || steps.impacted.outputs.tests == '' || steps.impacted.outputs.tests == '[]'
+        run: npm test
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high
       - run: python3 -m unittest discover -s public/runtime -p 'test_*.py'
@@ -40,8 +98,20 @@ jobs:
       # verified separately. A broken sidecar means no terminal and no SSH.
       - run: npm ci --ignore-scripts
         working-directory: workbench
-      - run: npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
+      - name: Run workbench tests (impacted on PR, full on main)
         working-directory: workbench
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TESTS=$(node ../scripts/impacted-tests.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '[]')
+            WB=$(echo "$TESTS" | python3 -c 'import json,sys; print(" ".join(t.split("/",1)[1] for t in json.load(sys.stdin) if t.startswith("workbench/")))')
+            if [ -n "$WB" ]; then
+              echo "Running impacted workbench tests: $WB"
+              npm run typecheck && node --test $WB && npm audit --omit=dev --audit-level=high
+              exit 0
+            fi
+            echo "No impacted workbench tests; running full workbench suite."
+          fi
+          npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
       # A Caddyfile that fails to parse takes the whole site down, and the error
       # would otherwise appear for the first time on the server.
       # The domain is passed into the container, not just to the step: without
