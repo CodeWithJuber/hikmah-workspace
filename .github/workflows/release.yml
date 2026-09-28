@@ -10,6 +10,37 @@ concurrency:
   group: hikmah-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  auto-format:
+    # Permanent fix for repeated `format:check` failures: on every PR from this
+    # repo, prettier auto-fixes the branch and pushes the fix back, so a
+    # formatting slip can never block the pipeline again. Self-terminating:
+    # the follow-up run finds a clean tree and pushes nothing, so there is no
+    # push loop. The strict `format:check` in `verify` stays as the backstop.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, hikmah-prod]
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Auto-fix formatting with prettier
+        run: |
+          npx prettier --write .
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-format with prettier"
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+            echo "Pushed formatting fixes; a fresh run will verify the fixed tree."
+          else
+            echo "Formatting already clean."
+          fi
   verify:
     # Self-hosted runner on the production server: GitHub-hosted minutes are
     # billed, self-hosted runners are free and unlimited. The runner carries
