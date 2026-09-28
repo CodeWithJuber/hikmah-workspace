@@ -29,12 +29,12 @@ export type ShareRow = {
 };
 
 /** 32 bytes → 43 base64url characters, no padding, safe to put in a URL path. */
-export function newShareToken(): string {
+function newShareToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
 /** The stored form of a token. Comparing hashes, never plaintext. */
-export function hashShareToken(token: string): string {
+function hashShareToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex');
 }
 

@@ -114,7 +114,12 @@ const ALLOW = [
 // the four dead-category additions are caps used inside their own modules and
 // exported as the modules' public API for the Phase-4 agent-loop wiring
 // (DECOMPOSE_MAX_LEAVES, DECOMPOSE_MAX_DEPTH, ALPHA, SPARSE_UPDATE_THRESHOLD).
-const BASELINE = { orphanFiles: 0, testedOnly: 91, dead: 50 };
+// 91 → 92 for the Chat v2 keyboard shortcuts (2026-09-28): matchShortcut and
+// isEditableTarget in lib/chat/shortcuts.ts are the pure rules
+// useKeyboardShortcuts depends on (which chat-view.tsx wires to the real
+// composer), asserted directly by the shortcut tests rather than through
+// simulated DOM key events — the same "named on purpose" pattern.
+const BASELINE = { orphanFiles: 0, testedOnly: 92, dead: 50 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

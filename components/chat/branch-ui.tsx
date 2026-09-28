@@ -1,8 +1,7 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, GitFork, Pencil, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 /**
  * Message branching UI, LibreChat-style. Pure presentational and props-driven:
@@ -60,53 +59,6 @@ export function SiblingSwitcher({ index, total, onPrev, onNext }: SiblingSwitche
         </TooltipTrigger>
         <TooltipContent>Next branch</TooltipContent>
       </Tooltip>
-    </div>
-  );
-}
-
-type BranchActionsProps = {
-  onEdit: () => void;
-  onRegenerate: () => void;
-  onFork: () => void;
-  disabled?: boolean;
-  className?: string;
-};
-
-/** Hover actions for a message: edit into a branch, regenerate, fork. */
-export function BranchActions({
-  onEdit,
-  onRegenerate,
-  onFork,
-  disabled = false,
-  className,
-}: BranchActionsProps) {
-  const actions = [
-    { label: 'Edit message', icon: Pencil, onClick: onEdit },
-    { label: 'Regenerate response', icon: RefreshCw, onClick: onRegenerate },
-    { label: 'Fork conversation from here', icon: GitFork, onClick: onFork },
-  ];
-  return (
-    <div
-      className={cn('flex items-center gap-0.5', className)}
-      role="group"
-      aria-label="Message actions"
-    >
-      {actions.map(({ label, icon: Icon, onClick }) => (
-        <Tooltip key={label}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-30"
-              onClick={onClick}
-              disabled={disabled}
-              aria-label={label}
-            >
-              <Icon className="size-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-      ))}
     </div>
   );
 }

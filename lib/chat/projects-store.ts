@@ -31,7 +31,7 @@ export type ProjectWithCount = ProjectRow & {
 };
 
 /** Project ids share the repo's id shape: a short prefix, then a UUID. */
-export const newProjectId = () => 'proj_' + randomUUID();
+const newProjectId = () => 'proj_' + randomUUID();
 
 export function createProjectsStore(
   db: SqliteHandle,

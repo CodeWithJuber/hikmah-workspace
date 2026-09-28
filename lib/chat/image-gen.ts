@@ -17,7 +17,7 @@
 /** The images endpoint this deployment calls. Mirrors `MEDIA_BASE` in
  * `lib/server/media-core.ts`; kept as a literal here so this module stays
  * import-free for tests. */
-export const IMAGE_API_BASE = 'https://openrouter.ai/api/v1';
+const IMAGE_API_BASE = 'https://openrouter.ai/api/v1';
 
 /** The model used when `HIKMAH_IMAGE_MODEL` is unset. Mirrors
  * `DEFAULT_IMAGE_MODEL` in `lib/ai/tools/media.ts`. */
@@ -31,11 +31,11 @@ export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'
 /** Largest decoded image the route will store. The run tools allow 24MB
  * (`lib/server/media-core.ts`); a message row is rendered on every
  * conversation open, so this surface is stricter. */
-export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 /** Slower than a normal generation, shorter than a hung connection. Mirrors
  * `TIMEOUT_MS` in `lib/server/media-core.ts`. */
-export const IMAGE_TIMEOUT_MS = 300_000;
+const IMAGE_TIMEOUT_MS = 300_000;
 
 /**
  * The prompt of a `/image` or `/imagine` command, or null when the text is
