@@ -41,12 +41,11 @@ jobs:
           else
             echo "Formatting already clean."
           fi
-  verify:
-    # Self-hosted runner on the production server: GitHub-hosted minutes are
-    # billed, self-hosted runners are free and unlimited. The runner carries
-    # the 'hikmah-prod' label so no other runner can pick up this pipeline.
+  # Fast static checks: format, lint, design tokens, reachability. Fails fast
+  # so a style slip never waits for the full test suite.
+  checks:
     runs-on: [self-hosted, hikmah-prod]
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with: { persist-credentials: false }
@@ -61,6 +60,19 @@ jobs:
       # A feature that loses its only caller breaks the build here rather than
       # going quiet for a month. See scripts/check-reachable.mjs.
       - run: npm run lint:reach
+      - run: npm run typecheck
+      - run: npm audit --omit=dev --audit-level=high
+  # Unit + integration tests. Runs in parallel with `checks`; both must pass
+  # before the build starts.
+  tests:
+    runs-on: [self-hosted, hikmah-prod]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --ignore-scripts
       # PR fast path: run only tests impacted by the changed files.
       # scripts/impacted-tests.mjs is fail-safe: on any error or when a
       # full-suite trigger (package.json, .github/, etc.) is touched, it
@@ -89,8 +101,6 @@ jobs:
         # impacted-tests script outputs [] (full-suite trigger or error).
         if: github.event_name != 'pull_request' || steps.impacted.outputs.tests == '' || steps.impacted.outputs.tests == '[]'
         run: npm test
-      - run: npm run typecheck
-      - run: npm audit --omit=dev --audit-level=high
       - run: python3 -m unittest discover -s public/runtime -p 'test_*.py'
       - run: python3 -m unittest discover -s deploy -p 'test_*.py'
       - run: bash -n deploy/bootstrap.sh deploy/release.sh deploy/from-actions.sh scripts/smoke-container.sh scripts/smoke-workbench.sh
@@ -112,6 +122,18 @@ jobs:
             echo "No impacted workbench tests; running full workbench suite."
           fi
           npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
+  # Build + container verification. Needs both checks and tests green.
+  # The two docker builds run in parallel via shell background jobs.
+  build:
+    needs: [checks, tests]
+    runs-on: [self-hosted, hikmah-prod]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: '24', cache: npm }
+      - run: npm ci --ignore-scripts
       # A Caddyfile that fails to parse takes the whole site down, and the error
       # would otherwise appear for the first time on the server.
       # The domain is passed into the container, not just to the step: without
@@ -122,16 +144,26 @@ jobs:
       # spoofed identities and cross-origin writes, restarts the process and
       # re-reads the saved session. It existed but was never wired into CI.
       - run: npm run build && npm run test:production
-      - name: Build immutable image
-        run: docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workspace:$GITHUB_SHA" .
-      - name: Build immutable workbench image
-        run: docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workbench:$GITHUB_SHA" workbench
-      - name: Test that the workbench starts and demands its token
-        run: bash scripts/smoke-workbench.sh "hikmah-workbench:$GITHUB_SHA"
-      - name: Test container login and persistence after restart
+      - name: Build immutable images (parallel)
+        run: |
+          docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workspace:$GITHUB_SHA" . &
+          PID1=$!
+          docker build --pull --build-arg HIKMAH_BUILD_ID="$GITHUB_SHA" --tag "hikmah-workbench:$GITHUB_SHA" workbench &
+          PID2=$!
+          wait $PID1 || { echo "main image build failed"; exit 1; }
+          wait $PID2 || { echo "workbench image build failed"; exit 1; }
+          echo "Both images built."
+      - name: Smoke tests (parallel)
+        run: |
+          bash scripts/smoke-workbench.sh "hikmah-workbench:$GITHUB_SHA" &
+          PID1=$!
+          SMOKE_REVISION="${{ github.sha }}" bash scripts/smoke-container.sh "hikmah-workspace:$GITHUB_SHA" &
+          PID2=$!
+          wait $PID1 || { echo "workbench smoke failed"; exit 1; }
+          wait $PID2 || { echo "container smoke failed"; exit 1; }
+          echo "Both smoke tests passed."
         env:
           SMOKE_REVISION: ${{ github.sha }}
-        run: bash scripts/smoke-container.sh "hikmah-workspace:$GITHUB_SHA"
       - name: Package the verified image
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
         run: |
@@ -147,7 +179,7 @@ jobs:
           path: artifact/
           key: hikmah-image-${{ github.sha }}-${{ github.run_id }}
   deploy:
-    needs: verify
+    needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
     # Same self-hosted runner: the deploy lands from the machine it runs on.
     # DEPLOY_HOST should be the server's own address (SSH to self).
