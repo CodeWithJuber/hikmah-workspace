@@ -139,18 +139,26 @@ actual=$("${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/h
 # because Docker releases the old container's ports asynchronously after
 # removal. Stop Caddy explicitly and wait for the ports it ACTUALLY binds to
 # clear before bringing it back up.
-bind_port() {
-  local key=$1 value
-  value=$(grep -hE "^$key=" .env release.env 2>/dev/null | tail -1 | cut -d= -f2-)
-  [[ $value =~ ^[0-9]+$ ]] || value=''
-  printf '%s' "$value"
+#
+# Which ports those are is Compose's answer, from compose.yml and both env
+# files: the resolution `up` is about to use. Re-reading .env by hand agrees
+# with it only for a bare number. A quoted value, an address prefix
+# (127.0.0.1:9080), an inline comment or a trailing space would fall back to
+# 80/443 — behind an outer proxy, the proxy's ports, which never come free,
+# so the release would roll back. Resolved before Caddy is stopped: if this
+# fails, the rollback starts with the edge still serving.
+published_ports() {
+  "${compose[@]}" config --format json | python3 -c '
+import json, sys
+print(" ".join(str(port["published"]) for port in json.load(sys.stdin)["services"]["caddy"]["ports"]))'
 }
-http_port=$(bind_port HIKMAH_HTTP_BIND); http_port=${http_port:-80}
-https_port=$(bind_port HIKMAH_HTTPS_BIND); https_port=${https_port:-443}
+caddy_ports=$(published_ports)
 "${compose[@]}" stop -t 30 caddy 2>/dev/null || true
 "${compose[@]}" rm -f caddy 2>/dev/null || true
 ports_clear() {
-  ! ss -H -ltn "( sport = :$http_port or sport = :$https_port )" | grep -q .
+  local port filter=''
+  for port in $caddy_ports; do filter+="${filter:+ or }sport = :$port"; done
+  ! ss -H -ltn "( $filter )" | grep -q .
 }
 for _ in $(seq 1 30); do
   ports_clear && break
@@ -161,7 +169,7 @@ if ! ports_clear; then
   # explicit `exit` here would skip the trap and leave the site without its
   # Caddy exactly as the app behind it comes healthy.
   "${compose[@]}" up -d caddy --wait --wait-timeout 120 || true
-  echo "Ports $http_port/$https_port are still occupied after stopping our Caddy. Not taking over an unrelated service." >&2
+  echo "Ports ${caddy_ports// //} are still occupied after stopping our Caddy. Not taking over an unrelated service." >&2
   false
 fi
 "${compose[@]}" up -d caddy --wait --wait-timeout 120
