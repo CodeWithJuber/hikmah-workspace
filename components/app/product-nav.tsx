@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   MessageSquare,
+  Scale,
   Bot,
   TerminalSquare,
   Wrench,
@@ -22,6 +23,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
 
 const primary: NavItem[] = [
   { href: '/chat', label: 'Chat', icon: MessageSquare },
+  { href: '/compare', label: 'Compare', icon: Scale },
   { href: '/agents', label: 'Agents', icon: Bot },
   { href: '/terminal', label: 'Terminal', icon: TerminalSquare },
   { href: '/tools', label: 'Tools', icon: Wrench },

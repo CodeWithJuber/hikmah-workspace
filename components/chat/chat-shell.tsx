@@ -112,6 +112,29 @@ export function ChatShell({
     setArtifact(null);
     setSidebarOpen(false);
   }, []);
+  /** One-click jump from an inline "used your memory" annotation: opens the
+   * Memory panel, then scrolls to the row. Dispatched as a DOM event by the
+   * transcript so the wiring stays additive across the component layers. */
+  useEffect(() => {
+    const onOpenMemory = (event: Event) => {
+      const memoryId = (event as CustomEvent<{ memoryId?: string }>).detail?.memoryId;
+      openPanel('memory');
+      if (!memoryId) return;
+      // The panel renders async; retry a few frames before giving up.
+      let attempts = 0;
+      const tick = () => {
+        const row = document.getElementById(`memory-${memoryId}`);
+        if (row) {
+          row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          return;
+        }
+        if (attempts++ < 10) window.requestAnimationFrame(tick);
+      };
+      window.requestAnimationFrame(tick);
+    };
+    window.addEventListener('hikmah:open-memory', onOpenMemory);
+    return () => window.removeEventListener('hikmah:open-memory', onOpenMemory);
+  }, [openPanel]);
   const openSettings = useCallback(() => openPanel('settings'), [openPanel]);
   const openArtifact = useCallback((files: WorkspaceFiles) => {
     setArtifact(files);
