@@ -67,6 +67,8 @@ import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
 import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyStateOnboarding } from './empty-state-onboarding';
+import { StagedLoading } from './staged-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,6 +87,8 @@ import type { FeedbackValue } from '@/lib/chat/feedback-store';
 import { useRouter } from 'next/navigation';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
+import { useMemory } from '@/hooks/use-memory';
+import type { MemoryForAha } from './memory-annotations';
 import { ConversationSearch } from './conversation-search';
 import { useTempChat } from './temp-chat';
 import { ContextEstimate } from './context-estimate';
@@ -604,6 +608,33 @@ export function ChatView({
     [updateDraft],
   );
 
+  /** The person's memory rows, keyed for the inline "used your memory"
+   * annotations. Memoised so the memoised MessageParts keeps its memo. */
+  const { memories } = useMemory();
+  const memoryById = useMemo<Map<string, MemoryForAha>>(
+    () =>
+      new Map(
+        (memories ?? []).map((memory) => [
+          memory.id,
+          { title: memory.title, createdAt: memory.createdAt, updatedAt: memory.updatedAt },
+        ]),
+      ),
+    [memories],
+  );
+  /** Opens the Memory panel and jumps to the row. A DOM event, not a prop:
+   * the panel lives in ChatShell, three levels up, and the event keeps this
+   * wiring additive. */
+  const jumpToMemory = useCallback((memoryId: string) => {
+    window.dispatchEvent(new CustomEvent('hikmah:open-memory', { detail: { memoryId } }));
+  }, []);
+  /** A follow-up chip fills an editable draft — it never sends. */
+  const pickFollowUp = useCallback(
+    (suggestion: string) => {
+      chooseStarter(suggestion);
+    },
+    [chooseStarter],
+  );
+
   const prepareResearch = useCallback(
     (brief: PreparedResearchBrief) => {
       // Keep anything already written and all staged attachments. The prepared
@@ -1048,7 +1079,17 @@ export function ChatView({
         )}
         <Conversation className="chat-transcript" aria-label="Conversation messages">
           <ConversationContent className="chat-transcript-content">
-            {messages.length === 0 && <div className="chat-welcome">{empty}</div>}
+            {messages.length === 0 && (
+              <div className="chat-welcome">
+                {empty ?? (
+                  /* Always first-run: a new conversation remounts this view
+                   * (key={conversationId}), so an empty transcript is a fresh
+                   * start. The 'cleared' variant stays available for a future
+                   * clear-thread feature. */
+                  <EmptyStateOnboarding variant="first-run" onPick={chooseStarter} />
+                )}
+              </div>
+            )}
             {hidden > 0 && (
               <div className="flex justify-center py-2">
                 <Button
@@ -1107,6 +1148,9 @@ export function ChatView({
                   onForkMessage={forkMessage}
                   feedback={feedback[message.id] ?? null}
                   onRate={rateMessage}
+                  memoryById={memoryById}
+                  onJumpToMemory={jumpToMemory}
+                  onFollowUpSelect={pickFollowUp}
                 />
               </div>
             ))}
@@ -1118,30 +1162,32 @@ export function ChatView({
               </div>
             )}
             {/* Something on the screen while the work happens.
-              A screen reader was told by the live region below, and a sighted
-              person was told by a spinner inside the send button and nothing
-              else — so a turn that took a while, or a tool that took a while
-              before writing a word, looked like nothing had happened. It
-              disappears the moment real text arrives, because the answer is a
-              better indicator than any label. */}
-            {busy && (
-              <div className="chat-thinking chat-run-progress" role="status">
-                <span className="chat-thinking-dots" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-                <span>
-                  {!online
-                    ? 'Connection lost — reconnect when you’re online'
-                    : status === 'submitted'
-                      ? 'Sending your request…'
-                      : activity.label}
-                </span>
-                {activity.completed > 0 && <small>{activity.completed} tools completed</small>}
-                {streamingText && <span className="sr-only">Response is streaming.</span>}
-              </div>
-            )}
+              The pipeline is narrated stage by stage ("Consulting your memory"
+              → "Checking tools" → …) instead of a dead spinner — the richer
+              pipeline is the differentiation, so it gets named. */}
+            {busy &&
+              (() => {
+                const pipelineIndex = !online
+                  ? 0
+                  : status === 'submitted'
+                    ? 0
+                    : /^(Using|Running)/.test(activity.label) || activity.completed > 0
+                      ? 1
+                      : streamingText
+                        ? 3
+                        : 2;
+                return (
+                  <div className="chat-thinking chat-run-progress" role="status">
+                    {!online ? (
+                      <span>Connection lost — reconnect when you’re online</span>
+                    ) : (
+                      <StagedLoading currentIndex={pipelineIndex} />
+                    )}
+                    {activity.completed > 0 && <small>{activity.completed} tools completed</small>}
+                    {streamingText && <span className="sr-only">Response is streaming.</span>}
+                  </div>
+                );
+              })()}
             {/* The answer region is announced while a run is in progress, so a
               screen reader learns that work is happening and when it lands. */}
             <div aria-live="polite" className="sr-only">

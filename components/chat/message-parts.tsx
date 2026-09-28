@@ -48,6 +48,8 @@ import {
 } from '@/components/ai-elements/tool';
 import { ReadAloud } from './voice-controls';
 import { ChatReceipt } from './chat-receipt';
+import { MemoryAnnotations, type MemoryForAha } from './memory-annotations';
+import { FollowUpChips } from './follow-up-chips';
 import { usePricing } from './pricing-context';
 import { estimatedCost } from '@/lib/playground/model-catalog';
 import { InlineArtifact } from '@/components/kernel/artifact';
@@ -60,6 +62,15 @@ import type { FeedbackValue } from '@/lib/chat/feedback-store';
 import { GeneratedImage } from './generated-image';
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
+
+/** Curated follow-ups after an answer. Plain and useful; the chips component
+ * takes any source, so an LLM-generated set can replace this later. */
+const FOLLOW_UP_SUGGESTIONS = [
+  'Explain this more simply',
+  'Give me an example',
+  'What should I do next?',
+  'Make it shorter',
+];
 
 /** Answers one paused tool call. Resolved by the chat view, which owns useChat. */
 export type RespondToApproval = (response: { id: string; approved: boolean }) => void;
@@ -715,6 +726,9 @@ function MessagePartsInner({
   onForkMessage,
   feedback,
   onRate,
+  memoryById,
+  onJumpToMemory,
+  onFollowUpSelect,
 }: {
   message: UIMessage;
   status: ChatStatus;
@@ -760,6 +774,13 @@ function MessagePartsInner({
   feedback?: FeedbackValue | null;
   /** Rate the message; the parent PUTs it and updates `feedback`. */
   onRate?: (messageId: string, value: FeedbackValue | null) => void;
+  /** The person's memory rows, for the inline "used your memory"
+   * annotations. Absent is fine — memories simply get the quiet line. */
+  memoryById?: Map<string, MemoryForAha>;
+  /** One-click jump to a memory row (opens the Memory panel). */
+  onJumpToMemory?: (memoryId: string) => void;
+  /** A follow-up chip fills the composer as an editable draft. */
+  onFollowUpSelect?: (suggestion: string) => void;
 }) {
   // Only the message actually being written is animating.
   //
@@ -1130,6 +1151,20 @@ function MessagePartsInner({
         {artifact && onArtifact && <InlineArtifact files={artifact} onOpen={onArtifact} />}
 
         {answered && showActivity && <ChatReceipt message={message} />}
+
+        {/* Inline proof the person's memory worked — under the answer that
+          used it. A used memory taught recently earns the aha moment. */}
+        {answered && (
+          <MemoryAnnotations message={message} memoryById={memoryById} onJump={onJumpToMemory} />
+        )}
+
+        {/* Follow-ups that keep the conversation alive, on the newest settled
+          answer only. A chip fills the composer as an editable draft — it
+          never sends. The set is curated for now; the component takes any
+          source, so an LLM-generated set can replace it later. */}
+        {answered && isLast && onFollowUpSelect && (
+          <FollowUpChips suggestions={FOLLOW_UP_SUGGESTIONS} onSelect={onFollowUpSelect} />
+        )}
 
         {answered && hasText && (
           <MessageToolbar>
