@@ -15,15 +15,11 @@ const environment = {
   PORT: '3210',
   BETTER_AUTH_URL: 'http://127.0.0.1:3210',
   BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
-  // v10 seals run credentials at rest; without this the server refuses to
-  // boot, and both smoke phases share this one environment so the key stays
-  // stable across the restart the test exists to prove.
   HIKMAH_VAULT_KEY: randomBytes(32).toString('hex'),
-  // The smoke assertions were written for the public surface (landing CTA and
-  // a sign-up page that offers to make a workspace); v10 defaults a deployment
-  // with an owner email to private. Both are deliberate, so the harness opts
-  // this staged deployment into the public mode it exercises.
-  HIKMAH_PUBLIC: '1',
+  // The stranger sign-up below is the check that a deployment can be opened
+  // to the public, so registration is opened explicitly here. The closed
+  // default is covered by the selfhost suite.
+  HIKMAH_PRIVATE: '0',
   HIKMAH_DATA_DIR: join(directory, 'data'),
   HIKMAH_OWNER_EMAIL: 'owner@example.test',
   // A run is now refused up front when a hosted provider has no key, which is
