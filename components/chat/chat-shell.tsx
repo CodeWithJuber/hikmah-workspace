@@ -260,219 +260,219 @@ export function ChatShell({
     <TooltipProvider>
       <PlaygroundProvider onSettings={openSettings}>
         <KernelProvider>
-        <div className={'chat-shell workspace-experience' + (narrow ? ' is-narrow' : '')}>
-          <a className="workspace-skip" href="#workspace-main">
-            Skip to conversation
-          </a>
-          <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
-            <button
-              ref={navigationButtonRef}
-              type="button"
-              className="workspace-icon workspace-menu"
-              aria-label="Conversations"
-              aria-expanded={sidebarOpen}
-              onClick={() => {
-                setSidebarOpen(true);
-                setPanel(null);
-                setArtifact(null);
-              }}
-            >
-              <Menu size={20} />
-            </button>
-            <div className="workspace-heading">
-              <span>{currentTitle}</span>
-              {agent && (
-                <button
-                  type="button"
-                  className="workspace-agent-chip"
-                  onClick={() => openPanel('agents')}
-                >
-                  <Bot size={12} />
-                  {agent.name}
-                </button>
-              )}
-            </div>
-          </header>
-          <aside
-            ref={sidebarRef}
-            className={
-              'workspace-sidebar chat-drawer chat-drawer-list' +
-              (narrow && sidebarOpen ? ' is-open' : '')
-            }
-            aria-label="Workspace navigation"
-            role={narrow && sidebarOpen ? 'dialog' : undefined}
-            aria-modal={(narrow && sidebarOpen) || undefined}
-            inert={(narrow && !sidebarOpen) || undefined}
-            tabIndex={-1}
-          >
-            <div className="workspace-brand">
-              <HikmahIcon name="orbit" size={32} />
-              <strong>Hikmah</strong>
+          <div className={'chat-shell workspace-experience' + (narrow ? ' is-narrow' : '')}>
+            <a className="workspace-skip" href="#workspace-main">
+              Skip to conversation
+            </a>
+            <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
               <button
+                ref={navigationButtonRef}
                 type="button"
-                className="workspace-icon workspace-sidebar-close"
-                aria-label="Close navigation"
-                onClick={() => setSidebarOpen(false)}
+                className="workspace-icon workspace-menu"
+                aria-label="Conversations"
+                aria-expanded={sidebarOpen}
+                onClick={() => {
+                  setSidebarOpen(true);
+                  setPanel(null);
+                  setArtifact(null);
+                }}
               >
-                <X size={20} />
+                <Menu size={20} />
               </button>
-            </div>
-            <ConversationList
-              activeId={conversationId}
-              revision={revision}
-              onNew={newChat}
-              onConversations={onHistory}
-              onActivate={() => setSidebarOpen(false)}
-              navigation={<ProductNav onNavigate={() => setSidebarOpen(false)} />}
-            />
-            <div className="workspace-sidebar-footer">
-              <button type="button" onClick={openSettings}>
-                <Settings size={16} />
-                Settings
-              </button>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
-                <span className="workspace-theme-state">Change</span>
-              </button>
-            </div>
-          </aside>
-          <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
-            <section
-              className="workspace-chat-pane"
-              inert={modalOpen || undefined}
-              aria-label="Conversation"
-            >
-              <ChatPreview
-                key={conversationId}
-                conversationId={conversationId}
-                agent={agent}
-                settings={settings}
-                settingsReady={ready}
-                onArtifact={openArtifact}
-                onTools={changeTools}
-                onSettled={settled}
-                needsKey={needsKey}
-                onOpenSettings={openSettings}
-                onGrant={grant}
-                banner={
-                  task ? (
-                    <div className="chat-task-banner" role="note">
-                      <BookOpenCheck size={16} />
-                      <span>A background task. Suggestions wait for your review.</span>
-                      <button type="button" onClick={() => openPanel('memory')}>
-                        Review what it learned
-                      </button>
-                    </div>
-                  ) : null
-                }
-              />
-            </section>
-            {(settingsVisited || panel || artifact) && (
-              <div
-                ref={panelRef}
-                className={
-                  'workspace-detail chat-drawer chat-drawer-panel' + (narrow ? ' is-open' : '')
-                }
-                role={narrow ? 'dialog' : undefined}
-                aria-modal={narrow || undefined}
-                aria-label={panel ? PANEL_LABELS[panel] : 'Artifact preview'}
-                hidden={!panel && !artifact}
-                inert={(!panel && !artifact) || undefined}
-                tabIndex={-1}
-              >
-                {artifact && !panel && (
-                  <ArtifactPanel
-                    files={artifact}
-                    previewBase={previewBase || undefined}
-                    onClose={() => setArtifact(null)}
-                    onEdit={() => openPanel('files')}
-                  />
-                )}
-                {(panel || settingsVisited) && (
-                  <aside
-                    className="workspace-panel"
-                    aria-label="Workspace"
-                    hidden={!panel}
-                    inert={!panel || undefined}
+              <div className="workspace-heading">
+                <span>{currentTitle}</span>
+                {agent && (
+                  <button
+                    type="button"
+                    className="workspace-agent-chip"
+                    onClick={() => openPanel('agents')}
                   >
-                    <div className="workspace-detail-heading">
-                      <h2>{panel ? PANEL_LABELS[panel] : 'Settings'}</h2>
-                      <button
-                        type="button"
-                        className="workspace-icon"
-                        aria-label="Close workspace panel"
-                        onClick={closePanel}
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                    {panel === 'files' ? (
-                      <FilesPanel revision={revision} />
-                    ) : panel === 'agents' ? (
-                      <AgentsPanel
-                        activeId={agent?.id ?? null}
-                        onPick={(next) => {
-                          setAgent(next);
-                          setPanel(null);
-                        }}
-                      />
-                    ) : panel === 'memory' ? (
-                      <MemoryPanel />
-                    ) : panel === 'typeform' ? (
-                      <TypeformPanel embedded />
-                    ) : null}
-                    {settingsVisited && (
-                      <div
-                        className="workspace-settings-content"
-                        hidden={panel !== 'settings'}
-                        inert={panel !== 'settings' || undefined}
-                      >
-                        <RunSettings
-                          settings={settings}
-                          onChange={change}
-                          active={panel === 'settings'}
-                        />
-                        <nav className="workspace-account-links" aria-label="Account">
-                          <Link href="/billing">Plan and usage</Link>
-                          <Link href="/sign-out" title="Sign out" aria-label="Sign out">
-                            Sign out
-                          </Link>
-                        </nav>
-                      </div>
-                    )}
-                  </aside>
+                    <Bot size={12} />
+                    {agent.name}
+                  </button>
                 )}
               </div>
-            )}
-          </main>
-          {modalOpen && (
-            <button
-              type="button"
-              className="chat-drawer-scrim workspace-scrim"
-              aria-label="Close panel"
+            </header>
+            <aside
+              ref={sidebarRef}
+              className={
+                'workspace-sidebar chat-drawer chat-drawer-list' +
+                (narrow && sidebarOpen ? ' is-open' : '')
+              }
+              aria-label="Workspace navigation"
+              role={narrow && sidebarOpen ? 'dialog' : undefined}
+              aria-modal={(narrow && sidebarOpen) || undefined}
+              inert={(narrow && !sidebarOpen) || undefined}
               tabIndex={-1}
-              onClick={() => {
-                setSidebarOpen(false);
-                closePanel();
-                setArtifact(null);
-              }}
+            >
+              <div className="workspace-brand">
+                <HikmahIcon name="orbit" size={32} />
+                <strong>Hikmah</strong>
+                <button
+                  type="button"
+                  className="workspace-icon workspace-sidebar-close"
+                  aria-label="Close navigation"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <ConversationList
+                activeId={conversationId}
+                revision={revision}
+                onNew={newChat}
+                onConversations={onHistory}
+                onActivate={() => setSidebarOpen(false)}
+                navigation={<ProductNav onNavigate={() => setSidebarOpen(false)} />}
+              />
+              <div className="workspace-sidebar-footer">
+                <button type="button" onClick={openSettings}>
+                  <Settings size={16} />
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                  <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+                  <span className="workspace-theme-state">Change</span>
+                </button>
+              </div>
+            </aside>
+            <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
+              <section
+                className="workspace-chat-pane"
+                inert={modalOpen || undefined}
+                aria-label="Conversation"
+              >
+                <ChatPreview
+                  key={conversationId}
+                  conversationId={conversationId}
+                  agent={agent}
+                  settings={settings}
+                  settingsReady={ready}
+                  onArtifact={openArtifact}
+                  onTools={changeTools}
+                  onSettled={settled}
+                  needsKey={needsKey}
+                  onOpenSettings={openSettings}
+                  onGrant={grant}
+                  banner={
+                    task ? (
+                      <div className="chat-task-banner" role="note">
+                        <BookOpenCheck size={16} />
+                        <span>A background task. Suggestions wait for your review.</span>
+                        <button type="button" onClick={() => openPanel('memory')}>
+                          Review what it learned
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                />
+              </section>
+              {(settingsVisited || panel || artifact) && (
+                <div
+                  ref={panelRef}
+                  className={
+                    'workspace-detail chat-drawer chat-drawer-panel' + (narrow ? ' is-open' : '')
+                  }
+                  role={narrow ? 'dialog' : undefined}
+                  aria-modal={narrow || undefined}
+                  aria-label={panel ? PANEL_LABELS[panel] : 'Artifact preview'}
+                  hidden={!panel && !artifact}
+                  inert={(!panel && !artifact) || undefined}
+                  tabIndex={-1}
+                >
+                  {artifact && !panel && (
+                    <ArtifactPanel
+                      files={artifact}
+                      previewBase={previewBase || undefined}
+                      onClose={() => setArtifact(null)}
+                      onEdit={() => openPanel('files')}
+                    />
+                  )}
+                  {(panel || settingsVisited) && (
+                    <aside
+                      className="workspace-panel"
+                      aria-label="Workspace"
+                      hidden={!panel}
+                      inert={!panel || undefined}
+                    >
+                      <div className="workspace-detail-heading">
+                        <h2>{panel ? PANEL_LABELS[panel] : 'Settings'}</h2>
+                        <button
+                          type="button"
+                          className="workspace-icon"
+                          aria-label="Close workspace panel"
+                          onClick={closePanel}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      {panel === 'files' ? (
+                        <FilesPanel revision={revision} />
+                      ) : panel === 'agents' ? (
+                        <AgentsPanel
+                          activeId={agent?.id ?? null}
+                          onPick={(next) => {
+                            setAgent(next);
+                            setPanel(null);
+                          }}
+                        />
+                      ) : panel === 'memory' ? (
+                        <MemoryPanel />
+                      ) : panel === 'typeform' ? (
+                        <TypeformPanel embedded />
+                      ) : null}
+                      {settingsVisited && (
+                        <div
+                          className="workspace-settings-content"
+                          hidden={panel !== 'settings'}
+                          inert={panel !== 'settings' || undefined}
+                        >
+                          <RunSettings
+                            settings={settings}
+                            onChange={change}
+                            active={panel === 'settings'}
+                          />
+                          <nav className="workspace-account-links" aria-label="Account">
+                            <Link href="/billing">Plan and usage</Link>
+                            <Link href="/sign-out" title="Sign out" aria-label="Sign out">
+                              Sign out
+                            </Link>
+                          </nav>
+                        </div>
+                      )}
+                    </aside>
+                  )}
+                </div>
+              )}
+            </main>
+            {modalOpen && (
+              <button
+                type="button"
+                className="chat-drawer-scrim workspace-scrim"
+                aria-label="Close panel"
+                tabIndex={-1}
+                onClick={() => {
+                  setSidebarOpen(false);
+                  closePanel();
+                  setArtifact(null);
+                }}
+              />
+            )}
+            <WorkspaceCommands
+              open={commandsOpen}
+              onOpenChange={setCommandsOpen}
+              conversations={conversations}
+              onNew={() => void newChat()}
+              onPanel={openPanel}
             />
-          )}
-          <WorkspaceCommands
-            open={commandsOpen}
-            onOpenChange={setCommandsOpen}
-            conversations={conversations}
-            onNew={() => void newChat()}
-            onPanel={openPanel}
-          />
-        </div>
-      </KernelProvider>
-    </PlaygroundProvider>
+          </div>
+        </KernelProvider>
+      </PlaygroundProvider>
     </TooltipProvider>
   );
 }
