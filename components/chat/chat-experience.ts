@@ -119,6 +119,9 @@ export type FailureAction = 'configure' | 'reload' | 'reconnect' | 'retry';
 export function failureAction(message: string): FailureAction {
   if (/No API key|API key.*(?:invalid|missing)|(?:invalid|missing).*API key/i.test(message))
     return 'configure';
+  // The model is blocked by the "Free models only" setting — retrying won't
+  // help. The fix is in Settings (turn it off or pick a free model).
+  if (/Free models only/i.test(message)) return 'configure';
   if (/waiting for you|waiting for your answer|Reload the conversation/i.test(message))
     return 'reload';
   if (

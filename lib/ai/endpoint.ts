@@ -98,7 +98,7 @@ export function assertModelAllowed(options: {
   if (providerFor(options.baseUrl)?.freeModels === 'all') return;
   if (options.baseUrl !== 'https://openrouter.ai/api/v1' || !isFreeOpenRouterModel(options.model))
     throw new EndpointError(
-      'Free models only is on, which blocks this model. Choose the OpenRouter Free Router, an OpenRouter :free model, Ollama, or a local model server — or turn the setting off.',
+      'This model is not free, but you have "Free models only" turned on. Pick a free model from the model menu below, or turn off "Free models only" in Settings.',
     );
 }
 
