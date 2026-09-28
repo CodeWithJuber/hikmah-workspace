@@ -15,6 +15,11 @@ const environment = {
   PORT: '3210',
   BETTER_AUTH_URL: 'http://127.0.0.1:3210',
   BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
+  HIKMAH_VAULT_KEY: randomBytes(32).toString('hex'),
+  // The stranger sign-up below is the check that a deployment can be opened
+  // to the public, so registration is opened explicitly here. The closed
+  // default is covered by the selfhost suite.
+  HIKMAH_PRIVATE: '0',
   HIKMAH_DATA_DIR: join(directory, 'data'),
   HIKMAH_OWNER_EMAIL: 'owner@example.test',
   // A run is now refused up front when a hosted provider has no key, which is

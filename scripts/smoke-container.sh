@@ -15,6 +15,7 @@ export SMOKE_COOKIE_FILE="$temporary/session"
 printf '%s' "$SMOKE_PASSWORD" > "$temporary/data/bootstrap-owner-password"
 sudo chown -R 1000:1000 "$temporary/data"
 session_secret=$(openssl rand -hex 32)
+vault_key=$(openssl rand -hex 32)
 # The provider key is not a real one, but it is not unused: a run against a
 # hosted provider with no key is refused up front, which turned these assertions
 # into a test of the refusal rather than of the run lifecycle they exist for, so
@@ -27,6 +28,7 @@ docker run -d --name "$container" -p 127.0.0.1:3210:3000 \
   --tmpfs /app/.next/cache:rw,noexec,nosuid,size=64m,uid=1000,gid=1000 \
   --cap-drop=ALL --security-opt=no-new-privileges --memory=1g --pids-limit=256 \
   -e BETTER_AUTH_URL="$SMOKE_URL" -e BETTER_AUTH_SECRET="$session_secret" \
+  -e HIKMAH_VAULT_KEY="$vault_key" \
   -e HIKMAH_OWNER_EMAIL="$SMOKE_EMAIL" \
   -e HIKMAH_PROVIDER_KEY=smoke-provider-key "$image" >/dev/null
 node scripts/smoke-http.mjs write
