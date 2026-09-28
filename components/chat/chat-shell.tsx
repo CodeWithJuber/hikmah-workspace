@@ -8,6 +8,7 @@ import { ProductNav } from '@/components/app/product-nav';
 import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { PlaygroundProvider } from '@/components/playground/context';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ChatPreview } from './chat-preview';
 import { ConversationList, type ConversationSummary } from './conversation-list';
 import { FilesPanel } from './files-panel';
@@ -256,8 +257,9 @@ export function ChatShell({
     document.cookie = themeCookie(next);
   }
   return (
-    <PlaygroundProvider onSettings={openSettings}>
-      <KernelProvider>
+    <TooltipProvider>
+      <PlaygroundProvider onSettings={openSettings}>
+        <KernelProvider>
         <div className={'chat-shell workspace-experience' + (narrow ? ' is-narrow' : '')}>
           <a className="workspace-skip" href="#workspace-main">
             Skip to conversation
@@ -471,5 +473,6 @@ export function ChatShell({
         </div>
       </KernelProvider>
     </PlaygroundProvider>
+    </TooltipProvider>
   );
 }
