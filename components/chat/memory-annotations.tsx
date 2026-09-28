@@ -75,7 +75,8 @@ export function growthStory(
   for (const memory of memories) {
     if (!memory.lastUsedAt) continue;
     const at = new Date(memory.lastUsedAt).getTime();
-    if (!Number.isNaN(at) && at >= weekAgo && at <= now.getTime()) usedThisWeek += 1;
+    // Strictly inside the window: exactly-seven-days-ago is last week, not this one.
+    if (!Number.isNaN(at) && at > weekAgo && at <= now.getTime()) usedThisWeek += 1;
   }
   return { total: memories.length, usedThisWeek };
 }
@@ -149,7 +150,7 @@ export function MemoryAnnotations({
             onClick={onJump ? () => onJump(memory.id) : undefined}
             title={onJump ? 'See this memory' : copyFor(memory)}
           >
-            <Bookmark size={13} aria-hidden className="shrink-0" />
+            <Bookmark size={12} aria-hidden className="shrink-0" />
             <span className="truncate">{copyFor(memory)}</span>
           </button>
         );
