@@ -71,16 +71,22 @@ test('changed applied migrations stop startup instead of silently rewriting sche
 test('real authentication: open registration, secure sessions, invalid password, CSRF and logout', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'hikmah-auth-'));
   const previous = Object.fromEntries(
-    ['HIKMAH_DATA_DIR', 'HIKMAH_OWNER_EMAIL', 'BETTER_AUTH_SECRET', 'BETTER_AUTH_URL'].map((k) => [
-      k,
-      process.env[k],
-    ]),
+    [
+      'HIKMAH_DATA_DIR',
+      'HIKMAH_OWNER_EMAIL',
+      'BETTER_AUTH_SECRET',
+      'BETTER_AUTH_URL',
+      'HIKMAH_PRIVATE',
+    ].map((k) => [k, process.env[k]]),
   );
   Object.assign(process.env, {
     HIKMAH_DATA_DIR: dir,
     HIKMAH_OWNER_EMAIL: 'owner@example.test',
     BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
     BETTER_AUTH_URL: 'https://hikmah.test',
+    // Phase 1 made private-by-default the deployment default; this test
+    // asserts the open-registration behaviour, so it opts out explicitly.
+    HIKMAH_PRIVATE: '0',
   });
   const password = randomBytes(24).toString('base64url');
   let instance;

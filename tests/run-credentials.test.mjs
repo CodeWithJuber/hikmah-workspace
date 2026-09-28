@@ -75,7 +75,7 @@ test('missing or changed encryption keys fail closed without saving a plaintext 
   env(t, 'BETTER_AUTH_SECRET', undefined);
   assert.throws(
     () => store.createRun({ id: 'refused', userId: 'alice', conversationId: 'chat', config }),
-    /encryption is unavailable/,
+    /HIKMAH_VAULT_KEY is not set/,
   );
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM runs WHERE id=?').get('refused').n, 0);
   store.createRun({
