@@ -49,6 +49,18 @@ export function describeFailure(error: unknown, options?: { operator?: boolean }
   return summarise(error);
 }
 
+/** Ours or the provider's: the same shape test `summarise` filters on,
+ * exposed so telemetry classifies with the identical rule the failure
+ * sentence was chosen by. Non-errors and empty messages are internal — a
+ * provider always says something. */
+export function failureKind(error: unknown): 'internal' | 'provider' {
+  if (!(error instanceof Error)) return 'internal';
+  if (INTERNAL_TYPES.has(error.name)) return 'internal';
+  const message = error.message?.trim() ?? '';
+  if (!message) return 'internal';
+  return INTERNAL.test(message) ? 'internal' : 'provider';
+}
+
 function summarise(error: unknown): string {
   if (!(error instanceof Error)) return INTERNAL_FAILURE;
   if (INTERNAL_TYPES.has(error.name)) return INTERNAL_FAILURE;

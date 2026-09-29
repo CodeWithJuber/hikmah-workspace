@@ -40,6 +40,8 @@ import { jevLane, applyJevLane } from './jev-lane.ts';
 import { withFirstByteLimit } from '../ai/first-byte.ts';
 import { createRunBudgetLedger, asBudget } from '../workflow/ledger.ts';
 import { withRunBudget, BudgetExhaustedError } from '../ai/budget-middleware.ts';
+import { usefulChunk } from './telemetry.ts';
+import type { RunDriver } from './worker.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
@@ -166,12 +168,8 @@ async function driveWithAgent({
   messages,
   signal,
   emit,
-}: {
-  run: { id: string; user_id?: string; conversation_id?: string; config: string };
-  messages: unknown[];
-  signal: AbortSignal;
-  emit: (chunk: unknown) => number;
-}) {
+  telemetry,
+}: Parameters<RunDriver>[0]) {
   const config = executionRunConfig(run) as RunConfig;
   // Absent means no. This read used to be `!== false`, so a config that simply
   // did not carry the key was granted the workbench shell and SSH — a gate
@@ -181,11 +179,16 @@ async function driveWithAgent({
   // TypeSafe System One. Kicked off before the connects below so a slow Jev
   // overlaps them instead of adding to the wait; null on any failure, and
   // the run then behaves exactly as it did before the preflight existed.
+  // Timed as its own segment (PR-07): from launch to the await below.
+  const jevStarted = Date.now();
   const lanePromise = jevLane(recentUserText(messages as Turn[], 1)).catch(() => null);
   // Connected per run and released in the finally below. A worker that lives
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
+  telemetry?.phase('connecting-tools');
+  const mcpStarted = Date.now();
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
+  telemetry?.recordSegment('mcp_handshake', Date.now() - mcpStarted);
   const mediaKey = mediaKeyFor(config);
   // Built once here rather than inside buildRunAgent, because the closing step
   // below talks to the same model after the agent loop has finished with it.
@@ -229,11 +232,13 @@ async function driveWithAgent({
   // The lane Jev proposed, mapped onto the existing options. A null proposal
   // — Jev unreachable, keyless, or slow — leaves every option exactly as the
   // config set it: Jev proposes, it never blocks.
+  telemetry?.phase('routing');
   const routed = applyJevLane(
     { instructions: config.instructions, deepResearch: config.deepResearch === true },
     await lanePromise,
     { unattended: Boolean(config.task) },
   );
+  telemetry?.recordSegment('jev_decision', Date.now() - jevStarted);
 
   const agent = buildRunAgent({
     provider,
@@ -363,6 +368,14 @@ async function driveWithAgent({
         // matches the paused turn". A resumed turn's `start` already names the
         // stored message; that is kept.
         const name = (chunk: unknown) => nameAnswer(chunk, run.id);
+        // The provider call starts when the loop below pulls its first chunk.
+        // Two timed segments (PR-07): how long the first byte took to arrive,
+        // and how long after that the first *useful* output — words, a file,
+        // or an answer-shaped data part, not bookkeeping — took to follow.
+        telemetry?.phase('answering');
+        const providerCallStarted = Date.now();
+        let firstByteAt: number | null = null;
+        let usefulOutput = false;
         // The comparison runs alongside rather than after: the point of the
         // mode is watching the two answers arrive together, and running them in
         // sequence would double the wait for no gain.
@@ -395,11 +408,27 @@ async function driveWithAgent({
                   answerChunks,
                   FREE_FIRST_BYTE_MS,
                   () => byteController.abort(),
-                  () => new Error(FREE_QUEUE_BUSY),
+                  () => {
+                    const timeout = new Error(FREE_QUEUE_BUSY);
+                    // Named so the run's reason code records a timeout rather
+                    // than a generic provider error (PR-07).
+                    timeout.name = 'FirstByteTimeout';
+                    return timeout;
+                  },
                 )
               : answerChunks;
             for await (const chunk of bounded) {
-              push(name(chunk));
+              const named = name(chunk);
+              push(named);
+              if (firstByteAt === null) {
+                firstByteAt = Date.now();
+                telemetry?.recordSegment('first_byte', firstByteAt - providerCallStarted);
+                telemetry?.phase('streaming');
+              }
+              if (!usefulOutput && usefulChunk(named)) {
+                usefulOutput = true;
+                telemetry?.recordSegment('useful_output', Date.now() - (firstByteAt ?? Date.now()));
+              }
               // Right after the message opens, so the fold has a message to
               // attach it to: which memories this answer was written with.
               // Not an answer in itself — failure.ts and the closing step both

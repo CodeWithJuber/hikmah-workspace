@@ -1156,6 +1156,11 @@ function MessagePartsInner({
     // reads it; here it would be a line above the answer saying the same.
     if (part.type === 'data-memories') return null;
 
+    // The run's progress phase (PR-07 telemetry). It drives the narrated
+    // loading stages while the run works; rendered here it would be a
+    // meaningless line above the answer.
+    if (part.type === 'data-run-phase') return null;
+
     // The v5 workflow plan for this run. Rendered as its own inspector card,
     // closed by default: the answer below is what the reader came for. Spend
     // is counted from this message's own parts and metadata — observed, never
@@ -1209,6 +1214,7 @@ function MessagePartsInner({
     rest.every((part) =>
       [
         'data-memories',
+        'data-run-phase',
         'step-start',
         'data-plan',
         'data-research',

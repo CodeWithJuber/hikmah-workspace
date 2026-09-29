@@ -14,6 +14,7 @@
  */
 import { createLearningStore } from '../learning/store.ts';
 import { sealRunConfig } from '../../server/run-credentials.mjs';
+import type { RunReasonCode, RunSegment } from './telemetry.ts';
 
 export type RunStatus =
   | 'queued'
@@ -32,6 +33,9 @@ export type RunRow = {
   status: RunStatus;
   step_count: number;
   error: string | null;
+  /** The latest machine-readable outcome (completed, cancelled, timeout, …).
+   * Stamped on every status transition; null for runs from before PR-07. */
+  reason_code: string | null;
   config: string;
   /** Next unused chunk sequence. Claimed from the row rather than counted from
    * run_events, which is pruned at the end of every step. */
@@ -225,12 +229,25 @@ export function createRunStore(
     ),
     getRun: db.prepare('SELECT * FROM runs WHERE id = ?'),
     setStatus: db.prepare('UPDATE runs SET status = ? WHERE id = ?'),
-    finish: db.prepare(`UPDATE runs SET status = ?, error = ?, ended_at = ?,
+    finish: db.prepare(`UPDATE runs SET status = ?, error = ?, ended_at = ?, reason_code = ?,
       config = CASE WHEN json_valid(config) THEN json_remove(config, '$.apiKey', '$.providerCredential') ELSE '{}' END
       -- Terminal is terminal: a drive that settles late (after a forced
       -- cancel, after a resume) must not overwrite the outcome already
       -- recorded, or a cancelled run comes back as done and the badge with it.
       WHERE id = ? AND status NOT IN ('done', 'failed', 'cancelled')`),
+    /** The machine-readable reason for a non-terminal transition: paused on
+     * an approval, paused on a question, or resumed after a denied approval.
+     * Separate from finish because these transitions do not end the run. */
+    setReasonCode: db.prepare('UPDATE runs SET reason_code = ? WHERE id = ?'),
+    /** One timed segment of a run's life (PR-07 telemetry). Names and
+     * durations only — never prompt text, tool arguments or keys. */
+    insertSegment: db.prepare(
+      'INSERT INTO run_telemetry (run_id, segment, duration_ms, reason_code, created_at) VALUES (?, ?, ?, ?, ?)',
+    ),
+    timeline: db.prepare(
+      `SELECT run_id, segment, duration_ms, reason_code, created_at
+       FROM run_telemetry WHERE run_id = ? ORDER BY created_at, rowid`,
+    ),
     bumpSteps: db.prepare('UPDATE runs SET step_count = step_count + 1 WHERE id = ?'),
     // A process that dies mid-run leaves rows marked running with nobody
     // driving them. Requeue on boot and on shutdown so the work resumes instead
@@ -618,6 +635,75 @@ export function createRunStore(
       statements.setStatus.run(status, id);
     },
 
+    /**
+     * Stamp the machine-readable reason for the run's latest outcome or
+     * transition (PR-07). Terminal outcomes go through `finish`; this covers
+     * the transitions that keep the run alive — waiting_approval,
+     * waiting_client, and a denied approval on resume.
+     */
+    setReasonCode(id: string, reasonCode: RunReasonCode) {
+      statements.setReasonCode.run(reasonCode, id);
+    },
+
+    /**
+     * Record one timed segment of a run (PR-07 telemetry).
+     *
+     * Best effort on purpose, like the usage rows: observability must never
+     * break the run it is observing. A missing row undercounts one segment;
+     * a thrown error would lose the answer. Names and durations only — the
+     * signature takes no payload, so prompt text, tool arguments and keys
+     * cannot enter this table by construction.
+     */
+    recordSegment(
+      runId: string,
+      segment: RunSegment,
+      durationMs: number,
+      reasonCode?: RunReasonCode,
+    ) {
+      try {
+        statements.insertSegment.run(
+          runId,
+          segment,
+          Math.max(0, Math.trunc(durationMs)),
+          reasonCode ?? null,
+          now(),
+        );
+      } catch (error) {
+        console.error(
+          '[hikmah] telemetry segment not recorded:',
+          error instanceof Error ? error.message : error,
+        );
+      }
+    },
+
+    /**
+     * The run's ordered segment sequence: submit → accepted result, each leg
+     * timed. Given a run id, this reconstructs the whole run.
+     */
+    runTimeline(runId: string): Array<{
+      runId: string;
+      segment: RunSegment;
+      durationMs: number;
+      reasonCode: RunReasonCode | null;
+      createdAt: string;
+    }> {
+      return (
+        statements.timeline.all(runId) as Array<{
+          run_id: string;
+          segment: RunSegment;
+          duration_ms: number;
+          reason_code: RunReasonCode | null;
+          created_at: string;
+        }>
+      ).map((row) => ({
+        runId: row.run_id,
+        segment: row.segment,
+        durationMs: row.duration_ms,
+        reasonCode: row.reason_code,
+        createdAt: row.created_at,
+      }));
+    },
+
     bumpSteps(id: string) {
       statements.bumpSteps.run(id);
     },
@@ -626,12 +712,13 @@ export function createRunStore(
       id: string,
       status: Extract<RunStatus, 'done' | 'failed' | 'cancelled'>,
       error?: string,
+      reasonCode?: RunReasonCode,
     ) {
       // The last chunks of the answer go in before the run is marked ended, or
       // a client reconnecting on the end notice replays a transcript missing its
       // final tokens.
       flushEvents();
-      statements.finish.run(status, error ?? null, now(), id);
+      statements.finish.run(status, error ?? null, now(), reasonCode ?? null, id);
       // Always: a terminal run must never keep a conversation marked as
       // answering, even if this call lost the race to finish it first. The
       // sidebar badge reads active_run_id, so this is what clears it.

@@ -3,9 +3,10 @@ import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { ChatRequestError, assertSameOrigin, parseChatRequest } from '@/lib/ai/chat-request';
 import { conversationTitle } from '@/lib/chat/title';
-import { releases } from '@/lib/runs/resume';
+import { releases, approvalDenied } from '@/lib/runs/resume';
 import { newMessageId, newRunId, runService } from '@/lib/runs/service';
 import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
+import { phaseChunk } from '@/lib/runs/telemetry';
 import { createWorkflowStore } from '@/lib/workflow/store';
 import { answerIdFor } from '@/lib/runs/answer-id';
 import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
@@ -162,7 +163,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         return fail('That answer no longer matches the paused turn. Reload the conversation.', 409);
       // False when the run has moved on, which absorbs a duplicate answer
       // rather than starting a second run over the same conversation.
-      if (release(already)) void worker.tick();
+      if (release(already)) {
+        // A denial is a run-level transition of its own: the owner refused
+        // the tool the run was waiting on. Stamped and announced with the
+        // `denied` reason code (PR-07) so the timeline says denied, not
+        // merely resumed.
+        if (kind === 'approval' && approvalDenied(incomingMessage)) {
+          store.setReasonCode(already, 'denied');
+          const deniedChunk = phaseChunk(already, 'queued', 'denied');
+          const deniedSeq = store.appendEvent(already, deniedChunk);
+          worker.bus.emit(already, { seq: deniedSeq, payload: deniedChunk });
+        }
+        void worker.tick();
+      }
       return Response.json({ runId: already, conversationId, resumed: true }, { headers });
     }
     // The status matters to the client, not just the fact of a run.
@@ -184,6 +197,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const incoming = incomingMessage;
   if (!incoming) return fail('Send a message to start the run.', 400);
 
+  // Timed as the run's `preparation` segment (PR-07): who may spend what,
+  // the co-model's notes, and the saved knowledge — everything the run is
+  // prepared with before it is queued.
+  const preparationStarted = Date.now();
   // Who may spend what, decided in lib/runs/prepare.ts so a background task
   // is refused on exactly the same grounds as a chat turn.
   const { access, refused } = await resolveRunAccess(user, parsed);
@@ -356,6 +373,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return fail('Too many runs are already in progress. Wait for one to finish.', 429);
     return fail('The run could not be queued. Try again.', 503);
   }
+
+  // The preparation segment closes at the queue: access, notes and knowledge
+  // all measured above. The run is now queued, announced on its event stream
+  // so a client that attaches before the worker's first tick still sees the
+  // whole sequence (PR-07).
+  store.recordSegment(runId, 'preparation', Date.now() - preparationStarted);
+  const queuedChunk = phaseChunk(runId, 'queued');
+  const queuedSeq = store.appendEvent(runId, queuedChunk);
+  worker.bus.emit(runId, { seq: queuedSeq, payload: queuedChunk });
 
   // Nudge the loop rather than waiting for the next poll, so the first token
   // arrives as quickly as it did when the browser drove the run.
