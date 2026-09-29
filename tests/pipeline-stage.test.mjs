@@ -47,3 +47,31 @@ test('error and ready statuses do not crash the mapping', () => {
   assert.equal(pipelineStageIndex({ ...base, status: 'error' }), 2);
   assert.equal(pipelineStageIndex({ ...base, status: 'ready' }), 2);
 });
+
+test('a real run phase overrides the heuristic when present (PR-07)', () => {
+  // Even with text streaming, a phase that says otherwise wins: the phase is
+  // the run's own account of what it is doing, not a guess from the label.
+  assert.equal(pipelineStageIndex({ ...base, phase: 'connecting-tools', streamingText: true }), 1);
+  assert.equal(pipelineStageIndex({ ...base, phase: 'routing' }), 2);
+  assert.equal(pipelineStageIndex({ ...base, phase: 'answering' }), 2);
+  assert.equal(pipelineStageIndex({ ...base, phase: 'streaming' }), 3);
+});
+
+test('early phases all narrate as stage 0 (memory)', () => {
+  for (const phase of ['submitted', 'preparing', 'queued', 'starting']) {
+    assert.equal(pipelineStageIndex({ ...base, phase }), 0, phase);
+  }
+});
+
+test('terminal and paused phases fall back to the heuristic', () => {
+  // The narration is not shown then (the run is paused or done), so the
+  // mapping must not claim a stage for them.
+  for (const phase of ['awaiting-approval', 'awaiting-answer', 'done', 'failed', 'cancelled']) {
+    assert.equal(pipelineStageIndex({ ...base, phase }), 2, phase);
+  }
+});
+
+test('a null or missing phase leaves the heuristic untouched', () => {
+  assert.equal(pipelineStageIndex({ ...base, phase: null, streamingText: true }), 3);
+  assert.equal(pipelineStageIndex({ ...base, streamingText: true }), 3);
+});

@@ -16,6 +16,14 @@ import { createRunStore, type RunRow, type RunStore } from './store.ts';
 import type { SqliteHandle } from './store.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
+import {
+  phaseChunk,
+  reasonCodeFor,
+  type RunPhase,
+  type RunReasonCode,
+  type RunSegment,
+} from './telemetry.ts';
+import { BudgetExhaustedError } from '../ai/budget-middleware.ts';
 
 /** How often to look for queued work when idle. */
 const POLL_MS = 400;
@@ -74,6 +82,15 @@ export type RunDriver = (context: {
   signal: AbortSignal;
   /** Record one streamed chunk. Returns its sequence number. */
   emit: (chunk: unknown) => number;
+  /** Telemetry for the drive: timed segments and progress phases (PR-07).
+   * Present when the worker drives; a test driver may omit it. */
+  telemetry?: {
+    /** Record one timed segment. Names and durations only — the signature
+     * takes no payload, so prompt text and secrets cannot enter telemetry. */
+    recordSegment: (segment: RunSegment, durationMs: number) => void;
+    /** Announce a progress phase on the run's event stream. */
+    phase: (phase: RunPhase, reasonCode?: RunReasonCode) => void;
+  };
 }) => Promise<{
   message?: unknown;
   /** The stream stopped on a tool the owner has to approve, not on an answer. */
@@ -149,6 +166,15 @@ export function createWorker(options: WorkerOptions): Worker {
   let tasks = 0;
   let stopped = false;
 
+  /** Announce a progress phase on a run's event stream (PR-07): one stored
+   * chunk plus the live fan-out, so a tailing client and a reconnecting one
+   * see the same sequence. Carries the phase and the reason code only. */
+  function announce(runId: string, phase: RunPhase, reasonCode?: RunReasonCode) {
+    const chunk = phaseChunk(runId, phase, reasonCode);
+    const seq = store.appendEvent(runId, chunk);
+    bus.emit(runId, { seq, payload: chunk });
+  }
+
   async function tick(): Promise<RunRow | null> {
     if (active >= concurrency || stopped) return null;
     active += 1;
@@ -160,22 +186,36 @@ export function createWorker(options: WorkerOptions): Worker {
       task = isTask(run);
       if (task) tasks += 1;
 
+      // The queue wait ends at the claim: how long the run sat before a slot
+      // opened. created_at is the submit moment — the route writes the row
+      // when the run is accepted.
+      store.recordSegment(run.id, 'queue_wait', Date.now() - Date.parse(run.created_at));
+      announce(run.id, 'starting');
+
       const controller = new AbortController();
       running.set(run.id, controller);
+      const emit = (chunk: unknown) => {
+        const seq = store.appendEvent(run!.id, chunk);
+        bus.emit(run!.id, { seq, payload: chunk });
+        return seq;
+      };
       try {
         const result = await options.drive({
           run,
           messages: store.listMessages(run.conversation_id),
           signal: controller.signal,
-          emit: (chunk) => {
-            const seq = store.appendEvent(run!.id, chunk);
-            bus.emit(run!.id, { seq, payload: chunk });
-            return seq;
+          emit,
+          telemetry: {
+            recordSegment: (segment: RunSegment, durationMs: number) =>
+              store.recordSegment(run!.id, segment, durationMs),
+            phase: (phase: RunPhase, reasonCode?: RunReasonCode) =>
+              announce(run!.id, phase, reasonCode),
           },
         });
 
         if (controller.signal.aborted) {
-          store.finish(run.id, 'cancelled');
+          announce(run.id, 'cancelled', 'cancelled');
+          store.finish(run.id, 'cancelled', undefined, 'cancelled');
         } else {
           // Persist the finished answer, then drop the resume buffer: once the
           // message is a row, replaying chunks would duplicate it.
@@ -228,15 +268,26 @@ export function createWorker(options: WorkerOptions): Worker {
           // answer, when it comes, resumes this run rather than starting a new
           // one over the same conversation. Two ways to be waiting, and they are
           // not interchangeable: an approval carries yes or no, a question
-          // carries what the person said.
-          if (result?.awaitingApproval) store.setStatus(run.id, 'waiting_approval');
-          else if (result?.awaitingClient) store.setStatus(run.id, 'waiting_client');
+          // carries what the person said. Each transition carries its reason
+          // code (PR-07), announced on the stream like every other phase.
+          if (result?.awaitingApproval) {
+            store.setStatus(run.id, 'waiting_approval');
+            store.setReasonCode(run.id, 'awaiting-approval');
+            announce(run.id, 'awaiting-approval', 'awaiting-approval');
+          } else if (result?.awaitingClient) {
+            store.setStatus(run.id, 'waiting_client');
+            store.setReasonCode(run.id, 'awaiting-answer');
+            announce(run.id, 'awaiting-answer', 'awaiting-answer');
+          }
           // A loop that ended with tool calls and no words is not a success.
           // Recorded as one, it left a transcript showing the working and then
           // nothing at all — no answer, no error, and nothing to press.
-          else if (result?.silent) store.finish(run.id, 'failed', NO_ANSWER);
-          else {
-            store.finish(run.id, 'done');
+          else if (result?.silent) {
+            announce(run.id, 'failed', 'no-answer');
+            store.finish(run.id, 'failed', NO_ANSWER, 'no-answer');
+          } else {
+            announce(run.id, 'done', 'completed');
+            store.finish(run.id, 'done', undefined, 'completed');
             if (result?.message && options.onCompleted) {
               try {
                 await options.onCompleted({
@@ -262,8 +313,10 @@ export function createWorker(options: WorkerOptions): Worker {
         const safe = new Error(safeDiagnostic(error, key ? [key] : []));
         if (error instanceof Error) safe.name = error.name;
         options.onError?.(safe, run);
-        if (controller.signal.aborted) store.finish(run.id, 'cancelled');
-        else
+        if (controller.signal.aborted) {
+          announce(run.id, 'cancelled', 'cancelled');
+          store.finish(run.id, 'cancelled', undefined, 'cancelled');
+        } else {
           // The provider's own words where there are any, and a sentence the
           // person can act on where the fault is ours. Either way the raw
           // exception has already gone to the log through onError above.
@@ -271,11 +324,20 @@ export function createWorker(options: WorkerOptions): Worker {
           // The operator sees the real text: they are the one who could read
           // that log, and "the details are in the server log" is a dead end
           // offered to someone with no way to open one from the interface.
+          //
+          // The machine-readable reason travels with it (PR-07): a budget the
+          // run itself exhausted, a first byte that never came, a provider
+          // fault, or our own bug.
+          const reasonCode: RunReasonCode =
+            error instanceof BudgetExhaustedError ? 'budget-exhausted' : reasonCodeFor(error);
+          announce(run.id, 'failed', reasonCode);
           store.finish(
             run.id,
             'failed',
             describeFailure(safe, { operator: operatorRun(run.config) }),
+            reasonCode,
           );
+        }
       } finally {
         running.delete(run.id);
         // Whatever the outcome, tailing responses must be told to close.
@@ -342,7 +404,10 @@ export function createWorker(options: WorkerOptions): Worker {
         const forceFinish = setTimeout(() => {
           try {
             const run = store.getRun(runId);
-            if (run && !store.isTerminal(run.status)) store.finish(runId, 'cancelled');
+            if (run && !store.isTerminal(run.status)) {
+              store.finish(runId, 'cancelled', undefined, 'cancelled');
+              announce(runId, 'cancelled', 'cancelled');
+            }
           } catch {
             /* the store is gone; nothing left to settle */
           }
@@ -353,7 +418,8 @@ export function createWorker(options: WorkerOptions): Worker {
       // Not started yet: mark it so the worker never picks it up.
       const run = store.getRun(runId);
       if (run && !store.isTerminal(run.status)) {
-        store.finish(runId, 'cancelled');
+        store.finish(runId, 'cancelled', undefined, 'cancelled');
+        announce(runId, 'cancelled', 'cancelled');
         return true;
       }
       return false;

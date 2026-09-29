@@ -7,6 +7,7 @@ import { newConversationId, newMessageId, newRunId, runService } from '@/lib/run
 import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
 import { createWorkflowStore } from '@/lib/workflow/store';
 import { knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
+import { phaseChunk } from '@/lib/runs/telemetry';
 import { LEARNER_BRIEF, TASK_TITLE_PREFIX } from '@/lib/runs/learner';
 import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
@@ -82,6 +83,10 @@ export async function POST(request: Request) {
   if (refused) return fail(refused, 400);
   const entitlements = access.entitlements;
 
+  // Timed as the run's `preparation` segment (PR-07): who may spend what and
+  // the saved knowledge — everything the task is prepared with before it is
+  // queued. The co-model's notes are not part of a task's preparation.
+  const preparationStarted = Date.now();
   const chatSettings = createChatSettingsStore(getStorage().raw).read(user.userId);
   const conversationId = newConversationId();
   // What the person has saved and said before, so the task builds on it rather
@@ -171,6 +176,13 @@ export async function POST(request: Request) {
       return fail('Too many runs are already in progress. Wait for one to finish.', 429);
     return fail('The task could not be started. Try again.', 503);
   }
+
+  // The preparation segment closes at the queue, like a chat turn's. Announced
+  // on the task's event stream so the whole sequence is replayable (PR-07).
+  store.recordSegment(runId, 'preparation', Date.now() - preparationStarted);
+  const queuedChunk = phaseChunk(runId, 'queued');
+  const queuedSeq = store.appendEvent(runId, queuedChunk);
+  worker.bus.emit(runId, { seq: queuedSeq, payload: queuedChunk });
 
   void worker.tick();
   return Response.json({ conversationId, runId }, { headers, status: 202 });

@@ -67,6 +67,7 @@ import { ModelPicker, type PickerModel } from './model-picker';
 import { EmptyStateOnboarding } from './empty-state-onboarding';
 import { StagedLoading } from './staged-loading';
 import { pipelineStageIndex } from '@/lib/chat/pipeline-stage';
+import { phaseFromParts } from '@/lib/runs/telemetry';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -660,6 +661,11 @@ export function ChatView({
       (part) => part.type === 'text' && !!(part as { text?: string }).text?.trim(),
     );
   const activity = currentRunActivity(messages.at(-1));
+  // The run's real phase, from the latest `data-run-phase` part it emitted
+  // (PR-07): when present it drives the narrated stage directly, instead of
+  // the activity-label heuristic. Null for older runs and non-streamed
+  // clients, where the heuristic still applies.
+  const runPhase = phaseFromParts(messages.at(-1)?.parts ?? []);
   const failure = error?.message || (!retried ? initialError : '') || '';
   const recovery = failureAction(failure);
 
@@ -1398,6 +1404,7 @@ export function ChatView({
                       activityLabel: activity.label,
                       activityCompleted: activity.completed,
                       streamingText,
+                      phase: runPhase,
                     })}
                     elapsedSeconds={elapsedSeconds}
                   />

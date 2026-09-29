@@ -25,6 +25,22 @@ export function hasApprovalResponse(message: Message): boolean {
 }
 
 /**
+ * Did the owner answer a waiting approval with a denial?
+ *
+ * The approval-responded part carries the verdict (`approval.approved`). A
+ * denial is a run-level transition worth recording on its own: the run resumes
+ * into a transcript where the tool it wanted was refused, and stamping the
+ * `denied` reason code (PR-07) is what makes that visible in the timeline.
+ */
+export function approvalDenied(message: Message): boolean {
+  return (message.parts ?? []).some(
+    (part) =>
+      part.state === 'approval-responded' &&
+      (part as { approval?: { approved?: unknown } }).approval?.approved === false,
+  );
+}
+
+/**
  * Does this message answer a question the run stopped on?
  *
  * Both halves matter. An answered call is what resumes the run; an unanswered

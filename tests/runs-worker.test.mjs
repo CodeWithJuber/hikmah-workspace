@@ -43,7 +43,9 @@ test('a queued run is driven and its answer persisted', async (t) => {
 });
 
 test('the resume buffer is dropped once the answer is a row', async (t) => {
-  // Keeping both would show the answer twice on reconnect.
+  // Keeping both would show the answer twice on reconnect. The terminal phase
+  // marker survives the prune so a reconnecting client learns the outcome —
+  // but it carries no answer content and renders nothing.
   const { worker, queue } = await harness(t, async ({ emit }) => {
     emit({ type: 'text-delta', delta: 'a' });
     emit({ type: 'text-delta', delta: 'b' });
@@ -51,7 +53,11 @@ test('the resume buffer is dropped once the answer is a row', async (t) => {
   });
   queue('r1');
   await worker.tick();
-  assert.equal(worker.store.eventsAfter('r1', -1).length, 0);
+  const remaining = worker.store.eventsAfter('r1', -1);
+  assert.ok(
+    remaining.every((e) => e.payload.type === 'data-run-phase'),
+    'only phase markers survive the prune, never answer chunks',
+  );
   assert.equal(worker.store.listMessages('c1').length, 1);
 });
 
@@ -64,13 +70,23 @@ test('a subscriber sees chunks as they are produced', async (t) => {
   queue('r1');
   worker.bus.subscribe('r1', (event) => seen.push(event));
   await worker.tick();
+  // The run's phase announcements ride the same bus the progress UI reads;
+  // the answer chunks arrive in order between them.
   assert.deepEqual(
-    seen.map((e) => e.payload.delta),
+    seen.map((e) => e.payload.type),
+    ['data-run-phase', 'text-delta', 'text-delta', 'data-run-phase'],
+  );
+  assert.deepEqual(
+    seen.filter((e) => e.payload.type === 'text-delta').map((e) => e.payload.delta),
     ['one', 'two'],
   );
   assert.deepEqual(
+    seen.filter((e) => e.payload.type === 'data-run-phase').map((e) => e.payload.data.phase),
+    ['starting', 'done'],
+  );
+  assert.deepEqual(
     seen.map((e) => e.seq),
-    [0, 1],
+    [0, 1, 2, 3],
   );
 });
 
@@ -89,7 +105,13 @@ test('a listener that throws does not stop the run or the other listeners', asyn
   worker.bus.subscribe('r1', (event) => good.push(event));
   await worker.tick();
   assert.equal(worker.store.getRun('r1').status, 'done');
-  assert.equal(good.length, 2);
+  // The phase announcements ride the bus too now; what matters is the other
+  // listener received every event, answer chunks included.
+  assert.equal(good.length, 4);
+  assert.deepEqual(
+    good.filter((e) => e.payload.type === 'text-delta').map((e) => e.payload.delta),
+    ['x', 'y'],
+  );
 });
 
 test('a failing run records why, and does not take the worker down', async (t) => {

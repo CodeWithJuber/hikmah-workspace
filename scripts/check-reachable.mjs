@@ -156,7 +156,14 @@ const ALLOW = [
 // useKeyboardShortcuts depends on (which chat-view.tsx wires to the real
 // composer), asserted directly by the shortcut tests rather than through
 // simulated DOM key events — the same "named on purpose" pattern.
-const BASELINE = { orphanFiles: 0, testedOnly: 90, dead: 48 };
+// 90 → 93 for run telemetry (2026-09-29, PR-07): RUN_SEGMENTS and
+// RUN_REASON_CODES are the fixed vocabularies the timeline and the client
+// depend on, asserted directly by the telemetry tests rather than restated;
+// isRunPhase and isRunReasonCode are the guards that keep unknown phase and
+// reason strings off the progress UI, asserted directly. The two
+// module-private constants (RUN_PHASES, TELEMETRY_BOOKKEEPING_PARTS) stay
+// unexported so they add nothing to the dead count.
+const BASELINE = { orphanFiles: 0, testedOnly: 93, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
