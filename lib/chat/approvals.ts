@@ -193,6 +193,14 @@ export function grantsFor(settings: ApprovalSettings, conversationId: string): R
   };
 }
 
+/** Can this command be remembered? The same rule `withGrant` applies: a
+ * command with a separator in it, or longer than the bound, is silently left
+ * out of the settings — so a card must not offer to remember one. A grant
+ * offered but never stored is a dead button wearing a promise. */
+export function isGrantableCommand(raw: unknown): boolean {
+  return cleanCommand(raw) !== null;
+}
+
 /** Is this command one of the granted ones? The whole command, or a granted
  * prefix followed by a space and more arguments; a separator anywhere means no,
  * because `python3 -m http.server; rm -rf /` starts with a granted command. */

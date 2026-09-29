@@ -30,7 +30,9 @@ await build({
       import { renderToStaticMarkup } from 'react-dom/server';
       import { createElement } from 'react';
       import { MessageParts } from './components/chat/message-parts.tsx';
+      import { grantOptions } from './components/chat/approval-card.tsx';
       export const render = (props) => renderToStaticMarkup(createElement(MessageParts, props));
+      export { grantOptions };
     `,
     resolveDir: root,
     loader: 'tsx',
@@ -48,7 +50,7 @@ await build({
   },
   logLevel: 'silent',
 });
-const { render } = await import(pathToFileURL(join(dir, 'render.mjs')));
+const { render, grantOptions } = await import(pathToFileURL(join(dir, 'render.mjs')));
 
 const bash = (state, over = {}) => ({
   type: 'tool-bash',
@@ -161,4 +163,147 @@ test('once answered, the tool folds back into its ordinary row with the decision
     /data-state="closed"/,
     'and it starts closed: the answer is what they came for',
   );
+});
+
+// PR-13: exact target/payload. A description used to hide the parameters —
+// the card said what the tool claimed in words but not what it was asked
+// with. Fails against the old card: it rendered no parameter block at all.
+test('parameters are shown even when the tool gave a description', () => {
+  const html = render({
+    status: 'streaming',
+    message: message([
+      {
+        type: 'dynamic-tool',
+        toolName: 'mcp__quran__fetch_tafsir',
+        toolCallId: 'call-9',
+        state: 'approval-requested',
+        input: { description: 'Look up the commentary', verse: '2:255', edition: 'jalalayn' },
+        approval: { id: 'approval-9' },
+      },
+    ]),
+  });
+  assert.match(html, /Look up the commentary/, 'the description stays');
+  assert.match(html, /2:255/, 'and the verse parameter is shown beside it');
+  assert.match(html, /jalalayn/, 'and the edition parameter too');
+  assert.doesNotMatch(
+    html,
+    /&quot;description&quot;/,
+    'the description is not repeated as a parameter',
+  );
+});
+
+// PR-13: unmet preconditions. An MCP tool id can never be remembered: without
+// the approved definition's fingerprint there is nothing to bind, so withGrant
+// parks it as unbound — honored never, shown nowhere. The old card offered
+// "Always allow" anyway: a promise the settings could not keep.
+test('an MCP tool offers no always-allow, and says why', () => {
+  const part = {
+    type: 'dynamic-tool',
+    toolName: 'mcp__quran__fetch_tafsir',
+    toolCallId: 'call-10',
+    state: 'approval-requested',
+    input: { verse: '2:255' },
+    approval: { id: 'approval-10' },
+  };
+  const html = render({
+    status: 'streaming',
+    message: message([part]),
+    onGrant: async () => {},
+  });
+  assert.doesNotMatch(html, /Always allow/, 'no remembered yes is offered');
+  assert.match(
+    html,
+    /Only this call can be approved here/,
+    'the unmet precondition is stated instead',
+  );
+  assert.match(html, /Allow once/, 'the one-time approval stays');
+});
+
+// PR-13: unmet preconditions. A command with a separator (or past the length
+// bound) is silently left out of the settings by withGrant, so offering to
+// remember it is a dead choice. Asserted on grantOptions — the pure form of
+// the menu — because a closed Radix menu renders nothing to static markup.
+// Fails against the old card: it offered the command grant unconditionally.
+test('a command that cannot be remembered offers no command grant', () => {
+  const options = grantOptions(
+    {
+      type: 'tool-bash',
+      toolCallId: 'call-11',
+      input: { command: 'echo hi; rm -rf /', description: 'Not a grantable command' },
+    },
+    'conv-1',
+  );
+  assert.ok(!options.some((option) => option.scope === 'command'), 'no command grant is offered');
+  assert.ok(
+    options.some((option) => option.scope === 'always'),
+    'the tool-wide grants stay',
+  );
+});
+
+test('a grantable command still offers the command grant', () => {
+  const options = grantOptions(
+    {
+      type: 'tool-bash',
+      toolCallId: 'call-12',
+      input: { command: 'rm -rf build', description: 'Remove the build directory' },
+    },
+    'conv-1',
+  );
+  assert.deepEqual(options[0], {
+    scope: 'command',
+    tool: 'bash',
+    command: 'rm -rf build',
+  });
+});
+
+test('an MCP tool offers no grant options at all', () => {
+  // withGrant would park the id as unbound — honored never, shown nowhere —
+  // so the card must not offer what the settings cannot keep.
+  const options = grantOptions(
+    { type: 'dynamic-tool', toolName: 'mcp__quran__fetch_tafsir', input: { verse: '2:255' } },
+    'conv-1',
+  );
+  assert.deepEqual(options, []);
+});
+
+// PR-13: cost type. The action's cost is what the system actually knows: one
+// metered tool call against the run's recorded budget. Fails against the old
+// card, which said nothing about cost.
+test('the card names the action against the run budget when one was published', () => {
+  const workflow = {
+    type: 'data-workflow',
+    data: {
+      arm: 'default',
+      budget: { maxCalls: 10, maxTokens: 1000, maxCost: 1, deadlineMs: 60000 },
+      selection: { overridden: true },
+    },
+  };
+  const html = render({
+    status: 'streaming',
+    message: message([workflow, bash('approval-requested')]),
+  });
+  assert.match(html, /One tool call against this run/, 'the cost type is named');
+  assert.match(html, /1 of 10 used/, 'against the recorded figures');
+});
+
+test('no budget published means no cost line rather than an invented one', () => {
+  const html = render({ status: 'streaming', message: message([bash('approval-requested')]) });
+  assert.doesNotMatch(html, /One tool call against this run/);
+});
+
+// PR-13: revoked/expired approval. A card rendered where no handler can take
+// the answer — the run it belongs to is not attached — must not leave live
+// buttons that silently do nothing. Fails against the old card: its buttons
+// stayed enabled and the tap vanished into `onApproval?.()`.
+test('a card with no way to answer shows no live buttons, and says so', () => {
+  const html = render({ status: 'streaming', message: message([bash('approval-requested')]) });
+  assert.match(
+    html,
+    /can(.|&#x27;|')t be answered from here/,
+    'the state is stated, not left as dead buttons',
+  );
+  const section = html.slice(html.indexOf('chat-approval'));
+  const buttons = section.match(/<button[^>]*>/g) ?? [];
+  assert.ok(buttons.length > 0, 'the card still renders its buttons');
+  for (const button of buttons) assert.match(button, /disabled/, `no dead buttons: ${button}`);
 });
