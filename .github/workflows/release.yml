@@ -73,33 +73,38 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with: { node-version: '24', cache: npm }
       - run: npm ci --ignore-scripts
-      # PR fast path: run only tests impacted by the changed files.
-      # scripts/impacted-tests.mjs is fail-safe: on any error or when a
-      # full-suite trigger (package.json, .github/, etc.) is touched, it
-      # outputs [] and we fall back to the full suite below.
-      - name: Compute impacted tests
-        id: impacted
+      # PR fast path: smart test selection.
+      # scripts/smart-test-select.mjs tiers the change (cosmetic/low/medium/high)
+      # using deterministic signals first, then optional forge impact / LLM /
+      # JEV for the ambiguous middle. Fail-safe: any uncertainty -> high tier
+      # -> full suite. Cosmetic tier skips unit tests (lint already passed).
+      - name: Smart test selection
+        id: smart
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=100 2>/dev/null || true
-          TESTS=$(node scripts/impacted-tests.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '[]')
+          SEL=$(node scripts/smart-test-select.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '{"tier":"high","tests":[]}')
+          echo "$SEL" | python3 -c "import json,sys; d=json.load(sys.stdin); print('tier='+d.get('tier','high')); print('reason='+d.get('reason',''))"
+          TIER=$(echo "$SEL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tier','high'))")
+          TESTS=$(echo "$SEL" | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('tests',[])))")
+          echo "tier=${TIER}" >> "$GITHUB_OUTPUT"
           echo "tests=${TESTS}" >> "$GITHUB_OUTPUT"
-          echo "Impacted tests: ${TESTS}"
-      - name: Run impacted tests (PR fast path)
-        if: github.event_name == 'pull_request' && steps.impacted.outputs.tests != '' && steps.impacted.outputs.tests != '[]'
+          echo "Tier: ${TIER}"
+      - name: Run selected tests (PR fast path)
+        if: github.event_name == 'pull_request' && steps.smart.outputs.tier != 'high' && steps.smart.outputs.tier != 'cosmetic'
         run: |
-          TESTS='${{ steps.impacted.outputs.tests }}'
+          TESTS='${{ steps.smart.outputs.tests }}'
           MAIN=$(echo "$TESTS" | python3 -c 'import json,sys; print(" ".join(t for t in json.load(sys.stdin) if t.startswith("tests/")))')
           if [ -n "$MAIN" ]; then
-            echo "Running impacted main tests: $MAIN"
+            echo "Running selected main tests (tier=${{ steps.smart.outputs.tier }}): $MAIN"
             node --test $MAIN
           else
-            echo "No impacted main tests."
+            echo "No selected main tests."
           fi
       - name: Run full test suite
-        # Main pushes always run the full suite. PRs fall back here when the
-        # impacted-tests script outputs [] (full-suite trigger or error).
-        if: github.event_name != 'pull_request' || steps.impacted.outputs.tests == '' || steps.impacted.outputs.tests == '[]'
+        # Main pushes always run the full suite. PRs fall back here on high tier
+        # (full-suite trigger, large blast radius, or any uncertainty).
+        if: github.event_name != 'pull_request' || steps.smart.outputs.tier == 'high' || steps.smart.outputs.tier == ''
         run: npm test
       - run: python3 -m unittest discover -s public/runtime -p 'test_*.py'
       - run: python3 -m unittest discover -s deploy -p 'test_*.py'
@@ -108,18 +113,23 @@ jobs:
       # verified separately. A broken sidecar means no terminal and no SSH.
       - run: npm ci --ignore-scripts
         working-directory: workbench
-      - name: Run workbench tests (impacted on PR, full on main)
+      - name: Run workbench tests (selected on PR, full on main)
         working-directory: workbench
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TESTS=$(node ../scripts/impacted-tests.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '[]')
-            WB=$(echo "$TESTS" | python3 -c 'import json,sys; print(" ".join(t.split("/",1)[1] for t in json.load(sys.stdin) if t.startswith("workbench/")))')
-            if [ -n "$WB" ]; then
-              echo "Running impacted workbench tests: $WB"
-              npm run typecheck && node --test $WB && npm audit --omit=dev --audit-level=high
-              exit 0
+            SEL=$(node ../scripts/smart-test-select.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '{"tier":"high","tests":[]}')
+            TIER=$(echo "$SEL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tier','high'))")
+            if [ "$TIER" = "high" ] || [ "$TIER" = "cosmetic" ]; then
+              echo "Tier ${TIER}: running full workbench suite."
+            else
+              WB=$(echo "$SEL" | python3 -c 'import json,sys; print(" ".join(t.split("/",1)[1] for t in json.load(sys.stdin).get("tests",[]) if t.startswith("workbench/")))')
+              if [ -n "$WB" ]; then
+                echo "Running selected workbench tests (tier=${TIER}): $WB"
+                npm run typecheck && node --test $WB && npm audit --omit=dev --audit-level=high
+                exit 0
+              fi
+              echo "No selected workbench tests; running full workbench suite."
             fi
-            echo "No impacted workbench tests; running full workbench suite."
           fi
           npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
   # Build + container verification. Needs both checks and tests green.
