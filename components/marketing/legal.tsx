@@ -171,8 +171,8 @@ export function PrivacyBody() {
 
       <h2>Changes</h2>
       <p>
-        If this page changes in a way that affects what happens to your work, the change is
-        announced in the workspace before it takes effect.
+        What applies is the version of this page published here. If it changes, the new version
+        takes effect when published — check back if it matters to you.
       </p>
     </>
   );
