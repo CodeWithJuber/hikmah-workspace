@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SaveBar } from '@/components/app/save-bar';
 import { clientFetch } from '@/lib/client/request';
 
 type Server = {
@@ -60,6 +61,13 @@ export function McpServers() {
   const [revision, setRevision] = useState(0);
   const reload = useCallback(() => setRevision((value) => value + 1), []);
 
+  // The one save convention: row toggles edit a local draft instead of
+  // firing an immediate PATCH; one sticky bar commits every row at once.
+  const [overrides, setOverrides] = useState<
+    Record<string, { enabled?: boolean; trusted?: boolean; approval?: Server['approval'] }>
+  >({});
+  const serversDirty = Object.keys(overrides).length > 0;
+
   useEffect(() => {
     let live = true;
     clientFetch('/api/mcp-servers')
@@ -86,6 +94,32 @@ export function McpServers() {
     try {
       const { servers: next } = await send(method, method === 'DELETE' ? undefined : body, query);
       setServers(next);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'That did not work.');
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Commit every drafted row change in one pass, oldest first. Rows deleted
+  // (or never loaded) since staging are dropped, not sent.
+  const saveAll = async () => {
+    const entries = Object.entries(overrides).filter(([id]) =>
+      servers?.some((server) => server.id === id),
+    );
+    if (entries.length === 0) {
+      setOverrides({});
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    try {
+      let latest;
+      for (const [id, patch] of entries) latest = await send('PATCH', { id, ...patch });
+      if (latest) setServers(latest.servers);
+      setOverrides({});
+      toast.success('Saved.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'That did not work.');
       reload();
@@ -187,96 +221,106 @@ export function McpServers() {
         <Skeleton className="h-4 w-32" aria-label="Loading servers" />
       ) : (
         <ul className="flex flex-col gap-2">
-          {servers.map((server) => (
-            <li key={server.id} className="flex flex-col gap-2 rounded-md border p-3 text-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-medium">{server.label}</p>
-                  <p className="text-muted-foreground">{server.description}</p>
-                  <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
-                    {server.transport} · {server.target}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy}
-                  aria-label={`Remove ${server.label}`}
-                  onClick={() => change('DELETE', {}, `?id=${encodeURIComponent(server.id)}`)}
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </Button>
-              </div>
-
-              {server.notice && (
-                <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
-                  {server.notice}
-                </p>
-              )}
-              {server.requires.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Needs a saved secret: {server.requires.join(', ')}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={server.enabled}
+          {servers.map((server) => {
+            const patch = overrides[server.id] ?? {};
+            const enabled = patch.enabled ?? server.enabled;
+            const trusted = patch.trusted ?? server.trusted;
+            const approval = patch.approval ?? server.approval;
+            const stage = (next: typeof patch) =>
+              setOverrides((all) => ({ ...all, [server.id]: { ...all[server.id], ...next } }));
+            return (
+              <li key={server.id} className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{server.label}</p>
+                    <p className="text-muted-foreground">{server.description}</p>
+                    <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
+                      {server.transport} · {server.target}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     disabled={busy}
-                    onChange={(event) =>
-                      change('PATCH', { id: server.id, enabled: event.target.checked })
-                    }
-                  />
-                  Enabled
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={server.trusted}
-                    disabled={busy}
-                    onChange={(event) =>
-                      change('PATCH', { id: server.id, trusted: event.target.checked })
-                    }
-                  />
-                  Trusted
-                </label>
-                <label className="flex items-center gap-2">
-                  Approval
-                  <select
-                    className="rounded border bg-transparent px-1 py-0.5"
-                    value={server.approval}
-                    disabled={busy}
-                    onChange={(event) =>
-                      change('PATCH', { id: server.id, approval: event.target.value })
-                    }
+                    aria-label={`Remove ${server.label}`}
+                    onClick={() => change('DELETE', {}, `?id=${encodeURIComponent(server.id)}`)}
                   >
-                    <option value="ask">Ask every time</option>
-                    <option value="auto">Allow read-only tools</option>
-                    <option value="deny">Never run</option>
-                  </select>
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {STATUS[server.status] ?? server.status}
-                </span>
-              </div>
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
 
-              <p className="text-xs text-muted-foreground">
-                Trusted means this server&rsquo;s own claim that a tool is read-only is believed. An
-                untrusted server is asked about every time, whatever it says about itself, and a
-                tool that can destroy things or reach the open web always asks.
-              </p>
+                {server.notice && (
+                  <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
+                    {server.notice}
+                  </p>
+                )}
+                {server.requires.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Needs a saved secret: {server.requires.join(', ')}
+                  </p>
+                )}
 
-              {server.lastError && (
-                <p className="text-xs text-destructive" role="status">
-                  {server.lastError}
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      disabled={busy}
+                      onChange={(event) => stage({ enabled: event.target.checked })}
+                    />
+                    Enabled
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={trusted}
+                      disabled={busy}
+                      onChange={(event) => stage({ trusted: event.target.checked })}
+                    />
+                    Trusted
+                  </label>
+                  <label className="flex items-center gap-2">
+                    Approval
+                    <select
+                      className="rounded border bg-transparent px-1 py-0.5"
+                      value={approval}
+                      disabled={busy}
+                      onChange={(event) =>
+                        stage({ approval: event.target.value as Server['approval'] })
+                      }
+                    >
+                      <option value="ask">Ask every time</option>
+                      <option value="auto">Allow read-only tools</option>
+                      <option value="deny">Never run</option>
+                    </select>
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {STATUS[server.status] ?? server.status}
+                  </span>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Trusted means this server&rsquo;s own claim that a tool is read-only is believed.
+                  An untrusted server is asked about every time, whatever it says about itself, and
+                  a tool that can destroy things or reach the open web always asks.
                 </p>
-              )}
-            </li>
-          ))}
+
+                {server.lastError && (
+                  <p className="text-xs text-destructive" role="status">
+                    {server.lastError}
+                  </p>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
+      <SaveBar
+        dirty={serversDirty}
+        busy={busy}
+        onSave={() => void saveAll()}
+        onDiscard={() => setOverrides({})}
+      />
     </section>
   );
 }

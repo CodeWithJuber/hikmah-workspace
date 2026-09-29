@@ -1,16 +1,8 @@
 'use client';
 
-import {
-  Check,
-  CirclePause,
-  Clock3,
-  Info,
-  LoaderCircle,
-  Play,
-  RotateCcw,
-  Sparkles,
-} from 'lucide-react';
+import { Check, CirclePause, Clock3, Info, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { AutomaticStatus } from '@/lib/learning/automatic-types';
 import type { LearningSnapshot } from '@/lib/learning/types';
@@ -105,26 +97,23 @@ export function AutomaticLearningCard({
           </p>
         </div>
         <div className="learning-automatic-actions">
-          <Button
-            className="learning-button"
-            variant={enabled ? 'outline' : 'default'}
-            disabled={!snapshot || busy}
-            aria-describedby={!enabled ? 'automatic-learning-consent' : undefined}
-            onClick={() => void onConfigure(!enabled)}
-          >
-            {busy ? (
-              <LoaderCircle size={16} className="spin" aria-hidden="true" />
-            ) : enabled ? (
-              <CirclePause size={16} aria-hidden="true" />
-            ) : (
-              <Play size={16} aria-hidden="true" />
-            )}
-            {enabled
-              ? 'Pause learning'
-              : hasHistory
-                ? 'Resume learning'
-                : 'Enable automatic learning'}
-          </Button>
+          {/* The one control for automatic learning: a labeled switch, not a
+              button pair. Toggling calls the same configure path as before. */}
+          <label className="learning-setting-row">
+            <div>
+              <strong>Automatic learning</strong>
+              <span>
+                On: chats train your local co-model in the background. Off: nothing is captured or
+                trained.
+              </span>
+            </div>
+            <Switch
+              checked={enabled}
+              disabled={!snapshot || busy}
+              aria-describedby={!enabled ? 'automatic-learning-consent' : undefined}
+              onCheckedChange={(automatic) => void onConfigure(automatic)}
+            />
+          </label>
           {canReset && (
             <Button
               className="learning-auto-reset"

@@ -95,6 +95,12 @@ export type RunConfig = {
   /** Whether `remember` may save a verbatim preference without review. Absent
    * means yes, the default the setting has. */
   remember?: { autoSave: boolean };
+  /** Session incognito: this run reads and writes no memory. The runs route
+   * sets it from the request flag; here it withholds the `remember` tool
+   * entirely (suggestions would still write rows), and the stored config's
+   * learning consent is narrowed to disabled in the store. Absent means a
+   * normal run. */
+  incognito?: boolean;
   /** Set on a background task: a run nobody is watching. It is driven
    * unattended — no question, no tool that waits for approval — and claimed
    * only while no other task is running. `brief` is what the person asked it
@@ -229,7 +235,9 @@ async function driveWithAgent({
     // `remember` may only quote the last user turn — not the last message,
     // which on a resume is the assistant's — and knows whether that turn
     // carried files, because a pasted document is not the person's own words.
-    memory: run.user_id ? memoryContext(run, config, messages as Turn[]) : undefined,
+    // Withheld entirely for an incognito run: even a suggestion writes a row.
+    memory:
+      run.user_id && !config.incognito ? memoryContext(run, config, messages as Turn[]) : undefined,
     // A task cannot stop on a card nobody is watching.
     unattended: Boolean(config.task),
     // What the owner has already said yes to, read now rather than at

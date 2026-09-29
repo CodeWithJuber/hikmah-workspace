@@ -1969,6 +1969,98 @@
     color: var(--destructive);
   }
 
+  /* Inline citation pills: superscript links threaded in the answer text,
+   each pointing at its entry in the deduped source list below. Always in
+   the tab order (real <a> elements); the title shows on hover natively and
+   on keyboard focus via the tooltip below. */
+  .chat-cite {
+    position: relative;
+    display: inline-block;
+    vertical-align: super;
+    font-size: 0.68em;
+    line-height: 1;
+    padding: 0.28em 0.55em;
+    margin-inline: 0.2em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .chat-cite:hover {
+    color: var(--foreground);
+    border-color: var(--muted-foreground);
+  }
+  .chat-cite:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    color: var(--foreground);
+  }
+  /* Focus reveals the source title: the native title tooltip only appears
+   on hover, so keyboard users get the same information this way. */
+  .chat-cite:focus::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    max-width: 240px;
+    padding: 4px 8px;
+    border-radius: var(--radius-element);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    pointer-events: none;
+  }
+  /* Anchor jumps from a pill land on the source entry, clear of any sticky
+   chrome. */
+  [id^='cite-'] {
+    scroll-margin-top: 96px;
+  }
+
+  /* Truncated pyramid: the disclosure that holds the rest of a long answer.
+   Same quiet grammar as the working disclosure above — a text button, not
+   a card. Keyboard-operable via the Collapsible trigger (a real button). */
+  .chat-answer-more {
+    margin-top: 4px;
+  }
+  .chat-answer-more > .chat-answer-more-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    background: none;
+    text-align: start;
+    font: inherit;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-radius: calc(var(--radius) - 2px);
+    transition: background 140ms ease;
+  }
+  .chat-answer-more > .chat-answer-more-trigger:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .chat-answer-more > .chat-answer-more-trigger:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .chat-answer-more > .chat-answer-more-trigger::before {
+    content: '▸';
+    font-size: var(--font-size-sm);
+    transition: transform 140ms ease;
+  }
+  .chat-answer-more[data-state='open'] > .chat-answer-more-trigger::before {
+    transform: rotate(90deg);
+  }
+
   .chat-media {
     margin: 8px 0;
   }

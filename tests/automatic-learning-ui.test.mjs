@@ -94,9 +94,20 @@ test('an approved improvement names its measured scope and uses percentage point
   assert.doesNotMatch(rejected, /Syntax check improved/);
 });
 
-test('enabling discloses extra provider requests and reset survives expired source history', () => {
+test('automatic learning has exactly one enable control: a labeled switch', () => {
   const html = render(snapshot({}, false));
-  assert.match(html, /Enable automatic learning/);
+  // One switch governs policy.automatic — no Enable/Pause button pair.
+  assert.equal((html.match(/role="switch"/g) ?? []).length, 1);
+  assert.match(html, /Automatic learning/);
+  assert.match(html, /On: chats train your local co-model in the background/);
+  assert.match(html, /Off: nothing is captured or trained/);
+  assert.match(html, /aria-checked="false"/);
+  assert.doesNotMatch(html, /Enable automatic learning/);
+  assert.doesNotMatch(html, /Pause learning/);
+  assert.doesNotMatch(html, /Resume learning/);
+  const on = render(snapshot({}, true));
+  assert.match(on, /aria-checked="true"/);
+  // The disclosure copy still explains the provider cost.
   assert.match(html, /3 extra requests a day/);
   assert.match(html, /2 short sentences/);
   assert.match(html, /Your provider may charge/);

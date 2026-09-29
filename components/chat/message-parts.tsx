@@ -34,10 +34,12 @@ import {
   MessageAction,
   MessageActions,
   MessageContent,
-  MessageResponse,
   MessageToolbar,
 } from '@/components/ai-elements/message';
 import { describeWorking, groupParts, toolLabel } from '@/lib/chat/working';
+import { dedupeSources, sourceAnchorId } from '@/lib/chat/citations';
+import { CitedText } from './citation-pills';
+import { AnswerPyramid } from './answer-pyramid';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
 import {
   Tool,
@@ -793,7 +795,9 @@ function MessagePartsInner({
   // regex engine was 61% of all CPU during one answer.
   const streaming = status === 'streaming' && isLast;
   const settled = !isLast || (status !== 'streaming' && status !== 'submitted');
-  const sources = useMemo(() => sourceParts(message), [message]);
+  // Repeated citations of the same source collapse to one list entry, in
+  // first-mention order — the pills and the count below both read from this.
+  const sources = useMemo(() => dedupeSources(sourceParts(message)), [message]);
   const answered = message.role === 'assistant' && settled;
   // Copy, read aloud and answer again all act on the text of an answer. A turn
   // that stopped to ask permission has no text yet, so the row was three
@@ -861,12 +865,24 @@ function MessagePartsInner({
   const renderPart = (part: (typeof message.parts)[number], index: number) => {
     const key = message.id + '-' + index;
 
-    if (part.type === 'text')
+    if (part.type === 'text') {
+      // Long settled assistant answers fold behind a disclosure; everything
+      // else renders whole.
+      if (message.role === 'assistant' && settled)
+        return (
+          <AnswerPyramid key={key} messageId={message.id} text={part.text} sources={sources} />
+        );
       return (
-        <MessageResponse key={key} isAnimating={streaming} dir="auto">
-          {part.text}
-        </MessageResponse>
+        <CitedText
+          key={key}
+          messageId={message.id}
+          text={part.text}
+          sources={sources}
+          streaming={streaming}
+          settled={false}
+        />
       );
+    }
 
     if (part.type === 'reasoning' && !showActivity) return null;
 
@@ -1130,10 +1146,12 @@ function MessagePartsInner({
                 /* A source-document has no URL, and an <a> without href is not a
                    link: it takes no focus and the keyboard cannot reach it, while
                    still looking like every other citation. Render the ones that
-                   can be followed as links and the rest as plain text. */
+                   can be followed as links and the rest as plain text. Each
+                   entry carries the anchor id the inline pill links to. */
                 part.type === 'source-url' ? (
                   <a
                     key={message.id + '-source-' + index}
+                    id={sourceAnchorId(message.id, index)}
                     href={part.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1141,7 +1159,12 @@ function MessagePartsInner({
                     {part.title ?? part.url}
                   </a>
                 ) : (
-                  <span key={message.id + '-source-' + index}>{part.title ?? 'Source'}</span>
+                  <span
+                    key={message.id + '-source-' + index}
+                    id={sourceAnchorId(message.id, index)}
+                  >
+                    {part.title ?? 'Source'}
+                  </span>
                 ),
               )}
             </SourcesContent>

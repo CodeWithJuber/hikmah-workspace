@@ -394,7 +394,7 @@ export function LearningStudio({
                               <>
                                 {snapshot?.policy.enabled
                                   ? 'Completed text-only chats appear here. Chats using files or tools are excluded.'
-                                  : 'Enable automatic learning above, or turn on capture in Data settings.'}
+                                  : 'Turn on Automatic learning above — new exchanges will appear here.'}
                               </>
                             )}
                           </p>
@@ -679,9 +679,10 @@ function CaptureSettings({
           </div>
           <label className="learning-setting-row">
             <div>
-              <strong>Capture new exchanges</strong>
+              <strong>Capture new exchanges for automatic learning</strong>
               <span>
-                Pausing capture also pauses automatic learning. Existing examples stay saved.
+                A sub-setting of automatic learning: turning this off also pauses training. Existing
+                examples stay saved.
               </span>
             </div>
             <Switch
@@ -755,7 +756,7 @@ function CaptureSettings({
             </Button>
             <Button type="submit" disabled={busy}>
               {busy && <LoaderCircle size={16} className="spin" />}
-              {!policy.enabled && draft.enabled ? 'Enable capture & save' : 'Save settings'}
+              Save settings
             </Button>
           </DialogFooter>
         </form>

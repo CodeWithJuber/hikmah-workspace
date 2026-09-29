@@ -7,6 +7,7 @@ import {
   Wrench,
   TerminalSquare,
   Cpu,
+  BookOpen,
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -40,6 +41,17 @@ const groups: { title: string; items: SettingLink[] }[] = [
         label: 'Assistant tools',
         blurb: 'On/off switches and runtimes for what the assistant may do.',
         icon: Wrench,
+      },
+    ],
+  },
+  {
+    title: 'Memory',
+    items: [
+      {
+        href: '/knowledge',
+        label: 'Memory',
+        blurb: 'What the assistant remembers about you — review, edit or switch it off.',
+        icon: BookOpen,
       },
     ],
   },

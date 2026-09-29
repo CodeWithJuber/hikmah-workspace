@@ -58,6 +58,29 @@
     gap: 6px;
     color: var(--muted-foreground);
   }
+  /* The master switch: one row that reads as a setting, like the learning
+     card's automatic-learning row. */
+  .memory-master {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+  }
+  .memory-master > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .memory-master strong {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  .memory-master > span > span {
+    color: var(--muted-foreground);
+  }
   .memory-item {
     display: flex;
     flex-direction: column;

@@ -255,11 +255,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // What this person has saved, and what the operator has published. Both were
   // written, tested and then called by nothing after the browser run loop was
   // deleted — the Memory screen has been saving items no answer could read.
+  //
+  // Incognito: the session opts out entirely, server-side, not just in the
+  // UI. Skipping the lookup here is what makes the toggle honest — no block,
+  // no recall, no used-count marks — rather than a client-side promise the
+  // server quietly breaks.
   const chatSettings = createChatSettingsStore(getStorage().raw).read(user.userId);
-  const saved = await knowledgeFor(user.userId, messages, {
-    conversationId,
-    recall: chatSettings.memory.recallConversations,
-  });
+  const saved = parsed.incognito
+    ? { block: '', recall: '', used: [], conversations: [] }
+    : await knowledgeFor(user.userId, messages, {
+        conversationId,
+        recall: chatSettings.memory.recallConversations,
+      });
 
   const runId = newRunId();
   try {
@@ -313,7 +320,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         // Whether `remember` may save a verbatim preference without review.
         // Decided here like every other policy on the run, so a switch flipped
         // while a run is paused does not change what it was allowed to do.
-        remember: { autoSave: chatSettings.memory.autoSaveQuotes },
+        // Incognito also withholds the tool itself (see service.ts): without
+        // review it could still file suggestions.
+        remember: { autoSave: parsed.incognito ? false : chatSettings.memory.autoSaveQuotes },
+        // Incognito narrows the server-owned learning consent to disabled.
+        // createRun honours an explicit disable but never an enable, so a
+        // caller can opt a run out of capture but never opt one in.
+        learning: parsed.incognito ? { enabled: false, revision: -1 } : undefined,
+        incognito: parsed.incognito,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,

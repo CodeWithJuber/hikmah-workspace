@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookOpenCheck, Bot, Menu, Moon, Settings, Sun, X } from 'lucide-react';
-import { ProductNav } from '@/components/app/product-nav';
+import { BookOpenCheck, Bot, History, X } from 'lucide-react';
+import { MobileNavBar } from '@/components/app/mobile-nav-bar';
 import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { PlaygroundProvider } from '@/components/playground/context';
@@ -287,6 +287,8 @@ export function ChatShell({
               Skip to conversation
             </a>
             <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
+              {/* Conversations, not product nav: the bottom bar owns product
+                  navigation on mobile, so this opens only the chat list. */}
               <Button
                 ref={navigationButtonRef}
                 type="button"
@@ -300,7 +302,7 @@ export function ChatShell({
                   setArtifact(null);
                 }}
               >
-                <Menu size={20} />
+                <History size={20} />
               </Button>
               <div className="workspace-heading">
                 <span>{currentTitle}</span>
@@ -322,7 +324,7 @@ export function ChatShell({
                 'workspace-sidebar chat-drawer chat-drawer-list' +
                 (narrow && sidebarOpen ? ' is-open' : '')
               }
-              aria-label="Workspace navigation"
+              aria-label="Conversations"
               role={narrow && sidebarOpen ? 'dialog' : undefined}
               aria-modal={(narrow && sidebarOpen) || undefined}
               inert={(narrow && !sidebarOpen) || undefined}
@@ -347,33 +349,7 @@ export function ChatShell({
                 onNew={newChat}
                 onConversations={onHistory}
                 onActivate={() => setSidebarOpen(false)}
-                navigation={<ProductNav onNavigate={() => setSidebarOpen(false)} />}
               />
-              <div className="flex flex-col gap-1 border-t border-border p-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={openSettings}
-                >
-                  <Settings size={16} aria-hidden="true" />
-                  Settings
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={toggleTheme}
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {theme === 'dark' ? (
-                    <Sun size={16} aria-hidden="true" />
-                  ) : (
-                    <Moon size={16} aria-hidden="true" />
-                  )}
-                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                </Button>
-              </div>
             </aside>
             <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
               <section
@@ -504,6 +480,14 @@ export function ChatShell({
               conversations={conversations}
               onNew={() => void newChat()}
               onPanel={openPanel}
+            />
+            {/* The mobile product nav: bottom bar + More sheet. The drawer
+                above is conversations only; settings/theme/new-chat moved here. */}
+            <MobileNavBar
+              onNewChat={() => void newChat()}
+              onOpenSettings={openSettings}
+              onToggleTheme={toggleTheme}
+              theme={theme === 'dark' ? 'dark' : 'light'}
             />
           </div>
         </KernelProvider>

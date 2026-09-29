@@ -197,7 +197,7 @@ export function AgentsPanel({
         ))}
       </ul>
 
-      <Button type="button" variant="outline" className="w-full" onClick={() => edit(null)}>
+      <Button type="button" variant="default" className="w-full" onClick={() => edit(null)}>
         New agent
       </Button>
 

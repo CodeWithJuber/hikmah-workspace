@@ -2966,6 +2966,43 @@
     background: transparent;
     border: 0;
   }
+  /* The one save convention: a settings form never saves on its own. Editing
+     writes to a local draft; the moment the draft differs from the server a
+     sticky bar appears with the only two actions — Save (one request for the
+     whole form) and Discard (revert). Rendered by components/app/save-bar. */
+  .save-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 10px 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 6px);
+    background: var(--card);
+    box-shadow: 0 12px 32px var(--shadow);
+  }
+  .save-bar p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .save-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 900px) {
+    /* Clear the mobile bottom bar on the same breakpoint. */
+    .save-bar {
+      bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+  }
   .studio-shell .workspace-header {
     height: 76px;
     flex-shrink: 0;

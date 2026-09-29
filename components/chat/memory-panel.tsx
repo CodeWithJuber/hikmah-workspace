@@ -18,7 +18,9 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useMemory } from '@/hooks/use-memory';
+import { setIncognito, useIncognito } from '@/lib/memory/incognito';
 import type { Memory, MemoryKind } from '@/lib/memory/store';
+import { planMemoryMasterToggle } from '@/lib/memory/master-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { clientFetch } from '@/lib/client/request';
 import type { LearningExample, LearningSnapshot } from '@/lib/learning/types';
@@ -119,6 +121,7 @@ export function MemoryPanel() {
   const [editing, setEditing] = useState<Memory | null>(null);
   const [note, setNote] = useState('');
   const [search, setSearch] = useState('');
+  const [masterBusy, setMasterBusy] = useState(false);
 
   const attempt = async (work: () => Promise<unknown>) => {
     setNote('');
@@ -138,6 +141,30 @@ export function MemoryPanel() {
     (memory) => memory.status === 'suggested' && matches(memory),
   );
   const saved = (memories ?? []).filter((memory) => memory.status === 'saved' && matches(memory));
+
+  // The master switch: persistent bulk on/off over saved memories through the
+  // same per-item API the row switches use. Suggestions are never touched —
+  // no run reads one until accepted.
+  const masterOn = saved.some((memory) => memory.enabled);
+  // Session incognito: the client-only counterpart to the persistent master
+  // switch. It writes nothing to the server — the runs route gates the
+  // saved-memory block, the `remember` auto-save and the learning consent on
+  // the request flag instead (see lib/memory/incognito.ts). It dies with the
+  // tab, so there is no stale "off" to discover later.
+  const incognito = useIncognito();
+  const flipMaster = async () => {
+    const plan = planMemoryMasterToggle(memories ?? []);
+    if (plan.ids.length === 0 || masterBusy) return;
+    setMasterBusy(true);
+    setNote('');
+    try {
+      for (const id of plan.ids) await update(id, { enabled: plan.enable });
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : 'The change was not saved.');
+    } finally {
+      setMasterBusy(false);
+    }
+  };
   const recentRows = recent
     .map((id) => saved.find((memory) => memory.id === id))
     .filter((memory): memory is Memory => !!memory)
@@ -261,6 +288,44 @@ export function MemoryPanel() {
           <BookmarkPlus size={16} /> Remember something
         </Button>
       </h2>
+      {/* The master switch: one honest on/off for every saved memory. Off
+       * disables each saved memory through the per-item API (reversible —
+       * nothing is deleted); on re-enables them all. */}
+      {!loading && !failed && saved.length > 0 && (
+        <label className="memory-master">
+          <Switch
+            aria-label="Memory"
+            checked={masterOn}
+            disabled={masterBusy}
+            onCheckedChange={() => void flipMaster()}
+          />
+          <span>
+            <strong>Memory</strong>
+            <span>
+              {masterOn
+                ? 'On — answers draw on your saved memories.'
+                : 'Off — no saved memory is used.'}
+            </span>
+          </span>
+        </label>
+      )}
+      {!loading && !failed && (
+        <label className="memory-master">
+          <Switch
+            aria-label="Incognito session"
+            checked={incognito}
+            onCheckedChange={(value) => setIncognito(value)}
+          />
+          <span>
+            <strong>Incognito session</strong>
+            <span>
+              {incognito
+                ? 'On for this session — answers won’t draw on your memories, and nothing is saved or captured automatically. Ends when this tab closes.'
+                : 'Off — this session uses memory normally.'}
+            </span>
+          </span>
+        </label>
+      )}
       {/* The growth story: what the person owns, and that it is being used.
        * Compounding value made visible — the habit forms from seeing the
        * second brain grow, not from streaks or badges. */}

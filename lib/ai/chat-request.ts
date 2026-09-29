@@ -27,6 +27,14 @@ export type ChatRequestBody = {
   /** Search the web this turn, whatever the conversation's tool switches say. */
   webSearch: boolean;
   /**
+   * This session is incognito: the run must neither read nor write memory,
+   * and learning must not capture the exchange. Per turn like deepResearch —
+   * a choice made for a question — except the toggle lives on the Memory
+   * screen and applies to every turn of the session, not the switches on a
+   * composer. Absent means off, the persistent settings decide.
+   */
+  incognito: boolean;
+  /**
    * Why this turn is being sent. `regenerate-message` means the last message is
    * already stored and is being replayed, so the conversation has to be
    * truncated back to it rather than appended to. Anything else is a new turn.
@@ -168,6 +176,9 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     deepResearch: body.deepResearch === true,
     // The composer's Search switch, per turn for the same reason.
     webSearch: body.webSearch === true,
+    // Session incognito: only an explicit true counts — a mistyped value
+    // falls back to the persistent settings, never to a silent opt-out.
+    incognito: body.incognito === true,
     // Anything other than the one value that means "replay" is treated as a new
     // turn, so an unrecognised or absent trigger can only ever append — never
     // delete.

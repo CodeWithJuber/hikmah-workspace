@@ -495,7 +495,14 @@ export function createRunStore(
           ...sealRunConfig(input.config, { id: input.id, user_id: input.userId }),
           // Server-owned consent snapshot. Never trust a caller-supplied one,
           // and never apply a later opt-in to an already queued conversation.
-          learning: createLearningStore(db, now).consent(input.userId),
+          // The one narrowing a caller may make is an explicit disable —
+          // an incognito run opts out of learning capture — because a disable
+          // can only ever take less than the consent allows, never more.
+          learning:
+            (input.config as { learning?: { enabled?: boolean } } | null)?.learning?.enabled ===
+            false
+              ? { enabled: false, revision: -1 }
+              : createLearningStore(db, now).consent(input.userId),
         }),
         now(),
         Number.isFinite(input.priority) ? Math.trunc(input.priority as number) : 0,

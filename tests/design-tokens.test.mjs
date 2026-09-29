@@ -6,7 +6,7 @@
 // Run: node --test tests/design-tokens.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { allStyles } from './stylesheet.mjs';
 
 const palette = readFileSync(
@@ -150,4 +150,83 @@ test('the generated palette and Tailwind’s theme namespace share no name', () 
     `${shared.join(', ')} is declared by both the generated palette and @theme, ` +
       'so whichever layer sorts last silently wins. Rename one side.',
   );
+});
+
+test('the focus ring is opaque and clears 3:1 against its neighbours', () => {
+  // P0-2: the old 50%-alpha accent ring measured ~2.2:1 — an outright WCAG
+  // 1.4.11 failure, and axe does not check this. The ring is now the opaque
+  // --focus-ring token (near-black in light, white in dark), which is why it
+  // must never come back as a translucent accent.
+  const tokens = readFileSync(new URL('../app/styles/tokens.css', import.meta.url), 'utf8');
+  const match = tokens.match(
+    /--focus-ring:\s*light-dark\(var\(--ax-text-primary\),\s*(#[0-9a-fA-F]{6})\)/,
+  );
+  assert.ok(match, '--focus-ring is not the theme-paired token it must be');
+  const darkRing = match[1];
+
+  const { pair, ratio } = contrast();
+  const [textLight] = pair('--ax-text-primary');
+  const [, bodyDark] = pair('--ax-background-body');
+  const [edgeLight, edgeDark] = pair('--ax-border-emphasized');
+  const checks = [
+    ['light', textLight, '#ffffff', 'page'],
+    ['light', textLight, edgeLight, 'input edge'],
+    ['dark', darkRing, bodyDark, 'page'],
+    ['dark', darkRing, edgeDark, 'input edge'],
+  ];
+  for (const [mode, ring, adjacent, where] of checks) {
+    const value = ratio(ring, adjacent);
+    assert.ok(
+      value >= 3,
+      `${mode}: the focus ring ${ring} on ${where} ${adjacent} is ${value.toFixed(2)}:1, under 3`,
+    );
+  }
+
+  const uiDir = new URL('../components/ui/', import.meta.url);
+  const translucent = readdirSync(uiDir)
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => ({ file: f, text: readFileSync(new URL(f, uiDir), 'utf8') }))
+    .filter(({ text }) => /ring\/50|ring-ring\/\d+/.test(text));
+  assert.deepEqual(
+    translucent.map((f) => f.file),
+    [],
+    'translucent focus rings are back in components/ui: ' +
+      translucent.map((f) => f.file).join(', '),
+  );
+});
+
+test('the motion ladder is codified and the primitives reference it', () => {
+  // P2-11: three durations, two easings, one vocabulary. The button press is
+  // its own asymmetry (80ms down, 200ms back, 0.96 scale). This fails if a
+  // token is renamed or a primitive drifts back to a magic number.
+  const tokens = readFileSync(new URL('../app/styles/tokens.css', import.meta.url), 'utf8');
+  for (const [name, value] of [
+    ['--motion-micro', '150ms'],
+    ['--motion-ui', '250ms'],
+    ['--motion-surface', '350ms'],
+    ['--ease-enter', 'cubic-bezier(0.16, 1, 0.3, 1)'],
+    ['--ease-exit', 'cubic-bezier(0.3, 0, 1, 1)'],
+  ]) {
+    assert.match(tokens, new RegExp(`${name}:\\s*${value.replace(/[().,]/g, (c) => `\\${c}`)}`));
+  }
+
+  const base = readFileSync(new URL('../app/styles/base.css', import.meta.url), 'utf8');
+  // The button press: 80ms down to 0.96, 200ms back on the exit easing.
+  assert.match(base, /\.icon-button:not\(:disabled\):active\s*\{[^}]*scale: 0\.96/);
+  assert.match(base, /transition:\s*scale 200ms var\(--ease-exit\)/);
+
+  const button = readFileSync(new URL('../components/ui/button.tsx', import.meta.url), 'utf8');
+  assert.ok(button.includes('active:scale-[0.96]'), 'button lost its press scale');
+  assert.ok(button.includes('active:duration-[80ms]'), 'button lost its 80ms press');
+  assert.ok(button.includes('ease-[var(--ease-exit)]'), 'button lost its exit easing');
+
+  const switchFile = readFileSync(new URL('../components/ui/switch.tsx', import.meta.url), 'utf8');
+  assert.ok(switchFile.includes('duration-[var(--motion-micro)]'), 'switch left the ladder');
+
+  for (const file of ['../components/ui/dialog.tsx', '../components/ui/alert-dialog.tsx']) {
+    const dialog = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.ok(dialog.includes('duration-[var(--motion-surface)]'), `${file} left the ladder`);
+    assert.ok(dialog.includes('duration-[var(--motion-ui)]'), `${file} overlay left the ladder`);
+    assert.ok(dialog.includes('ease-[var(--ease-enter)]'), `${file} lost its enter easing`);
+  }
 });

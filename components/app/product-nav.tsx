@@ -15,6 +15,13 @@ import {
 import { useKernel } from '@/components/kernel/context';
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
+export type { NavItem as ProductNavItem };
+
+/** Active when the pathname is the destination or beneath it. Shared with the
+ * mobile bottom bar so both navs agree on what "here" means. */
+export function isNavActive(href: string, pathname: string) {
+  return pathname === href || pathname.startsWith(href + '/');
+}
 
 /** The whole product in six plain words.
  *
@@ -22,7 +29,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
  * switches, the local model) lives one tap deeper — linked from inside Chat
  * or from Settings — instead of competing for attention in the nav. Old
  * addresses keep working; they just aren't destinations anymore. */
-const primary: NavItem[] = [
+export const primaryNavItems: NavItem[] = [
   { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/agents', label: 'Assistants', icon: Bot },
   { href: '/knowledge', label: 'Memory', icon: BookOpen },
@@ -31,7 +38,7 @@ const primary: NavItem[] = [
   { href: '/settings', label: 'Settings', icon: Settings2 },
 ];
 
-const admin: NavItem[] = [
+export const adminNavItems: NavItem[] = [
   { href: '/admin', label: 'Admin', icon: Shield },
   { href: '/superadmin', label: 'Superadmin', icon: ShieldCheck },
 ];
@@ -50,10 +57,9 @@ export function ProductNav({
   // Same server-verified owner check as OwnerAccess: the kernel reports the
   // role the server assigned, so a provider key alone never opens this.
   const isOwner = kernel.ready && kernel.role === 'super_admin';
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   const link = (item: NavItem) => {
-    const active = isActive(item.href);
+    const active = isNavActive(item.href, pathname ?? '');
     const Icon = item.icon;
     return (
       <Link
@@ -71,11 +77,11 @@ export function ProductNav({
 
   return (
     <nav className={'product-nav' + (className ? ' ' + className : '')} aria-label="Product">
-      <div className="nav-group">{primary.map(link)}</div>
+      <div className="nav-group">{primaryNavItems.map(link)}</div>
       {isOwner && (
         <div className="nav-group">
           <span className="nav-group-label">Administration</span>
-          {admin.map(link)}
+          {adminNavItems.map(link)}
         </div>
       )}
     </nav>

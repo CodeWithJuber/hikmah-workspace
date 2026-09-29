@@ -13,6 +13,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { useKernel } from './context';
 import { HikmahIcon } from './icons';
+import { SaveBar } from '@/components/app/save-bar';
 import {
   activeVersion,
   developmentMetrics,
@@ -53,6 +54,26 @@ export function KernelCenter({
       toast.success(
         a.type === 'teach' ? 'Examples reviewed and training pipeline updated.' : 'Saved.',
       );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Update failed.');
+    }
+  };
+  // Owner controls edit a local draft; the SaveBar commits it in one request
+  // (the one save convention) instead of firing per-control configures.
+  const [configDraft, setConfigDraft] = useState<typeof state.config | null>(null);
+  const config = configDraft ?? state.config;
+  const configDirty =
+    configDraft !== null &&
+    (configDraft.enabled !== state.config.enabled ||
+      configDraft.autoTrain !== state.config.autoTrain ||
+      configDraft.collectFeedback !== state.config.collectFeedback ||
+      configDraft.strategy !== state.config.strategy);
+  const saveConfig = async () => {
+    if (!configDraft || !configDirty || busy) return;
+    try {
+      await act({ type: 'configure', config: configDraft });
+      toast.success('Saved.');
+      setConfigDraft(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed.');
     }
@@ -707,26 +728,21 @@ export function KernelCenter({
               </div>
               <Switch
                 aria-label={title}
-                checked={state.config[key]}
+                checked={config[key]}
                 disabled={busy || !ready}
-                onCheckedChange={(value) =>
-                  void perform({ type: 'configure', config: { ...state.config, [key]: value } })
-                }
+                onCheckedChange={(value) => setConfigDraft({ ...config, [key]: value })}
               />
             </div>
           ))}
           <label className="kernel-field">
             Workflow strategy
             <select
-              value={state.config.strategy}
+              value={config.strategy}
               disabled={busy || !ready}
               onChange={(e) =>
-                void perform({
-                  type: 'configure',
-                  config: {
-                    ...state.config,
-                    strategy: e.target.value as 'adaptive' | 'direct' | 'verify',
-                  },
+                setConfigDraft({
+                  ...config,
+                  strategy: e.target.value as 'adaptive' | 'direct' | 'verify',
                 })
               }
             >
@@ -754,6 +770,12 @@ export function KernelCenter({
             Training runs when reviewed experience arrives; there is no autonomous background
             training job without new data. No chat content is sent to another provider for training.
           </p>
+          <SaveBar
+            dirty={configDirty}
+            busy={busy}
+            onSave={() => void saveConfig()}
+            onDiscard={() => setConfigDraft(null)}
+          />
         </section>
       )}
     </div>

@@ -59,6 +59,7 @@ import {
   ContextTrigger,
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
+import { busyAnnouncement, streamingJustSettled } from '@/lib/chat/announce';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
@@ -84,6 +85,8 @@ import { useRouter } from 'next/navigation';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
 import { useMemory } from '@/hooks/use-memory';
+import { getIncognito, useIncognito } from '@/lib/memory/incognito';
+import { useVisualViewport } from '@/hooks/use-visual-viewport';
 import type { MemoryForAha } from './memory-annotations';
 import { ConversationSearch } from './conversation-search';
 import { useTempChat } from './temp-chat';
@@ -336,7 +339,20 @@ export function ChatView({
   // Chat instance on first render and only replaces it when the conversation id
   // changes, so anything the view kept would never reach the instance actually
   // sending the requests.
-  const [transport] = useState(() => createDurableChatTransport({ config: run }));
+  const [transport] = useState(() =>
+    createDurableChatTransport({ config: { ...run, incognito: getIncognito() } }),
+  );
+  // iOS keyboard lift: the keyboard shrinks the *visual* viewport only, so
+  // when it reads smaller than the layout viewport the keyboard is up — pad
+  // the composer by the occluded height so it stays above it. A snap (no
+  // transition, and none on .chat-composer-area either), which is also what
+  // prefers-reduced-motion requires: no animated lift. Desktop / SSR: the
+  // hook returns null and this is a no-op.
+  const visualViewport = useVisualViewport();
+  const keyboardLift =
+    visualViewport?.keyboardOpen && typeof window !== 'undefined'
+      ? Math.max(0, window.innerHeight - visualViewport.height)
+      : 0;
   const {
     messages,
     sendMessage,
@@ -439,14 +455,41 @@ export function ChatView({
   // different chat should start at its end, not wherever the last one was
   // expanded to.
   const [showEarlier, setShowEarlier] = useState(false);
+  // The sr-only polite region announces the run edge: "Working on your
+  // request." while busy, then exactly one "Response ready." when streaming
+  // settles, cleared after a second so it doesn't linger for assistive tech.
+  // Per-chunk updates would break VoiceOver, so only the transition is
+  // announced — never the answer text itself.
+  const [justFinished, setJustFinished] = useState(false);
+  const statusRef = useRef(status);
+  useEffect(() => {
+    const prev = statusRef.current;
+    statusRef.current = status;
+    if (!streamingJustSettled(prev, status)) return;
+    setJustFinished(true);
+    const timer = window.setTimeout(() => setJustFinished(false), 1000);
+    return () => window.clearTimeout(timer);
+  }, [status]);
   if (staleFor !== id) {
     setStaleFor(id);
     setRetried(false);
     setShowEarlier(false);
+    setJustFinished(false);
   }
+  // Session incognito is read live rather than stored in the run prop: it is a
+  // choice made for a question (like Search), not a setting that follows
+  // every one, and re-running setConfig when it flips keeps the transport's
+  // queued request honest.
+  const incognito = useIncognito();
   useEffect(() => {
-    transport.setConfig({ ...run, compare: compare ? {} : undefined, deepResearch, webSearch });
-  }, [transport, run, compare, deepResearch, webSearch]);
+    transport.setConfig({
+      ...run,
+      compare: compare ? {} : undefined,
+      deepResearch,
+      webSearch,
+      incognito,
+    });
+  }, [transport, run, compare, deepResearch, webSearch, incognito]);
 
   // Remember, by hand: your own message is saved as your words; an answer is
   // filed as the model's inference and waits for review. The route names the
@@ -489,6 +532,10 @@ export function ChatView({
   const visible = hidden ? messages.slice(hidden) : messages;
 
   const busy = status === 'submitted' || status === 'streaming';
+  // A new run supersedes the finished announcement: the polite region belongs
+  // to the current run, so a stale "Response ready." must not survive into it.
+  // Render-time reset, the same pattern as the stale-conversation reset above.
+  if (busy && justFinished) setJustFinished(false);
   // Whether any of the answer has actually arrived. Once it has, the words are
   // the progress indicator and a label beside them is noise.
   const streamingText =
@@ -1193,15 +1240,28 @@ export function ChatView({
                 );
               })()}
             {/* The answer region is announced while a run is in progress, so a
-              screen reader learns that work is happening and when it lands. */}
+              screen reader learns that work is happening and when it lands.
+              Only the transition is announced — never the streamed answer
+              text (per-chunk live updates break VoiceOver). */}
             <div aria-live="polite" className="sr-only">
-              {busy ? 'Working on your request.' : ''}
+              {busyAnnouncement(busy, justFinished)}
             </div>
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="chat-composer-area">
+        <div
+          className="chat-composer-area"
+          style={
+            keyboardLift > 0
+              ? {
+                  // Keeps the resting geometry (14px / safe-area) and adds the
+                  // occluded height on top of it.
+                  paddingBottom: `calc(max(14px, env(safe-area-inset-bottom, 0px)) + ${Math.round(keyboardLift)}px)`,
+                }
+              : undefined
+          }
+        >
           {!online && (
             <Alert className="mb-3">
               <WifiOff className="size-4" aria-hidden="true" />

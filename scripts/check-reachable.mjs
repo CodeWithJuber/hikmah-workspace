@@ -57,6 +57,15 @@ const ALLOW = [
   /^design\//,
   // Test-only helpers live beside their tests.
   /^tests\//,
+  // Pure helpers exported so unit tests can name them on purpose; each is
+  // consumed by its own module's component/hook, which routes do render
+  // (mobile-nav-bar in chat-shell + app-shell, useVisualViewport in the chat
+  // composer). The check only counts cross-file uses, so these read as
+  // tested-only — the feature is wired, the heuristic is coarse.
+  // mobile-nav-bar.tsx: mobileNavTabs, mobileNavOverflow.
+  /^components\/app\/mobile-nav-bar\.tsx$/,
+  // use-visual-viewport.ts: readVisualViewport, bindVisualViewport.
+  /^hooks\/use-visual-viewport\.ts$/,
   // v5 control layer (Phase 3, 2026-09-28): tested library modules staged for
   // Phase-4 agent-loop wiring. Budgets are stamped on every run via
   // enqueueRun() and visible in the run card; the feedback-recording and

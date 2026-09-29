@@ -1,7 +1,13 @@
 'use client';
 
-import { Sparkles, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Sparkles, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+/** Dismissal of the first-run AI disclosure. The repo has no shared UI-pref
+ * key convention (only playground keeps its own localStorage keys), so this
+ * namespaced key is the first of its kind. */
+const DISCLOSURE_DISMISSED_KEY = 'hikmah:ui:disclosure-dismissed';
 
 export type EmptyStateOnboardingVariant = 'first-run' | 'cleared';
 
@@ -77,6 +83,28 @@ export function EmptyStateOnboarding({
   const heading = title ?? copy.heading;
   const shown = chips ?? copy.chips;
   const primary = onPrimary ?? (() => onPick(copy.heroPrompt));
+
+  // The AI disclosure shows on first run only. The dismissed flag is read
+  // lazily so a repeat visit never flashes it on the first paint (and SSR,
+  // which has no localStorage, paints the undisclosed state).
+  const [disclosureDismissed, setDisclosureDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem(DISCLOSURE_DISMISSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const showDisclosure = variant === 'first-run' && !disclosureDismissed;
+  const dismissDisclosure = () => {
+    try {
+      window.localStorage.setItem(DISCLOSURE_DISMISSED_KEY, '1');
+    } catch {
+      // Storage unavailable (private mode): the note just hides for this visit.
+    }
+    setDisclosureDismissed(true);
+  };
+
   return (
     <div
       data-slot="empty-state-onboarding"
@@ -114,6 +142,19 @@ export function EmptyStateOnboarding({
           );
         })}
       </div>
+      {showDisclosure && (
+        <p className="flex max-w-xl items-start justify-center gap-2 text-xs text-muted-foreground">
+          <span>You’re chatting with an AI — it can make mistakes.</span>
+          <button
+            type="button"
+            aria-label="Dismiss AI disclosure"
+            onClick={dismissDisclosure}
+            className="flex size-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-[var(--focus-ring)] focus-visible:outline-none"
+          >
+            <X size={12} aria-hidden="true" />
+          </button>
+        </p>
+      )}
     </div>
   );
 }

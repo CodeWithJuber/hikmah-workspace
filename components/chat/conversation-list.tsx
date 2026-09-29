@@ -54,6 +54,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { clientFetch } from '@/lib/client/request';
+import { groupByRecency, RECENCY_LABELS, RECENCY_ORDER } from '@/lib/chat/grouping';
 import { ShareDialog } from './share-dialog';
 import { ProjectDialog } from './project-dialog';
 
@@ -662,6 +663,11 @@ export function ConversationList({
   const entriesFor = (projectId: string) =>
     chats?.filter((entry) => !entry.pinned && entry.projectId === projectId) ?? [];
   const unfiledChats = chats?.filter((entry) => !entry.pinned && !entry.projectId);
+  // Temporal sections are recency buckets on Dubai-calendar days (the
+  // owner's timezone); while a search is running the list stays flat,
+  // because sections would fight the query.
+  const recencyGroups = groupByRecency(unfiledChats ?? []);
+  const searching = query.trim().length > 0;
   // With a search running, a project section shows only when it has something
   // to show; without one, empty projects stay visible so they can be renamed,
   // deleted, or filled.
@@ -679,6 +685,23 @@ export function ConversationList({
     onMove: moveToProject,
     onDelete: (entry: ConversationSummary) => setDeleting(entry),
   };
+
+  /** One chat row per entry, shared by the flat search list and the recency
+   * sections so a row can never drift between the two. */
+  const renderRows = (entries: ConversationSummary[]) => (
+    <ul>
+      {entries.map((conversation) => (
+        <ChatRow
+          key={conversation.id}
+          entry={conversation}
+          activeId={activeId}
+          renaming={renamingId === conversation.id}
+          projects={projects}
+          {...rowHandlers}
+        />
+      ))}
+    </ul>
+  );
 
   return (
     <nav className="conversation-list" aria-label="Conversations">
@@ -776,18 +799,24 @@ export function ConversationList({
         />
       ))}
 
-      <ul>
-        {unfiledChats?.map((conversation) => (
-          <ChatRow
-            key={conversation.id}
-            entry={conversation}
-            activeId={activeId}
-            renaming={renamingId === conversation.id}
-            projects={projects}
-            {...rowHandlers}
-          />
-        ))}
-      </ul>
+      {/* Pinned → projects (above) → temporal sections. Searching flattens
+          the temporal sections back into one result list. */}
+      {searching ? (
+        renderRows(unfiledChats ?? [])
+      ) : (
+        <>
+          {RECENCY_ORDER.map((bucket) => {
+            const entries = recencyGroups[bucket];
+            if (entries.length === 0) return null;
+            return (
+              <section key={bucket} aria-label={`${RECENCY_LABELS[bucket]} conversations`}>
+                <h3 className="conversation-group">{RECENCY_LABELS[bucket]}</h3>
+                {renderRows(entries)}
+              </section>
+            );
+          })}
+        </>
+      )}
 
       {conversations !== null && !failed && (
         <Button

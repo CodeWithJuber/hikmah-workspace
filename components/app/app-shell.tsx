@@ -16,6 +16,7 @@ import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { Settings } from '@/components/playground/settings';
 import { ProductNav } from './product-nav';
+import { MobileNavBar } from './mobile-nav-bar';
 import { APP_RELEASE, BUILD_ID } from '@/lib/release';
 
 /** The product mark: orbit icon + wordmark. Copied from the old workspace
@@ -92,6 +93,10 @@ function ShellContent({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="workspace-main">{children}</SidebarInset>
+      {/* Mobile product nav for every route under app/(app): bottom bar +
+          More sheet. Below 900px the sidebar's mobile sheet trigger is hidden
+          (see workspace-experience.css) so this is the single nav idiom. */}
+      <MobileNavBar />
     </>
   );
 }

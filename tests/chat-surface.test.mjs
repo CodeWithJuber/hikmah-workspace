@@ -71,10 +71,13 @@ test('the theme has a source that does not depend on the workspace mounting', ()
 });
 
 test('the chat surface has a way back to the rest of the workspace', () => {
-  // The chat's drawer renders the one ProductNav, so the chat can never drift
-  // from the routes the rest of the app uses — no duplicate navigation to
-  // learn, no hash links to rot.
-  assert.match(shell, /<ProductNav/);
+  // The chat renders the single product-nav idiom, so the chat can never
+  // drift from the routes the rest of the app uses — no duplicate navigation
+  // to learn, no hash links to rot. It used to be ProductNav inside the
+  // hamburger drawer; the mobile bottom bar is the same single definition
+  // (product-nav.tsx: MobileNavBar imports primaryNavItems from it) in a
+  // different frame, and the drawer keeps only the conversation list.
+  assert.match(shell, /<MobileNavBar/);
   assert.match(shell, /href="\/sign-out"/);
 });
 

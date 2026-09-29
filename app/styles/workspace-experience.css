@@ -456,6 +456,102 @@
       white-space: nowrap;
     }
   }
+  /* Mobile bottom navigation — the single product-nav idiom below 900px
+     (the same breakpoint where the chat workspace switches to its drawer).
+     Above 900px the desktop rail/sidebar owns product navigation and this
+     stays hidden. */
+  .mobile-nav-bar {
+    display: none;
+  }
+  .mobile-nav-sheet {
+    border-radius: 16px 16px 0 0;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .mobile-nav-sheet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+  }
+  .mobile-nav-sheet-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 10px 12px;
+    border-radius: calc(var(--radius) - 4px);
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    text-decoration: none;
+    background: none;
+    border: 0;
+    width: 100%;
+    cursor: pointer;
+    text-align: start;
+  }
+  .mobile-nav-sheet-link:hover {
+    background: var(--secondary);
+  }
+  .mobile-nav-sheet-link.is-active {
+    color: var(--ax-accent);
+    font-weight: 600;
+  }
+  .mobile-nav-sheet-group {
+    margin: 12px 12px 4px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  @media (max-width: 900px) {
+    .mobile-nav-bar {
+      display: flex;
+      position: fixed;
+      inset-inline: 0;
+      bottom: 0;
+      z-index: 30; /* under the conversation scrim (35) and drawer (40) */
+      align-items: stretch;
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--background);
+      border-top: 1px solid var(--border);
+    }
+    .mobile-nav-tab {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-height: 58px;
+      padding: 8px 2px;
+      color: var(--muted-foreground);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-decoration: none;
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .mobile-nav-tab.is-active {
+      color: var(--ax-accent);
+      font-weight: 600;
+    }
+    /* The composer sits at the bottom of the chat flow — clear the bar. */
+    .workspace-experience .chat-view:not(.is-empty) .chat-composer-area {
+      padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+    /* (app) pages scroll under the bar — keep their last row reachable. */
+    .app-shell .workspace-main {
+      padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+    /* The shadcn mobile sheet is superseded by the bottom bar on this range. */
+    .app-shell [data-sidebar='trigger'] {
+      display: none;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .workspace-experience *,
     .workspace-experience *::before,

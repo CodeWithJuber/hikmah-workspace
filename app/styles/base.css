@@ -665,9 +665,14 @@
       filter: none;
     }
   }
-  [data-slot='button']:not(:disabled):active,
+  /* The motion ladder's press, same as the Button component: 80ms down to
+   * a 0.96 scale, 200ms back to rest on the exit easing. */
+  .icon-button:not(:disabled) {
+    transition: scale 200ms var(--ease-exit);
+  }
   .icon-button:not(:disabled):active {
-    transform: translateY(0.5px);
+    scale: 0.96;
+    transition-duration: 80ms;
   }
   /* Someone who has asked their system for less motion gets none of it. */
   @media (prefers-reduced-motion: reduce) {

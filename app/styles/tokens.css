@@ -105,6 +105,16 @@
     --input: var(--ax-border-emphasized);
     --ring: var(--ax-accent);
     --sidebar-ring: var(--ax-accent);
+    /* The focus ring is opaque and theme-paired, never the brand green:
+     * status/delight own the green; focus must stay neutral. WCAG 1.4.11
+     * needs ≥3:1 against adjacent colours — the old 50%-alpha accent ring
+     * measured ~2.2:1, an outright failure. Measured ratios:
+     *   light  ring #151D1A vs page   #ffffff = 17.18:1
+     *   light  ring #151D1A vs input  #84948c =  5.40:1
+     *   dark   ring #ffffff vs page   #10241b = 16.28:1
+     *   dark   ring #ffffff vs input  #616f67 =  5.28:1
+     *   dark   ring #ffffff vs card   #16301f = 14.22:1 */
+    --focus-ring: light-dark(var(--ax-text-primary), #ffffff);
 
     /* Outcomes. The backgrounds are mixed with the page for the reason above;
      * the text is the ramp's own dark step in light and its light step in dark,
@@ -154,6 +164,17 @@
     --z-scrim: 35;
     --z-drawer: 40;
     --z-skip-link: 100;
+
+    /* The motion ladder: three durations and two easings, one vocabulary.
+     * micro (150ms) is for clicks and toggles, ui (250ms) for dropdowns and
+     * accordions, surface (350ms) for pages, modals and sheets. A button
+     * press is its own asymmetry: 80ms down, 200ms back — snappy in, gentle
+     * out. Enter eases out of stillness (fast start), exit eases in to it. */
+    --motion-micro: 150ms;
+    --motion-ui: 250ms;
+    --motion-surface: 350ms;
+    --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-exit: cubic-bezier(0.3, 0, 1, 1);
 
     /* The single monospace stack, matching the design source's own code
      * fallbacks (design/hikmah-theme.ts). */
