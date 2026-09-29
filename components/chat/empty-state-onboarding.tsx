@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Brain, Code2, Play, Search, Sparkles, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AGENT_STARTERS } from '@/lib/chat/agent-starters';
@@ -167,7 +167,7 @@ export function EmptyStateOnboarding({
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">{heading}</h1>
         <p className="mx-auto max-w-md text-sm text-muted-foreground">{copy.sub}</p>
       </div>
-      <Button type="button" size="lg" onClick={primary}>
+      <Button type="button" size="lg" onClick={primary} className="n-press">
         <Play size={16} aria-hidden="true" />
         {copy.primaryLabel}
       </Button>
@@ -177,7 +177,7 @@ export function EmptyStateOnboarding({
               third spans both columns) so the first screen stays close to one
               screen tall instead of a 2-screen stack. */}
           <div
-            className="grid w-full max-w-2xl grid-cols-2 gap-2 text-left sm:grid-cols-3 sm:gap-3"
+            className="grid w-full max-w-2xl grid-cols-2 gap-2 text-left sm:grid-cols-3 sm:gap-3 n-stagger"
             role="group"
             aria-label="Specialists"
           >
@@ -186,6 +186,7 @@ export function EmptyStateOnboarding({
               return (
                 <div
                   key={card.name}
+                  style={{ '--i': index } as CSSProperties}
                   className={
                     'flex flex-col gap-2 rounded-xl border border-border bg-card p-3 sm:p-4' +
                     (index === 2 ? ' col-span-2 sm:col-span-1' : '')
@@ -210,7 +211,7 @@ export function EmptyStateOnboarding({
                         /* h-10: these are the first-run's thumb targets; h-8
                            (32px) was below the 40px mobile bar (Jev bump-40,
                            mobile audit 2026-09-29). */
-                        className="h-10 justify-start rounded-full px-3 text-xs"
+                        className="h-10 justify-start rounded-full px-3 text-xs n-press"
                         onClick={() => onPick(starter.prompt)}
                       >
                         {starter.label}
@@ -236,11 +237,11 @@ export function EmptyStateOnboarding({
       )}
       {shown.length > 0 && (
         <div
-          className="flex max-w-xl flex-wrap justify-center gap-2"
+          className="flex max-w-xl flex-wrap justify-center gap-2 n-stagger"
           role="group"
           aria-label="Ideas to get started"
         >
-          {shown.map((chip) => {
+          {shown.map((chip, index) => {
             const Icon = chip.icon;
             return (
               <Button
@@ -248,7 +249,10 @@ export function EmptyStateOnboarding({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-full px-4"
+                /* h-10: starter chips are thumb targets; h-9 (36px) was below
+                   the 40px mobile bar (Jev bump-40, mobile audit 2026-09-29). */
+                className="h-10 rounded-full px-4 n-press"
+                style={{ '--i': index } as CSSProperties}
                 onClick={() => onPick(chip.prompt)}
               >
                 {Icon ? <Icon size={16} aria-hidden="true" /> : null}
@@ -261,13 +265,16 @@ export function EmptyStateOnboarding({
       {showDisclosure && (
         <p className="flex max-w-xl items-start justify-center gap-2 text-xs text-muted-foreground">
           <span>You’re chatting with an AI — it can make mistakes.</span>
+          {/* n-search-clear: the 32px secondary-affordance dismiss, the same
+              grammar as the search field's clear-X (documented in
+              chats-screen.test.mjs) — a 24px hit area was un-tappable. */}
           <button
             type="button"
             aria-label="Dismiss AI disclosure"
             onClick={dismissDisclosure}
-            className="flex size-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-[var(--focus-ring)] focus-visible:outline-none"
+            className="n-search-clear n-press shrink-0 hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-[var(--focus-ring)] focus-visible:outline-none"
           >
-            <X size={12} aria-hidden="true" />
+            <X size={16} aria-hidden="true" />
           </button>
         </p>
       )}

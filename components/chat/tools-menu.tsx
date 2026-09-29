@@ -1,6 +1,6 @@
 'use client';
 /** One composer menu for optional help; attachment picking is a direct action. */
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, type CSSProperties } from 'react';
 import { ArrowUpRight, Columns2, Globe, Microscope, Telescope, Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -110,9 +110,13 @@ export function ToolsMenu({
         <p id={descriptionId} className="chat-options-description">
           For this conversation, until turned off. Research and comparison use extra model calls.
         </p>
-        <div className="chat-composer-options-list">
-          {options.map(({ label, description, Icon, checked, change }) => (
-            <label key={label} className="chat-composer-action chat-composer-option">
+        <div className="chat-composer-options-list n-stagger">
+          {options.map(({ label, description, Icon, checked, change }, index) => (
+            <label
+              key={label}
+              className="chat-composer-action chat-composer-option n-action-row n-press"
+              style={{ '--i': index } as CSSProperties}
+            >
               <Icon size={20} aria-hidden="true" />
               <span>
                 <strong>{label}</strong>
@@ -130,7 +134,7 @@ export function ToolsMenu({
         {onResearchBrief && (
           <button
             type="button"
-            className="chat-composer-action chat-background-task-action"
+            className="chat-composer-action chat-background-task-action n-action-row n-press"
             disabled={busy}
             onClick={() => {
               openingDialog.current = true;
@@ -149,7 +153,7 @@ export function ToolsMenu({
         {onBackgroundTask && (
           <button
             type="button"
-            className="chat-composer-action chat-background-task-action"
+            className="chat-composer-action chat-background-task-action n-action-row n-press"
             disabled={busy}
             onClick={() => {
               openingDialog.current = true;

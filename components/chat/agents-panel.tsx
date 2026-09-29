@@ -7,10 +7,13 @@
  * agent names one, so choosing an agent cannot silently move the conversation
  * to a different provider.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 import { clientFetch } from '@/lib/client/request';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { agentCategory } from '@/lib/chat/agent-categories';
+import { AGENT_CATEGORY_ICONS } from './agent-category-icons';
 
 export type Agent = {
   id: string;
@@ -190,39 +193,65 @@ export function AgentsPanel({
         </p>
       ) : null}
 
-      <ul>
-        {agents?.map((agent) => (
-          <li key={agent.id} className={agent.id === activeId ? 'is-open' : ''}>
-            <button
-              type="button"
-              onClick={() => onPick?.(agent.id === activeId ? null : agent)}
-              // Without a picker this row is a label, not a control: saying so
-              // is the difference between "nothing happened" and "nothing was
-              // supposed to happen".
-              disabled={!onPick}
-              title={agent.description}
-            >
-              <span className="files-path">{agent.name}</span>
-              {agent.id === activeId && <span className="agents-active">on</span>}
-            </button>
-            <button
-              type="button"
-              className="files-delete"
-              onClick={() => edit(agent)}
-              aria-label={`Edit ${agent.name}`}
-            >
-              ✎
-            </button>
-            <button
-              type="button"
-              className="files-delete"
-              onClick={() => void remove(agent)}
-              aria-label={`Delete ${agent.name}`}
-            >
-              ×
-            </button>
-          </li>
-        ))}
+      <ul className="n-list">
+        {agents?.map((agent, i) => {
+          const category = agentCategory(agent);
+          const tint = `n-av-${agent.id.length % 4}`;
+          const active = agent.id === activeId;
+          return (
+            <li key={agent.id} className="n-stagger" style={{ '--i': i } as CSSProperties}>
+              <div className={`n-agent-card n-agent-manage${active ? ' is-active' : ''}`}>
+                <button
+                  type="button"
+                  className="n-agent-pick n-press-tint"
+                  onClick={() => onPick?.(agent.id === activeId ? null : agent)}
+                  // Without a picker this row is a label, not a control: saying so
+                  // is the difference between "nothing happened" and "nothing was
+                  // supposed to happen".
+                  disabled={!onPick}
+                  title={agent.description}
+                  aria-pressed={onPick ? active : undefined}
+                >
+                  <span className={`n-avatar ${tint}`} aria-hidden="true">
+                    {AGENT_CATEGORY_ICONS[category]}
+                  </span>
+                  <span className="n-row-main">
+                    <span className="n-row-title">
+                      {agent.name}
+                      {active && (
+                        <span className="n-badge" aria-label="Active">
+                          <Check size={12} aria-hidden="true" /> on
+                        </span>
+                      )}
+                    </span>
+                    {agent.description?.trim() ? (
+                      <span className="n-row-snippet">{agent.description.trim()}</span>
+                    ) : null}
+                    <span className="n-row-meta">{category}</span>
+                  </span>
+                </button>
+                <span className="n-agent-tools">
+                  <button
+                    type="button"
+                    className="n-icon-btn n-press"
+                    onClick={() => edit(agent)}
+                    aria-label={`Edit ${agent.name}`}
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="n-icon-btn n-press"
+                    onClick={() => void remove(agent)}
+                    aria-label={`Delete ${agent.name}`}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
+                </span>
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       <Button type="button" variant="default" className="w-full" onClick={() => edit(null)}>

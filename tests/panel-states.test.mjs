@@ -25,36 +25,55 @@ const read = (file) => readFileSync(join(root, file), 'utf8');
 const css = allStyles();
 
 const PANELS = [
-  ['components/chat/conversation-list.tsx', 'conversations'],
-  ['components/chat/files-panel.tsx', 'files'],
-  ['components/chat/agents-panel.tsx', 'agents'],
+  // [panel file, noun, file that owns the load state]. The conversation list
+  // shares its fetch/poll/actions with the native Chats screen through
+  // use-conversations, so the failure state lives in the hook and the panel
+  // consumes it — the separation the tests below assert is unchanged, only
+  // the address moved.
+  [
+    'components/chat/conversation-list.tsx',
+    'conversations',
+    'components/chat/use-conversations.ts',
+  ],
+  ['components/chat/files-panel.tsx', 'files', 'components/chat/files-panel.tsx'],
+  ['components/chat/agents-panel.tsx', 'agents', 'components/chat/agents-panel.tsx'],
 ];
 
 test('a failed load is never reported as an empty one', () => {
-  for (const [file] of PANELS) {
+  for (const [file, , stateFile] of PANELS) {
     const source = read(file);
+    const state = read(stateFile);
     // The tell: catching into the empty value the empty state renders from.
     assert.doesNotMatch(
-      source,
+      state,
       /catch\([^)]*\)\s*=>\s*\{?\s*if \(live\) set\w+\(\[\]\)/,
-      `${file} still turns a failed request into an empty list`,
+      `${stateFile} still turns a failed request into an empty list`,
     );
-    assert.match(source, /setFailed\(true\)/, `${file} has no way to record that a load failed`);
+    assert.match(
+      state,
+      /setFailed\(true\)/,
+      `${stateFile} has no way to record that a load failed`,
+    );
     assert.match(source, /Couldn&rsquo;t load/, `${file} never tells the reader the load failed`);
   }
 });
 
 test('the failure is recoverable without reloading the page', () => {
-  for (const [file] of PANELS) {
+  for (const [file, , stateFile] of PANELS) {
     const source = read(file);
+    const state = read(stateFile);
     assert.match(source, /Try again/, `${file} reports a failure with no way out of it`);
     // Retry has to actually re-run the load, not just clear the message.
     assert.match(
-      source,
+      state,
       /setAttempt\(\(n\) => n \+ 1\)/,
       `${file}'s retry does not re-trigger the fetch`,
     );
-    assert.match(source, /attempt\]\)/, `${file}'s effect does not depend on the retry counter`);
+    assert.match(
+      state,
+      /attempt\]\)/,
+      `${stateFile}'s effect does not depend on the retry counter`,
+    );
   }
 });
 
@@ -63,12 +82,13 @@ test('a failed load does not wipe rows that are already on screen', () => {
   // or an empty array meaning "broken") then a refresh that failed would blank
   // a list the reader was already looking at. Keeping them separate is what
   // makes a failed *re*load harmless.
-  for (const [file] of PANELS) {
+  for (const [file, , stateFile] of PANELS) {
     const source = read(file);
+    const state = read(stateFile);
     assert.match(
-      source,
+      state,
       /const \[failed, setFailed\] = useState\(false\)/,
-      `${file} does not track failure separately from its rows`,
+      `${stateFile} does not track failure separately from its rows`,
     );
     // And the rendered branch has to consult it before the empty state, or the
     // empty state wins and the lie comes back.

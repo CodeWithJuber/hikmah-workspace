@@ -1515,6 +1515,42 @@
     gap: 8px;
     flex-wrap: wrap;
   }
+  /* Native sheet treatment for the connection form (it lives in the settings
+     panel, so this is the sheet's interior language, not a sheet shell):
+     disclosure triggers are 52px action rows, the save row is the thumb-zone
+     CTA footer with safe-area clearance at the panel's end. */
+  .chat-settings-disclosure > .chat-settings-disclosure-trigger.n-action-row {
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-element);
+    font-size: var(--font-size-base);
+  }
+  .chat-settings-disclosure > .chat-settings-disclosure-trigger.n-action-row > [data-slot='badge'] {
+    margin-inline-start: auto;
+  }
+  .chat-connection-actions.n-sheet-foot {
+    align-items: center;
+    padding: 12px 0 0;
+    /* The footer is the last thing in the panel: clear the home indicator. */
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .chat-connection-discard {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chat-connection-discard:hover {
+    color: var(--foreground);
+  }
   .chat-connection-note {
     margin: 0;
     font-size: var(--font-size-sm);

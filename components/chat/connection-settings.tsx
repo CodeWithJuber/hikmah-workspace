@@ -279,7 +279,7 @@ export function ConnectionSettings({
 
   return (
     <section className="chat-connection">
-      <div className="chat-setting">
+      <div className="n-sheet-field">
         <label htmlFor="chat-provider">Provider</label>
         {/* The same select as every other one in the product, not the
             browser's own: this was the one native control on the screen, and
@@ -303,11 +303,11 @@ export function ConnectionSettings({
             <SelectItem value="custom">Custom endpoint</SelectItem>
           </SelectContent>
         </Select>
-        {preset?.note && <small>{preset.note}</small>}
+        {preset?.note && <small className="n-sheet-note">{preset.note}</small>}
       </div>
 
       {(!preset || preset.local) && (
-        <div className="chat-setting">
+        <div className="n-sheet-field">
           <label htmlFor="chat-base-url">Endpoint</label>
           <Input
             id="chat-base-url"
@@ -318,11 +318,11 @@ export function ConnectionSettings({
           />
           {ollama ? (
             <Collapsible className="chat-settings-disclosure">
-              <CollapsibleTrigger className="chat-settings-disclosure-trigger">
+              <CollapsibleTrigger className="chat-settings-disclosure-trigger n-action-row n-press">
                 Ollama setup help
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <small>
+                <small className="n-sheet-note">
                   The app server connects to Ollama. If it runs in Docker, use{' '}
                   <Button
                     type="button"
@@ -341,13 +341,15 @@ export function ConnectionSettings({
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            <small>Use the OpenAI-compatible base URL, without /chat/completions.</small>
+            <small className="n-sheet-note">
+              Use the OpenAI-compatible base URL, without /chat/completions.
+            </small>
           )}
         </div>
       )}
 
       {takesKey && (
-        <div className="chat-setting">
+        <div className="n-sheet-field">
           <label htmlFor="chat-key">
             API key{' '}
             {keySaved && (
@@ -394,7 +396,7 @@ export function ConnectionSettings({
               <TooltipContent>{reveal ? 'Hide the key' : 'Show the key'}</TooltipContent>
             </Tooltip>
           </div>
-          <small>
+          <small className="n-sheet-note">
             Stored encrypted.{' '}
             {keySaved
               ? 'Leave blank to keep your saved key.'
@@ -417,7 +419,7 @@ export function ConnectionSettings({
         </div>
       )}
 
-      <div className="chat-setting">
+      <div className="n-sheet-field">
         <label htmlFor="chat-model">Model</label>
         <div className="chat-model-row">
           <ModelPicker
@@ -438,7 +440,7 @@ export function ConnectionSettings({
             local={allModelsFree(draft.baseUrl)}
           />
         </div>
-        <small role="status">
+        <small className="n-sheet-note" role="status">
           {keyRequiredForCatalogue
             ? 'Save your API key to load available models.'
             : catalogueLoading
@@ -463,7 +465,7 @@ export function ConnectionSettings({
 
       {freeTier && !allModelsFree(draft.baseUrl) ? (
         <Collapsible className="chat-settings-disclosure">
-          <CollapsibleTrigger className="chat-settings-disclosure-trigger">
+          <CollapsibleTrigger className="chat-settings-disclosure-trigger n-action-row n-press">
             Model options{' '}
             <Badge variant={draft.freeOnly ? 'secondary' : 'outline'}>
               {draft.freeOnly ? 'Free only' : 'Paid models allowed'}
@@ -492,24 +494,35 @@ export function ConnectionSettings({
         </p>
       ) : null}
 
-      <div className="chat-connection-actions">
-        <Button onClick={() => void save()} disabled={Boolean(busy) || !draft.model.trim()}>
-          {busy === 'connection' && <LoaderCircle size={16} className="spin" />}
+      <div className="chat-connection-actions n-sheet-foot">
+        <button
+          type="button"
+          className="n-cta n-press"
+          onClick={() => void save()}
+          disabled={Boolean(busy) || !draft.model.trim()}
+        >
+          {busy === 'connection' && <LoaderCircle size={16} className="spin" aria-hidden="true" />}
           Save connection
-        </Button>
+        </button>
         {takesKey && (
           // Always clickable: with no key or no model the click says what is
           // missing ("Save your API key first…", "Choose a model first…"). A
           // disabled button with no explanation left people wondering whether
           // the dialog was broken.
-          <Button variant="outline" onClick={() => void testConnection()} disabled={Boolean(busy)}>
-            {busy === 'test' && <LoaderCircle size={16} className="spin" />}
+          <button
+            type="button"
+            className="n-cta n-cta-ghost n-press"
+            onClick={() => void testConnection()}
+            disabled={Boolean(busy)}
+          >
+            {busy === 'test' && <LoaderCircle size={16} className="spin" aria-hidden="true" />}
             Test connection
-          </Button>
+          </button>
         )}
         {dirty && (
-          <Button
-            variant="ghost"
+          <button
+            type="button"
+            className="chat-connection-discard n-press"
             disabled={Boolean(busy)}
             onClick={() => {
               setDraft(connection);
@@ -520,7 +533,7 @@ export function ConnectionSettings({
             }}
           >
             Discard changes
-          </Button>
+          </button>
         )}
       </div>
       {failure && (

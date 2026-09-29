@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Plug,
   CreditCard,
@@ -11,7 +10,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
-import styles from './sections.module.css';
+import type { CSSProperties } from 'react';
 
 type SettingLink = {
   href: string;
@@ -76,47 +75,49 @@ const groups: { title: string; items: SettingLink[] }[] = [
 
 /** One settings hub. The nav stays at six items because everything here —
  * integrations, billing, tool switches, the terminal, the local model —
- * lives one tap deeper instead of competing for attention. */
+ * lives one tap deeper instead of competing for attention.
+ *
+ * Native treatment: sticky header, section signposts, and 68px rows with an
+ * icon tile, a two-line body and a chevron — the same row grammar as Chats. */
 export function SettingsPage() {
+  let i = 0;
   return (
-    <div className={styles.page}>
-      <div className={styles.pageInner} style={{ maxWidth: 800 }}>
-        <header className={styles.header}>
-          <SidebarTrigger className="size-9" />
-          <div className={styles.headerText}>
-            <h1>Settings</h1>
-            <p className={styles.headerSub}>Your workspace, your services, your plan.</p>
-          </div>
-        </header>
-        {groups.map((group) => (
-          <section key={group.title} aria-label={group.title} className={styles.settingGroup}>
-            <h2 className={styles.groupLabel}>{group.title}</h2>
-            <ul className={styles.settingList}>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className={styles.settingCard}>
-                      <span className={styles.settingIcon}>
-                        <Icon size={20} aria-hidden="true" />
-                      </span>
-                      <span className={styles.settingText}>
-                        <span className={styles.settingLabel}>{item.label}</span>
-                        <span className={styles.settingBlurb}>{item.blurb}</span>
-                      </span>
-                      <ChevronRight
-                        size={20}
-                        className={styles.settingChevron}
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
+    <div className="n-page n-screen-in">
+      <header className="n-header">
+        <h1>Settings</h1>
+      </header>
+      <p className="n-note">Your workspace, your services, your plan.</p>
+      {groups.map((group) => (
+        <section key={group.title} aria-label={group.title}>
+          <h2 className="n-section-title">{group.title}</h2>
+          <ul className="n-list n-stagger">
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const index = i++;
+              return (
+                <li key={item.href} style={{ '--i': index } as CSSProperties}>
+                  <Link
+                    href={item.href}
+                    className="n-row n-press-tint"
+                    aria-label={`${item.label} — ${item.blurb}`}
+                  >
+                    <span className="n-row-avatar" aria-hidden="true">
+                      <Icon size={20} />
+                    </span>
+                    <span className="n-row-body">
+                      <span className="n-row-title">{item.label}</span>
+                      <span className="n-row-snippet">{item.blurb}</span>
+                    </span>
+                    <span className="n-row-side" aria-hidden="true">
+                      <ChevronRight size={20} />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

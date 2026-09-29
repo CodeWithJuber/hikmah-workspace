@@ -170,7 +170,7 @@ function SendControl({
   const attachments = usePromptInputAttachments();
   return (
     <PromptInputSubmit
-      className="chat-send-control"
+      className="chat-send-control n-press"
       status={busy ? 'streaming' : 'ready'}
       onStop={halt}
       disabled={stopping || (!busy && (blocked || (!draft.trim() && !attachments.files.length)))}
@@ -193,7 +193,7 @@ function AttachControl({ disabled }: { disabled: boolean }) {
   const attachments = usePromptInputAttachments();
   return (
     <PromptInputButton
-      className="chat-attach-control"
+      className="chat-attach-control n-press"
       aria-label="Attach a file"
       title="Attach a file"
       disabled={disabled}
@@ -1192,7 +1192,7 @@ export function ChatView({
               type="button"
               aria-label="Dismiss teaching moment"
               onClick={dismissTeach}
-              className="chat-teach-dismiss"
+              className="chat-teach-dismiss n-press"
             >
               <X size={12} aria-hidden="true" />
             </button>
@@ -1233,6 +1233,7 @@ export function ChatView({
                 onClick={() => setSearchOpen((open) => !open)}
                 title="Search in this conversation"
                 aria-expanded={searchOpen}
+                className="n-press"
               >
                 <Search size={16} aria-hidden="true" />
                 Search
@@ -1245,6 +1246,7 @@ export function ChatView({
                     size="icon"
                     onClick={() => setShortcutsOpen(true)}
                     aria-label="Keyboard shortcuts"
+                    className="n-press"
                   >
                     <Keyboard size={16} aria-hidden="true" />
                   </Button>
@@ -1259,6 +1261,7 @@ export function ChatView({
                 // The export is the whole conversation — both sides' turns,
                 // attachments and sources — not just the visible answers.
                 title="Download the full conversation as Markdown"
+                className="n-press"
               >
                 {exported ? (
                   <Check size={16} aria-hidden="true" />
@@ -1310,6 +1313,7 @@ export function ChatView({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowEarlier(true)}
+                  className="n-press"
                 >
                   Show {hidden} earlier {hidden === 1 ? 'message' : 'messages'}
                 </Button>
@@ -1594,9 +1598,12 @@ export function ChatView({
                         type="button"
                         onClick={() => setWebSearch(false)}
                         aria-label="Turn off web search"
-                        className="ml-1 rounded-full hover:bg-muted"
+                        /* n-search-clear: the 32px secondary-affordance
+                           dismiss, the same grammar as the search field's
+                           clear-X (documented in chats-screen.test.mjs). */
+                        className="n-search-clear n-press"
                       >
-                        <X size={12} aria-hidden="true" />
+                        <X size={16} aria-hidden="true" />
                       </button>
                     </Badge>
                   )}
@@ -1607,9 +1614,12 @@ export function ChatView({
                         type="button"
                         onClick={() => setDeepResearch(false)}
                         aria-label="Turn off deep research"
-                        className="ml-1 rounded-full hover:bg-muted"
+                        /* n-search-clear: the 32px secondary-affordance
+                           dismiss, the same grammar as the search field's
+                           clear-X (documented in chats-screen.test.mjs). */
+                        className="n-search-clear n-press"
                       >
-                        <X size={12} aria-hidden="true" />
+                        <X size={16} aria-hidden="true" />
                       </button>
                     </Badge>
                   )}
@@ -1620,9 +1630,12 @@ export function ChatView({
                         type="button"
                         onClick={() => setCompare(false)}
                         aria-label="Turn off comparison"
-                        className="ml-1 rounded-full hover:bg-muted"
+                        /* n-search-clear: the 32px secondary-affordance
+                           dismiss, the same grammar as the search field's
+                           clear-X (documented in chats-screen.test.mjs). */
+                        className="n-search-clear n-press"
                       >
-                        <X size={12} aria-hidden="true" />
+                        <X size={16} aria-hidden="true" />
                       </button>
                     </Badge>
                   )}
@@ -1688,6 +1701,7 @@ export function ChatView({
                 <PromptInputButton
                   type="button"
                   onClick={() => void toggleTemp()}
+                  className="n-press"
                   title={
                     tempActive
                       ? 'Temporary chat is on — nothing is saved. Turn it off to go back.'

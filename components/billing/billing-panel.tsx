@@ -5,13 +5,12 @@
  * payment code here and no card detail anywhere near this deployment: the
  * buttons redirect to Stripe and Stripe redirects back.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createAuthClient } from 'better-auth/react';
 import { stripeClient } from '@better-auth/stripe/client';
-import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowLeft, Check, CreditCard, LoaderCircle } from 'lucide-react';
 import { clientFetch } from '@/lib/client/request';
 
 const auth = createAuthClient({ plugins: [stripeClient({ subscription: true })] });
@@ -155,24 +154,39 @@ export function BillingPanel() {
 
   if (error && !data)
     return (
-      <section className="billing-current" aria-label="Billing unavailable">
-        <p role="alert" className="auth-error">
-          {error}
-        </p>
+      <div className="n-error" role="alert" aria-label="Billing unavailable">
+        <span className="n-error-icon" aria-hidden="true">
+          <CreditCard size={32} />
+        </span>
+        <h2>Couldn&rsquo;t load billing</h2>
+        <p>{error} Nothing was charged — this is just the details not arriving.</p>
         {failedAction && (
-          <button type="button" onClick={retry}>
-            Retry
+          <button type="button" className="n-cta n-press" onClick={retry}>
+            Try again
           </button>
         )}
-      </section>
+      </div>
     );
   if (!data)
     return (
-      <div className="billing-loading grid gap-3" role="status" aria-label="Loading your plan">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-10 w-40" />
+      <div
+        role="status"
+        aria-label="Loading your plan"
+        style={{ display: 'grid', gap: 12, padding: '8px 0' }}
+      >
+        <span className="n-shimmer-line" style={{ width: '45%', height: 28 }} aria-hidden="true" />
+        <span className="n-shimmer-line" style={{ width: '80%' }} aria-hidden="true" />
+        <span
+          className="n-shimmer-line"
+          style={{ width: '100%', height: 8, borderRadius: 'var(--radius-full)' }}
+          aria-hidden="true"
+        />
+        <span className="n-shimmer-line" style={{ width: '60%' }} aria-hidden="true" />
+        <span
+          className="n-shimmer-line"
+          style={{ width: 160, height: 44, borderRadius: 'var(--radius-full)' }}
+          aria-hidden="true"
+        />
       </div>
     );
 
@@ -197,13 +211,13 @@ export function BillingPanel() {
   }
 
   return (
-    <div className="billing">
-      <header className="billing-head">
-        <Link href="/chat" className="billing-back">
-          <ArrowLeft size={16} aria-hidden />
-          Back to your workspace
+    <div className="billing n-screen-in">
+      <header className="n-header">
+        <Link href="/chat" className="n-icon-btn n-press" aria-label="Back to your workspace">
+          <ArrowLeft size={20} aria-hidden="true" />
         </Link>
         <h1>Plan and usage</h1>
+        <div className="n-header-actions" aria-hidden="true" />
       </header>
 
       {justUpgraded && data.tier === 'managed' && (
@@ -297,32 +311,36 @@ export function BillingPanel() {
           </p>
         )}
         {data.tier === 'managed' && (
-          <button type="button" onClick={portal} disabled={busy === 'portal'}>
+          <button type="button" className="n-press" onClick={portal} disabled={busy === 'portal'}>
             {busy === 'portal' ? 'Opening…' : 'Manage billing'}
           </button>
         )}
       </section>
 
       {error && (
-        <div>
+        <div className="billing-inline-error">
           <p role="alert" className="auth-error">
             {error}
           </p>
           {failedAction && (
-            <button type="button" className="text-link" onClick={retry}>
-              Retry
+            <button type="button" className="n-cta n-cta-ghost n-press" onClick={retry}>
+              Try again
             </button>
           )}
         </div>
       )}
 
-      <section className="billing-plans">
-        {data.plans.map((plan) => {
+      <section className="n-card-grid n-stagger" aria-label="Plans">
+        {data.plans.map((plan, i) => {
           const current =
             (plan.tier === 'managed' && data.tier === 'managed') ||
             (plan.tier === 'byok' && data.tier === 'byok');
           return (
-            <article key={plan.id} className={current ? 'billing-plan is-current' : 'billing-plan'}>
+            <article
+              key={plan.id}
+              className={current ? 'billing-plan is-current' : 'billing-plan'}
+              style={{ '--i': i } as CSSProperties}
+            >
               <h3>{plan.name}</h3>
               <p className="billing-tagline">{plan.tagline}</p>
               <ul>
@@ -351,7 +369,12 @@ export function BillingPanel() {
               ) : !plan.purchasable ? (
                 <p className="billing-note">This plan has no price configured yet.</p>
               ) : (
-                <button type="button" onClick={() => upgrade(plan.id)} disabled={busy === plan.id}>
+                <button
+                  type="button"
+                  className="n-press"
+                  onClick={() => upgrade(plan.id)}
+                  disabled={busy === plan.id}
+                >
                   {busy === plan.id ? (
                     <>
                       <LoaderCircle className="spin" size={16} aria-hidden />

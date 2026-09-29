@@ -1,0 +1,738 @@
+/* Native UI primitives — one visual language for every screen.
+ *
+ * These are the shared building blocks of the native redesign: pages, lists,
+ * sheets, search, chips, cards, and the loading/empty/error trio. Every
+ * screen composes these instead of inventing its own. Tokens only — no raw
+ * colours, no raw radii, no raw motion values.
+ *
+ * Motion behaviour lives in native-motion.css (.n-press, .n-stagger, …);
+ * this file is layout and surface. */
+
+@layer components {
+  /* ------------------------------------------------------------------ */
+  /* Page: a native screen. Scrolls inside the app shell (the shell never  */
+  /* scrolls — see the P0 fix in base.css), clears the bottom tab bar,   */
+  /* and respects the home indicator.                                    */
+  /* ------------------------------------------------------------------ */
+  .n-page {
+    min-height: 100dvh;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    background: var(--background);
+  }
+  @media (min-width: 901px) {
+    .n-page {
+      /* Desktop: the rail owns navigation; the tab-bar clearance is dead. */
+      padding-bottom: 48px;
+      max-width: 720px;
+      margin-inline: auto;
+      padding-inline: var(--space-page-x);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Header: the screen's name, large and calm, with actions at its side. */
+  /* Sticky so the title survives the scroll; the blur is the iOS read.  */
+  /* ------------------------------------------------------------------ */
+  .n-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .n-header h1 {
+    font-size: var(--text-title);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .n-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .n-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    color: var(--foreground);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .n-icon-btn:active {
+    background: var(--accent);
+  }
+
+  /* Avatar tints: a hash of the conversation id picks one of four soft
+   * categorical tints, so rows are scannable without inventing colours —
+   * every value is a token mixed with the surface. */
+  .n-av-0 {
+    background: color-mix(in srgb, var(--ax-data-categorical-blue) 14%, var(--muted));
+    color: var(--ax-data-categorical-blue);
+  }
+  .n-av-1 {
+    background: color-mix(in srgb, var(--ax-data-categorical-green) 14%, var(--muted));
+    color: var(--ax-data-categorical-green);
+  }
+  .n-av-2 {
+    background: color-mix(in srgb, var(--ax-data-categorical-orange) 16%, var(--muted));
+    color: var(--ax-data-categorical-orange);
+  }
+  .n-av-3 {
+    background: color-mix(in srgb, var(--ax-data-categorical-purple) 14%, var(--muted));
+    color: var(--ax-data-categorical-purple);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Search: the rounded field every list screen opens with.             */
+  /* ------------------------------------------------------------------ */
+  .n-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px var(--space-page-x);
+    padding: 0 12px;
+    min-height: 44px;
+    border-radius: var(--radius-element);
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .n-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+    outline: none;
+  }
+  .n-search input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* List + rows: the WhatsApp grammar. 68px rows, hairline dividers,     */
+  /* avatar tile, two-line body, time + badge rail.                      */
+  /* ------------------------------------------------------------------ */
+  .n-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .n-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 68px;
+    padding: 10px 16px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    cursor: pointer;
+    color: var(--foreground);
+    /* No layout shift on press: tint only, via .n-press-tint. */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+  .n-row:last-child {
+    border-bottom: 0;
+  }
+  .n-row.is-active {
+    background: var(--accent);
+  }
+  .n-row-avatar {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+    /* Fixed box: the icon arriving late never moves the row. */
+    aspect-ratio: 1;
+  }
+  .n-row-avatar.is-brand {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  /* A shimmering avatar: the sweep of n-shimmer-line on the avatar's circle. */
+  .n-row-avatar.n-shimmer-line {
+    height: 48px;
+    border-radius: var(--radius-full);
+  }
+  .n-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .n-row-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .n-row-snippet {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .n-row-side {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .n-row-time {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .n-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .n-badge.is-quiet {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  /* Status dot: a run in flight. Pulses on opacity only. */
+  @keyframes n-dot-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  .n-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--success-text);
+    animation: n-dot-pulse var(--motion-pulse) ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .n-dot {
+      animation: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Section titles: sticky, quiet, uppercase — the list's signposts.     */
+  /* ------------------------------------------------------------------ */
+  .n-section-title {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0;
+    padding: 16px 16px 6px;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    background: var(--background);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Chips: the filter row. Scrolls horizontally with a fade that says   */
+  /* "there is more" — the same affordance as the settings tabs.         */
+  /* ------------------------------------------------------------------ */
+  .n-chip-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 16px 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, black 88%, transparent 100%);
+  }
+  .n-chip-row::-webkit-scrollbar {
+    display: none;
+  }
+  .n-chip {
+    flex: none;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .n-chip.is-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Cards: agents, labs, anything browsable. 12px radius, one border,    */
+  /* press answers with scale.                                           */
+  /* ------------------------------------------------------------------ */
+  .n-card {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-container);
+    background: var(--card);
+    color: var(--foreground);
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .n-card-grid {
+    display: grid;
+    gap: var(--space-card);
+    padding: 0 var(--space-page-x);
+    /* Container queries: the same card grid adapts to its parent — a narrow
+     * sheet gets one column, a wide page gets two — instead of guessing from
+     * the viewport. */
+    container-type: inline-size;
+  }
+  @container (min-width: 560px) {
+    .n-card-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .n-card-icon {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-element);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    aspect-ratio: 1;
+  }
+  .n-card-title {
+    font-size: var(--text-headline);
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .n-card-sub {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The trio: loading, empty, error. No screen is ever a dead end.       */
+  /* ------------------------------------------------------------------ */
+  .n-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    min-height: 68px;
+  }
+  .n-skeleton-row .n-shimmer {
+    border-radius: var(--radius-element);
+  }
+  .n-empty,
+  .n-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 56px 32px;
+    color: var(--muted-foreground);
+  }
+  .n-empty-icon,
+  .n-error-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+  }
+  .n-empty h2,
+  .n-error h2 {
+    font-size: var(--text-title);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+    margin: 0;
+  }
+  .n-empty p,
+  .n-error p {
+    font-size: var(--font-size-sm);
+    margin: 0 0 8px;
+    max-width: 32ch;
+  }
+  .n-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 24px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    border: 0;
+    cursor: pointer;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* FAB: the one thumb-reach action. WhatsApp grammar, safe-area aware.  */
+  /* ------------------------------------------------------------------ */
+  .n-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    z-index: 20;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--foreground) 22%, transparent);
+    cursor: pointer;
+  }
+  @media (min-width: 901px) {
+    .n-fab {
+      bottom: 32px;
+      right: 32px;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sheet content: the bottom-sheet interior language. Handle on top,   */
+  /* title, then scrolling content, then the thumb-zone footer.          */
+  /* ------------------------------------------------------------------ */
+  .n-sheet-body {
+    display: flex;
+    flex-direction: column;
+    max-height: 86dvh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .n-sheet-title {
+    font-size: var(--text-headline);
+    font-weight: 700;
+    margin: 0;
+    padding: 8px 20px 4px;
+  }
+  .n-sheet-sub {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    margin: 0;
+    padding: 0 20px 12px;
+  }
+  .n-sheet-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px;
+  }
+  .n-sheet-foot {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px 0;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Action-sheet rows: the long-press menu. 52px rows, icon + label,    */
+  /* destructive last and red.                                           */
+  /* ------------------------------------------------------------------ */
+  .n-action-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: var(--radius-element);
+    background: transparent;
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    text-align: left;
+  }
+  .n-action-row.is-destructive {
+    color: var(--destructive);
+  }
+  .n-action-row-icon {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+  }
+  .n-action-row.is-destructive .n-action-row-icon {
+    background: var(--error-bg);
+    color: var(--error-text);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sheet panel geometry (motion lives in native-motion.css): fixed to   */
+  /* the bottom, rounded top, thumb-zone footer with safe-area padding.   */
+  /* ------------------------------------------------------------------ */
+  .n-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 61;
+    display: flex;
+    flex-direction: column;
+    max-height: 86dvh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: var(--background);
+    border-top-left-radius: var(--radius-container);
+    border-top-right-radius: var(--radius-container);
+    box-shadow: 0 -8px 32px color-mix(in srgb, var(--foreground) 12%, transparent);
+  }
+  @media (min-width: 901px) {
+    .n-sheet {
+      left: 50%;
+      right: auto;
+      /* `translate`, not `transform`: the open/close keyframes own transform,
+       * and the two properties compose instead of clobbering each other. */
+      translate: -50% 0;
+      width: min(480px, calc(100vw - 32px));
+      border-radius: var(--radius-container);
+      bottom: 24px;
+    }
+  }
+  .n-sheet:focus {
+    outline: none;
+  }
+  .n-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: color-mix(in srgb, var(--foreground) 32%, transparent);
+  }
+  .n-sheet-overlay[data-state='open'] {
+    animation: n-fade-in var(--motion-ui) var(--ease-enter);
+  }
+  .n-sheet-overlay[data-state='closed'] {
+    animation: n-fade-out var(--motion-micro) var(--ease-exit);
+  }
+  .n-sheet-field {
+    display: grid;
+    gap: 8px;
+    padding: 4px 12px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .n-sheet-field input {
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: var(--radius-element);
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+    font-weight: 400;
+  }
+  .n-sheet-note {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    line-height: 1.5;
+  }
+  .n-action-gap {
+    width: 20px;
+    flex: none;
+  }
+  .n-cta-ghost {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .n-cta-destructive {
+    background: var(--destructive);
+    color: var(--primary-foreground);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Skeleton rows, sticky search, and list notes for the Chats screen.   */
+  /* ------------------------------------------------------------------ */
+  .n-shimmer-line {
+    display: block;
+    height: 12px;
+    border-radius: var(--radius-inner);
+    background: var(--muted);
+    overflow: hidden;
+    position: relative;
+  }
+  .n-shimmer-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--foreground) 8%, transparent) 50%,
+      transparent 80%
+    );
+    animation: n-shimmer-sweep var(--motion-shimmer) ease-in-out infinite;
+  }
+  .n-row-snippet-empty {
+    font-style: italic;
+  }
+  .n-search-sticky {
+    position: sticky;
+    top: 57px;
+    z-index: 5;
+    background: var(--background);
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .n-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+  }
+  .n-note {
+    padding: 16px var(--space-page-x);
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    list-style: none;
+  }
+
+  /* ---------- Sheet head ---------- */
+  .n-sheet-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .n-sheet-head .n-icon-btn {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* ---------- Agent card ---------- */
+  .n-agent-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-height: 68px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    background: var(--surface);
+    color: var(--foreground);
+    text-align: left;
+    cursor: pointer;
+  }
+  .n-agent-card.is-active {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  }
+  /* The panel's manage variant reuses the card box; only the layout changes:
+     the pick control plus edit/delete tools in one row. */
+  .n-agent-manage {
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+  }
+  .n-agent-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1 1 auto;
+    align-self: stretch;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+  .n-agent-pick:disabled {
+    cursor: default;
+  }
+  .n-agent-tools {
+    display: flex;
+    gap: 4px;
+    flex: none;
+  }
+  .n-row-meta {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    margin-top: 2px;
+  }
+  .n-starter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+}

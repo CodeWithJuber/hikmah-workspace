@@ -3,7 +3,7 @@ import { randomId } from '../../lib/id.ts';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
   Settings2,
   Plug,
@@ -17,15 +17,13 @@ import {
   LoaderCircle,
   ExternalLink,
   ArrowRight,
+  ArrowLeft,
   KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -147,20 +145,14 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
     },
   ] as const;
   return (
-    <div className="admin-page">
-      <header className="workspace-header">
-        <SidebarTrigger />
+    <div className="n-page n-screen-in">
+      <header className="n-header">
         <h1>Workspace settings</h1>
-        {/* This navigated to 'workspace', the browser-run chat, which was
-            deleted — so it landed the owner back on the first screen of this
-            shell. The chat is a route of its own; the sidebar links to it the
-            same way. */}
-        <Button variant="outline" asChild>
-          <Link href="/chat">
-            <ArrowRight size={16} />
-            Back to chat
+        <div className="n-header-actions">
+          <Link href="/chat" className="n-icon-btn n-press" aria-label="Back to chat">
+            <ArrowLeft size={20} aria-hidden="true" />
           </Link>
-        </Button>
+        </div>
       </header>
       <div className="admin-scroll">
         <AdminBreadcrumb
@@ -179,23 +171,27 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
           </div>
           <span className="admin-privacy">Personal workspace</span>
         </div>
-        <Tabs
-          value={tab}
-          // Settings tabs are routes (/settings/<tab>); the page remounts per tab via
-          // key, so navigation alone switches the tab.
-          onValueChange={(v) => router.push('/settings/' + v)}
-          className="admin-tabs"
-        >
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="providers">Models</TabsTrigger>
-            <TabsTrigger value="media">Media</TabsTrigger>
-            <TabsTrigger value="connectors">Connectors</TabsTrigger>
-            <TabsTrigger value="secrets">Secrets</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="plan">Product plan</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview">
+        {/* Settings tabs are routes (/settings/<tab>); the page remounts per tab
+            via key, so navigation alone switches the tab. The chip row is the
+            native tab control — 40px targets, horizontally scrollable. */}
+        <div className="n-chip-row" role="tablist" aria-label="Settings sections">
+          {(
+            ['overview', 'providers', 'media', 'connectors', 'secrets', 'skills', 'plan'] as const
+          ).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={tab === value}
+              className={'n-chip n-press' + (tab === value ? ' is-active' : '')}
+              onClick={() => router.push('/settings/' + value)}
+            >
+              {tabLabels[value]}
+            </button>
+          ))}
+        </div>
+        {tab === 'overview' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-stats">
               <div>
                 <strong>{conversations.length}</strong>
@@ -215,66 +211,153 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 <span>Connected tool servers</span>
               </div>
             </div>
-            <div className="admin-action-list">
-              {/* These stay buttons because the list styling targets button
-                  elements; they navigate to real routes via the router. */}
-              <button onClick={() => router.push('/tools')}>
-                <Plug size={24} />
-                <div>
-                  <strong>Tools & runtimes</strong>
-                  <p>Built-in JavaScript, reference search and your server connections.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => router.push('/agents')}>
-                <Workflow size={24} />
-                <div>
-                  <strong>Your agents</strong>
-                  <p>Create reusable roles, instructions and tool permissions.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => router.push('/superadmin')}>
-                <BrainCircuit size={24} />
-                <div>
-                  <strong>Owner console · Super Admin</strong>
-                  <p>Owner controls, reviewed learning and model releases.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => setTab('providers')}>
-                <Settings2 size={24} />
-                <div>
-                  <strong>Models & connection</strong>
-                  <p>{provider.model || 'Choose a model to start'}</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => setTab('media')}>
-                <ImageIcon size={24} />
-                <div>
-                  <strong>Images, audio & video</strong>
-                  <p>Set a model for each media operation.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => setTab('connectors')}>
-                <Plug size={24} />
-                <div>
-                  <strong>Connected tools</strong>
-                  <p>Add an HTTP MCP server with its own credentials.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-              <button onClick={() => setTab('skills')}>
-                <BrainCircuit size={24} />
-                <div>
-                  <strong>Agent skills</strong>
-                  <p>Reusable instructions for the work you do.</p>
-                </div>
-                <ArrowRight size={20} />
-              </button>
-            </div>
+            <ul className="n-list n-stagger" aria-label="Settings shortcuts">
+              <li key="0" style={{ '--i': 0 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => router.push('/tools')}
+                  aria-label="Tools & runtimes"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <Plug size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Tools & runtimes</span>
+                    <span className="n-row-snippet">
+                      Built-in JavaScript, reference search and your server connections.
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="1" style={{ '--i': 1 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => router.push('/agents')}
+                  aria-label="Your agents"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <Workflow size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Your agents</span>
+                    <span className="n-row-snippet">
+                      Create reusable roles, instructions and tool permissions.
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="2" style={{ '--i': 2 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => router.push('/superadmin')}
+                  aria-label="Owner console · Super Admin"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <BrainCircuit size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Owner console · Super Admin</span>
+                    <span className="n-row-snippet">
+                      Owner controls, reviewed learning and model releases.
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="3" style={{ '--i': 3 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => setTab('providers')}
+                  aria-label="Models & connection"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <Settings2 size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Models & connection</span>
+                    <span className="n-row-snippet">
+                      {provider.model || 'Choose a model to start'}
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="4" style={{ '--i': 4 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => setTab('media')}
+                  aria-label="Images, audio & video"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <ImageIcon size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Images, audio & video</span>
+                    <span className="n-row-snippet">Set a model for each media operation.</span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="5" style={{ '--i': 5 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => setTab('connectors')}
+                  aria-label="Connected tools"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <Plug size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Connected tools</span>
+                    <span className="n-row-snippet">
+                      Add an HTTP MCP server with its own credentials.
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+              <li key="6" style={{ '--i': 6 } as CSSProperties}>
+                <button
+                  type="button"
+                  className="n-row n-press-tint"
+                  onClick={() => setTab('skills')}
+                  aria-label="Agent skills"
+                >
+                  <span className="n-row-avatar" aria-hidden="true">
+                    <BrainCircuit size={20} />
+                  </span>
+                  <span className="n-row-body">
+                    <span className="n-row-title">Agent skills</span>
+                    <span className="n-row-snippet">
+                      Reusable instructions for the work you do.
+                    </span>
+                  </span>
+                  <span className="n-row-side" aria-hidden="true">
+                    <ArrowRight size={20} />
+                  </span>
+                </button>
+              </li>
+            </ul>
             <section className="admin-launch-note">
               <h3>Before a commercial launch</h3>
               <p>
@@ -288,8 +371,10 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 Read the product plan
               </Button>
             </section>
-          </TabsContent>
-          <TabsContent value="providers">
+          </div>
+        )}
+        {tab === 'providers' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-section-heading">
               <div>
                 <h3>Chat and reasoning models</h3>
@@ -309,8 +394,10 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               OpenAI-compatible chat endpoints use browser CORS. Session keys stay in browser
               memory. Save reusable credentials in the Secrets tab.
             </p>
-          </TabsContent>
-          <TabsContent value="media">
+          </div>
+        )}
+        {tab === 'media' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-section-heading">
               <div>
                 <h3>Media models</h3>
@@ -419,8 +506,10 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               chat compatibility does not establish media-generation support. Generated files save
               in this browser; download them before moving devices.
             </p>
-          </TabsContent>
-          <TabsContent value="connectors">
+          </div>
+        )}
+        {tab === 'connectors' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-section-heading">
               <div>
                 <h3>MCP tool servers</h3>
@@ -443,10 +532,29 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               </Button>
             </div>
             {!workspace.connectors.length && (
-              <div className="admin-empty">
-                <Plug size={32} />
-                <h4>Connect your first tool server</h4>
+              <div className="n-empty">
+                <span className="n-empty-icon" aria-hidden="true">
+                  <Plug size={32} />
+                </span>
+                <h2>Connect your first tool server</h2>
                 <p>Use a server endpoint provided by your service or your own hosted adapter.</p>
+                <button
+                  type="button"
+                  className="n-cta n-press"
+                  onClick={() =>
+                    setConnection({
+                      id: randomId(),
+                      name: '',
+                      url: '',
+                      protocol: '2025-11-25',
+                      enabled: true,
+                      approval: 'ask',
+                    })
+                  }
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  Add server
+                </button>
               </div>
             )}
             {workspace.connectors.map((c) => (
@@ -542,11 +650,15 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                 MCP connection documentation <ExternalLink size={12} />
               </a>
             </div>
-          </TabsContent>
-          <TabsContent value="secrets">
+          </div>
+        )}
+        {tab === 'secrets' && (
+          <div className="n-tab-panel" role="tabpanel">
             <SecretsSettings />
-          </TabsContent>
-          <TabsContent value="skills">
+          </div>
+        )}
+        {tab === 'skills' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-section-heading">
               <div>
                 <h3>Skills & instruction bundles</h3>
@@ -605,11 +717,15 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
             {/* Unlike connectors, this tab never had an empty state: with no
                 skills the section rendered as a bare export/import row. */}
             {!workspace.skills.length && (
-              <div className="admin-empty">
-                <BrainCircuit size={32} />
-                <h4>No skills yet</h4>
+              <div className="n-empty">
+                <span className="n-empty-icon" aria-hidden="true">
+                  <BrainCircuit size={32} />
+                </span>
+                <h2>No skills yet</h2>
                 <p>Write reusable instructions for the work you do, then switch them on here.</p>
-                <Button
+                <button
+                  type="button"
+                  className="n-cta n-press"
                   onClick={() =>
                     setSkill({
                       id: randomId(),
@@ -620,9 +736,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
                     })
                   }
                 >
-                  <Plus size={16} />
+                  <Plus size={16} aria-hidden="true" />
                   New skill
-                </Button>
+                </button>
               </div>
             )}
             <div className="bundle-controls">
@@ -663,8 +779,10 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               settings. They contain no API keys. Skills are instruction text; importing a bundle
               does not install executable plugins.
             </p>
-          </TabsContent>
-          <TabsContent value="plan">
+          </div>
+        )}
+        {tab === 'plan' && (
+          <div className="n-tab-panel" role="tabpanel">
             <div className="admin-section-heading">
               <div>
                 <h3>Product & architecture plan</h3>
@@ -681,18 +799,29 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
               {plan ? (
                 <MessageContent text={plan} />
               ) : (
-                <div className="grid gap-2" role="status" aria-label="Loading product plan">
-                  <Skeleton className="h-6 w-1/3" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/5" />
+                <div role="status" aria-label="Loading product plan">
+                  <span className="n-shimmer-line" style={{ width: '40%', height: 20 }} />
+                  <span
+                    className="n-shimmer-line"
+                    style={{ width: '100%', marginTop: 12, display: 'block' }}
+                  />
+                  <span
+                    className="n-shimmer-line"
+                    style={{ width: '100%', marginTop: 8, display: 'block' }}
+                  />
+                  <span
+                    className="n-shimmer-line"
+                    style={{ width: '80%', marginTop: 8, display: 'block' }}
+                  />
+                  <span
+                    className="n-shimmer-line"
+                    style={{ width: '60%', marginTop: 8, display: 'block' }}
+                  />
                 </div>
               )}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
       <Dialog open={!!connection} onOpenChange={(v) => !v && setConnection(null)}>
         <DialogContent>

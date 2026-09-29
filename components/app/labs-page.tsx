@@ -1,46 +1,49 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { labs } from './labs-data';
-import styles from './sections.module.css';
+import type { CSSProperties } from 'react';
 
-/** The labs directory. Each lab is its own route (/labs/<id>); the entries
- * navigate with the router because the directory styling targets button
- * elements, and an anchor would lose the layout. */
+/** The labs directory. Each lab is its own route (/labs/<id>).
+ *
+ * Native treatment: one sticky header, an intro note, and the lab cards in
+ * the shared .n-card-grid (container queries) with press + stagger. The five
+ * entries are a fixed catalogue, so there is no search and no empty state —
+ * the loading route carries the skeleton instead. */
 export function LabsPage() {
   const router = useRouter();
   return (
-    <div className={styles.page}>
-      <div className={styles.pageInner}>
-        <header className={styles.header}>
-          <SidebarTrigger className="size-9" />
-          <div className={styles.headerText}>
-            <h1>Research labs</h1>
-            <p className={styles.headerSub}>Explore the ideas behind the workspace.</p>
-          </div>
-        </header>
-        <p className={styles.introLine}>
-          These are local experiments. They work without a provider connection.
-        </p>
-        <div className={styles.directory}>
-          {labs.map((l) => (
+    <div className="n-page n-screen-in">
+      <header className="n-header">
+        <h1>Research labs</h1>
+      </header>
+      <p className="n-note">
+        Explore the ideas behind the workspace. These are local experiments — they work without a
+        provider connection.
+      </p>
+      <div className="n-card-grid n-stagger">
+        {labs.map((l, i) => {
+          const Icon = l.icon;
+          return (
             <button
               key={l.id}
-              className={styles.dirCard}
+              type="button"
+              className="n-card n-press"
+              style={{ '--i': i } as CSSProperties}
               onClick={() => router.push('/labs/' + l.id)}
+              aria-label={`${l.name} — ${l.description}`}
             >
-              <span className={styles.dirIcon}>
-                <l.icon size={24} aria-hidden="true" />
+              <span className="n-card-icon" aria-hidden="true">
+                <Icon size={24} />
               </span>
-              <span className={styles.dirCardBody}>
-                <h2>{l.name}</h2>
-                <p>{l.description}</p>
+              <span className="n-row-body">
+                <span className="n-card-title">{l.name}</span>
+                <span className="n-card-sub">{l.description}</span>
               </span>
-              <ArrowUpRight size={20} className={styles.dirArrow} aria-hidden="true" />
+              <ArrowUpRight size={20} aria-hidden="true" style={{ flex: 'none' }} />
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

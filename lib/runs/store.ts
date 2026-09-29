@@ -56,6 +56,9 @@ export type ConversationRow = {
 export type ConversationSummaryRow = ConversationRow & {
   run_status: RunStatus | null;
   to_review: number;
+  /** The last message on the active path, for the list's preview line. */
+  last_role: string | null;
+  last_parts: unknown;
 };
 
 export type StoredMessage = {
@@ -126,7 +129,17 @@ export function createRunStore(
               -- What a task filed and nobody has looked at yet. Counted here,
               -- not by the list, so "2 to review" costs no second request.
               (SELECT COUNT(*) FROM memories m
-                WHERE m.source_conversation_id = c.id AND m.status = 'suggested') AS to_review
+                WHERE m.source_conversation_id = c.id AND m.status = 'suggested') AS to_review,
+              -- The row's preview line: the last message on the active path,
+              -- so the list reads like a chat app instead of a file browser.
+              -- Two cheap correlated lookups on an indexed column; the list is
+              -- capped at 200 rows.
+              (SELECT m2.role FROM messages m2
+                WHERE m2.conversation_id = c.id AND m2.on_active_path = 1
+                ORDER BY m2.seq DESC LIMIT 1) AS last_role,
+              (SELECT m2.parts FROM messages m2
+                WHERE m2.conversation_id = c.id AND m2.on_active_path = 1
+                ORDER BY m2.seq DESC LIMIT 1) AS last_parts
        FROM conversations c
        LEFT JOIN runs r ON r.id = c.active_run_id
        WHERE c.user_id = ?

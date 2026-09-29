@@ -1,27 +1,19 @@
-import { Skeleton } from '@/components/ui/skeleton';
-
-/** Loading state for /labs — mirrors the labs list layout. */
+/** Loading state for /labs — mirrors the labs list layout with the native
+ * skeleton primitives: fixed boxes so nothing shifts when the cards land. */
 export default function LabsLoading() {
   return (
-    <div className="lab-page">
-      <header className="lab-header">
-        <Skeleton className="size-9 rounded-md" />
-        <div className="grid flex-1 gap-2">
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
+    <div className="n-page" aria-label="Loading labs">
+      <header className="n-header">
+        <span className="n-shimmer-line" style={{ width: '40%', height: 28 }} aria-hidden="true" />
       </header>
-      <div
-        className="grid gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3"
-        role="status"
-        aria-label="Loading labs"
-      >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="grid gap-2 rounded-lg border p-4">
-            <Skeleton className="size-8 rounded-md" />
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+      <div className="n-card-grid" role="status">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="n-card" aria-hidden="true">
+            <span className="n-card-icon n-shimmer" />
+            <span className="n-row-body" style={{ gap: 8 }}>
+              <span className="n-shimmer-line" style={{ width: '55%' }} />
+              <span className="n-shimmer-line" style={{ width: '90%' }} />
+            </span>
           </div>
         ))}
       </div>

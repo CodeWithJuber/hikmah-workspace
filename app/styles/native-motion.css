@@ -1,0 +1,210 @@
+/* Native motion language — the one animation vocabulary for the whole product.
+ *
+ * Rules, no exceptions:
+ * 1. Animate transform and opacity ONLY. Never width/height/top/left/margin.
+ * 2. Every duration/easing comes from tokens.css. No hard-coded ms or curves.
+ * 3. prefers-reduced-motion kills all of it — that is what high-grade means.
+ *
+ * The tokens live in tokens.css (--motion-*, --ease-*, --press-scale,
+ * --stagger-*, --motion-shimmer). This file is the choreography on top. */
+
+@layer components {
+  /* ------------------------------------------------------------------ */
+  /* Press: every tappable surface answers the finger. 80ms down, 200ms  */
+  /* back, scale 0.97 — the asymmetry is what makes it feel physical.     */
+  /* ------------------------------------------------------------------ */
+  .n-press {
+    transition:
+      transform var(--motion-press-up) var(--ease-exit),
+      background-color var(--motion-micro) ease,
+      opacity var(--motion-micro) ease;
+    /* No will-change: the press is 80ms of transform — promoting a layer
+     * for the page's life would cost more than it saves. */
+  }
+  .n-press:active {
+    transform: scale(var(--press-scale));
+    transition-duration: var(--motion-press-down), var(--motion-micro), var(--motion-micro);
+  }
+  /* Rows press without shrinking their text: tint instead of scale. */
+  .n-press-tint:active {
+    transform: none;
+    background-color: var(--accent);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sheets: spring in, glide out. Hooks Radix data-state so every shadcn  */
+  /* Sheet/Dialog bottom sheet speaks the same physics.                  */
+  /* ------------------------------------------------------------------ */
+  @keyframes n-sheet-in {
+    from {
+      transform: translateY(103%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes n-sheet-out {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(103%);
+    }
+  }
+  @keyframes n-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes n-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  .n-sheet[data-state='open'],
+  .n-sheet[data-state='closed'] {
+    animation-duration: var(--motion-surface);
+    animation-fill-mode: both;
+  }
+  .n-sheet[data-state='open'] {
+    animation-name: n-sheet-in;
+    animation-timing-function: var(--ease-sheet);
+  }
+  .n-sheet[data-state='closed'] {
+    animation-name: n-sheet-out;
+    animation-timing-function: var(--ease-exit);
+  }
+  /* The drag handle every bottom sheet wears. */
+  .n-sheet-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--foreground) 22%, transparent);
+    margin: 8px auto 0;
+    flex: none;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Stagger: lists walk in, one row at a time. Set style={{'--i': n}} on  */
+  /* each child. The cap keeps long lists from crawling.                  */
+  /* ------------------------------------------------------------------ */
+  @keyframes n-item-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .n-stagger > * {
+    animation: n-item-in var(--motion-ui) var(--ease-enter) backwards;
+    animation-delay: min(calc(var(--i, 0) * var(--stagger-step)), var(--stagger-max));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Screen entrance: one calm fade-rise per navigation, never per widget. */
+  /* ------------------------------------------------------------------ */
+  @keyframes n-screen-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .n-screen-in {
+    animation: n-screen-in var(--motion-surface) var(--ease-enter) backwards;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Skeleton shimmer: a light sweep, transform-only, on a fixed box so   */
+  /* nothing shifts when real content lands.                              */
+  /* ------------------------------------------------------------------ */
+  @keyframes n-shimmer-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  .n-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: var(--muted);
+  }
+  .n-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--foreground) 7%, transparent) 50%,
+      transparent 80%
+    );
+    animation: n-shimmer-sweep var(--motion-shimmer) ease-in-out infinite;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Tab switch: the indicator glides; content cross-fades.               */
+  /* ------------------------------------------------------------------ */
+  .n-tab-indicator {
+    transition: transform var(--motion-tab) var(--ease-spring);
+  }
+  @keyframes n-tab-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .n-tab-panel {
+    animation: n-tab-in var(--motion-tab) var(--ease-enter);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Toggle spring: switches and checkboxes overshoot a hair.            */
+  /* ------------------------------------------------------------------ */
+  .n-toggle {
+    transition: transform var(--motion-ui) var(--ease-press);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Reduced motion: the interface must work with zero animation. Every   */
+  /* n-* animation and transition collapses to its end state.             */
+  /* ------------------------------------------------------------------ */
+  @media (prefers-reduced-motion: reduce) {
+    /* The native layer is declared after every other layer, so these win
+     * over the animations above with no !important needed. */
+    .n-press,
+    .n-press-tint,
+    .n-sheet,
+    .n-stagger > *,
+    .n-screen-in,
+    .n-tab-indicator,
+    .n-tab-panel,
+    .n-toggle {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+    .n-shimmer::after,
+    .n-shimmer-line::after {
+      animation: none;
+      display: none;
+    }
+  }
+}

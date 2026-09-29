@@ -397,3 +397,31 @@ test('counting missed events does not read them', async (t) => {
     );
   assert.equal(store.countEventsAfter('nonexistent', -1), 0, 'an unknown run is not an error');
 });
+
+test('the list carries the last message for the preview line', async (t) => {
+  // The native Chats screen reads like a chat app: title, last message, time.
+  // The row brings the last active-path message's role and parts so the
+  // preview costs no second request.
+  const { store } = await freshStore(t);
+  store.appendMessage('c1', {
+    id: 'm1',
+    role: 'user',
+    parts: [{ type: 'text', text: 'first question' }],
+  });
+  store.appendMessage('c1', {
+    id: 'm2',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'the answer, at length' }],
+  });
+
+  const [row] = store.listConversations('u1');
+  assert.equal(row.last_role, 'assistant');
+  assert.deepEqual(JSON.parse(row.last_parts), [{ type: 'text', text: 'the answer, at length' }]);
+});
+
+test('a conversation with no messages has an empty preview', async (t) => {
+  const { store } = await freshStore(t);
+  const [row] = store.listConversations('u1');
+  assert.equal(row.last_role, null);
+  assert.equal(row.last_parts, null);
+});

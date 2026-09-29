@@ -12,8 +12,8 @@
  * The rows are whatever the caller loaded; this component holds no fetch, so
  * the composer and the settings screen share it over different catalogues.
  */
-import { useMemo, useState } from 'react';
-import { BrainCircuit, Check, ChevronDown, Eye, LoaderCircle, Wrench } from 'lucide-react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { BrainCircuit, Check, ChevronDown, Eye, SearchX, Wrench, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   CommandDialog,
@@ -114,6 +114,10 @@ export function ModelPicker({
     setOpen(false);
     setQuery('');
   };
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
 
   return (
     <>
@@ -121,7 +125,7 @@ export function ModelPicker({
         id={id}
         type="button"
         variant="outline"
-        className={'chat-model-trigger ' + className}
+        className={'chat-model-trigger n-press ' + className}
         disabled={disabled}
         onClick={() => {
           setFilter('all');
@@ -141,8 +145,27 @@ export function ModelPicker({
         }}
         title={title}
         description="Search by name or paste an exact model ID. Prices are per million tokens."
-        className="model-dialog"
+        className="model-dialog n-model-sheet"
+        /* The sheet wears its own head with the 44px close; the dialog's
+           absolutely-positioned X would sit on top of it. */
+        showCloseButton={false}
       >
+        <div className="n-sheet-head n-model-head">
+          <div>
+            <p className="n-sheet-title">{title}</p>
+            <p className="n-sheet-sub">
+              Search by name or paste an exact model ID. Prices are per million tokens.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="n-icon-btn n-press"
+            onClick={close}
+            aria-label="Close model picker"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
         <CommandInput
           placeholder="Search models or paste an ID…"
           value={query}
@@ -151,60 +174,75 @@ export function ModelPicker({
         {/* The filters sit inline under the search, not behind a disclosure:
             a first-time user never learns a hidden filter exists, and the row
             costs one line. */}
-        <div
-          className="flex flex-wrap items-center gap-2 px-3 pb-3"
-          role="group"
-          aria-label="Filter models"
-        >
-          {(
-            [
-              ['all', 'All'],
-              ['free', 'Free'],
-              ['tools', 'Tools'],
-              ['reasoning', 'Reasoning'],
-            ] as [Filter, string][]
-          )
-            .filter(([key]) => key !== 'free' || hasFree)
-            .map(([key, label]) => (
-              <Button
-                key={key}
-                type="button"
-                size="sm"
-                variant={filter === key ? 'secondary' : 'outline'}
-                aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
-              >
-                {label}
-              </Button>
-            ))}
+        <div className="n-model-filters">
+          <div className="n-chip-row" role="group" aria-label="Filter models">
+            {(
+              [
+                ['all', 'All'],
+                ['free', 'Free'],
+                ['tools', 'Tools'],
+                ['reasoning', 'Reasoning'],
+              ] as [Filter, string][]
+            )
+              .filter(([key]) => key !== 'free' || hasFree)
+              .map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={'n-chip n-press' + (filter === key ? ' is-active' : '')}
+                  aria-pressed={filter === key}
+                  onClick={() => setFilter(key)}
+                >
+                  {label}
+                </button>
+              ))}
+          </div>
           {loading ? (
-            <Skeleton className="ml-auto h-4 w-20" aria-label="Loading model count" role="status" />
+            <Skeleton className="h-4 w-20" aria-label="Loading model count" role="status" />
           ) : (
-            <span className="ml-auto text-xs text-muted-foreground">{models.length} available</span>
+            <span className="n-model-count">{models.length} available</span>
           )}
         </div>
         <CommandList className="model-dialog-list">
           {loading && !models.length ? (
-            <div className="model-dialog-empty" role="status">
-              <LoaderCircle className="spin" size={20} aria-hidden="true" />
-              <p>Loading the provider’s catalogue…</p>
+            <div
+              className="n-model-loading"
+              role="status"
+              aria-label="Loading the provider’s catalogue"
+            >
+              <span className="sr-only">Loading the provider’s catalogue…</span>
+              <span className="n-shimmer-line" style={{ width: '72%' }} />
+              <span className="n-shimmer-line" style={{ width: '88%' }} />
+              <span className="n-shimmer-line" style={{ width: '61%' }} />
             </div>
           ) : (
             <CommandEmpty>
-              <div className="model-dialog-empty">
-                <strong>{models.length ? 'No matching models' : 'No catalogue yet'}</strong>
+              <div className="n-empty">
+                <SearchX size={32} aria-hidden="true" className="n-empty-icon" />
+                <h2>{models.length ? 'No matching models' : 'No catalogue yet'}</h2>
                 <p>
                   {error ||
                     (models.length
                       ? 'Try another word, or type the exact id.'
                       : 'Return to Connection and save your API key, or paste an exact model ID here.')}
                 </p>
+                {!models.length && (
+                  <button type="button" className="n-cta n-press" onClick={close}>
+                    Close
+                  </button>
+                )}
               </div>
             </CommandEmpty>
           )}
           {allowCustom && typed && !exact && (
-            <CommandGroup heading="Exact id">
-              <CommandItem value={'custom ' + typed} forceMount onSelect={() => choose(typed)}>
+            <CommandGroup heading="Exact id" className="n-stagger">
+              <CommandItem
+                value={'custom ' + typed}
+                forceMount
+                onSelect={() => choose(typed)}
+                className="n-press"
+                style={{ '--i': 0 } as CSSProperties}
+              >
                 <span className="model-row">
                   <span className="model-row-name">Use “{typed}”</span>
                   <span className="model-row-id">as the model id, exactly as typed</span>
@@ -212,8 +250,8 @@ export function ModelPicker({
               </CommandItem>
             </CommandGroup>
           )}
-          <CommandGroup heading={rows.length ? 'Models' : undefined}>
-            {rows.map((model) => {
+          <CommandGroup heading={rows.length ? 'Models' : undefined} className="n-stagger">
+            {rows.map((model, index) => {
               const price = priceLine(model, local);
               const kind = local ? 'free' : priceKind(model);
               return (
@@ -221,7 +259,8 @@ export function ModelPicker({
                   key={model.id}
                   value={model.id + ' ' + model.label}
                   onSelect={() => choose(model.id)}
-                  className={model.id === value ? 'is-selected' : ''}
+                  className={(model.id === value ? 'is-selected' : '') + ' n-press'}
+                  style={{ '--i': index } as CSSProperties}
                 >
                   <span className="model-row">
                     <span className="model-row-head">
@@ -263,11 +302,16 @@ export function ModelPicker({
           </CommandGroup>
         </CommandList>
         {models.some((model) => model.pricing?.source === 'route_estimate') && (
-          <p className="model-dialog-note">
+          <p className="n-sheet-note n-model-note">
             ≈ marks a price taken from OpenRouter’s public listing of the same model; the provider
             bills at its own rate.
           </p>
         )}
+        <div className="n-sheet-foot n-model-foot">
+          <button type="button" className="n-cta n-press" onClick={close}>
+            Done
+          </button>
+        </div>
       </CommandDialog>
     </>
   );

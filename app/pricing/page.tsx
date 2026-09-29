@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { Check } from 'lucide-react';
 import { getChatGPTUser } from '../chatgpt-auth';
 import { PLANS, billingConfigured, priceIdFor, priceLabelFor } from '@/lib/billing/plans';
@@ -59,8 +60,8 @@ export default async function PricingPage({
       </section>
 
       <section className="landing-pricing" aria-label="Plans">
-        <div className="landing-plans">
-          {PLANS.map((plan) => {
+        <div className="landing-plans n-stagger">
+          {PLANS.map((plan, i) => {
             const cta =
               plan.tier === 'managed' ? (
                 !billingConfigured() ? (
@@ -85,6 +86,7 @@ export default async function PricingPage({
             return (
               <article
                 key={plan.id}
+                style={{ '--i': i } as CSSProperties}
                 className={
                   (plan.tier === 'managed' ? 'is-featured' : '') +
                   (highlight === plan.id ? ' is-highlighted' : '')

@@ -78,6 +78,13 @@ const ALLOW = [
   // payload (different data shape: no Entitlements object client-side).
   /^components\/chat\/message-parts\.tsx$/,
   /^lib\/billing\/access\.ts$/,
+  // breakpoints.ts: the canonical breakpoint ladder is a public API for
+  // matchMedia / JS decisions (use-narrow.ts already consumes NARROW_QUERY;
+  // maxQuery/minQuery/isPhoneViewport are the query builders the ladder
+  // exists to serve). tests/breakpoints.test.mjs names them on purpose to
+  // keep the ladder in sync with tokens.css — the feature is the ladder
+  // itself, the heuristic is coarse.
+  /^lib\/ui\/breakpoints\.ts$/,
   // mode.ts: chatModeFor is consumed by chat-view.tsx (free-mode pill); its
   // companion chatModeLabel is named by tests on purpose.
   /^lib\/chat\/mode\.ts$/,

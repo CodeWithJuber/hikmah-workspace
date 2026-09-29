@@ -188,12 +188,16 @@ test('the three properties that cost a composite on every frame', () => {
           () => file.path,
         ),
       );
-  // One: the blur behind an open dialog or sheet. It exists only while one is
-  // open, so it never runs during a streamed answer — which is the distinction
-  // this test is about, rather than the property being forbidden outright.
+  // Two: the blur behind an open dialog or sheet, which exists only while one
+  // is open, and the native list header's frosted blur. The header's blur is
+  // permanent on its screen, but that screen is the Chats list — answers never
+  // stream there, which is the distinction this test is about (B1/B3's 49s of
+  // blocking time was spent during streaming on two cores). The frosted sticky
+  // header is the native list pattern the redesign is built on; if a future
+  // screen puts one next to a streaming transcript, this ceiling argues again.
   atMost(
     uses('backdrop-filter').length,
-    1,
+    2,
     'backdrop-filter declarations',
     uses('backdrop-filter').join(', ') + ' — it promotes a layer for as long as it applies',
   );

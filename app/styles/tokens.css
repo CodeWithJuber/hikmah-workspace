@@ -44,6 +44,9 @@
      * dark — the same relationship stated twice, not two different ideas. */
     --card: var(--ax-background-card);
     --card-foreground: var(--ax-text-primary);
+    /* The generic raised surface (chips, agent cards): the card token by
+     * another name, so components never invent their own fill. */
+    --surface: var(--card);
     --popover: var(--ax-background-popover);
     --popover-foreground: var(--ax-text-primary);
     /* The sidebar is the page, not a tinted card: pure white in light (the
@@ -175,6 +178,48 @@
     --motion-surface: 350ms;
     --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+
+    /* Native motion extension (2026-09-29 redesign): the spring family.
+     * Real spring solvers need JS; these cubic-bezier approximations give the
+     * iOS-like physical feel — fast attack, soft landing, no overshoot — at
+     * 60fps on transform/opacity only. Never animate layout properties. */
+    --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-press: cubic-bezier(0.34, 1.3, 0.64, 1);
+    /* Press: the finger is faster than the eye. Down is immediate, release
+     * is gentle — the asymmetry is what makes it feel physical. */
+    --motion-press-down: 80ms;
+    --motion-press-up: 200ms;
+    --press-scale: 0.97;
+    /* Stagger: list entrance steps. Capped so a long list never crawls in. */
+    --stagger-step: 28ms;
+    --stagger-max: 280ms;
+    /* Skeleton shimmer sweep. */
+    --motion-shimmer: 1600ms;
+    /* Status-dot pulse (the "working" dot). */
+    --motion-pulse: 1600ms;
+    /* Tab switch: quicker than a sheet, calmer than a press. */
+    --motion-tab: 200ms;
+
+    /* The breakpoint ladder (canonical). CSS cannot read var() inside
+     * @media, so these live here as the documented source of truth and are
+     * mirrored in lib/ui/breakpoints.ts — tests/breakpoints.test.mjs keeps
+     * the two in sync. New work uses these; the shell's 900px nav breakpoint
+     * predates the ladder and stays where it is (it is the drawer/tab-bar
+     * switch, not a content breakpoint). */
+    /* bp-xs: 360px · bp-sm: 480px · bp-md: 768px · bp-lg: 1024px · bp-xl: 1280px */
+
+    /* Fluid type: hierarchy text scales with the viewport, body text does
+     * not — reading measure must stay stable. Defined as tokens (not raw
+     * clamp() at the use site) so the type-scale ratchet keeps passing. */
+    --text-display: clamp(1.875rem, 1.35rem + 2.6vw, 2.75rem);
+    --text-title: clamp(1.375rem, 1.15rem + 1.1vw, 1.75rem);
+    --text-headline: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+
+    /* Adaptive spacing: tighter on a 360px phone, airier on desktop. */
+    --space-page-x: clamp(16px, 4vw, 28px);
+    --space-section: clamp(16px, 3vw, 28px);
+    --space-card: clamp(12px, 2.5vw, 20px);
 
     /* The single monospace stack, matching the design source's own code
      * fallbacks (design/hikmah-theme.ts). */

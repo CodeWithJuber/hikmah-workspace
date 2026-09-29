@@ -60,7 +60,7 @@ export function MobileNavBar({
       <Link
         key={item.href}
         href={item.href}
-        className={'mobile-nav-tab' + (active ? ' is-active' : '')}
+        className={'mobile-nav-tab n-press' + (active ? ' is-active' : '')}
         aria-current={active ? 'page' : undefined}
       >
         <Icon size={20} aria-hidden="true" />
@@ -77,7 +77,7 @@ export function MobileNavBar({
         key={item.href}
         href={item.href}
         onClick={close}
-        className={'mobile-nav-sheet-link' + (active ? ' is-active' : '')}
+        className={'mobile-nav-sheet-link n-press' + (active ? ' is-active' : '')}
         aria-current={active ? 'page' : undefined}
       >
         <Icon size={20} aria-hidden="true" />
@@ -92,7 +92,7 @@ export function MobileNavBar({
         {mobileNavTabs().map(tab)}
         <button
           type="button"
-          className="mobile-nav-tab"
+          className={'mobile-nav-tab n-press' + (moreOpen ? ' is-active' : '')}
           aria-expanded={moreOpen}
           aria-haspopup="dialog"
           onClick={() => setMoreOpen(true)}

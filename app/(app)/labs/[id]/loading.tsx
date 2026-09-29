@@ -1,24 +1,17 @@
-import { Skeleton } from '@/components/ui/skeleton';
-
-/** Loading state for /labs/[id] — mirrors the lab detail layout. */
+/** Loading state for /labs/[id] — mirrors the lab detail shell: the header
+ * with its back affordance, then the lab body's skeleton. */
 export default function LabDetailLoading() {
   return (
-    <div className="lab-page">
-      <header className="lab-header">
-        <Skeleton className="size-9 rounded-md" />
-        <div className="grid flex-1 gap-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-64 max-w-full" />
-        </div>
+    <div className="n-page" aria-label="Loading lab">
+      <header className="n-header">
+        <span className="n-icon-btn n-shimmer" aria-hidden="true" />
+        <span className="n-shimmer-line" style={{ width: '35%', height: 28 }} aria-hidden="true" />
+        <div className="n-header-actions" aria-hidden="true" />
       </header>
-      <div className="lab-switcher">
-        <Skeleton className="h-9 w-28 rounded-md" />
-        <Skeleton className="h-7 w-48" />
-      </div>
-      <div className="grid gap-3 px-6" role="status" aria-label="Loading lab">
-        <Skeleton className="h-5 w-2/5" />
-        <Skeleton className="h-64 w-full rounded-lg" />
-        <Skeleton className="h-4 w-3/4" />
+      <div role="status" style={{ padding: '0 var(--space-page-x)', display: 'grid', gap: 12 }}>
+        <span className="n-shimmer-line" style={{ width: '70%' }} />
+        <span className="n-shimmer-line" style={{ width: '100%', height: 120 }} />
+        <span className="n-shimmer-line" style={{ width: '85%' }} />
       </div>
     </div>
   );

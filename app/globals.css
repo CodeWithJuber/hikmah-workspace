@@ -48,6 +48,8 @@
 @import './styles/chat-experience.css';
 @import './styles/composer-flow.css';
 @import './styles/learning.css';
+@import './styles/native-motion.css';
+@import './styles/native-ui.css';
 @import './styles/research-brief.css';
 /* Admin/Superadmin presentational polish (WS5). Imported last so its
  * `@layer components` rules win over the older workspace rules by source

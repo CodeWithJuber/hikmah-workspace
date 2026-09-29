@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookOpenCheck, Bot, Gauge, History, X } from 'lucide-react';
+import { BookOpenCheck, Bot, ChevronLeft, Gauge, History, X } from 'lucide-react';
 import { MobileNavBar } from '@/components/app/mobile-nav-bar';
 import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
@@ -81,7 +81,11 @@ export function ChatShell({
   // instance of this hook for the composer-scoped chords; this one owns the
   // shell-scoped chord, and each instance only handles the ids it is given.
   useKeyboardShortcuts({
-    'toggle-sidebar': () => setSidebarOpen((open) => !open),
+    // Desktop only: on a phone the drawer is gone — the Chats list owns the
+    // conversations — so the chord must not flip unreachable state.
+    'toggle-sidebar': () => {
+      if (!narrow) setSidebarOpen((open) => !open);
+    },
   });
   const [commandsOpen, setCommandsOpen] = useState(false);
   const [settingsVisited, setSettingsVisited] = useState(requestedSettings);
@@ -339,23 +343,40 @@ export function ChatShell({
               Skip to conversation
             </a>
             <header className="chat-topbar workspace-header" inert={modalOpen || undefined}>
-              {/* Conversations, not product nav: the bottom bar owns product
-                  navigation on mobile, so this opens only the chat list. */}
-              <Button
-                ref={navigationButtonRef}
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Conversations"
-                aria-expanded={sidebarOpen}
-                onClick={() => {
-                  setSidebarOpen(true);
-                  setPanel(null);
-                  setArtifact(null);
-                }}
-              >
-                <History size={20} />
-              </Button>
+              {narrow ? (
+                /* The Chats list is the phone's conversation home: a back
+                 * chevron returns to it, instead of opening a drawer over
+                 * the chat. */
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Back to chats"
+                  asChild
+                >
+                  <Link href="/chat">
+                    <ChevronLeft size={20} />
+                  </Link>
+                </Button>
+              ) : (
+                /* Conversations, not product nav: the bottom bar owns product
+                    navigation on mobile, so this opens only the chat list. */
+                <Button
+                  ref={navigationButtonRef}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Conversations"
+                  aria-expanded={sidebarOpen}
+                  onClick={() => {
+                    setSidebarOpen(true);
+                    setPanel(null);
+                    setArtifact(null);
+                  }}
+                >
+                  <History size={20} />
+                </Button>
+              )}
               <div className="workspace-heading">
                 <span>{currentTitle}</span>
                 {agent && (
@@ -370,39 +391,44 @@ export function ChatShell({
                 )}
               </div>
             </header>
-            <aside
-              ref={sidebarRef}
-              className={
-                'workspace-sidebar chat-drawer chat-drawer-list' +
-                (narrow && sidebarOpen ? ' is-open' : '')
-              }
-              aria-label="Conversations"
-              role={narrow && sidebarOpen ? 'dialog' : undefined}
-              aria-modal={(narrow && sidebarOpen) || undefined}
-              inert={(narrow && !sidebarOpen) || undefined}
-              tabIndex={-1}
-            >
-              <div className="workspace-brand">
-                <HikmahIcon name="orbit" size={32} />
-                <strong>Hikmah</strong>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Close navigation"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <X size={20} />
-                </Button>
-              </div>
-              <ConversationList
-                activeId={conversationId}
-                revision={revision}
-                onNew={newChat}
-                onConversations={onHistory}
-                onActivate={() => setSidebarOpen(false)}
-              />
-            </aside>
+            {/* The drawer is desktop-only now: on a phone the Chats list is a
+                full screen of its own, so rendering the drawer as well would
+                mount a second conversation list that can never open. */}
+            {!narrow && (
+              <aside
+                ref={sidebarRef}
+                className={
+                  'workspace-sidebar chat-drawer chat-drawer-list' +
+                  (narrow && sidebarOpen ? ' is-open' : '')
+                }
+                aria-label="Conversations"
+                role={narrow && sidebarOpen ? 'dialog' : undefined}
+                aria-modal={(narrow && sidebarOpen) || undefined}
+                inert={(narrow && !sidebarOpen) || undefined}
+                tabIndex={-1}
+              >
+                <div className="workspace-brand">
+                  <HikmahIcon name="orbit" size={32} />
+                  <strong>Hikmah</strong>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Close navigation"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <X size={20} />
+                  </Button>
+                </div>
+                <ConversationList
+                  activeId={conversationId}
+                  revision={revision}
+                  onNew={newChat}
+                  onConversations={onHistory}
+                  onActivate={() => setSidebarOpen(false)}
+                />
+              </aside>
+            )}
             <main id="workspace-main" className="chat-body workspace-body" tabIndex={-1}>
               <section
                 className="workspace-chat-pane"

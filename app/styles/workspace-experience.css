@@ -524,8 +524,10 @@
       align-items: center;
       justify-content: center;
       gap: 3px;
-      min-height: 58px;
+      min-height: 52px;
+      margin: 6px 4px;
       padding: 8px 2px;
+      border-radius: var(--radius-element);
       color: var(--muted-foreground);
       font-size: 11px;
       font-weight: 500;
@@ -534,10 +536,14 @@
       background: none;
       border: 0;
       cursor: pointer;
+      transition:
+        background-color var(--motion-tab) var(--ease-enter),
+        color var(--motion-tab) var(--ease-enter);
     }
     .mobile-nav-tab.is-active {
       color: var(--ax-accent);
       font-weight: 600;
+      background: color-mix(in srgb, var(--ax-accent) 12%, transparent);
     }
     /* The composer sits at the bottom of the chat flow — clear the bar. */
     .workspace-experience .chat-view:not(.is-empty) .chat-composer-area {

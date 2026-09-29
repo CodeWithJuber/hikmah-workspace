@@ -2,6 +2,20 @@ import { getChatGPTUser } from '../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { getStorage } from '@/server/storage.mjs';
 import { newConversationId, runService } from '@/lib/runs/service';
+import { conversationTitle } from '@/lib/chat/title';
+
+/** The row's preview line: the last message's first words, or '' when the
+ * last message carried no words (a file, an image, a tool call). The list
+ * shows the role marker itself when the text is empty, so an empty snippet
+ * is honest, not a placeholder. */
+function snippetFor(lastParts: unknown): string {
+  if (typeof lastParts !== 'string') return '';
+  try {
+    return conversationTitle(JSON.parse(lastParts));
+  } catch {
+    return '';
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +92,9 @@ export async function GET(request: Request) {
               ? 'answer'
               : null,
         updatedAt: row.updated_at,
+        // The native Chats screen's preview line: last message, one line.
+        snippet: snippetFor(row.last_parts),
+        snippetRole: row.last_role,
         // Pinned chats float to the top of the sidebar, in their own section.
         // A missing entry (row created while the column did not exist) reads
         // as unpinned rather than breaking the list.

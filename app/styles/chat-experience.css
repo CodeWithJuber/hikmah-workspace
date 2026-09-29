@@ -681,55 +681,14 @@
   /* The agent picker's sheet portals to document.body, so these stay
      unscoped: the sheet never lives under .workspace-experience. On a phone
      it docks to the bottom (thumb-reachable); on desktop it stays the
-     centered dialog DialogContent ships as. */
+     centered dialog DialogContent ships as. The card/chip/search rows inside
+     are the shared .n- primitives from native-ui.css. */
   .agent-picker-sheet {
     max-height: min(80dvh, 640px);
     overflow-y: auto;
-  }
-  .agent-picker-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
-    gap: 8px;
-  }
-  .agent-picker-list li {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-element);
-    padding: 10px 12px;
-  }
-  .agent-picker-list li.is-active {
-    border-color: var(--primary);
-  }
-  .agent-picker-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-  }
-  .agent-picker-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--foreground);
-  }
-  .agent-picker-outcome {
-    font-size: var(--font-size-xs);
-    color: var(--muted-foreground);
-  }
-  .agent-picker-starters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 12px;
+    align-content: start;
   }
   .agent-picker-foot {
     display: flex;
@@ -750,6 +709,101 @@
       /* The sheet docks to the screen bottom: without this the footer's
          "Manage agents" row sits under the home indicator on phones. */
       padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+  }
+
+  /* The model picker's sheet portals to document.body, so these stay
+     unscoped like the agent picker's: on a phone it docks to the bottom
+     (thumb-reachable); on desktop it stays the centered dialog
+     DialogContent ships as. The interior is the shared .n- sheet language
+     from native-ui.css (head, chips, stagger, CTA foot). */
+  .n-model-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: min(86dvh, 640px);
+    border-radius: var(--radius-container);
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  /* The visible head: title block left, the 44px close in the corner.
+     The title/sub carry their own 20px start padding. */
+  .n-model-head {
+    flex: none;
+    padding: 4px 8px 0 0;
+  }
+  /* The cmdk search field, dressed as the native search: 44px, muted,
+     rounded — the same read as .n-search, minus the wrapper cmdk needs. */
+  .n-model-sheet [data-slot='command-input-wrapper'] {
+    flex: none;
+    min-height: 48px;
+    margin: 12px 16px 0;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-element);
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .n-model-filters {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 4px;
+  }
+  .n-model-filters .n-chip-row {
+    flex: 1;
+    min-width: 0;
+  }
+  .n-model-count {
+    flex: none;
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .n-model-sheet .model-dialog-list {
+    flex: 1;
+    min-height: 0;
+    margin-top: 4px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* cmdk rows press like native rows; the selected one keeps its check. */
+  .n-model-sheet [data-slot='command-item'] {
+    min-height: 52px;
+    padding: 10px 12px;
+    border-radius: var(--radius-element);
+  }
+  .n-model-loading {
+    display: grid;
+    gap: 12px;
+    padding: 20px 16px;
+  }
+  .n-model-loading .n-shimmer-line {
+    height: 14px;
+  }
+  /* The dialog's list area is tighter than a full screen: the empty state
+     keeps its icon and CTA but sheds the screen-level padding. */
+  .n-model-sheet .n-empty {
+    padding: 32px 24px;
+  }
+  .n-model-note {
+    flex: none;
+    border-top: 1px solid var(--border);
+  }
+  .n-model-foot .n-cta {
+    flex: 1;
+  }
+  @media (max-width: 600px) {
+    /* Bottom sheet: the same docking the agent picker uses — override the
+       centered-dialog position utilities DialogContent ships with. */
+    .n-model-sheet {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      translate: none;
+      width: 100%;
+      max-width: none;
+      border-radius: var(--radius-container) var(--radius-container) 0 0;
     }
   }
 }

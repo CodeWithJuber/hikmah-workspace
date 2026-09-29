@@ -31,34 +31,8 @@
     flex-direction: column;
     gap: 26px;
   }
-  .billing-head h1 {
-    font-size: var(--font-size-2xl);
-    letter-spacing: -0.7px;
-    font-weight: 560;
-    margin-top: 14px;
-  }
-  .billing-back {
-    display: inline-flex;
-    align-items: center;
-    /* A standalone link, not one inside a sentence, so it carries its own
-     height rather than the 20px its 13px text happened to give it. */
-    min-height: 24px;
-    gap: 7px;
-    font-size: var(--font-size-sm);
-    color: var(--muted-foreground);
-  }
-  .billing-back:hover {
-    color: var(--foreground);
-  }
-  .billing-loading {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: center;
-    padding: 64px 0;
-    color: var(--muted-foreground);
-    font-size: var(--font-size-base);
-  }
+  /* The header is the native sticky header now (.n-header in the panel); the
+   * notices, meter and plan cards below keep this file's own rules. */
   .billing-eyebrow {
     font-size: var(--font-size-xs);
     letter-spacing: 1.4px;
@@ -106,7 +80,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-height: 40px;
+    /* 44px: the tap-target floor. Was 40px — a thumb misses 40. */
+    min-height: 44px;
     padding: 0 18px;
     /* `rounded-md`, as components/ui/button.tsx. */
     border-radius: calc(var(--radius) - 2px);
@@ -120,13 +95,8 @@
     opacity: 0.65;
     cursor: wait;
   }
-  /* One column on a phone, two where there is room. The plans are read top to
-   bottom either way, so nothing depends on them sitting side by side. */
-  .billing-plans {
-    display: grid;
-    gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  }
+  /* The plans grid is the native card grid now (container queries); the
+   * plan cards below keep this file's own vertical card rules. */
   .billing-plan {
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) + 4px);
@@ -204,5 +174,26 @@
     gap: 8px;
     align-items: center;
     flex: none;
+  }
+  /* Notice actions are real tap targets too: 44px, even the text ones. */
+  .billing-notice-actions button,
+  .billing-notice-actions a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  /* The inline error that appears when an action fails while the panel is
+   * already showing: the message plus the retry that re-runs the action. */
+  .billing-inline-error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .billing-inline-error p {
+    margin: 0;
   }
 }
