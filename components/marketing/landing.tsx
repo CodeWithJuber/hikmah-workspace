@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { PublicAuthConfig } from '@/lib/auth/public-config';
-import { priceLabelFor, type Plan } from '@/lib/billing/plans';
+import { billingConfigured, priceLabelFor, type Plan } from '@/lib/billing/plans';
 
 /** What it does for the work most people actually bring: writing, questions,
  * research, learning. Listed first, because a visitor who does not write code
@@ -191,12 +191,19 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
                   </li>
                 ))}
               </ul>
-              <Link
-                href={start}
-                className={plan.tier === 'managed' ? 'landing-primary' : undefined}
-              >
-                {plan.trialDays ? `Start ${plan.trialDays} days free` : 'Start free'}
-              </Link>
+              {/* The same honesty as the pricing page: on a deployment that is
+                  not taking payments, a "Start 14 days free" button would offer
+                  a trial nobody can check out. Say so instead of offering it. */}
+              {plan.tier === 'managed' && !billingConfigured() ? (
+                <p className="landing-price-tbd">Payments are not set up on this deployment yet.</p>
+              ) : (
+                <Link
+                  href={start}
+                  className={plan.tier === 'managed' ? 'landing-primary' : undefined}
+                >
+                  {plan.trialDays ? `Start ${plan.trialDays} days free` : 'Start free'}
+                </Link>
+              )}
             </article>
           ))}
         </div>
