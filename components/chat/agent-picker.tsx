@@ -22,6 +22,13 @@ import type { Agent } from './agents-panel';
 
 const RECENT_KEY = 'hikmah.recent-agent-ids';
 const RECENT_MAX = 4;
+/** Truncate at a word boundary so chips never cut mid-word ("…"
+ * baked into the label looked sloppy on the live sheet). */
+function truncateWords(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max).replace(/\s+\S*$/, '');
+  return (cut || text.slice(0, max)) + '…';
+}
 function readRecent(): string[] {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
@@ -344,7 +351,7 @@ function AgentCard({
               className="h-10 rounded-full px-3 text-xs"
               onClick={() => onStarter(agent, prompt)}
             >
-              {prompt.length > 42 ? prompt.slice(0, 42) + '…' : prompt}
+              {truncateWords(prompt, 60)}
             </Button>
           ))}
         </div>

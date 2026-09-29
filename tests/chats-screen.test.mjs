@@ -18,6 +18,7 @@ const motion = strip(readFileSync(resolve(root, 'app/styles/native-motion.css'),
 const nativeLayer = ui + '\n' + motion;
 const screen = readFileSync(resolve(root, 'components/chat/chats-screen.tsx'), 'utf8');
 const picker = readFileSync(resolve(root, 'components/chat/agent-picker.tsx'), 'utf8');
+const panel = readFileSync(resolve(root, 'components/chat/agents-panel.tsx'), 'utf8');
 
 /** Class -> guaranteed minimum tap dimension (px), from native-ui.css. */
 const TARGETS = {
@@ -111,11 +112,17 @@ test('no emoji anywhere near the native screens', () => {
   assert.ok(!emoji.test(picker), 'agent-picker.tsx must not contain emoji');
 });
 
-test('every n-* class the screen uses exists in the native layer', () => {
+test('every n-* class the native screens use exists in the native layer', () => {
+  // chats-screen, agent-picker AND agents-panel: an earlier pass of this
+  // test only scanned chats-screen.tsx, so four undefined classes in the
+  // picker/panel (n-avatar, n-row-main, n-empty-title, n-empty-body)
+  // shipped unnoticed. Never narrow this again.
   const used = new Set();
-  for (const m of screen.matchAll(/className=(?:"([^"]*)"|`([^`]*)`|\{`([^`]*)`\}|'([^']*)')/g)) {
-    const raw = (m[1] ?? m[2] ?? m[3] ?? m[4] ?? '').replace(/\$\{[^}]*\}/g, '');
-    for (const w of raw.split(/\s+/)) if (w.startsWith('n-')) used.add(w);
+  for (const src of [screen, picker, panel]) {
+    for (const m of src.matchAll(/className=(?:"([^"]*)"|`([^`]*)`|\{`([^`]*)`\}|'([^']*)')/g)) {
+      const raw = (m[1] ?? m[2] ?? m[3] ?? m[4] ?? '').replace(/\$\{[^}]*\}/g, '');
+      for (const w of raw.split(/\s+/)) if (w.startsWith('n-')) used.add(w);
+    }
   }
   const missing = [];
   for (const cls of used) {
@@ -127,7 +134,11 @@ test('every n-* class the screen uses exists in the native layer', () => {
         );
     if (!ok) missing.push(cls);
   }
-  assert.deepEqual(missing, [], 'undefined native classes in chats-screen.tsx');
+  assert.deepEqual(
+    missing,
+    [],
+    'undefined native classes in chats-screen.tsx, agent-picker.tsx, agents-panel.tsx',
+  );
 });
 
 test('the agent sheet is a native browser: search, chips, recency, cards', () => {
@@ -137,4 +148,22 @@ test('the agent sheet is a native browser: search, chips, recency, cards', () =>
   assert.ok(picker.includes('hikmah.recent-agent-ids'), 'recency persists per device');
   assert.ok(picker.includes('n-agent-card'), 'agent cards');
   assert.ok(picker.includes('aria-pressed'), 'select state is announced');
+});
+
+test('starter chips cannot push a horizontal scrollbar into the sheet', () => {
+  // Chips are shadcn Buttons (shrink-0 + whitespace-nowrap): a long prompt
+  // made one chip wider than the bottom sheet on a phone. The native layer
+  // must contain them — overflow clipped on the row, chips capped at the
+  // row width with wrapping text.
+  assert.ok(
+    /\.n-starter-row\s*\{[^}]*overflow-x:\s*clip/.test(ui),
+    '.n-starter-row must clip horizontal overflow',
+  );
+  assert.ok(
+    /\.n-starter-row\s*>\s*button\s*\{[^}]*max-width:\s*100%/.test(ui),
+    '.n-starter-row > button must cap at the row width',
+  );
+  // And labels must break at word boundaries, never mid-word.
+  assert.ok(picker.includes('truncateWords'), 'chip labels use the word-boundary truncator');
+  assert.ok(!/\bslice\(0,\s*42\)/.test(picker), 'no raw mid-word slice left in the picker');
 });

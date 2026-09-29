@@ -23,7 +23,7 @@ import { createCandidateStore } from '../context-model/candidate-store.ts';
 import { createKnowledgeSources } from '../knowledge/store.ts';
 import { knowledgeForRun } from '../knowledge/run-knowledge.ts';
 import { createMemoryStore } from '../memory/store.ts';
-import { createRecall, recallPrompt } from '../memory/recall.ts';
+import { createRecall, isFillerQuery, recallPrompt } from '../memory/recall.ts';
 import type { RecalledConversation, UsedMemory } from './service.ts';
 import { createLearningStore } from '../learning/store.ts';
 import { reviewedExamplePrompt } from '../learning/retrieval.ts';
@@ -132,6 +132,17 @@ export async function contextBriefFor(userId: string, messages: UIMessage[]): Pr
 }
 
 /**
+ * A query that can never benefit from retrieval: one or more filler terms and
+ * nothing else — "Nothing", "ok thanks", "شكرا". Looking anything up for
+ * these can only return noise, and the receipt would then claim memories were
+ * "used" that the answer never needed. A real question, even a short one,
+ * still retrieves everything as before.
+ */
+function skipRetrieval(query: string): boolean {
+  return isFillerQuery(query);
+}
+
+/**
  * The owner's saved knowledge for this turn, or ''.
  *
  * Read here rather than sent by the page for the same reason the context notes
@@ -154,6 +165,7 @@ export async function knowledgeFor(
     const storage = getStorage();
     const query = recentUserText(messages, 1);
     if (!query.trim()) return none;
+    if (skipRetrieval(query)) return none;
     let used: UsedMemory[] = [];
     const block = await knowledgeForRun({
       sources: createKnowledgeSources(storage.raw, storage.BUCKET),

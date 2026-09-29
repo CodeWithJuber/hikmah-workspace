@@ -74,6 +74,18 @@
     background: var(--accent);
   }
 
+  /* Avatar: the base shape the n-av-* tints colour. 44px keeps it a clean
+   * thumb-adjacent target inside 68px agent cards; the tint classes only
+   * set background/foreground, so this base must exist (it was missing). */
+  .n-avatar {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   /* Avatar tints: a hash of the conversation id picks one of four soft
    * categorical tints, so rows are scannable without inventing colours —
    * every value is a token mixed with the surface. */
@@ -183,6 +195,16 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+  /* Row main: the flex-1 column between avatar and side rail. min-width: 0
+   * is load-bearing — without it the ellipsis children (title/snippet)
+   * force the row wider than its container. (Was missing.) */
+  .n-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .n-row-title {
     font-size: var(--font-size-base);
@@ -393,6 +415,18 @@
     justify-content: center;
     color: var(--muted-foreground);
     margin-bottom: 8px;
+  }
+  /* Empty/error copy: title semibold at base size, body muted at sm.
+   * (Both were missing — the agent sheet's empty states were unstyled.) */
+  .n-empty-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin: 0;
+  }
+  .n-empty-body {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    margin: 4px 0 0;
   }
   .n-empty h2,
   .n-error h2 {
@@ -734,5 +768,18 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 8px;
+    /* Chips are shadcn Buttons (shrink-0 + whitespace-nowrap). A long
+     * prompt makes one chip wider than the sheet, which used to push a
+     * horizontal scrollbar into the dialog. Contain them instead. */
+    overflow-x: clip;
+  }
+  .n-starter-row > button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    height: auto;
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 }

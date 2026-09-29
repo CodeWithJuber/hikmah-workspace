@@ -143,3 +143,23 @@ test('at most three, one per conversation, within the budget', (t) => {
   assert.equal(new Set(hits.map((h) => h.conversationId)).size, 3, 'no conversation twice');
   assert.ok(recallPrompt(hits).length <= 2000 + 400, 'bounded');
 });
+
+test('a filler-only query recalls nothing — "Nothing" is a dismissal, not a question', (t) => {
+  const { store, recall, say } = setup(t);
+  store.createConversation({ id: 'A', userId: 'u1', title: 'Anything', model: 'm' });
+  store.createConversation({ id: 'B', userId: 'u1', title: 'Current', model: 'm' });
+  say('A', 'user', 'There is nothing more to say about nothing at all, ok thanks.');
+  for (const q of ['Nothing', 'ok thanks', 'شكرا', 'haan']) {
+    assert.deepEqual(
+      recall.recall('u1', q, 'B'),
+      [],
+      JSON.stringify(q) + ' must not recall a conversation that merely contains the word',
+    );
+  }
+  // A single *distinctive* word still retrieves: that contract is deliberate.
+  say('A', 'user', 'The Mumbai cap is 7500.');
+  assert.equal(recall.recall('u1', 'Mumbai cap', 'B').length, 1);
+  assert.equal(recall.recall('u1', 'zakat', 'B').length, 0, 'no zakat here');
+  say('A', 'user', 'Zakat is due in Ramadan.');
+  assert.equal(recall.recall('u1', 'zakat', 'B').length, 1, 'distinctive single word recalls');
+});

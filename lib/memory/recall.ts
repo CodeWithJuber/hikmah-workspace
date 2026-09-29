@@ -39,6 +39,55 @@ export type RecalledTurn = {
 const RECALL_LIMIT = 3;
 const RECALL_BUDGET = 2000;
 const EXCERPT = 600;
+/** Queries that can never benefit from retrieval, in the languages this product
+ * is used in. A query made only of these — "Nothing", "ok thanks", "شكرا" —
+ * is a dismissal or a pleasantry, not a question. Looking anything up for it
+ * can only return noise, and the receipt would then claim memories were
+ * "used" that the answer never needed. A single *distinctive* word ("zakat",
+ * "bravo") still retrieves: the existing tests prove that contract on purpose.
+ */
+const FILLER_TERMS = new Set([
+  // English dismissals and pleasantries
+  'nothing',
+  'ok',
+  'okay',
+  'k',
+  'yes',
+  'no',
+  'yeah',
+  'yep',
+  'nope',
+  'nah',
+  'thanks',
+  'thank',
+  'hello',
+  'hi',
+  'hey',
+  'bye',
+  // Hinglish / Urdu
+  'haan',
+  'han',
+  'nahin',
+  'nahi',
+  'shukriya',
+  'salaam',
+  'arre',
+  'acha',
+  'achha',
+  // Arabic — in normalised form: the normaliser folds ك to ک and strips
+  // harakat, so the raw spelling would never match.
+  'نعم',
+  'لا',
+  'شکرا',
+  'مرحبا',
+]);
+
+/** True when the query is one or more filler terms and nothing else. */
+export function isFillerQuery(query: string): boolean {
+  const q = terms(query);
+  return q.size > 0 && [...q].every((t) => FILLER_TERMS.has(t));
+}
+
 /** Query terms past this add cost and no precision. */
 const MAX_TERMS = 24;
 
@@ -108,6 +157,12 @@ export function createRecall(db: SqliteHandle) {
     ): RecalledTurn[] {
       const match = matchQuery(query);
       if (!match) return [];
+      // A filler-only query ("Nothing", "ok thanks") matches any conversation
+      // that happens to contain the word — pure noise, never a recall. The
+      // route-level guard in lib/runs/prepare.ts already skips these; this
+      // keeps the function honest for any other caller. A single distinctive
+      // word ("zakat") still retrieves.
+      if (isFillerQuery(query)) return [];
       try {
         const rows = (search()?.all(match, userId, excludeConversationId, limit * 4) ?? []) as {
           conversation_id: string;
