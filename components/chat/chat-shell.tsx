@@ -15,7 +15,6 @@ import { ConversationList, type ConversationSummary } from './conversation-list'
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
 import { MemoryPanel } from './memory-panel';
-import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { RunSettings } from './run-settings';
 import { ArtifactPanel } from '@/components/kernel/artifact';
 import { WorkspaceCommands } from './workspace-commands';
@@ -29,12 +28,11 @@ import { clientFetch } from '@/lib/client/request';
 import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
 
 const NARROW = '(max-width: 900px)';
-type Panel = 'files' | 'agents' | 'memory' | 'typeform' | 'settings';
+type Panel = 'files' | 'agents' | 'memory' | 'settings';
 const PANEL_LABELS: Record<Panel, string> = {
   files: 'Files',
   agents: 'Agents',
   memory: 'Saved memory',
-  typeform: 'Typeform',
   settings: 'Settings',
 };
 function subscribeToWidth(change: () => void) {
@@ -462,8 +460,6 @@ export function ChatShell({
                         />
                       ) : panel === 'memory' ? (
                         <MemoryPanel />
-                      ) : panel === 'typeform' ? (
-                        <TypeformPanel embedded />
                       ) : null}
                       {settingsVisited && (
                         <div

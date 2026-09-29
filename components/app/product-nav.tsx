@@ -3,17 +3,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   MessageSquare,
-  Scale,
   Bot,
-  TerminalSquare,
-  Wrench,
   BookOpen,
-  BrainCircuit,
-  Cpu,
+  GraduationCap,
   FlaskConical,
-  Plug,
-  FileText,
   Settings2,
+  Shield,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
@@ -21,25 +16,23 @@ import { useKernel } from '@/components/kernel/context';
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
+/** The whole product in six plain words.
+ *
+ * Everything else (compare mode, integrations, billing, terminal, tool
+ * switches, the local model) lives one tap deeper — linked from inside Chat
+ * or from Settings — instead of competing for attention in the nav. Old
+ * addresses keep working; they just aren't destinations anymore. */
 const primary: NavItem[] = [
   { href: '/chat', label: 'Chat', icon: MessageSquare },
-  { href: '/compare', label: 'Compare', icon: Scale },
-  { href: '/agents', label: 'Agents', icon: Bot },
-  { href: '/terminal', label: 'Terminal', icon: TerminalSquare },
-  { href: '/tools', label: 'Tools', icon: Wrench },
-  { href: '/knowledge', label: 'Knowledge', icon: BookOpen },
-  { href: '/learning', label: 'Learning', icon: BrainCircuit },
-  { href: '/kernel', label: 'Kernel', icon: Cpu },
-  { href: '/labs', label: 'Labs', icon: FlaskConical },
-];
-
-const secondary: NavItem[] = [
-  { href: '/connections', label: 'Connections', icon: Plug },
-  { href: '/typeform', label: 'Typeform', icon: FileText },
+  { href: '/agents', label: 'Assistants', icon: Bot },
+  { href: '/knowledge', label: 'Memory', icon: BookOpen },
+  { href: '/learning', label: 'Teach', icon: GraduationCap },
+  { href: '/labs', label: 'Playground', icon: FlaskConical },
+  { href: '/settings', label: 'Settings', icon: Settings2 },
 ];
 
 const admin: NavItem[] = [
-  { href: '/admin', label: 'Admin', icon: Settings2 },
+  { href: '/admin', label: 'Admin', icon: Shield },
   { href: '/superadmin', label: 'Superadmin', icon: ShieldCheck },
 ];
 
@@ -62,27 +55,6 @@ export function ProductNav({
   const link = (item: NavItem) => {
     const active = isActive(item.href);
     const Icon = item.icon;
-    // The kernel keeps its co-model styling: name, caption and the live dot,
-    // same as the old shell.
-    if (item.href === '/kernel')
-      return (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={() => onNavigate?.()}
-          className={'co-model-nav' + (active ? ' selected' : '')}
-          aria-current={active ? 'page' : undefined}
-        >
-          <Icon size={20} />
-          <span>
-            {item.label}
-            <small>
-              {kernel.ready ? 'Understand documents locally' : '5 released language models'}
-            </small>
-          </span>
-          <span className={kernel.ready ? 'live-dot' : 'pending-dot'} />
-        </Link>
-      );
     return (
       <Link
         key={item.href}
@@ -100,10 +72,6 @@ export function ProductNav({
   return (
     <nav className={'product-nav' + (className ? ' ' + className : '')} aria-label="Product">
       <div className="nav-group">{primary.map(link)}</div>
-      <div className="nav-group">
-        <span className="nav-group-label">Services</span>
-        {secondary.map(link)}
-      </div>
       {isOwner && (
         <div className="nav-group">
           <span className="nav-group-label">Administration</span>

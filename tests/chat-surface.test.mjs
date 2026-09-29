@@ -83,8 +83,12 @@ test('workspace destinations keep their names in the mobile navigation', async (
   // labels travel with them in the single nav definition.
   const nav = await readFile('components/app/product-nav.tsx', 'utf8');
   for (const [href, label] of [
-    ['/terminal', 'Terminal'],
-    ['/connections', 'Connections'],
+    ['/chat', 'Chat'],
+    ['/agents', 'Assistants'],
+    ['/knowledge', 'Memory'],
+    ['/learning', 'Teach'],
+    ['/labs', 'Playground'],
+    ['/settings', 'Settings'],
   ]) {
     assert.match(
       nav,
@@ -107,9 +111,9 @@ test('the root opens the durable chat and the workspace keeps its own route', as
   assert.match(root, /redirect\('\/chat'\)/);
   assert.doesNotMatch(root, /Playground/);
   // The hash-routed shell is gone: /workspace is a bookmark-safe redirect to
-  // the Agents route (also where unknown hashes used to land), so the address
-  // keeps working while the route map stays the single source of truth.
-  assert.match(workspace, /redirect\('\/agents'\)/);
+  // the chat (the product's front door), so the address keeps working while
+  // the route map stays the single source of truth.
+  assert.match(workspace, /redirect\('\/chat'\)/);
   // A redirect page that prerendered would call runService at build time.
   assert.match(root, /export const dynamic = 'force-dynamic'/);
 });

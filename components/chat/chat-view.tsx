@@ -32,9 +32,7 @@ import type { FileUIPart, LanguageModelUsage } from 'ai';
 import {
   AlertTriangle,
   ArrowUp,
-  BookOpen,
   Check,
-  Code2,
   Columns2,
   Download,
   Ghost,
@@ -42,7 +40,6 @@ import {
   Keyboard,
   LoaderCircle,
   Paperclip,
-  Scale,
   Search,
   Square,
   Telescope,
@@ -66,7 +63,6 @@ import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transp
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
-import { EmptyState } from '@/components/ui/empty-state';
 import { EmptyStateOnboarding } from './empty-state-onboarding';
 import { StagedLoading } from './staged-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -97,13 +93,11 @@ import { ImageGeneratingState } from './generated-image';
 import { parseImageCommand } from '@/lib/chat/image-gen';
 import { clientFetch } from '@/lib/client/request';
 import {
-  CHAT_STARTERS,
   currentRunActivity,
   failureAction,
   readConversationDraft,
   transcriptMarkdown,
   writeConversationDraft,
-  type ChatStarter,
 } from './chat-experience';
 
 /** What the run recorded about itself when it finished. Written by the worker
@@ -132,7 +126,6 @@ const ACCEPT = 'image/*,text/*,.md,.markdown,.json,.csv,.pdf';
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
-const STARTER_ICONS = { research: Search, build: Code2, compare: Scale, explain: BookOpen };
 const onlineSnapshot = () => navigator.onLine;
 const serverOnlineSnapshot = () => true;
 function subscribeOnline(notify: () => void) {
@@ -1022,7 +1015,7 @@ export function ChatView({
       <div className={'chat-view' + (messages.length === 0 ? ' is-empty' : '')}>
         {banner}
         {messages.length > 0 && (
-          <div className="flex items-center justify-between gap-2 px-1 py-2">
+          <div className="chat-transcript-head flex items-center justify-between gap-2 px-1 py-2">
             <span className="text-sm text-muted-foreground">
               {messages.filter((message) => message.role === 'user').length}{' '}
               {messages.filter((message) => message.role === 'user').length === 1
@@ -1088,7 +1081,16 @@ export function ChatView({
                    * (key={conversationId}), so an empty transcript is a fresh
                    * start. The 'cleared' variant stays available for a future
                    * clear-thread feature. */
-                  <EmptyStateOnboarding variant="first-run" onPick={chooseStarter} />
+                  <EmptyStateOnboarding
+                    variant="first-run"
+                    onPick={chooseStarter}
+                    title={starters?.length ? 'Ask this agent' : undefined}
+                    chips={
+                      starters?.length
+                        ? starters.map((prompt) => ({ label: prompt, prompt }))
+                        : undefined
+                    }
+                  />
                 )}
               </div>
             )}
@@ -1534,56 +1536,6 @@ export function ChatView({
                 </Button>
               </AlertDescription>
             </Alert>
-          )}
-          {messages.length === 0 && !needsKey && !draft.trim() && !editing && (
-            <EmptyState
-              className="chat-empty-starters"
-              title={starters?.length ? 'Ask this agent' : 'Where do you want to start?'}
-              description="Pick a starting point — it fills an editable draft. Only Send starts a model call."
-              action={
-                starters?.length ? (
-                  <div
-                    className="flex flex-wrap justify-center gap-2"
-                    role="group"
-                    aria-label="Try asking this agent"
-                  >
-                    {starters.map((prompt) => (
-                      <Button
-                        key={prompt}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => chooseStarter(prompt)}
-                      >
-                        {prompt}
-                      </Button>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    className="flex flex-wrap justify-center gap-2"
-                    role="group"
-                    aria-label="Ideas to get started"
-                  >
-                    {(Object.keys(CHAT_STARTERS) as ChatStarter[]).map((choice) => {
-                      const Icon = STARTER_ICONS[choice];
-                      return (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          key={choice}
-                          onClick={() => chooseStarter(CHAT_STARTERS[choice].prompt)}
-                          title={CHAT_STARTERS[choice].detail}
-                        >
-                          <Icon size={16} aria-hidden="true" />
-                          {CHAT_STARTERS[choice].label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )
-              }
-            />
           )}
           {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
           <div className="chat-composer-hint" id="chat-composer-hint">

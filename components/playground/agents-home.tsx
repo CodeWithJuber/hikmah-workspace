@@ -22,37 +22,34 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { AgentsPanel } from '@/components/chat/agents-panel';
+import styles from '@/components/app/sections.module.css';
 
 export function AgentsHome() {
   return (
-    <div className="destination-page">
-      <header className="workspace-header">
-        {/* size-9, because the vendored default is size-7 — 28px, under any
-            comfortable touch target. tailwind-merge lets the call site win. */}
-        <SidebarTrigger className="size-9" />
-        <h1>Agents</h1>
-      </header>
-      <div className="destination-scroll">
-        <section className="destination-hero">
-          <span className="eyebrow">YOUR TEAM, YOUR WAY</span>
-          <h2>
-            Give every kind of work
-            <br />
-            the right partner.
-          </h2>
+    <div className={styles.page}>
+      <div className={styles.pageInner}>
+        <header className={styles.header}>
+          {/* size-9, because the vendored default is size-7 — 28px, under any
+              comfortable touch target. tailwind-merge lets the call site win. */}
+          <SidebarTrigger className="size-9" />
+          <h1>Assistants</h1>
+        </header>
+        <section className={styles.hero}>
+          <span className={styles.eyebrow}>Your team, your way</span>
+          <h2>Give every kind of work the right partner.</h2>
           <p>
             Reusable instructions and a chosen tool set, saved to your workspace. Pick one in the
             chat to apply it to the next message; the model stays yours unless the agent names one.
           </p>
-          <Link className="text-link" href="/tools">
-            Explore tools &amp; runtimes <ArrowUpRight size={16} />
-          </Link>
         </section>
+        <Link className={styles.link} href="/tools">
+          Explore tools &amp; runtimes <ArrowUpRight size={16} />
+        </Link>
         {/* No picker here: this screen manages agents, and there is no
             conversation on it to apply one to. Choosing one happens where it
             takes effect. */}
         <AgentsPanel />
-        <p className="destination-note">
+        <p className={styles.note}>
           <Link href="/chat">Open the chat</Link> to use one on your next message.
         </p>
       </div>

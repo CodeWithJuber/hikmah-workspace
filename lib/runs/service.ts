@@ -35,7 +35,7 @@ import { captureCompletedRun } from '../learning/server.ts';
 import type { LearningConsent } from '../learning/types.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
-import { typeformRunContext } from '../integrations/typeform-server.ts';
+import { jevLane, applyJevLane } from './jev-lane.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
@@ -150,16 +150,16 @@ async function driveWithAgent({
   // did not carry the key was granted the workbench shell and SSH — a gate
   // failing in the one direction a gate must not. See lib/runs/execution.ts.
   const execution = executionAllowed(config);
+  // Jev preflight: the safest execution lane for this task, proposed by
+  // TypeSafe System One. Kicked off before the connects below so a slow Jev
+  // overlaps them instead of adding to the wait; null on any failure, and
+  // the run then behaves exactly as it did before the preflight existed.
+  const lanePromise = jevLane(recentUserText(messages as Turn[], 1)).catch(() => null);
   // Connected per run and released in the finally below. A worker that lives
   // for the life of the process would otherwise accumulate one set of
   // connections per run it has ever driven.
   const mcp = run.user_id ? await mcpForUser(run.user_id, signal) : undefined;
   const mediaKey = mediaKeyFor(config);
-  // An integration outage must not prevent an ordinary chat from starting.
-  // Availability and form grants are checked again by every tool call.
-  const typeform = run.user_id
-    ? await typeformRunContext(run.user_id, signal).catch(() => undefined)
-    : undefined;
   // Built once here rather than inside buildRunAgent, because the closing step
   // below talks to the same model after the agent loop has finished with it.
   const provider = {
@@ -175,10 +175,19 @@ async function driveWithAgent({
   // research card is persisted on the message and not only replayed.
   let sink: (chunk: unknown) => void = emit;
 
+  // The lane Jev proposed, mapped onto the existing options. A null proposal
+  // — Jev unreachable, keyless, or slow — leaves every option exactly as the
+  // config set it: Jev proposes, it never blocks.
+  const routed = applyJevLane(
+    { instructions: config.instructions, deepResearch: config.deepResearch === true },
+    await lanePromise,
+    { unattended: Boolean(config.task) },
+  );
+
   const agent = buildRunAgent({
     provider,
     model,
-    instructions: config.instructions,
+    instructions: routed.instructions,
     maxSteps: config.maxSteps,
     // buildRunAgent has accepted this since it was written and nothing passed
     // it, so the setting existed with nowhere to land.
@@ -194,7 +203,7 @@ async function driveWithAgent({
     // metadata carries only the parent's, so without this the lanes would be
     // the one thing the run did that nobody was charged for.
     onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
-    deepResearch: config.deepResearch === true,
+    deepResearch: routed.deepResearch,
     webSearch: config.webSearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],
@@ -214,7 +223,6 @@ async function driveWithAgent({
       available: execution && Boolean(run.user_id) && workbenchReady(),
     },
     mcp,
-    typeform,
     files: run.user_id
       ? { userId: run.user_id, files: createFileStore(getStorage().raw) }
       : undefined,

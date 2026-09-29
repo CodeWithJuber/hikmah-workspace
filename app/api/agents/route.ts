@@ -6,7 +6,6 @@ import { toolAvailability } from '@/lib/agents/availability';
 import { workbenchReady } from '@/lib/ssh/run-context';
 import { getStorage } from '@/server/storage.mjs';
 import { entitlementsForUser } from '@/lib/billing/server';
-import { typeformService } from '@/lib/integrations/typeform-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,10 +27,6 @@ export async function GET(request: Request) {
   // availability travels too: a menu offering bash on a box with no workbench
   // is a switch that changes nothing.
   const entitlements = entitlementsForUser(user);
-  const typeform = await typeformService()
-    .status(user.userId)
-    .then((status) => status.connected)
-    .catch(() => false);
   return Response.json(
     {
       agents: store().list(user.userId),
@@ -43,7 +38,6 @@ export async function GET(request: Request) {
         workbench: workbenchReady(),
         media: entitlements.media,
         execution: entitlements.execution,
-        typeform,
       }),
     },
     { headers },

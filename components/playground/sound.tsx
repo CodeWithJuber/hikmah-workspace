@@ -11,6 +11,7 @@ import {
   type SignalMode,
 } from '@/lib/engines/sound-math';
 import { Choice, Notice, Metric, Equation, errorMessage, downloadJson } from './common';
+import wb from './workbench.module.css';
 function LineChart({
   values,
   max = 1,
@@ -29,8 +30,8 @@ function LineChart({
     return `${((i / (Math.min(n, 900) - 1)) * 720).toFixed(2)},${(90 - (v / max) * 78).toFixed(2)}`;
   }).join(' ');
   return (
-    <svg className="chart" viewBox="0 0 720 180" role="img" aria-label="Computed signal plot">
-      <path d="M0 90H720" stroke="#dde3eb" fill="none" />
+    <svg className={wb.chart} viewBox="0 0 720 180" role="img" aria-label="Computed signal plot">
+      <path d="M0 90H720" stroke="var(--border)" fill="none" />
       <polyline fill="none" stroke={color} strokeWidth="1.5" points={pts} />
     </svg>
   );
@@ -68,7 +69,7 @@ function Spectrogram({ analysis }: { analysis: ReturnType<typeof analyzeSignal> 
     }
   return (
     <svg
-      className="chart"
+      className={wb.chart}
       viewBox="0 0 720 170"
       role="img"
       aria-label="Short-time frequency magnitude, time increases to the right, frequency upwards"
@@ -192,7 +193,7 @@ export function SoundLab() {
     : [];
   return (
     <>
-      <div className="fields">
+      <div className={wb.fields}>
         <Choice
           label="Signal"
           value={mode}
@@ -213,13 +214,13 @@ export function SoundLab() {
           options={['128', '256', '512', '1024'].map((v) => ({ value: v, label: v + ' samples' }))}
         />
       </div>
-      <div className="sound-controls">
+      <div className={wb.soundControls}>
         {[
           { label: 'Frequency A', value: a, set: setA },
           { label: 'Frequency B', value: b, set: setB },
         ].map((c) => (
-          <div className="field" key={c.label}>
-            <div className="number-row">
+          <div className={wb.field} key={c.label}>
+            <div className={wb.numberRow}>
               <span>{c.label}</span>
               <output>{c.value} Hz</output>
             </div>
@@ -234,8 +235,8 @@ export function SoundLab() {
             />
           </div>
         ))}
-        <div className="field">
-          <div className="number-row">
+        <div className={wb.field}>
+          <div className={wb.numberRow}>
             <span>Duration</span>
             <output>
               {uploaded
@@ -255,7 +256,7 @@ export function SoundLab() {
           />
         </div>
       </div>
-      <div className="actions">
+      <div className={wb.actions}>
         <Button onClick={play} disabled={playing || !signal}>
           {playing ? 'Playing…' : 'Play signal'}
         </Button>
@@ -270,7 +271,7 @@ export function SoundLab() {
         >
           Stop audio
         </Button>
-        <label className="check-row">
+        <label className={wb.checkRow}>
           <Checkbox
             aria-label="Reverse time"
             checked={reverse}
@@ -278,19 +279,19 @@ export function SoundLab() {
           />
           Reverse time
         </label>
-        <span className="small-note">Playback volume: 20%</span>
+        <span className={wb.smallNote}>Playback volume: 20%</span>
       </div>
       {(error || data.error) && <Notice error>{error || data.error}</Notice>}
       {analysis && signal && reversal && (
         <>
-          <div className="two-columns section">
+          <div className={`${wb.twoColumns} ${wb.section}`}>
             <section>
               <h2>Waveform</h2>
               <LineChart
                 values={signal.samples.slice(0, Math.min(256, signal.samples.length))}
                 max={1}
               />
-              <div className="chart-caption">
+              <div className={wb.chartCaption}>
                 <span>First {Math.min(256, signal.samples.length)} samples</span>
                 <span>
                   {((Math.min(256, signal.samples.length) / signal.sampleRateHz) * 1000).toFixed(1)}{' '}
@@ -304,20 +305,20 @@ export function SoundLab() {
                 values={analysis.spectrum.magnitude}
                 max={Math.max(1e-9, ...analysis.spectrum.magnitude)}
               />
-              <div className="chart-caption">
+              <div className={wb.chartCaption}>
                 <span>0 Hz</span>
                 <span>{signal.sampleRateHz / 2} Hz</span>
               </div>
-              <p className="small-note" style={{ marginTop: 12 }}>
+              <p className={wb.smallNote} style={{ marginTop: 12 }}>
                 Strongest bins: {peaks.map((p) => p.hz.toFixed(1) + ' Hz').join(', ')}. Bin spacing{' '}
                 {analysis.binSpacingHz.toFixed(2)} Hz.
               </p>
             </section>
           </div>
-          <section className="chart-block">
+          <section className={wb.chartBlock}>
             <h2>Frequency over time</h2>
             <Spectrogram analysis={analysis} />
-            <div className="chart-caption">
+            <div className={wb.chartCaption}>
               <span>Time → · frequency ↑ to {signal.sampleRateHz / 2} Hz</span>
               <span>
                 {(signal.samples.length / signal.sampleRateHz).toFixed(3)} seconds · darker =
@@ -325,7 +326,7 @@ export function SoundLab() {
               </span>
             </div>
           </section>
-          <div className="metric-row section">
+          <div className={`${wb.metricRow} ${wb.section}`}>
             <Metric
               value={analysis.fftReconstructionError.maxAbsoluteError.toExponential(2)}
               label="FFT inverse maximum error"
@@ -348,7 +349,7 @@ export function SoundLab() {
             identical while the order of sounds changes. This is an acoustic comparison; it does not
             measure semantic similarity.
           </Notice>
-          <div className="actions">
+          <div className={wb.actions}>
             <Button
               variant="outline"
               onClick={() =>
@@ -375,9 +376,9 @@ export function SoundLab() {
           </div>
         </>
       )}
-      <section className="audio-upload">
+      <section className={wb.audioUpload}>
         <h3>Test your own audio</h3>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Audio stays in this browser. Maximum file: 2 MB, duration: 30 seconds. The first channel
           and first 65,536 samples are analyzed at the decoded sample rate; longer clips are
           cropped.
@@ -399,7 +400,7 @@ export function SoundLab() {
             channels · channel 1 · analyzing{' '}
             {(uploaded.samples.length / uploaded.sampleRateHz).toFixed(3)} s at{' '}
             {uploaded.sampleRateHz} Hz.
-            <div className="actions">
+            <div className={wb.actions}>
               <Button variant="outline" onClick={() => setUploaded(null)}>
                 Return to synthetic signal
               </Button>
@@ -407,7 +408,7 @@ export function SoundLab() {
           </Notice>
         )}
       </section>
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Sound mathematics and limits</summary>
         <Equation description="The complex transform retains phase. Its magnitude alone cannot reconstruct the full temporal signal.">
           X[k] = Σₙ x[n] exp(−2πikn/N)
@@ -415,7 +416,7 @@ export function SoundLab() {
         <Equation description="The short-time Fourier transform keeps a local time coordinate using overlapping Hann windows. Window size trades temporal detail against frequency detail.">
           X[m,k] = Σₙ x[n] w[n−mH] exp(−2πikn/N)
         </Equation>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Graph frequencies are eigenvalues of a graph operator, not acoustic hertz. Sound patterns
           can have statistical language associations, but this experiment establishes no universal
           frequency-to-root dictionary. No speech recognizer or trained acoustic meaning model is

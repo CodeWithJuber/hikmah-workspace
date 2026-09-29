@@ -810,7 +810,10 @@
     font-weight: 650;
     letter-spacing: -0.8px;
     padding: 0 10px;
-    color: var(--primary-foreground);
+    /* The wordmark sits on the white sidebar: near-black ink in light, the
+     * foreground token in dark — not --primary-foreground, which is white
+     * in light and would vanish against the page. */
+    color: var(--foreground);
   }
   .hikmah-brand svg {
     color: var(--primary);
@@ -833,30 +836,47 @@
  * `justify-content` and `gap` two of those rules set were inert and the two
  * children stacked on separate lines 21px apart inside a 44px button.
  *
- * The green is the brand primary, so it is the token rather than a hex: the
- * pair moves together and the contrast cannot come apart again. */
+ * The fill is the primary token, not a hex: near-black in light (the
+ * Linear/Vercel CTA grammar the brief asks for) and the brand green in dark,
+ * so the pair moves together and the contrast cannot come apart again.
+ *
+ * Phase 1 polish: 44px sits on the control-height scale; the hover deepens
+ * the shadow rather than flashing the fill; the press state gives a hair of
+ * feedback; the focus ring is the green the brand reserves for rings. */
   .new-chat {
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
     width: 100%;
-    min-height: 46px;
-    padding: 0 15px;
+    min-height: 44px;
+    padding: 0 14px;
     border: 1px solid var(--primary);
-    border-radius: var(--radius);
+    border-radius: calc(var(--radius) - 2px);
     background: var(--primary);
     color: var(--primary-foreground);
     font-size: var(--font-size-base);
-    box-shadow: 0 3px 9px var(--shadow);
+    font-weight: 600;
+    box-shadow: 0 1px 2px var(--shadow);
     transition:
-      background 0.15s,
-      border-color 0.15s;
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
   }
   .new-chat:hover {
     background: color-mix(in oklab, var(--primary) 88%, white);
     border-color: color-mix(in oklab, var(--primary) 88%, white);
     color: var(--primary-foreground);
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+  .new-chat:active {
+    transform: scale(0.98);
+  }
+  .new-chat:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
   }
   .workspace-sidebar-content {
     color: var(--sidebar-foreground);
@@ -865,16 +885,17 @@
   .workspace-sidebar-footer > button {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     width: 100%;
-    padding: 12px 15px;
+    padding: 10px 12px;
     background: none;
     border: 0;
     color: var(--sidebar-foreground);
-    font-size: var(--font-size-base);
+    font-size: calc(var(--font-size-base) - 1px);
+    font-weight: 500;
     text-align: left;
-    border-radius: calc(var(--radius) - 2px);
-    min-height: 44px;
+    border-radius: calc(var(--radius) - 4px);
+    min-height: 40px;
   }
   .primary-nav button:hover,
   .workspace-sidebar-footer > button:hover {
@@ -1474,6 +1495,50 @@
   }
   .lab-switcher h2 {
     margin: 0;
+  }
+  /* Settings hub: one card per destination, label + plain-language blurb. */
+  .setting-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--foreground);
+    text-decoration: none;
+  }
+  .setting-card:hover {
+    background: var(--accent);
+  }
+  .setting-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    background: var(--secondary);
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  .setting-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+  .setting-card-label {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+  }
+  .setting-card-blurb {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+  .setting-card-chevron {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
   }
   .lab-page .json-view {
     background: var(--secondary);

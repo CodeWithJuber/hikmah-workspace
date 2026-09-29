@@ -1,0 +1,806 @@
+/* Section shell — Assistants, Memory, Teach, Playground, Settings.
+ *
+ * Scoped module (not part of the app/styles import graph) so the section
+ * rebuild does not fight stream C's shell styles in base.css / workspace.css:
+ * these pages use ONLY these classes, never the legacy globals. Colours come
+ * from tokens only; radii from var(--radius); control heights from the
+ * 24/32/36/40/44 scale; icons from the 12/16/20/24/32/48 scale. */
+
+.page {
+  min-height: 100%;
+  padding: 32px clamp(20px, 4vw, 48px) 72px;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.pageInner {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+/* ---- header ---- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.headerSub {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ---- hero ---- */
+
+.eyebrow {
+  color: var(--ax-text-accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero {
+  max-width: 720px;
+  margin-bottom: 40px;
+}
+
+.hero h2 {
+  margin: 10px 0 14px;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* ---- section titles ---- */
+
+.sectionTitle {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.groupLabel {
+  margin: 0 0 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- directory cards (labs, link grids) ---- */
+
+.directory {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.dirCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+  color: var(--foreground);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease,
+    background-color 0.2s ease;
+}
+
+.dirCard:hover {
+  box-shadow: 0 8px 24px var(--shadow);
+  transform: translateY(-2px);
+}
+
+.dirCard:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.dirIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.dirCardBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.dirCardBody h2,
+.dirCardBody strong {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.dirCardBody p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dirArrow {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+}
+
+/* ---- settings rows ---- */
+
+.settingGroup {
+  margin: 0 0 40px;
+}
+
+.settingList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settingCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+  color: var(--foreground);
+  text-decoration: none;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease,
+    background-color 0.2s ease;
+}
+
+.settingCard:hover {
+  box-shadow: 0 8px 24px var(--shadow);
+  transform: translateY(-2px);
+}
+
+.settingCard:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.settingIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.settingText {
+  min-width: 0;
+  flex: 1;
+}
+
+.settingLabel {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.settingBlurb {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.settingChevron {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+/* ---- knowledge cards ---- */
+
+.scopeTabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted);
+}
+
+.scopeNote {
+  margin: 14px 0 24px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  margin-bottom: 24px;
+  padding: 0 14px;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+
+.searchRow:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+
+.searchRow input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.cardGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.kCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.kCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kCardHeader h3 {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.kCardIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.kCard p {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.kCardFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.kCardMeta {
+  min-width: 0;
+  flex: 1;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.pill {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ---- intro + connection banner ---- */
+
+.introCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.introCard h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.introCard p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.introIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.connectBanner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.connectBanner strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.connectBanner p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.connectBanner > div {
+  min-width: 0;
+  flex: 1;
+}
+
+/* ---- disclosure (details) ---- */
+
+.disclosure {
+  margin-top: 32px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 14px 24px;
+  border-radius: calc(var(--radius) + 4px);
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary:hover {
+  background: var(--muted);
+}
+
+.disclosure > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.disclosure > div {
+  padding: 4px 24px 24px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.disclosure ol {
+  margin: 0 0 16px;
+  padding-left: 20px;
+}
+
+.disclosure li {
+  margin-bottom: 10px;
+}
+
+/* ---- editor dialog form ---- */
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+/* ---- generic helpers ---- */
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ax-text-accent);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.note {
+  margin: 24px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.note a {
+  color: var(--ax-text-accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.switcher h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.introLine {
+  margin: 0 0 24px;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ---- learning home (teach library tab, superadmin owner view) ---- */
+
+.statusGrid {
+  display: grid;
+  gap: 16px;
+  margin: 32px 0;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.statusCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.statusCard strong {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.statusCard span {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.reviewBanner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--muted);
+  font-size: 14px;
+}
+
+.reviewBanner > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.liveGrid {
+  display: grid;
+  gap: 24px;
+  margin-top: 32px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+.livePanel {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.livePanel h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.livePanel dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.livePanel dl > div {
+  display: grid;
+  gap: 4px;
+}
+
+.livePanel dt {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.livePanel dd {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.eventList {
+  display: grid;
+  gap: 12px;
+}
+
+.eventCard {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+}
+
+.eventCard strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.eventCard p {
+  margin: 4px 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.eventCard time {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.syncRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.syncRow > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.researchLink {
+  display: inline-flex;
+  margin-top: 24px;
+  color: var(--ax-text-accent);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.researchLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.accessPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 640px;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.accessPanel h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.accessPanel p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 24px 16px 56px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+  }
+
+  .hero h2 {
+    font-size: 28px;
+  }
+
+  .liveGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .connectBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .introCard {
+    padding: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dirCard,
+  .settingCard {
+    transition: none;
+  }
+
+  .dirCard:hover,
+  .settingCard:hover {
+    transform: none;
+  }
+}

@@ -11,6 +11,7 @@ import { Learn } from '@/components/playground/learn';
 import { AgentTasks } from '@/components/playground/agent-tasks';
 import { SoundLab } from '@/components/playground/sound';
 import { Maths } from '@/components/playground/maths';
+import styles from '@/components/app/sections.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,34 +23,38 @@ export default async function LabPage({ params }: { params: Promise<{ id: string
   if (!lab) notFound();
   await requireChatGPTUser('/labs/' + lab.id);
   return (
-    <div className="lab-page">
-      <header className="lab-header">
-        <SidebarTrigger />
-        <div>
-          <h1>Research labs</h1>
-          <p>These are local experiments. They work without a provider connection.</p>
+    <div className={styles.page}>
+      <div className={styles.pageInner}>
+        <header className={styles.header}>
+          <SidebarTrigger className="size-9" />
+          <div className={styles.headerText}>
+            <h1>Research labs</h1>
+            <p className={styles.headerSub}>
+              These are local experiments. They work without a provider connection.
+            </p>
+          </div>
+        </header>
+        <div className={styles.switcher}>
+          <Button variant="ghost" asChild>
+            <Link href="/labs">
+              <ArrowLeft size={16} />
+              All labs
+            </Link>
+          </Button>
+          <h2>{lab.name}</h2>
         </div>
-      </header>
-      <div className="lab-switcher">
-        <Button variant="ghost" asChild>
-          <Link href="/labs">
-            <ArrowLeft size={16} />
-            All labs
-          </Link>
-        </Button>
-        <h2>{lab.name}</h2>
+        {lab.id === 'meaning' ? (
+          <MeaningLab />
+        ) : lab.id === 'learn' ? (
+          <Learn />
+        ) : lab.id === 'planning' ? (
+          <AgentTasks />
+        ) : lab.id === 'sound' ? (
+          <SoundLab />
+        ) : (
+          <Maths />
+        )}
       </div>
-      {lab.id === 'meaning' ? (
-        <MeaningLab />
-      ) : lab.id === 'learn' ? (
-        <Learn />
-      ) : lab.id === 'planning' ? (
-        <AgentTasks />
-      ) : lab.id === 'sound' ? (
-        <SoundLab />
-      ) : (
-        <Maths />
-      )}
     </div>
   );
 }

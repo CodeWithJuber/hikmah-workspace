@@ -27,7 +27,6 @@ import {
 } from './tools/deep-research.ts';
 import type { Model } from '../engines/meaning-engine.ts';
 import type { ResolvedGrants } from '../chat/approvals.ts';
-import { typeformTools, type TypeformToolContext } from '../integrations/typeform-tools.ts';
 
 export type RunAgentOptions = {
   provider: ModelRequest;
@@ -115,8 +114,6 @@ export type RunAgentOptions = {
    * words, to their memory. Omitted when the run has no person behind it.
    */
   memory?: MemoryToolContext;
-  /** Shared forms authorized for the signed-in run owner. Never contains a token. */
-  typeform?: TypeformToolContext;
   /**
    * MCP tools for this run, already connected and gated.
    *
@@ -162,7 +159,6 @@ export function buildRunAgent(options: RunAgentOptions) {
     ...(options.media?.key ? mediaTools({ ...options.media, signal: options.signal }) : {}),
     ...(options.files ? fileTools(options.files) : {}),
     ...(options.memory ? rememberTools(options.memory) : {}),
-    ...(options.typeform ? typeformTools(options.typeform) : {}),
     // Last, so a built-in tool can never be shadowed by a server that named one
     // of its tools after it. The mcp__server__tool prefix makes a collision
     // unlikely, but "unlikely" is not the property worth relying on here.
@@ -176,7 +172,6 @@ export function buildRunAgent(options: RunAgentOptions) {
     name === 'ssh_exec' ||
     name === 'bash' ||
     name === 'sandbox_run' ||
-    name === 'typeform_read_responses' ||
     (name.startsWith('mcp__') && options.mcp?.approval.get(name) !== 'auto');
   // What this message asked for by name, over the conversation's switches and
   // an agent's allowlist alike. Only the two search tools: the switch adds
@@ -235,13 +230,6 @@ export function buildRunAgent(options: RunAgentOptions) {
   // set reads or computes; ssh_exec runs a command on a machine the owner cares
   // about, and an MCP tool belongs to a server that is not on our side.
   const grants = options.approvals;
-  const typeformApproval = options.typeform
-    ? {
-        typeform_read_responses: grants?.tools.has('typeform_read_responses')
-          ? ('approved' as const)
-          : ('user-approval' as const),
-      }
-    : undefined;
   const sshApproval =
     options.ssh && !disabled.has('ssh_exec')
       ? { ssh_exec: sshApprovalPolicy({ listHosts: options.ssh.listHosts, grants }) }
@@ -288,7 +276,7 @@ export function buildRunAgent(options: RunAgentOptions) {
     // `bash` ran whatever it liked and `sandbox_run` — documented as always
     // asking — never asked. Nothing failed: the tools worked, they just worked
     // without the card.
-    ...(sshApproval || mcpApproval || shellApproval || typeformApproval
+    ...(sshApproval || mcpApproval || shellApproval
       ? {
           toolApproval: Object.fromEntries(
             // Only for tools actually offered: an unattended run withheld every
@@ -298,7 +286,6 @@ export function buildRunAgent(options: RunAgentOptions) {
               ...mcpApproval,
               ...shellApproval,
               ...sshApproval,
-              ...typeformApproval,
             }).filter(([name]) => name in tools),
           ),
         }

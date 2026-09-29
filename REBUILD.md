@@ -37,5 +37,5 @@ Full production-ready rebuild of hikmah-workspace. Audits that drove this plan:
 ## What ships in v10
 
 Every existing feature production-ready: chat + agents, workspace (agents/terminal/tools/connections/
-typeform/knowledge/learning/kernel/labs/admin), billing, MCP, workbench, media, auth — on one
+knowledge/learning/kernel/labs/admin), billing, MCP, workbench, media, auth — on one
 unified, honest, fast shell.

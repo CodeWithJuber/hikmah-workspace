@@ -21,6 +21,7 @@ import { useKernel } from '@/components/kernel/context';
 import { KnowledgeEditor, newKnowledge } from './knowledge';
 import { VitalsPanel } from '@/components/settings/vitals-panel';
 import type { KnowledgeItem } from '@/lib/playground/knowledge';
+import styles from '@/components/app/sections.module.css';
 
 export function OwnerAccess({ children, crumb }: { children: ReactNode; crumb?: ReactNode }) {
   const kernel = useKernel();
@@ -37,40 +38,52 @@ export function OwnerAccess({ children, crumb }: { children: ReactNode; crumb?: 
       children
     );
   return (
-    <div className="knowledge-page">
-      <header className="workspace-header">
-        <SidebarTrigger />
-        <h1>Owner console</h1>
-      </header>
-      <div className="access-panel">
-        <LockKeyhole size={32} />
-        <h2>
-          {kernel.access === 'loading'
-            ? 'Checking owner access…'
-            : kernel.access === 'forbidden'
-              ? 'Owner account required'
-              : 'Connect your owner account'}
-        </h2>
-        <p>{kernel.error || 'Loading the server-verified owner role and saved learning state.'}</p>
-        <p>
-          Training, model releases and shared knowledge are available to the configured owner. Your
-          model provider key does not grant admin access.
-        </p>
-        <Button disabled={kernel.access === 'loading'} onClick={() => void kernel.refresh()}>
-          <RefreshCw size={16} />
-          Check access again
-        </Button>
-        {kernel.access === 'signed_out' && (
-          <a href="/sign-in" target="_top">
-            Sign in to your workspace
-          </a>
-        )}
+    <div className={styles.page}>
+      <div className={styles.pageInner}>
+        <header className={styles.header}>
+          <SidebarTrigger className="size-9" />
+          <h1>Owner console</h1>
+        </header>
+        <div className={styles.accessPanel}>
+          <span className={styles.introIcon}>
+            <LockKeyhole size={24} aria-hidden="true" />
+          </span>
+          <h2>
+            {kernel.access === 'loading'
+              ? 'Checking owner access…'
+              : kernel.access === 'forbidden'
+                ? 'Owner account required'
+                : 'Connect your owner account'}
+          </h2>
+          <p>
+            {kernel.error || 'Loading the server-verified owner role and saved learning state.'}
+          </p>
+          <p>
+            Training, model releases and shared knowledge are available to the configured owner.
+            Your model provider key does not grant admin access.
+          </p>
+          <Button disabled={kernel.access === 'loading'} onClick={() => void kernel.refresh()}>
+            <RefreshCw size={16} />
+            Check access again
+          </Button>
+          {kernel.access === 'signed_out' && (
+            <a className={styles.link} href="/sign-in" target="_top">
+              Sign in to your workspace
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export function LearningHome({ owner = false }: { owner?: boolean }) {
+export function LearningHome({
+  owner = false,
+  flush = false,
+}: {
+  owner?: boolean;
+  flush?: boolean;
+}) {
   const { storageMessage, preferences, provider } = usePlayground();
   // Counts and recent activity from the memories table, the store every
   // answer reads — not the workspace blob this screen used to count.
@@ -115,8 +128,8 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
         },
         {
           title: 'Integrations',
-          text: 'Connect Typeform once and choose which forms each account can read.',
-          page: 'superadmin/integrations',
+          text: 'Connect the services the assistant can use in your workspace.',
+          page: 'connections',
           icon: Settings2,
         },
         {
@@ -152,170 +165,186 @@ export function LearningHome({ owner = false }: { owner?: boolean }) {
           icon: ShieldCheck,
         },
       ];
-  return (
-    <div className="knowledge-page">
-      <header className="workspace-header">
-        <SidebarTrigger />
-        <h1>{owner ? 'Owner console · Super Admin' : 'Memory & learning'}</h1>
-        <Button variant="outline" onClick={() => setDraft(newKnowledge())}>
-          <BookOpen size={16} />
-          Remember something
-        </Button>
-      </header>
-      <div className="learning-home">
-        <div className="learning-home-title">
-          <span className="eyebrow">{owner ? 'OWNER CONSOLE' : 'YOUR INTELLIGENCE LAYER'}</span>
-          <h2>
-            {owner ? 'Training and control, in one place.' : 'See what stays. See what changes.'}
-          </h2>
-          <p>
-            {owner
-              ? 'Owner access verified. Choose the model pipeline you want to manage.'
-              : 'Memory supplies reusable context. Feedback adjusts workflow preferences. Reviewed annotations train the local model.'}
-          </p>
+  const body = (
+    <>
+      <section className={styles.hero}>
+        <span className={styles.eyebrow}>
+          {owner ? 'Owner console' : 'Your intelligence layer'}
+        </span>
+        <h2>
+          {owner ? 'Training and control, in one place.' : 'See what stays. See what changes.'}
+        </h2>
+        <p>
+          {owner
+            ? 'Owner access verified. Choose the model pipeline you want to manage.'
+            : 'Memory supplies reusable context. Feedback adjusts workflow preferences. Reviewed annotations train the local model.'}
+        </p>
+      </section>
+      <div className={styles.statusGrid}>
+        <div className={styles.statusCard}>
+          <BookOpen size={20} aria-hidden="true" />
+          <strong>{counts.saved}</strong>
+          <span>Saved memories</span>
         </div>
-        <div className="learning-status-grid">
-          <div>
-            <BookOpen size={20} />
-            <strong>{counts.saved}</strong>
-            <span>Saved memories</span>
-          </div>
-          <div>
-            <BrainCircuit size={20} />
-            <strong>{counts.suggested}</strong>
-            <span>Awaiting your review</span>
-          </div>
-          <div>
-            <Activity size={20} />
-            <strong>{kernel.ready ? kernel.state.feedbackRevision : '—'}</strong>
-            <span>Feedback updates</span>
-          </div>
+        <div className={styles.statusCard}>
+          <BrainCircuit size={20} aria-hidden="true" />
+          <strong>{counts.suggested}</strong>
+          <span>Awaiting your review</span>
         </div>
-        {counts.suggested > 0 && (
-          <div className="memory-review-banner" role="status">
-            <span>
-              <strong>
-                {counts.suggested} memory suggestion{counts.suggested > 1 ? 's' : ''}
-              </strong>{' '}
-              ready to review before use.
+        <div className={styles.statusCard}>
+          <Activity size={20} aria-hidden="true" />
+          <strong>{kernel.ready ? kernel.state.feedbackRevision : '—'}</strong>
+          <span>Feedback updates</span>
+        </div>
+      </div>
+      {counts.suggested > 0 && (
+        <div className={styles.reviewBanner} role="status">
+          <span>
+            <strong>
+              {counts.suggested} memory suggestion{counts.suggested > 1 ? 's' : ''}
+            </strong>{' '}
+            ready to review before use.
+          </span>
+          <Button asChild>
+            <Link href="/knowledge">Review</Link>
+          </Button>
+        </div>
+      )}
+      <div className={styles.directory}>
+        {links.map((l) => (
+          <Link key={l.page} href={'/' + l.page} className={styles.dirCard}>
+            <span className={styles.dirIcon}>
+              <l.icon size={24} aria-hidden="true" />
             </span>
-            <Button asChild>
-              <Link href="/knowledge">Review</Link>
-            </Button>
-          </div>
-        )}
-        <div className="learning-links">
-          {links.map((l) => (
-            <Link key={l.page} href={'/' + l.page} className="learning-link">
-              <l.icon size={24} />
-              <div>
-                <strong>{l.title}</strong>
-                <p>{l.text}</p>
-              </div>
-              <ArrowUpRight size={20} />
-            </Link>
-          ))}
-        </div>
-        {owner && <VitalsPanel />}
-        <div className="learning-live-grid">
-          <section>
-            <h3>What runs in real time</h3>
-            <dl>
-              <div>
-                <dt>Personal memory</dt>
-                <dd>{counts.saved ? 'Retrieved for every answer' : 'Add a memory to begin'}</dd>
-              </div>
-              <div>
-                <dt>Memory suggestions</dt>
-                <dd>Saved in your own words now; the model’s suggestions arrive with review</dd>
-              </div>
-              <div>
-                <dt>Feedback learning</dt>
-                <dd>
-                  {kernel.ready
-                    ? kernel.state.config.collectFeedback
-                      ? 'On · when you rate a response'
-                      : 'Paused by owner'
-                    : 'Learning connection unavailable'}
-                </dd>
-              </div>
-              <div>
-                <dt>Context in chat</dt>
-                <dd>
-                  {preferences.enableCoModel && kernel.state.config.enabled
-                    ? 'Local analysis enabled'
-                    : 'Disabled in current settings'}
-                </dd>
-              </div>
-              <div>
-                <dt>Parameter training</dt>
-                <dd>Starts after you submit reviewed labels</dd>
-              </div>
-              <div>
-                <dt>Provider spending</dt>
-                <dd>
-                  {provider.freeOnly
-                    ? 'Free models only · no paid fallback'
-                    : 'Provider rates apply'}
-                </dd>
-              </div>
-            </dl>
-            <p className="fine-print">
-              Saving memories and training local models do not require a provider API key. Raw chats
-              do not automatically become trusted training labels.
-            </p>
-          </section>
-          <section>
-            <h3>Recent learning activity</h3>
-            {activity.length ? (
-              activity.map((e) => (
-                <article className="learning-event" key={e.id}>
+            <span className={styles.dirCardBody}>
+              <strong>{l.title}</strong>
+              <p>{l.text}</p>
+            </span>
+            <ArrowUpRight size={20} className={styles.dirArrow} aria-hidden="true" />
+          </Link>
+        ))}
+      </div>
+      {owner && <VitalsPanel />}
+      <div className={styles.liveGrid}>
+        <section className={styles.livePanel}>
+          <h3>What runs in real time</h3>
+          <dl>
+            <div>
+              <dt>Personal memory</dt>
+              <dd>{counts.saved ? 'Retrieved for every answer' : 'Add a memory to begin'}</dd>
+            </div>
+            <div>
+              <dt>Memory suggestions</dt>
+              <dd>Saved in your own words now; the model’s suggestions arrive with review</dd>
+            </div>
+            <div>
+              <dt>Feedback learning</dt>
+              <dd>
+                {kernel.ready
+                  ? kernel.state.config.collectFeedback
+                    ? 'On · when you rate a response'
+                    : 'Paused by owner'
+                  : 'Learning connection unavailable'}
+              </dd>
+            </div>
+            <div>
+              <dt>Context in chat</dt>
+              <dd>
+                {preferences.enableCoModel && kernel.state.config.enabled
+                  ? 'Local analysis enabled'
+                  : 'Disabled in current settings'}
+              </dd>
+            </div>
+            <div>
+              <dt>Parameter training</dt>
+              <dd>Starts after you submit reviewed labels</dd>
+            </div>
+            <div>
+              <dt>Provider spending</dt>
+              <dd>
+                {provider.freeOnly ? 'Free models only · no paid fallback' : 'Provider rates apply'}
+              </dd>
+            </div>
+          </dl>
+          <p className={styles.note}>
+            Saving memories and training local models do not require a provider API key. Raw chats
+            do not automatically become trusted training labels.
+          </p>
+        </section>
+        <section className={styles.livePanel}>
+          <h3>Recent learning activity</h3>
+          {activity.length ? (
+            <div className={styles.eventList}>
+              {activity.map((e) => (
+                <article className={styles.eventCard} key={e.id}>
                   <strong>{e.title}</strong>
                   <p>{e.detail}</p>
                   <time>{new Date(e.at).toLocaleString()}</time>
                 </article>
-              ))
-            ) : (
-              <EmptyState
-                icon={<BrainCircuit size={20} />}
-                title="No updates yet"
-                description="Save a memory, review an example or rate a completed response."
-                action={
-                  <Button onClick={() => setDraft(newKnowledge())}>
-                    <BookOpen size={16} />
-                    Remember something
-                  </Button>
-                }
-              />
-            )}
-          </section>
-        </div>
-        <div className="learning-sync">
-          <span role="status">{storageMessage}</span>
-          <span>
-            {kernel.lastSynced
-              ? 'Learning synced ' + new Date(kernel.lastSynced).toLocaleTimeString()
-              : 'Learning not synced'}
-          </span>
-          <Button
-            variant="ghost"
-            disabled={kernel.access === 'loading'}
-            onClick={() => void kernel.refresh()}
-          >
-            <RefreshCw size={16} />
-            Refresh learning
-          </Button>
-        </div>
-        <a
-          className="learning-research"
-          href="/research/v7/memory-research.md"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Memory research, Quranic context and mathematics ↗
-        </a>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<BrainCircuit size={20} />}
+              title="No updates yet"
+              description="Save a memory, review an example or rate a completed response."
+              action={
+                <Button onClick={() => setDraft(newKnowledge())}>
+                  <BookOpen size={16} />
+                  Remember something
+                </Button>
+              }
+            />
+          )}
+        </section>
       </div>
+      <div className={styles.syncRow}>
+        <span role="status">{storageMessage}</span>
+        <span>
+          {kernel.lastSynced
+            ? 'Learning synced ' + new Date(kernel.lastSynced).toLocaleTimeString()
+            : 'Learning not synced'}
+        </span>
+        <Button
+          variant="ghost"
+          disabled={kernel.access === 'loading'}
+          onClick={() => void kernel.refresh()}
+        >
+          <RefreshCw size={16} />
+          Refresh learning
+        </Button>
+      </div>
+      <a
+        className={styles.researchLink}
+        href="/research/v7/memory-research.md"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Memory research, Quranic context and mathematics ↗
+      </a>
       {draft && <KnowledgeEditor key={draft.id} value={draft} onClose={() => setDraft(null)} />}
+    </>
+  );
+  /* The Teach Library tab renders this without page chrome: the Teach header
+     and tab bar already frame it. Everywhere else it keeps its own header. */
+  if (flush) return <div className={styles.pageInner}>{body}</div>;
+  return (
+    <div className={styles.page}>
+      <div className={styles.pageInner}>
+        <header className={styles.header}>
+          <SidebarTrigger className="size-9" />
+          <div className={styles.headerText}>
+            <h1>{owner ? 'Owner console · Super Admin' : 'Memory & learning'}</h1>
+          </div>
+          <div className={styles.headerActions}>
+            <Button variant="outline" onClick={() => setDraft(newKnowledge())}>
+              <BookOpen size={16} />
+              Remember something
+            </Button>
+          </div>
+        </header>
+        {body}
+      </div>
     </div>
   );
 }

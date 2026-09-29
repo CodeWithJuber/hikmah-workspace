@@ -29,6 +29,7 @@ import {
   pretty,
   downloadJson,
 } from './common';
+import wb from './workbench.module.css';
 import { languageOptions } from './meaning';
 type Candidate = {
   rows: TrainingRow[];
@@ -144,19 +145,19 @@ export function Learn() {
   };
   return (
     <>
-      <div className="metric-row">
+      <div className={wb.metricRow}>
         <Metric value={model.training_ids.length} label="active training examples" />
         <Metric value={model.lexicon.length} label="learned token mappings" />
         <Metric value={model.rules.length} label="learned constructions" />
       </div>
-      <div className="two-columns">
+      <div className={wb.twoColumns}>
         <section>
           <h2>Teach a construction</h2>
-          <p className="small-note">
+          <p className={wb.smallNote}>
             Train a candidate, compare it against development examples, then apply an approved
             update. These are real local computations.
           </p>
-          <div className="actions">
+          <div className={wb.actions}>
             <Button variant="outline" onClick={() => load('good')}>
               Load valid update
             </Button>
@@ -168,7 +169,7 @@ export function Learn() {
             </Button>
           </div>
           <label
-            className="small-note"
+            className={wb.smallNote}
             htmlFor="training-json"
             style={{ display: 'block', margin: '18px 0 6px' }}
           >
@@ -176,7 +177,7 @@ export function Learn() {
           </label>
           <Textarea
             id="training-json"
-            className="train-input"
+            className={wb.trainInput}
             value={rowsJson}
             maxLength={500000}
             onChange={(e) => {
@@ -185,7 +186,7 @@ export function Learn() {
             }}
             spellCheck={false}
           />
-          <div className="actions">
+          <div className={wb.actions}>
             <Button onClick={fit}>Train candidate</Button>
             <Button
               variant="outline"
@@ -202,7 +203,7 @@ export function Learn() {
         </section>
         <section>
           <h2>Test before and after</h2>
-          <div className="fields">
+          <div className={wb.fields}>
             <Choice
               label="Probe language"
               value={probeLanguage}
@@ -245,7 +246,7 @@ export function Learn() {
                   {candidate.result.receipt.wrong_emitted_frames.length}.
                 </p>
               </Notice>
-              <div className="actions">
+              <div className={wb.actions}>
                 <Button
                   disabled={!candidate.result.receipt.approved}
                   onClick={async () => {
@@ -279,7 +280,7 @@ export function Learn() {
               <JsonView value={candidate.result.receipt} label="Inspect the development decision" />
             </>
           )}
-          <p className="small-note" style={{ marginTop: 18 }}>
+          <p className={wb.smallNote} style={{ marginTop: 18 }}>
             A no-gain candidate needs independent development examples. More observations are not a
             confidence probability. Final test labels never select updates.
           </p>
@@ -287,9 +288,9 @@ export function Learn() {
       </div>
       {error && <Notice error>{error}</Notice>}
       {notice && <Notice>{notice}</Notice>}
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Add your own labeled sentence</summary>
-        <div className="fields">
+        <div className={wb.fields}>
           <Choice
             label="Example language"
             value={language}
@@ -322,8 +323,8 @@ export function Learn() {
             ]}
           />
         </div>
-        <div className="fields">
-          <div className="field">
+        <div className={wb.fields}>
+          <div className={wb.field}>
             <label htmlFor="agent-name">Actor ID</label>
             <Input
               id="agent-name"
@@ -331,7 +332,7 @@ export function Learn() {
               onChange={(e) => setAgentName(e.target.value)}
             />
           </div>
-          <div className="field">
+          <div className={wb.field}>
             <label htmlFor="patient-name">Recipient ID</label>
             <Input
               id="patient-name"
@@ -346,21 +347,21 @@ export function Learn() {
           maxLength={512}
           onChange={(e) => setSentence(e.target.value)}
         />
-        <div className="actions">
+        <div className={wb.actions}>
           <Button variant="outline" onClick={addExample}>
             Add to training examples
           </Button>
         </div>
       </details>
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Add independent development examples</summary>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Same row format; set split to “development”. Use different sentences and semantic families
           from training. These labels affect the gate, so keep a separate untouched final
           evaluation.
         </p>
         <Textarea
-          className="train-input"
+          className={wb.trainInput}
           aria-label="Development examples JSON"
           value={developmentJson}
           maxLength={500000}
@@ -370,7 +371,7 @@ export function Learn() {
           }}
         />
       </details>
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Inspect learned rules and reference results</summary>
         <DataTable
           heads={['Language', 'Learned construction', 'Constants', 'Observations']}
@@ -383,7 +384,7 @@ export function Learn() {
             r.observations,
           ])}
         />
-        <div className="actions">
+        <div className={wb.actions}>
           <Button
             variant="outline"
             onClick={() => setDiagnostics(evaluate(model, dataset.final_test as Row[]))}
@@ -403,12 +404,12 @@ export function Learn() {
           </>
         )}
       </details>
-      <section className="section">
+      <section className={wb.section}>
         <h2>What the algorithm learns</h2>
         <Equation description="For each word, intersect the semantic atoms of every labeled sentence containing it. A unique surviving atom becomes a lexical entry. Multiple candidates remain unresolved.">
           C(w) = ⋂ {'{ atoms(yᵢ) : w ∈ tokens(xᵢ) }'}
         </Equation>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Aligned actor, action and recipient positions become variables. Literal cues preserve word
           order, negation and tense. This is a small supervised symbolic learner with a supplied
           schema; the system has not learned unrestricted language or a new universal foundation

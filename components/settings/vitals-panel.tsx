@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Activity, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clientFetch } from '@/lib/client/request';
+import wb from '@/components/playground/workbench.module.css';
 
 type Summary = {
   route: string;
@@ -67,7 +68,7 @@ export function VitalsPanel() {
   }, [reloads]);
 
   return (
-    <section className="vitals-panel">
+    <section className={wb.vitalsPanel}>
       <h3>
         <Activity size={20} aria-hidden="true" />
         How the site performed
@@ -75,9 +76,9 @@ export function VitalsPanel() {
           <RefreshCw size={16} aria-hidden="true" />
         </Button>
       </h3>
-      {state.kind === 'loading' && <p className="small-note">Reading the last seven days…</p>}
+      {state.kind === 'loading' && <p className={wb.smallNote}>Reading the last seven days…</p>}
       {state.kind === 'error' && (
-        <p className="small-note" role="status">
+        <p className={wb.smallNote} role="status">
           {state.message}{' '}
           <button type="button" onClick={reload}>
             Try again
@@ -85,13 +86,13 @@ export function VitalsPanel() {
         </p>
       )}
       {state.kind === 'ready' && state.rows.length === 0 && (
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Nothing measured yet. A row appears here the first time someone opens a page — including
           you, on the next reload.
         </p>
       )}
       {state.kind === 'ready' && state.rows.length > 0 && (
-        <div className="vitals-table">
+        <div className={wb.vitalsTable}>
           <table>
             <thead>
               <tr>
@@ -121,7 +122,7 @@ export function VitalsPanel() {
           </table>
         </div>
       )}
-      <p className="fine-print">
+      <p className={wb.finePrint}>
         Measured in the browser and kept here. No address, no browser name, no session — the page
         template, the number, and whether the window was narrow.
       </p>

@@ -49,35 +49,6 @@ export function writeConversationDraft(
   }
 }
 
-export type ChatStarter = 'research' | 'build' | 'compare' | 'explain';
-
-/** Draft suggestions only. Selecting one never changes tools or adds model calls. */
-export const CHAT_STARTERS: Record<ChatStarter, { label: string; prompt: string; detail: string }> =
-  {
-    research: {
-      label: 'Research a topic',
-      prompt:
-        'Research this topic using primary sources and explain what is known, uncertain, and missing: ',
-      detail: 'Draft a question to research, then add your topic.',
-    },
-    build: {
-      label: 'Build something',
-      prompt:
-        'Help me build this. Make a clear plan, implement it with the available tools, and verify the result: ',
-      detail: 'Describe what you want to make.',
-    },
-    compare: {
-      label: 'Compare options',
-      prompt: 'Compare these options, explain the tradeoffs, and recommend a next step: ',
-      detail: 'Add the options you want help choosing between.',
-    },
-    explain: {
-      label: 'Explain a topic',
-      prompt: 'Teach me this step by step. Check my understanding with a practical example: ',
-      detail: 'Choose a topic to understand, with a practical example.',
-    },
-  };
-
 export function transcriptMarkdown(messages: readonly UIMessage[]): string {
   const turns = messages.map((message) => {
     const label =

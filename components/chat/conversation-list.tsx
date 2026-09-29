@@ -22,6 +22,7 @@ import {
   Pin,
   PinOff,
   Plus,
+  Scale,
   Search,
   Share2,
   Trash2,
@@ -688,6 +689,13 @@ export function ConversationList({
         disabled={busy}
       >
         <Plus size={16} aria-hidden="true" /> {busy ? 'Opening…' : 'New chat'}
+      </Button>
+      {/* Compare is a chat mode, not a destination: it lives where the
+          conversations live, one tap under New chat. */}
+      <Button type="button" variant="outline" className="w-full justify-start" asChild>
+        <Link href="/compare">
+          <Scale size={16} aria-hidden="true" /> Compare answers
+        </Link>
       </Button>
 
       <label className="workspace-conversation-search">

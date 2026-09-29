@@ -106,6 +106,9 @@ const ALLOW = [
 // cannot be tested without a way to empty it).
 // 79 → 82 and 44 → 47 for the Typeform integration: its client cursor/delay
 // helpers and service constants are asserted directly by integration tests.
+// (2026-09-29: Typeform removed entirely on the owner's decision — the whole
+// integration, its routes, lib files and tests are gone, so the counts drop
+// back: testedOnly 92 → 90, dead 50 → 48.)
 // 82 → 91 and 47 → 50 for the Phase 3 v5 control layer (2026-09-28):
 // the nine testedOnly are tuning constants and pure helpers the 78 new
 // workflow tests name deliberately (DEFAULT_BUDGET, TERMINAL_STATES,
@@ -119,7 +122,7 @@ const ALLOW = [
 // useKeyboardShortcuts depends on (which chat-view.tsx wires to the real
 // composer), asserted directly by the shortcut tests rather than through
 // simulated DOM key events — the same "named on purpose" pattern.
-const BASELINE = { orphanFiles: 0, testedOnly: 92, dead: 50 };
+const BASELINE = { orphanFiles: 0, testedOnly: 90, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

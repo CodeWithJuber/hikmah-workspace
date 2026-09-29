@@ -15,6 +15,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import wb from './workbench.module.css';
 
 export function Choice({
   label,
@@ -33,7 +34,7 @@ export function Choice({
 }) {
   const inputId = id ?? label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return (
-    <div className="field">
+    <div className={wb.field}>
       <label htmlFor={inputId}>{label}</label>
       <Select value={value} onValueChange={onChange} disabled={disabled || !options.length}>
         <SelectTrigger id={inputId} aria-label={label}>
@@ -74,7 +75,10 @@ export function DataTable({ heads, rows }: { heads: string[]; rows: ReactNode[][
 }
 export function Notice({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return (
-    <div className={error ? 'notice error' : 'notice'} role={error ? 'alert' : 'status'}>
+    <div
+      className={error ? `${wb.notice} ${wb.noticeError}` : wb.notice}
+      role={error ? 'alert' : 'status'}
+    >
       {children}
     </div>
   );
@@ -87,15 +91,15 @@ export function Equation({
   description?: ReactNode;
 }) {
   return (
-    <div className="equation">
-      <div className="formula">{children}</div>
+    <div className={wb.equation}>
+      <div className={wb.formula}>{children}</div>
       {description && <p>{description}</p>}
     </div>
   );
 }
 export function Metric({ value, label }: { value: ReactNode; label: string }) {
   return (
-    <div className="metric">
+    <div className={wb.metric}>
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
@@ -109,9 +113,9 @@ export function JsonView({
   label?: string;
 }) {
   return (
-    <details className="disclosure">
+    <details className={wb.disclosure}>
       <summary>{label}</summary>
-      <pre className="json-view">{JSON.stringify(value, null, 2)}</pre>
+      <pre className={wb.jsonView}>{JSON.stringify(value, null, 2)}</pre>
     </details>
   );
 }

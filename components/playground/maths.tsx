@@ -13,6 +13,7 @@ import {
 } from '@/lib/engines/agent-math';
 import { graphSpectrum, diffuseGraph } from '@/lib/engines/graph-math';
 import { DataTable, Equation, Metric, Notice, JsonView, Choice, downloadJson } from './common';
+import wb from './workbench.module.css';
 const contextItems: ContextItem[] = [
   {
     id: 'scope',
@@ -113,7 +114,7 @@ export function Maths() {
         Change an assumption and inspect the mathematical consequence. The core combines learned
         symbolic mappings, explicit state transitions, evidence scope, and measured outcomes.
       </p>
-      <div className="math-flow">
+      <div className={wb.mathFlow}>
         <div>
           <h3>Represent</h3>
           <p>
@@ -135,15 +136,15 @@ export function Maths() {
           </p>
         </div>
       </div>
-      <section className="section">
+      <section className={wb.section}>
         <h2>1. Learn from transition outcomes</h2>
-        <div className="fields">
+        <div className={wb.fields}>
           {[
             { label: 'Successes', value: successes, set: setSuccesses },
             { label: 'Failures', value: failures, set: setFailures },
             { label: 'Action cost', value: cost, set: setCost },
           ].map((c) => (
-            <div className="field" key={c.label}>
+            <div className={wb.field} key={c.label}>
               <label htmlFor={c.label}>{c.label}</label>
               <Input
                 id={c.label}
@@ -169,7 +170,7 @@ export function Maths() {
         <Equation description="A Beta(1,1) prior with configured successes s and failures f produces a posterior. This assumes repeated, comparable Bernoulli outcomes; it is not measured live reliability.">
           p | data ∼ Beta(1+s, 1+f){'\n'}E[p] = α/(α+β) · Var[p] = αβ / [(α+β)²(α+β+1)]
         </Equation>
-        <div className="metric-row">
+        <div className={wb.metricRow}>
           <Metric value={estimate.mean.toFixed(4)} label="posterior mean" />
           <Metric value={estimate.variance.toFixed(6)} label="posterior variance" />
           <Metric
@@ -181,19 +182,19 @@ export function Maths() {
           U(a) = {'{ Var[p] − Eᵧ[Var(p | y)] }'} / cost(a){'\n'} = Var[p] / [(α+β+1) · cost(a)]
         </Equation>
       </section>
-      <section className="section">
+      <section className={wb.section}>
         <h2>2. Preserve contradictory evidence</h2>
-        <div className="two-columns">
+        <div className={wb.twoColumns}>
           <div>
-            <label className="check-row">
+            <label className={wb.checkRow}>
               <Checkbox checked={support} onCheckedChange={(v) => setSupport(!!v)} />
               Include a positive health report
             </label>
-            <label className="check-row">
+            <label className={wb.checkRow}>
               <Checkbox checked={refute} onCheckedChange={(v) => setRefute(!!v)} />
               Include a negative health report
             </label>
-            <label className="check-row">
+            <label className={wb.checkRow}>
               <Checkbox checked={otherScope} onCheckedChange={(v) => setOtherScope(!!v)} />
               The negative report concerns another service
             </label>
@@ -211,18 +212,18 @@ export function Maths() {
                 ['Ignored different scopes', evidence.ignoredDifferentPropositionsOrScopes],
               ]}
             />
-            <p className="small-note" style={{ marginTop: 12 }}>
+            <p className={wb.smallNote} style={{ marginTop: 12 }}>
               “Both” keeps the disagreement visible. It does not decide which source is correct or
               turn votes into a truth probability.
             </p>
           </div>
         </div>
       </section>
-      <section className="section">
+      <section className={wb.section}>
         <h2>3. Compress context without dropping dependencies</h2>
-        <div className="two-columns">
+        <div className={wb.twoColumns}>
           <div>
-            <div className="number-row">
+            <div className={wb.numberRow}>
               <span>Context budget</span>
               <output>{wordBudget} whitespace words</output>
             </div>
@@ -234,7 +235,7 @@ export function Maths() {
               value={[wordBudget]}
               onValueChange={([v]) => setWordBudget(v)}
             />
-            <label className="check-row">
+            <label className={wb.checkRow}>
               <Checkbox checked={missing} onCheckedChange={(v) => setMissing(!!v)} />
               Remove a required source
             </label>
@@ -250,11 +251,11 @@ export function Maths() {
               {context.missingIds.length > 0 ? ` · missing ${context.missingIds.join(', ')}` : ''}
             </Notice>
             {context.payload && (
-              <pre className="json-view" style={{ marginTop: 14 }}>
+              <pre className={wb.jsonView} style={{ marginTop: 14 }}>
                 {context.payload}
               </pre>
             )}
-            <p className="small-note" style={{ marginTop: 12 }}>
+            <p className={wb.smallNote} style={{ marginTop: 12 }}>
               The unrelated design discussion is omitted. Only declared dependencies are preserved.
               These are word counts, not provider tokens or a measured token-saving claim.
             </p>
@@ -262,9 +263,9 @@ export function Maths() {
         </div>
         <JsonView value={context} label="Inspect the dependency closure" />
       </section>
-      <section className="section">
+      <section className={wb.section}>
         <h2>4. Graph frequencies and diffusion</h2>
-        <div className="fields">
+        <div className={wb.fields}>
           <Choice
             label="Graph topology"
             value={graphKind}
@@ -274,8 +275,8 @@ export function Maths() {
               { value: 'triangle', label: 'Three-node triangle' },
             ]}
           />
-          <div className="field">
-            <div className="number-row">
+          <div className={wb.field}>
+            <div className={wb.numberRow}>
               <span>Diffusion time</span>
               <output>{diffusionTime.toFixed(1)}</output>
             </div>
@@ -289,17 +290,22 @@ export function Maths() {
             />
           </div>
         </div>
-        <div className="two-columns">
+        <div className={wb.twoColumns}>
           <div>
             <svg
-              className="chart"
+              className={wb.chart}
               viewBox="0 0 540 180"
               role="img"
               aria-label="Three node graph with calculated diffusion values"
             >
-              <path d="M70 90L270 90L470 90" stroke="#a6b7d1" strokeWidth="2" fill="none" />
+              <path d="M70 90L270 90L470 90" stroke="var(--border)" strokeWidth="2" fill="none" />
               {graphKind === 'triangle' && (
-                <path d="M70 90Q270 -20 470 90" stroke="#a6b7d1" strokeWidth="2" fill="none" />
+                <path
+                  d="M70 90Q270 -20 470 90"
+                  stroke="var(--border)"
+                  strokeWidth="2"
+                  fill="none"
+                />
               )}
               {diffusion.diffusedSignal.map((v, i) => (
                 <g key={i}>
@@ -346,7 +352,7 @@ export function Maths() {
           L = D − A · Lφₖ = λₖφₖ{'\n'}h(t) = exp(−tL)h(0)
         </Equation>
       </section>
-      <section className="section">
+      <section className={wb.section}>
         <h2>5. The architecture we can test</h2>
         <Equation description="Research objective, not an implemented joint training loss: balance outcome error, semantic distortion, resource cost and unsupported claims. Each coefficient and metric needs an independent evaluation design before optimization.">
           J(θ) = L_outcome + λ₁ L_semantics + λ₂ Cost + λ₃ Unsupported
@@ -381,7 +387,7 @@ export function Maths() {
             ],
           ]}
         />
-        <div className="actions">
+        <div className={wb.actions}>
           <Button
             variant="outline"
             onClick={() =>
@@ -395,9 +401,9 @@ export function Maths() {
           </Button>
         </div>
       </section>
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Research, deeper derivations and reproducible methods</summary>
-        <ul className="source-list">
+        <ul className={wb.sourceList}>
           <li>
             <a href="/research/architecture-refinement.md" target="_blank">
               Refined architecture: algorithms, authority, learning and evaluation
@@ -447,7 +453,7 @@ export function Maths() {
             </a>
           </li>
         </ul>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           This playground is an implemented research combination. It does not establish AGI,
           human-equivalent cognition, universal derivation from Quranic Arabic, or a new
           foundational mathematical method. The full literature report separates evidence from

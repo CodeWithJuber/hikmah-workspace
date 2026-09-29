@@ -25,7 +25,6 @@ const PERMISSION_LABELS: Record<(typeof GATED_TOOLS)[number], string> = {
   bash: 'Commands on the workspace machine',
   sandbox_run: 'Programs in the sandbox',
   ssh_exec: 'Commands on saved machines',
-  typeform_read_responses: 'Read Typeform responses',
 };
 
 const STEP_CHOICES = [2, 4, 8, 12, 20, 32];

@@ -12,6 +12,7 @@ import {
   type PlanResult,
 } from '@/lib/engines/agent-math';
 import { Choice, Notice, Metric, DataTable, JsonView, pretty, errorMessage } from './common';
+import wb from './workbench.module.css';
 export function AgentTasks() {
   const [scenario, setScenario] = useState('hosting');
   const [problem, setProblem] = useState<PlanningProblem>(() => createPreset('hosting'));
@@ -57,7 +58,7 @@ export function AgentTasks() {
   };
   return (
     <>
-      <div className="fields">
+      <div className={wb.fields}>
         <Choice
           label="Use case"
           value={scenario}
@@ -68,8 +69,8 @@ export function AgentTasks() {
             { value: 'document', label: 'Prepare a document' },
           ]}
         />
-        <div className="field">
-          <div className="number-row">
+        <div className={wb.field}>
+          <div className={wb.numberRow}>
             <label htmlFor="plan-budget">Simulation budget</label>
             <output>{problem.budget} units</output>
           </div>
@@ -85,15 +86,15 @@ export function AgentTasks() {
         </div>
       </div>
       <p>{problem.label}.</p>
-      <p className="small-note">
+      <p className={wb.smallNote}>
         This lab executes finite state transitions on this device. Chat & code has the connected
         model and real workspace tools.
       </p>
-      <div className="two-columns section">
+      <div className={`${wb.twoColumns} ${wb.section}`}>
         <section>
           <h2>Allowed actions</h2>
           {PRESETS[scenario].permissions.map((permission) => (
-            <label className="check-row" key={permission}>
+            <label className={wb.checkRow} key={permission}>
               <Checkbox
                 aria-label={permission}
                 checked={problem.permissions.includes(permission)}
@@ -109,7 +110,7 @@ export function AgentTasks() {
               <span>{permission}</span>
             </label>
           ))}
-          <div className="actions">
+          <div className={wb.actions}>
             <Button onClick={findPlan}>Find a plan</Button>
             <Button variant="outline" onClick={() => selectScenario(scenario)}>
               Reset scenario
@@ -122,10 +123,10 @@ export function AgentTasks() {
             heads={['Fact', 'Required']}
             rows={problem.goals.map((g) => [pretty(g.fact), String(g.value)])}
           />
-          <details className="disclosure">
+          <details className={wb.disclosure}>
             <summary>Edit initial facts</summary>
             {Object.entries(problem.initial).map(([k, v]) => (
-              <label className="check-row" key={k}>
+              <label className={wb.checkRow} key={k}>
                 <Checkbox
                   aria-label={`Initial ${k}`}
                   checked={v}
@@ -142,8 +143,8 @@ export function AgentTasks() {
       {error && <Notice error>{error}</Notice>}
       {result && (
         <>
-          <section className="section">
-            <div className="metric-row">
+          <section className={wb.section}>
+            <div className={wb.metricRow}>
               <Metric
                 value={
                   result.status === 'found'
@@ -159,10 +160,10 @@ export function AgentTasks() {
               <Metric value={result.expansions} label="states expanded" />
             </div>
             {result.status === 'found' ? (
-              <div className="two-columns">
+              <div className={wb.twoColumns}>
                 <section>
                   <h2>Planned steps</h2>
-                  <ol className="timeline">
+                  <ol className={wb.timeline}>
                     {result.trace.map((s) => (
                       <li key={s.actionId} data-step={s.index}>
                         <h3>{s.label}</h3>
@@ -171,8 +172,8 @@ export function AgentTasks() {
                           {s.preconditions.every((p) => p.satisfied) ? 'satisfied' : 'unmet'}
                         </p>
                         <details>
-                          <summary className="small-note">Inspect dependencies</summary>
-                          <pre className="json-view">
+                          <summary className={wb.smallNote}>Inspect dependencies</summary>
+                          <pre className={wb.jsonView}>
                             {JSON.stringify(
                               { before: s.before, after: s.after, preconditions: s.preconditions },
                               null,
@@ -201,7 +202,7 @@ export function AgentTasks() {
                       })),
                     ]}
                   />
-                  <div className="actions">
+                  <div className={wb.actions}>
                     <Button onClick={() => simulate()}>Run simulation</Button>
                     <Button
                       variant="outline"
@@ -242,7 +243,7 @@ export function AgentTasks() {
                         ])}
                       />
                       {!execution.goalVerifiedInSimulation && (
-                        <div className="actions">
+                        <div className={wb.actions}>
                           <Button
                             variant="outline"
                             onClick={() => {
@@ -277,7 +278,7 @@ export function AgentTasks() {
             )}
           </section>
           {history.length > 0 && (
-            <p className="small-note">Previous attempts: {history.join(' · ')}</p>
+            <p className={wb.smallNote}>Previous attempts: {history.join(' · ')}</p>
           )}
           <JsonView
             value={{ plan: result, execution }}
@@ -285,9 +286,9 @@ export function AgentTasks() {
           />
         </>
       )}
-      <details className="disclosure">
+      <details className={wb.disclosure}>
         <summary>Algorithm and editable action model</summary>
-        <p className="small-note">
+        <p className={wb.smallNote}>
           Uniform-cost search expands the cheapest remaining explicit state. A visited-state cost
           table prevents cycles; permissions, preconditions, budget and expansion limits are
           checked. Optimality applies only to this finite model under declared success effects.

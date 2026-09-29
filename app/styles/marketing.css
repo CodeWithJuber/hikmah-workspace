@@ -29,15 +29,14 @@
    *
    * So it follows the theme, on the same tokens as every other surface. A
    * stranger with no cookie still gets light: savedTheme() returns 'light' when
-   * there is nobody to have a preference. */
+   * there is nobody to have a preference.
+   *
+   * The page itself is flat --background: the radial brand-green wash that
+   * used to sit behind the hero is gone. On white it read as a murky tint
+   * over the whole page; the brand now shows in the eyebrow, the icons and
+   * the focus ring instead. */
   .landing {
-    background:
-      radial-gradient(
-        ellipse at 20% -5%,
-        color-mix(in srgb, var(--primary) 12%, var(--background)),
-        transparent 60%
-      ),
-      var(--background);
+    background: var(--background);
     color: var(--foreground);
     min-height: 100dvh;
     padding: 0 20px 72px;
@@ -118,7 +117,9 @@
     font-size: var(--font-size-xs);
     letter-spacing: 1.6px;
     font-weight: 650;
-    color: var(--primary);
+    /* The brand accent, not --primary: the headline and CTA are near-black in
+     * light mode, so the eyebrow carries the green. */
+    color: var(--ax-text-accent);
   }
   .landing-hero h1 {
     /* Scales with the viewport rather than at a breakpoint, so there is no width
@@ -188,9 +189,20 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    /* A whisper of lift, eased: flat cards on a flat page blur together, and
+     * the shadow is what tells the eye the card is a surface. */
+    box-shadow: 0 1px 2px var(--shadow);
+    transition:
+      box-shadow 0.25s ease,
+      transform 0.25s ease;
+  }
+  .landing-grid article:hover {
+    box-shadow: 0 8px 24px var(--shadow);
+    transform: translateY(-2px);
   }
   .landing-grid svg {
-    color: var(--primary);
+    /* Brand accent, matching the eyebrow: icons are decoration, not actions. */
+    color: var(--ax-text-accent);
   }
   .landing-grid h2 {
     font-size: var(--font-size-lg);

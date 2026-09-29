@@ -43,16 +43,10 @@ test('every built-in tool has a plain name, so none renders as an identifier', (
 });
 
 test('deployment-specific tools explain why they are withheld', () => {
-  const without = new Map(
-    toolAvailability({ workbench: false, typeform: false }).map((t) => [t.name, t]),
-  );
+  const without = new Map(toolAvailability({ workbench: false }).map((t) => [t.name, t]));
   for (const name of ['bash', 'sandbox_run', 'ssh_exec', 'list_ssh_hosts']) {
     assert.equal(without.get(name).available, false, `${name} should be unavailable`);
     assert.match(without.get(name).reason, /workbench/i, `${name} should say why`);
-  }
-  for (const name of ['typeform_list_forms', 'typeform_read_responses']) {
-    assert.equal(without.get(name).available, false, `${name} should be unavailable`);
-    assert.match(without.get(name).reason, /Typeform/i, `${name} should say why`);
   }
   assert.deepEqual(
     without
@@ -61,19 +55,12 @@ test('deployment-specific tools explain why they are withheld', () => {
       .map((tool) => tool.name)
       .toArray()
       .sort(),
-    [
-      'bash',
-      'list_ssh_hosts',
-      'sandbox_run',
-      'ssh_exec',
-      'typeform_list_forms',
-      'typeform_read_responses',
-    ],
+    ['bash', 'list_ssh_hosts', 'sandbox_run', 'ssh_exec'],
   );
 });
 
 test('with a workbench, every built-in tool is on offer', () => {
-  const withOne = toolAvailability({ workbench: true, typeform: true });
+  const withOne = toolAvailability({ workbench: true });
   assert.equal(withOne.length, BUILT_IN_TOOLS.length);
   assert.ok(withOne.every((tool) => tool.available));
 });

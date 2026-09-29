@@ -19,11 +19,17 @@
     overscroll-behavior-y: contain;
   }
   .workspace-experience .chat-transcript-content {
-    width: min(100%, 840px);
+    width: min(100%, 768px);
     min-width: 0;
     margin-inline: auto;
     padding: 24px 20px 36px;
     gap: 28px;
+  }
+  /* Transcript head (message count + Search/Shortcuts/Export): bound to the
+     same 768px column as the messages so it doesn't stretch full-width. */
+  .workspace-experience .chat-transcript-head {
+    width: min(100%, 768px);
+    margin-inline: auto;
   }
   .workspace-experience .chat-view.is-empty {
     justify-content: center;
@@ -80,14 +86,14 @@
     border: 1px solid var(--border);
     border-radius: calc(var(--radius-container) + var(--radius-inner));
     background: var(--card);
-    box-shadow: 0 3px 14px color-mix(in srgb, var(--shadow) 30%, transparent);
+    box-shadow: 0 8px 24px var(--shadow);
     transition:
       border-color 150ms ease,
       box-shadow 150ms ease;
   }
   .workspace-experience .chat-composer > [data-slot='input-group']:focus-within {
-    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 8%, transparent);
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
   }
   .workspace-experience .chat-composer textarea {
     min-height: 90px;
@@ -152,7 +158,7 @@
     min-height: 44px;
     margin-inline-start: 3px;
     padding: 0;
-    border-radius: var(--radius-container);
+    border-radius: var(--radius-full);
     background: var(--primary);
     color: var(--primary-foreground);
   }
@@ -404,7 +410,7 @@
     border-radius: calc(var(--radius-container) + var(--radius-inner))
       calc(var(--radius-container) + var(--radius-inner)) var(--radius-inner)
       calc(var(--radius-container) + var(--radius-inner));
-    background: color-mix(in srgb, var(--primary) 5%, var(--background));
+    background: var(--user-bubble);
     padding: 13px 18px;
     font-size: var(--font-size-base);
     line-height: 1.7;
@@ -482,7 +488,7 @@
     cursor: pointer;
   }
   .workspace-experience .chat-skeleton {
-    width: min(calc(100% - 40px), 800px);
+    width: min(calc(100% - 40px), 768px);
     margin-inline: auto;
   }
   @media (max-width: 600px) {
@@ -491,7 +497,7 @@
     }
     .workspace-experience .chat-transcript-content {
       padding: 20px 14px 28px;
-      gap: 22px;
+      gap: 24px;
     }
     .workspace-experience .chat-welcome {
       padding-bottom: 24px;

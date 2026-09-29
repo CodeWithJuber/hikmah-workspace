@@ -255,7 +255,7 @@ test('capture uses the final answer only and refuses uncompleted or attachment-d
       message: {
         ...answer(),
         parts: [
-          { type: 'tool-typeform', state: 'output-available', output: 'respondent data' },
+          { type: 'tool-search_web', state: 'output-available', output: 'search result data' },
           { type: 'text', text: 'Final answer quoting a private respondent' },
         ],
       },

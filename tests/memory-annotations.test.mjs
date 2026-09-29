@@ -136,13 +136,17 @@ test('recentDayLabel returns null past the window or for the future', () => {
 
 // --- growthStory ---
 
+// Exact day offsets for growthStory: iso() shifts hours, which would put
+// "7 days ago" inside the window. These are true N*24h offsets.
+const exactIso = (offsetDays) => new Date(NOW.getTime() - offsetDays * 86_400_000).toISOString();
+
 test('growthStory counts total and used-in-the-last-seven-days', () => {
   const story = helpers.growthStory(
     [
-      { lastUsedAt: iso(0) },
-      { lastUsedAt: iso(6) },
-      { lastUsedAt: iso(7) },
-      { lastUsedAt: iso(40) },
+      { lastUsedAt: exactIso(0) },
+      { lastUsedAt: exactIso(6) },
+      { lastUsedAt: exactIso(7) },
+      { lastUsedAt: exactIso(40) },
       { lastUsedAt: null },
     ],
     NOW,

@@ -1,0 +1,553 @@
+/* Lab workbench primitives — learn, meaning, planning, sound, maths.
+ *
+ * Scoped module replacing the legacy global classes (`.section`, `.fields`,
+ * `.metric`, …) that live in base.css, owned by stream C. The lab components
+ * use ONLY these classes now, so the workbench keeps its own coherent look
+ * whatever happens to the shell styles. Colours from tokens; radii from
+ * var(--radius); heights from the 24/32/36/40/44 scale. */
+
+.section {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.section > h2:first-child,
+.sectionTitle {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.section > p:first-of-type {
+  margin: 0 0 20px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fields > .field {
+  width: 250px;
+  min-width: 190px;
+  max-width: 100%;
+}
+
+.field label {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.actions .smallNote {
+  min-width: 180px;
+  flex: 1;
+}
+
+.smallNote {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.twoColumns {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.resultColumns {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  grid-template-columns: 1fr 1.02fr;
+}
+
+.resultColumns > section + section {
+  padding-left: 24px;
+  border-left: 1px solid var(--border);
+}
+
+.contrastFields {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ---- metrics ---- */
+
+.metricRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 16px 0 24px;
+}
+
+.metric {
+  display: flex;
+  min-width: 110px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric strong {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.metric span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---- notices ---- */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.noticeError {
+  border-color: color-mix(in srgb, var(--destructive) 24%, var(--border));
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+/* ---- disclosures ---- */
+
+.disclosure {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary:hover {
+  background: var(--muted);
+}
+
+.disclosure > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.disclosureContent {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.jsonView {
+  max-height: 400px;
+  overflow: auto;
+  margin: 12px 0 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+/* ---- equations ---- */
+
+.equation {
+  margin: 20px 0;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  text-align: center;
+}
+
+.formula {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.equation p {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* ---- rows ---- */
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.numberRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.numberRow output {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+/* ---- charts ---- */
+
+.chartBlock {
+  margin-top: 24px;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chartCaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* ---- timeline (planning lab) ---- */
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  position: relative;
+  margin-left: 13px;
+  padding: 0 0 24px 30px;
+  border-left: 1px solid var(--border);
+}
+
+.timeline li:last-child {
+  padding-bottom: 4px;
+}
+
+.timeline li::before {
+  content: attr(data-step);
+  position: absolute;
+  top: 0;
+  left: -14px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.timeline h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.timeline p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ---- meaning lab ---- */
+
+.meaningGraph {
+  display: block;
+  width: 100%;
+  height: 180px;
+  margin-top: 8px;
+}
+
+.meaningGraph text {
+  fill: var(--foreground);
+}
+
+.meaningGraph rect {
+  fill: var(--muted);
+  stroke: var(--border);
+}
+
+.meaningGraph line,
+.meaningGraph path {
+  stroke: var(--muted-foreground);
+}
+
+.roleLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rootRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin: 12px 0;
+}
+
+.rootArabic {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.comparisonList {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.comparisonResult {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+}
+
+.comparisonResult p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rule {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- sound lab ---- */
+
+.soundControls {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.soundControls .field {
+  width: 100%;
+}
+
+.audioUpload {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+}
+
+/* ---- maths lab ---- */
+
+.mathFlow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.sourceList {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.sourceList li {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  overflow-wrap: anywhere;
+}
+
+.trainInput {
+  font-family: var(--font-mono);
+}
+
+/* ---- vitals panel (settings) ---- */
+
+.vitalsPanel {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.vitalsPanel h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.vitalsPanel h3 > button {
+  margin-left: auto;
+}
+
+.vitalsTable {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.vitalsTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.vitalsTable th {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.vitalsTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.vitalsTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.vitalsTable td[data-poor='true'] {
+  color: var(--error-text);
+  font-weight: 600;
+}
+
+.finePrint {
+  margin: 16px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .twoColumns,
+  .resultColumns,
+  .contrastFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .resultColumns > section + section {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .soundControls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section {
+    padding: 20px;
+  }
+
+  .fields > .field {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure > summary {
+    transition: none;
+  }
+}

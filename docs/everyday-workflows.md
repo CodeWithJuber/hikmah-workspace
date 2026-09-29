@@ -33,18 +33,15 @@ The gate is reused development syntax evidence. It does **not** establish fresh 
 
 Pause stops new automatic work and invalidates jobs under the old consent revision. A provider request already sent may still be billed. Reset clears examples and automatic training state/checkpoints, restoring the preceding manual/released checkpoint. Deleting one example removes its retained source and pending work; removing influence from an already trained checkpoint requires Reset. Original conversations have their own deletion lifecycle.
 
-## Typeform
-
-Super Admin → Integrations stores a Typeform personal access token in the existing encrypted, destination-bound vault. The connection uses the official fixed API host. The application requests forms and completed responses with bounded pagination and never returns the token to the browser, tool arguments or prompts.
-
-The owner can share an individual form with an existing Hikmah account. Ordinary users see only forms granted to them; token replacement invalidates old grants. Access is rechecked after in-flight requests so revocation discards the result. Reading responses through chat requires permission because respondent data is sent to the selected model. Unattended tasks and research lanes do not receive that tool. Typeform/tool-dependent content is excluded from learning capture.
-
-This integration reads forms and responses. It does not create or publish forms, install webhooks, send invitations or train on respondent data. Real account validation requires an operator-supplied token. JEV is available only as an optional typed routing proposal through the native TypeSafe System One adapter. It never generates the answer, and a missing key or unavailable endpoint fails closed.
+> The Typeform integration was removed entirely on the owner's decision
+> (2026-09-29): routes, panels, API routes, lib modules and tests are gone;
+> only the applied drizzle migration `0019_typeform_grants.sql` remains as
+> history.
 
 ## Release verification
 
-The new code includes regression checks for connection onboarding, stale settings reads and writes, consent and reset, annotation validation, real worker fitting, research briefs, response-access approval and Typeform isolation. Validation results are recorded separately once the final combined tree has been tested.
+The new code includes regression checks for connection onboarding, stale settings reads and writes, consent and reset, annotation validation, real worker fitting, research briefs and response-access approval. Validation results are recorded separately once the final combined tree has been tested.
 
-Browser preview access was blocked for the local app in this environment. Source review and passing automated checks must not be described as desktop/mobile visual acceptance. Live model-provider credentials, a real Typeform account, production load, billing and backup-restore checks remain distinct release evidence.
+Browser preview access was blocked for the local app in this environment. Source review and passing automated checks must not be described as desktop/mobile visual acceptance. Live model-provider credentials, production load, billing and backup-restore checks remain distinct release evidence.
 
 The previous Stage 31 proposal and missing authoritative Stage 32 artifact retain their existing evidence status. This change does not invent completed stages or relabel finite research tests as broader validated capabilities.

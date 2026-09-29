@@ -46,9 +46,12 @@
   }
   .workspace-sidebar-footer {
     border-top: 1px solid var(--border);
+    /* 13px meta type for the footer rows, from the type scale. */
+    font-size: calc(var(--font-size-base) - 1px);
   }
   .local-save {
-    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    line-height: 1.5;
   }
   .workspace-header {
     height: 64px;
@@ -877,7 +880,7 @@
   }
   .primary-nav button:hover,
   .workspace-sidebar-footer > button:hover {
-    background: var(--border);
+    background: var(--secondary);
     color: var(--foreground);
   }
   .primary-nav button.selected,
@@ -896,7 +899,7 @@
     border-top: 1px solid var(--border);
   }
   .local-save {
-    font-size: var(--font-size-sm);
+    /* Inherits the footer's 13px meta size; the earlier rule sets the colour. */
     color: var(--muted-foreground);
     line-height: 1.5;
   }
@@ -2900,8 +2903,11 @@
   .studio-shell {
     font-size: var(--font-size-lg);
   }
+  /* The panel's own bg-sidebar utility owns the background (the --sidebar
+   * override in overrides.css sets it); this is the subtle right edge the
+   * utility's bare border-r leaves in currentColor. */
   .studio-shell .workspace-sidebar {
-    background: var(--muted);
+    border-right: 1px solid var(--sidebar-border);
   }
   .studio-shell .workspace-sidebar-header {
     padding: 25px 18px 16px;
@@ -2910,21 +2916,51 @@
   .knowledge-nav {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-height: 44px;
-    padding: 10px 14px;
-    border-radius: calc(var(--radius) - 2px);
+    padding: 10px 12px;
+    border-radius: calc(var(--radius) - 4px);
     color: var(--hk-muted);
     font-size: var(--font-size-base);
+    font-weight: 500;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .knowledge-nav:hover {
+    background: var(--secondary);
+    color: var(--foreground);
   }
   .studio-shell .primary-nav button.selected,
   .knowledge-nav.selected {
-    background: var(--accent);
-    color: var(--accent-foreground);
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
     font-weight: 600;
   }
   .knowledge-nav {
-    margin: 0 8px;
+    margin: 0;
+  }
+  .knowledge-nav svg {
+    flex-shrink: 0;
+  }
+  /* The nav's own grouping: main destinations, then the owner section. */
+  .product-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav-group-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    padding: 8px 12px 4px;
   }
   .co-model-nav {
     background: transparent;
@@ -2935,7 +2971,8 @@
     flex-shrink: 0;
     padding: 0 28px;
     border-bottom: 1px solid var(--hk-border);
-    background: var(--hk-surface);
+    /* The topbar is page, not surface: white in light, as before in dark. */
+    background: light-dark(var(--background), var(--hk-surface));
   }
   .workspace-header h1 {
     font-size: var(--font-size-lg);
@@ -3627,11 +3664,6 @@
     }
   }
 
-  .studio-shell .knowledge-nav.selected {
-    background: var(--accent);
-    color: var(--sidebar-accent-foreground);
-    font-weight: 600;
-  }
   .studio-shell .knowledge-nav.selected .nav-count {
     color: inherit;
   }
@@ -3654,10 +3686,10 @@
   .studio-shell .primary-nav button,
   .studio-shell .knowledge-nav,
   .workspace-sidebar-footer > button {
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: calc(var(--radius) - 4px);
     transition:
-      background 0.15s,
-      color 0.15s;
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
   .studio-shell .primary-nav button.selected,
   .studio-shell .knowledge-nav.selected {
@@ -4005,6 +4037,9 @@
       scroll-behavior: auto;
       transition: none;
     }
+    .skeleton-shimmer {
+      animation: none;
+    }
   }
 
   .release-label {
@@ -4013,7 +4048,7 @@
     justify-content: space-between;
     gap: 8px;
     padding: 4px 10px;
-    font-size: var(--font-size-xs);
+    /* Inherits the footer's 13px meta size. */
     color: var(--muted-foreground);
   }
   .release-label a {
@@ -4032,9 +4067,19 @@
      * a light gradient while its headings took --foreground — which in dark
      * mode is #dae5df, 1.29:1 on white. axe found it on four screen/width/theme
      * combinations and it is the whole of what "the auth page does not follow
-     * the theme" looks like from outside. Each token's LIGHT value is the
-     * literal it replaces, so light mode does not move. */
-    background: radial-gradient(ellipse at 25% 10%, var(--accent), transparent 55%), var(--muted);
+     * the theme" looks like from outside.
+     *
+     * Light mode is now flat --background (white): the radial green wash plus
+     * the grey --muted base was the murky backdrop in the sign-in screenshot.
+     * The card's own shadow carries the depth. Dark keeps its subtle glow.
+     * Every colour here is a token — style-discipline forbids raw values on
+     * converted surfaces. */
+    background:
+      light-dark(
+        var(--background),
+        radial-gradient(ellipse at 25% 10%, var(--accent), transparent 55%)
+      ),
+      light-dark(var(--background), var(--muted));
     color: var(--foreground);
   }
   .auth-card {
@@ -4056,5 +4101,79 @@
     font-size: var(--font-size-2xl);
     font-weight: 650;
     letter-spacing: -0.8px;
+  }
+}
+
+@layer components {
+  /* Phase 1 — app shell: loading skeletons, toasts, the page container.
+   *
+   * All new selectors (none repeat an existing one): the ratchet in
+   * scripts/check-styles.mjs counts a selector defined twice as drift, so
+   * shell restyles elsewhere in this file EDIT the existing rule instead. */
+
+  /* Skeleton shimmer: a slow light sweep over the neutral fill, reserving
+   * the space the content will take (the loading.tsx files size each block).
+   * Every stop is a token — no literal colours. */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      100deg,
+      var(--muted) 30%,
+      color-mix(in srgb, var(--muted) 45%, var(--background)) 50%,
+      var(--muted) 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: 180% 0;
+    }
+    100% {
+      background-position: -80% 0;
+    }
+  }
+
+  /* Toasts (sonner classNames from components/app/toaster.tsx). Level-2
+   * elevation on the popover surface; sonner's own slide/fade does the
+   * motion. */
+  .hikmah-toast {
+    background: var(--popover);
+    color: var(--popover-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px var(--shadow);
+    font-size: var(--font-size-base);
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  .hikmah-toast-title {
+    font-weight: 600;
+  }
+  .hikmah-toast-description {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+  }
+  .hikmah-toast-action {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: calc(var(--radius) - 4px);
+    font-weight: 600;
+  }
+  .hikmah-toast-cancel {
+    border-radius: calc(var(--radius) - 4px);
+  }
+
+  /* The standard page container: 1200px max, 24–32px page padding desktop,
+   * 16–20px on small screens. Surfaces adopt it as they are rebuilt. */
+  .page-container {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding: 24px 32px;
+  }
+  @media (max-width: 767px) {
+    .page-container {
+      padding: 16px 20px;
+    }
   }
 }

@@ -1,17 +1,30 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export type EmptyStateOnboardingVariant = 'first-run' | 'cleared';
 
 /** One click on a chip fills the composer — it never sends. */
+export type StarterChip = {
+  label: string;
+  prompt: string;
+  /** Optional leading icon (e.g. an agent starter's glyph). */
+  icon?: LucideIcon;
+};
+
 export type EmptyStateOnboardingProps = {
   variant: EmptyStateOnboardingVariant;
   onPick: (prompt: string) => void;
   /** The primary action the empty state offers alongside the chips.
    * Defaults to filling the composer with the hero prompt. */
   onPrimary?: () => void;
+  /** Override the heading (e.g. "Ask this agent" for agent starters).
+   * Defaults to the variant's copy. */
+  title?: string;
+  /** Override the chips (e.g. an agent's starter prompts).
+   * Defaults to the variant's copy. */
+  chips?: StarterChip[];
 };
 
 type Copy = {
@@ -19,7 +32,7 @@ type Copy = {
   sub: string;
   primaryLabel: string;
   heroPrompt: string;
-  chips: { label: string; prompt: string }[];
+  chips: StarterChip[];
 };
 
 /**
@@ -53,40 +66,53 @@ const COPY: Record<EmptyStateOnboardingVariant, Copy> = {
   },
 };
 
-export function EmptyStateOnboarding({ variant, onPick, onPrimary }: EmptyStateOnboardingProps) {
+export function EmptyStateOnboarding({
+  variant,
+  onPick,
+  onPrimary,
+  title,
+  chips,
+}: EmptyStateOnboardingProps) {
   const copy = COPY[variant];
+  const heading = title ?? copy.heading;
+  const shown = chips ?? copy.chips;
   const primary = onPrimary ?? (() => onPick(copy.heroPrompt));
   return (
     <div
       data-slot="empty-state-onboarding"
-      className="flex flex-col items-center gap-4 px-6 py-8 text-center"
+      className="flex flex-col items-center gap-5 px-6 py-10 text-center"
     >
-      <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-6">
+      <span className="flex size-12 items-center justify-center rounded-full bg-accent text-[var(--ax-text-accent)] [&_svg]:size-6">
         <Sparkles aria-hidden="true" />
       </span>
-      <div className="space-y-1.5">
-        <p className="text-xl font-semibold text-foreground">{copy.heading}</p>
+      <div className="space-y-2">
+        <p className="text-3xl font-semibold tracking-tight text-foreground">{heading}</p>
         <p className="mx-auto max-w-md text-sm text-muted-foreground">{copy.sub}</p>
       </div>
       <Button type="button" size="lg" onClick={primary}>
         {copy.primaryLabel}
       </Button>
       <div
-        className="flex flex-wrap justify-center gap-2"
+        className="flex max-w-xl flex-wrap justify-center gap-2"
         role="group"
         aria-label="Ideas to get started"
       >
-        {copy.chips.map((chip) => (
-          <Button
-            key={chip.label}
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onPick(chip.prompt)}
-          >
-            {chip.label}
-          </Button>
-        ))}
+        {shown.map((chip) => {
+          const Icon = chip.icon;
+          return (
+            <Button
+              key={chip.label}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-full px-4"
+              onClick={() => onPick(chip.prompt)}
+            >
+              {Icon ? <Icon size={16} aria-hidden="true" /> : null}
+              {chip.label}
+            </Button>
+          );
+        })}
       </div>
     </div>
   );

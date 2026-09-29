@@ -37,6 +37,8 @@
   .studio-shell.app-shell {
     --sidebar-width: 248px;
     --sidebar-width: 232px;
+    /* The sidebar's own colour lives in the token layer (tokens.css); this
+     * rule only sets the box. */
   }
   .workspace-main {
     max-width: none;
@@ -159,7 +161,7 @@
     max-width: 580px;
   }
   .workspace-sidebar-footer button {
-    font-size: var(--font-size-base);
+    font-size: calc(var(--font-size-base) - 1px);
   }
   @media (max-width: 699px) {
     .composer textarea {

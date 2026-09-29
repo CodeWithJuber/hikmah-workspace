@@ -2,7 +2,6 @@
 import { randomId } from '../../lib/id.ts';
 
 import { ContextStudio } from '@/components/context-model/studio';
-import { TypeformPanel } from '@/components/integrations/typeform-panel';
 import { PolicyPanel } from '@/components/kernel/policy-panel';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -96,7 +95,6 @@ export function KernelCenter({
         'policy',
         'architecture',
         'controls',
-        'integrations',
       ]
     : ['context', 'overview', 'learning', 'versions', 'architecture'];
   return (
@@ -154,7 +152,6 @@ export function KernelCenter({
         ))}
       </nav>
       {tab === 'context' && <ContextStudio />}
-      {owner && tab === 'integrations' && <TypeformPanel manage />}
       {tab === 'training' && <ContextStudio initialTab="learn" />}
       {tab === 'overview' && (
         <>

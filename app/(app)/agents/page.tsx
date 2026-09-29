@@ -4,7 +4,7 @@ import { AgentsHome } from '@/components/playground/agents-home';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Agents · Hikmah' };
+export const metadata: Metadata = { title: 'Assistants · Hikmah' };
 
 export default async function AgentsPage() {
   await requireChatGPTUser('/agents');
