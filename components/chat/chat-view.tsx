@@ -59,7 +59,8 @@ import {
   ContextTrigger,
 } from '@/components/ai-elements/context';
 import { cancelRun, createDurableChatTransport } from '@/lib/chat/durable-transport';
-import { busyAnnouncement, streamingJustSettled } from '@/lib/chat/announce';
+import { streamingJustSettled, type SettledOutcome } from '@/lib/chat/announce';
+import { AttachmentErrorAlert, RunStatusLiveRegion, type AttachmentIssue } from './composer-status';
 // One number for the meter and the run budget; see lib/ai/context.ts.
 import { ASSUMED_CONTEXT_TOKENS } from '@/lib/ai/context';
 import { LearnTaskDialog } from './learn-task';
@@ -437,7 +438,7 @@ export function ChatView({
     }
   });
   const [draftSaved, setDraftSaved] = useState(false);
-  const [attachmentError, setAttachmentError] = useState('');
+  const [attachmentError, setAttachmentError] = useState<AttachmentIssue | null>(null);
   const [stopState, setStopState] = useState<'idle' | 'stopping' | 'stopped' | 'unconfirmed'>(
     'idle',
   );
@@ -497,13 +498,21 @@ export function ChatView({
   const DEMO_CELEBRATED_KEY = 'hikmah:ui:demo-celebrated';
   const demoTurnRef = useRef(false);
   const [showDemoCelebration, setShowDemoCelebration] = useState(false);
-  const [justFinished, setJustFinished] = useState(false);
+  const [justFinished, setJustFinished] = useState<false | SettledOutcome>(false);
   const statusRef = useRef(status);
   useEffect(() => {
     const prev = statusRef.current;
     statusRef.current = status;
-    if (!streamingJustSettled(prev, status)) return;
-    setJustFinished(true);
+    // A stop can land while the turn is still queueing (submitted): the run
+    // never streamed, so the edge above stays quiet — but the owner still
+    // needs to hear that the stop took.
+    const stoppedWhileQueueing =
+      stopState !== 'idle' && prev === 'submitted' && (status === 'ready' || status === 'error');
+    if (!streamingJustSettled(prev, status) && !stoppedWhileQueueing) return;
+    // A settle that follows a stop is announced as stopped, never as ready —
+    // the run did not produce a response. A failure is announced as failed:
+    // the failure card is visual-only otherwise.
+    setJustFinished(stopState !== 'idle' ? 'stopped' : status === 'error' ? 'error' : 'ready');
     if (demoTurnRef.current) {
       demoTurnRef.current = false;
       let celebrated = false;
@@ -517,7 +526,7 @@ export function ChatView({
     }
     const timer = window.setTimeout(() => setJustFinished(false), 1000);
     return () => window.clearTimeout(timer);
-  }, [status]);
+  }, [status, stopState]);
   if (staleFor !== id) {
     setStaleFor(id);
     setRetried(false);
@@ -653,6 +662,10 @@ export function ChatView({
   // to the current run, so a stale "Response ready." must not survive into it.
   // Render-time reset, the same pattern as the stale-conversation reset above.
   if (busy && justFinished) setJustFinished(false);
+  // A new run also supersedes a previous stop notice: the alert belongs to
+  // the run that was stopped, not the one now working. Kept out of the
+  // 'stopping' window so halt's own async can still land its confirmation.
+  if (busy && stopState !== 'idle' && stopState !== 'stopping') setStopState('idle');
   // Whether any of the answer has actually arrived. Once it has, the words are
   // the progress indicator and a label beside them is noise.
   const streamingText =
@@ -722,12 +735,26 @@ export function ChatView({
   const halt = useCallback(() => {
     const runId = transport.activeRun();
     setStopState('stopping');
+    stop();
+    if (!runId) {
+      // The turn's POST never produced a run id (still queueing, or the abort
+      // landed first): there is no server run that could keep going, so the
+      // abort is the whole stop — no 'unconfirmed' limbo for nothing.
+      setStopState('stopped');
+      onSettled?.();
+      return;
+    }
     void (async () => {
-      await stop();
-      const confirmed = runId ? await cancelRun(runId) : false;
+      const confirmed = await cancelRun(runId);
+      // A newer run may have started while the cancel was in flight (the
+      // composer re-enables as soon as the abort lands). Its stop notice
+      // belongs to it — a stale confirmation must not overwrite it.
+      if (transport.activeRun() !== runId) return;
       setStopState(confirmed ? 'stopped' : 'unconfirmed');
       onSettled?.();
-    })().catch(() => setStopState('unconfirmed'));
+    })().catch(() => {
+      if (transport.activeRun() === runId) setStopState('unconfirmed');
+    });
   }, [transport, stop, onSettled]);
 
   // Keep text controlled while retaining PromptInput's validated attachments.
@@ -1123,9 +1150,10 @@ export function ChatView({
         // A first /image turn created this conversation; the list catches up.
         onSettled?.();
       } catch (error) {
-        setAttachmentError(
-          error instanceof Error ? error.message : 'The image could not be generated.',
-        );
+        setAttachmentError({
+          code: 'image',
+          message: error instanceof Error ? error.message : 'The image could not be generated.',
+        });
       } finally {
         setGeneratingImage(null);
       }
@@ -1142,7 +1170,7 @@ export function ChatView({
       // Whatever failed before, this turn supersedes it.
       setRetried(true);
       setStopState('idle');
-      setAttachmentError('');
+      setAttachmentError(null);
 
       // /image and /imagine never reach the agent: they are a media turn,
       // not a chat turn. Not while editing — there the text is the question.
@@ -1417,9 +1445,7 @@ export function ChatView({
               screen reader learns that work is happening and when it lands.
               Only the transition is announced — never the streamed answer
               text (per-chunk live updates break VoiceOver). */}
-            <div aria-live="polite" className="sr-only">
-              {busyAnnouncement(busy, justFinished)}
-            </div>
+            <RunStatusLiveRegion busy={busy} outcome={justFinished} />
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -1574,7 +1600,7 @@ export function ChatView({
             globalDrop
             maxFiles={MAX_FILES}
             maxFileSize={MAX_FILE_BYTES}
-            onError={(issue) => setAttachmentError(issue.message)}
+            onError={(issue) => setAttachmentError(issue)}
             onSubmitCapture={(event) => {
               if (busy || needsKey || !online || stopState === 'stopping') {
                 event.preventDefault();
@@ -1802,20 +1828,10 @@ export function ChatView({
             </PromptInputFooter>
           </PromptInput>
           {attachmentError && (
-            <Alert variant="destructive" className="mt-3">
-              <AlertDescription className="flex items-center justify-between gap-2">
-                <span>{attachmentError}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAttachmentError('')}
-                  aria-label="Dismiss attachment error"
-                >
-                  Dismiss
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <AttachmentErrorAlert
+              issue={attachmentError}
+              onDismiss={() => setAttachmentError(null)}
+            />
           )}
           {needsKey && onOpenSettings && onUseFree && (
             <ConnectModelCard onUseFree={onUseFree} onOpenSettings={onOpenSettings} />
