@@ -38,6 +38,8 @@ import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
 import { jevLane, applyJevLane } from './jev-lane.ts';
 import { withFirstByteLimit } from '../ai/first-byte.ts';
+import { createRunBudgetLedger, asBudget } from '../workflow/ledger.ts';
+import { withRunBudget, BudgetExhaustedError } from '../ai/budget-middleware.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
@@ -195,6 +197,30 @@ async function driveWithAgent({
   };
   const model = createLanguageModel(provider);
 
+  // PR-04: the stored budget enters the execution path here. One durable
+  // ledger per run, shared by the agent, every research lane, the closing
+  // step and the compare lane: each provider dispatch reserves capacity
+  // before it goes out and settles actual usage after. The wrapped model is
+  // passed everywhere the raw one went, so lanes cannot bypass it. Runs
+  // stamped before the workflow budget existed carry no budget and behave
+  // exactly as before.
+  const storedBudget = asBudget(config.workflow?.budget);
+  const ledger = storedBudget
+    ? createRunBudgetLedger(getStorage().raw, run.id, storedBudget)
+    : undefined;
+  // The agent loop swallows a refused dispatch into an error chunk, so this
+  // flag (not the throw) is how the drive knows the budget — rather than the
+  // provider or the tools — cut the run short. Only the main answer's model
+  // sets it: the compare lane's exhaustion is captured on its own card.
+  let budgetError: BudgetExhaustedError | null = null;
+  const callModel = ledger
+    ? withRunBudget(model, ledger, {
+        onExhausted: (error) => {
+          budgetError = error;
+        },
+      })
+    : model;
+
   // Where a tool's data parts go. Until the stream is open they can only be
   // logged; once it is, `push` below routes them into the fold as well, so the
   // research card is persisted on the message and not only replayed.
@@ -211,7 +237,7 @@ async function driveWithAgent({
 
   const agent = buildRunAgent({
     provider,
-    model,
+    model: callModel,
     instructions: routed.instructions,
     maxSteps: config.maxSteps,
     // buildRunAgent has accepted this since it was written and nothing passed
@@ -348,7 +374,7 @@ async function driveWithAgent({
             // lib/ai/closing-step.ts.
             let started = false;
             const answerChunks = withClosingStep(stream as AsyncIterable<UIMessageChunk>, {
-              model,
+              model: callModel,
               tools: agent.tools,
               instructions: config.instructions,
               messages: messages as UIMessage[],
@@ -411,6 +437,19 @@ async function driveWithAgent({
                 messages: messages as UIMessage[],
                 signal,
                 write: push,
+                // The contrast answer is a provider call like any other: it
+                // draws from the same durable budget rather than beside it.
+                // Wrapped separately because it may name a different model
+                // than the main answer.
+                model: ledger
+                  ? withRunBudget(
+                      createLanguageModel({
+                        ...provider,
+                        model: config.compare.model || config.model,
+                      }),
+                      ledger,
+                    )
+                  : undefined,
               })
             : Promise.resolve(),
         ]);
@@ -458,6 +497,12 @@ async function driveWithAgent({
     // words. Reported rather than recorded as success, because success with
     // nothing to show is indistinguishable from the app being broken.
     const silent = !awaitingApproval && !awaitingClient && !answered(parts);
+    // PR-04: the budget — not the provider, not the tools — cut this run
+    // short mid-loop. The agent loop swallowed the refusal into an error
+    // chunk, so without this the run would be recorded as a generic failure
+    // or as "stopped without writing an answer". Throwing the typed error
+    // records the explicit exhaustion state and sentence instead.
+    if (budgetError && !awaitingApproval && !awaitingClient) throw budgetError;
     // Into the stream, not only onto the run row. The worker records the
     // reason after the stream has closed, so a tab that watched the whole run
     // live saw a clean ending and showed nothing at all — the reason only
@@ -465,8 +510,41 @@ async function driveWithAgent({
     // chunk reaches them where they are watching.
     if (silent) emit({ type: 'error', errorText: NO_ANSWER });
     return { message, awaitingApproval, awaitingClient, silent };
+  } catch (error) {
+    // The budget — not a provider fault — ended the run. Stamp the explicit
+    // terminal state onto the workflow stamp so the exhaustion is queryable,
+    // not just readable in the failure sentence. The worker still finishes
+    // the run 'failed' with that sentence; this catch only records the state
+    // and rethrows.
+    if (error instanceof BudgetExhaustedError)
+      stampBudgetTerminalState(run.id, error.terminalState);
+    throw error;
   } finally {
     await mcp?.close();
+  }
+}
+
+/** Record the explicit exhaustion state on the run row's workflow stamp.
+ *
+ * Best effort on purpose, like the usage rows below: accounting must never
+ * break the failure path it is annotating. json_set creates the path when a
+ * pre-policy row has no workflow stamp at all.
+ */
+function stampBudgetTerminalState(
+  runId: string,
+  terminalState: 'budget_exhausted' | 'timeout',
+): void {
+  try {
+    getStorage()
+      .raw.prepare(
+        `UPDATE runs SET config = json_set(config, '$.workflow.terminalState', ?) WHERE id = ?`,
+      )
+      .run(terminalState, runId);
+  } catch (error) {
+    console.error(
+      '[hikmah] budget terminal state not stamped:',
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 

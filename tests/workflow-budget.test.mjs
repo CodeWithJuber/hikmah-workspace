@@ -9,14 +9,17 @@ test('calls within budget return null', () => {
   assert.equal(ledger.spendCall(10, 0.1), null);
   assert.equal(ledger.spendCall(10, 0.1), null);
   assert.equal(ledger.isExhausted(), null);
-  assert.deepEqual(ledger.usage(), {
+  // Read usage() once: two separate calls can straddle a millisecond tick
+  // and flake the deepEqual on elapsedMs (PR-04 gate hit).
+  const usage = ledger.usage();
+  assert.deepEqual(usage, {
     calls: 2,
     maxCalls: 2,
     tokens: 20,
     maxTokens: 100,
     cost: 0.2,
     maxCost: 5,
-    elapsedMs: ledger.usage().elapsedMs,
+    elapsedMs: usage.elapsedMs,
     deadlineMs: 60_000,
   });
 });
