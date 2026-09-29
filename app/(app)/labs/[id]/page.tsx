@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { requireChatGPTUser } from '../../../chatgpt-auth';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { labs } from '@/components/app/labs-page';
+import { labs } from '@/components/app/labs-data';
 import { MeaningLab } from '@/components/app/meaning-lab';
 import { Learn } from '@/components/playground/learn';
 import { AgentTasks } from '@/components/playground/agent-tasks';

@@ -1,41 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { BookOpen, BrainCircuit, Waves, Sigma, Workflow, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { labs } from './labs-data';
 import styles from './sections.module.css';
-
-export const labs = [
-  {
-    id: 'meaning',
-    name: 'Meaning',
-    description: 'Explore how the small symbolic learner represents a sentence.',
-    icon: BrainCircuit,
-  },
-  {
-    id: 'learn',
-    name: 'Learning',
-    description: 'Teach with examples and compare the candidate model.',
-    icon: BookOpen,
-  },
-  {
-    id: 'planning',
-    name: 'Planning',
-    description: 'Simulate a workflow with costs, failures and verification.',
-    icon: Workflow,
-  },
-  {
-    id: 'sound',
-    name: 'Sound',
-    description: 'Compare frequencies and the information they preserve.',
-    icon: Waves,
-  },
-  {
-    id: 'maths',
-    name: 'Mathematics',
-    description: 'Explore evidence, budgets and graph algorithms.',
-    icon: Sigma,
-  },
-];
 
 /** The labs directory. Each lab is its own route (/labs/<id>); the entries
  * navigate with the router because the directory styling targets button
