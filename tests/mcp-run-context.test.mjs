@@ -19,6 +19,7 @@ function setup(t) {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
   db.exec(readFileSync(new URL('../drizzle/0005_mcp.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../drizzle/0026_mcp_consent.sql', import.meta.url), 'utf8'));
   t.after(() => db.close());
   let counter = 0;
   return createMcpStore(db, { newId: () => `s${++counter}` });
@@ -86,9 +87,36 @@ test('a read-only tool on a trusted server still asks the first time', async (t)
   const { connect } = serving({ quran: { fetch_quran: readOnly('Fetch a verse.') } });
   const first = await run(store, connect);
   assert.equal(first.approval.get('mcp__quran__fetch_quran'), 'ask');
+});
 
+test('being seen is not consent: the second run still asks without an explicit policy', async (t) => {
+  // Discovery and approval are stored separately. A pin records that this
+  // definition was shown; it never approves — the seeded catalogue default is
+  // the catalogue's choice, not the owner's.
+  const store = setup(t);
+  only(store, ['quran']);
+  const { connect } = serving({ quran: { fetch_quran: readOnly('Fetch a verse.') } });
+  await run(store, connect);
   const second = await run(store, connect);
-  assert.equal(second.approval.get('mcp__quran__fetch_quran'), 'auto', 'now it has been seen');
+  assert.equal(second.approval.get('mcp__quran__fetch_quran'), 'ask', 'seen, not approved');
+});
+
+test('an explicit policy plus an unchanged definition may auto-approve', async (t) => {
+  // The owner set this policy themselves (consent_explicit), the definition
+  // was presented on the first run, and it has not changed since: consent.
+  const store = setup(t);
+  only(store, ['quran']);
+  for (const row of store.list('user-1'))
+    if (row.name === 'quran') store.update(row.id, 'user-1', { approval: 'auto' });
+  const { connect } = serving({ quran: { fetch_quran: readOnly('Fetch a verse.') } });
+  const first = await run(store, connect);
+  assert.equal(first.approval.get('mcp__quran__fetch_quran'), 'ask');
+  const second = await run(store, connect);
+  assert.equal(
+    second.approval.get('mcp__quran__fetch_quran'),
+    'auto',
+    'explicit policy, shown, unchanged',
+  );
 });
 
 test('a destructive tool always asks, however trusted the server', async (t) => {
@@ -118,6 +146,8 @@ test('a rewritten description is reported and drops back to asking', async (t) =
   // another. A description is part of the prompt, so the change must surface.
   const store = setup(t);
   only(store, ['quran']);
+  for (const row of store.list('user-1'))
+    if (row.name === 'quran') store.update(row.id, 'user-1', { approval: 'auto' });
   const honest = serving({ quran: { fetch_quran: readOnly('Fetch a verse.') } });
   await run(store, honest.connect);
   const settled = await run(store, honest.connect);

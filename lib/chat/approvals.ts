@@ -14,20 +14,37 @@
  * when it is created, so a grant made while a run is paused on the card
  * applies the moment that run resumes. Pure: shared by the card, the settings
  * screen and the policies.
+ *
+ * MCP tools are the exception to id-based grants. A tool id alone is not
+ * consent: the consent must bind the connector account, the exact approved
+ * tool fingerprint and the scope, so a rewritten definition invalidates it.
+ * Those bound consents live in the MCP store (`lib/mcp/store.ts`), where the
+ * fingerprint is known. An `mcp__` id remembered here is therefore *unbound*:
+ * parked visibly, never honored, until the owner re-confirms it into a bound
+ * consent. See `unboundMcp`.
  */
 
 export type ApprovalSettings = {
-  /** Tools that run without asking anywhere: bash, sandbox_run, ssh_exec, or
-   * an MCP tool's full id. */
+  /** Tools that run without asking anywhere: bash, sandbox_run, ssh_exec.
+   * MCP tool ids are never honored from here; see `unboundMcp`. */
   auto: string[];
   /** Commands the shell may run without asking, matched as the whole command
    * or as a prefix at a word boundary. */
   commands: string[];
   /** Tools that run without asking in one conversation, by its id. */
   conversations: Record<string, string[]>;
+  /** MCP tool ids remembered without a fingerprint binding. Never honored for
+   * approval: parked here visibly so the settings screen can offer
+   * re-confirmation into a bound consent. */
+  unboundMcp: string[];
 };
 
-export const DEFAULT_APPROVALS: ApprovalSettings = { auto: [], commands: [], conversations: {} };
+export const DEFAULT_APPROVALS: ApprovalSettings = {
+  auto: [],
+  commands: [],
+  conversations: {},
+  unboundMcp: [],
+};
 
 /** Bounds, so a settings row cannot grow without limit from a card. */
 const MAX_AUTO_TOOLS = 100;
@@ -54,25 +71,45 @@ const unique = <T>(values: (T | null)[]): T[] => [
   ...new Set(values.filter((value): value is T => value !== null)),
 ];
 
-/** Whatever was stored, as grants a policy can read. */
+/** Tool ids that name an MCP tool. These are never honored as id-based
+ * grants; they are parked as unbound until re-confirmed with a fingerprint. */
+const isMcpToolId = (tool: string): boolean => tool.startsWith('mcp__');
+
+/** Whatever was stored, as grants a policy can read.
+ *
+ * Legacy MCP grants were bare tool ids. They are split out into `unboundMcp`:
+ * treated as unbound, never honored, requiring re-consent. This is the
+ * conservative migration: no silent privilege survives a definition change. */
 export function parseApprovals(raw: unknown): ApprovalSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const auto = Array.isArray(value.auto)
+  const autoIds = Array.isArray(value.auto)
     ? unique(value.auto.map(cleanTool)).slice(0, MAX_AUTO_TOOLS)
     : [];
   const commands = Array.isArray(value.commands)
     ? unique(value.commands.map(cleanCommand)).slice(0, MAX_GRANTED_COMMANDS)
     : [];
   const conversations: Record<string, string[]> = {};
+  const conversationMcp: string[] = [];
   if (value.conversations && typeof value.conversations === 'object') {
     for (const [id, tools] of Object.entries(value.conversations as Record<string, unknown>)) {
       if (Object.keys(conversations).length >= MAX_GRANT_CONVERSATIONS) break;
       if (!id || id.length > 200 || !Array.isArray(tools)) continue;
       const kept = unique(tools.map(cleanTool));
-      if (kept.length) conversations[id] = kept;
+      const mcp = kept.filter(isMcpToolId);
+      const rest = kept.filter((tool) => !isMcpToolId(tool));
+      if (mcp.length) conversationMcp.push(...mcp);
+      if (rest.length) conversations[id] = rest;
     }
   }
-  return { auto, commands, conversations };
+  const auto = autoIds.filter((tool) => !isMcpToolId(tool));
+  const unboundMcp = unique([
+    ...autoIds.filter(isMcpToolId),
+    ...conversationMcp,
+    ...(Array.isArray(value.unboundMcp)
+      ? unique((value.unboundMcp as unknown[]).map(cleanTool)).filter(isMcpToolId)
+      : []),
+  ]).slice(0, MAX_AUTO_TOOLS);
+  return { auto, commands, conversations, unboundMcp };
 }
 
 export type Grant =
@@ -81,7 +118,11 @@ export type Grant =
   | { scope: 'always'; tool: string };
 
 /** The settings with one more grant in it. A command that cannot be granted
- * (a separator, too long) leaves the settings as they were. */
+ * (a separator, too long) leaves the settings as they were.
+ *
+ * An MCP tool id cannot be granted by id: without the approved fingerprint
+ * there is nothing to bind, so it is parked in `unboundMcp` — visible, never
+ * honored — until the owner re-confirms it into a bound consent. */
 export function withGrant(current: ApprovalSettings, grant: Grant): ApprovalSettings {
   if (grant.scope === 'command') {
     const command = cleanCommand(grant.command);
@@ -93,6 +134,11 @@ export function withGrant(current: ApprovalSettings, grant: Grant): ApprovalSett
   }
   const tool = cleanTool(grant.tool);
   if (!tool) return current;
+  if (isMcpToolId(tool))
+    return {
+      ...current,
+      unboundMcp: unique([...current.unboundMcp, tool]).slice(-MAX_AUTO_TOOLS),
+    };
   if (grant.scope === 'always')
     return { ...current, auto: unique([...current.auto, tool]).slice(-MAX_AUTO_TOOLS) };
   const existing = current.conversations[grant.conversationId] ?? [];
@@ -116,7 +162,11 @@ export type Revocation =
 /** The settings with one grant taken back. */
 export function withoutGrant(current: ApprovalSettings, revoke: Revocation): ApprovalSettings {
   if (revoke.kind === 'auto')
-    return { ...current, auto: current.auto.filter((tool) => tool !== revoke.value) };
+    return {
+      ...current,
+      auto: current.auto.filter((tool) => tool !== revoke.value),
+      unboundMcp: current.unboundMcp.filter((tool) => tool !== revoke.value),
+    };
   if (revoke.kind === 'command')
     return { ...current, commands: current.commands.filter((c) => c !== revoke.value) };
   const conversations = { ...current.conversations };
@@ -125,12 +175,20 @@ export function withoutGrant(current: ApprovalSettings, revoke: Revocation): App
 }
 
 /** What one run may do without asking: the tools granted everywhere and in
- * its conversation, and the commands granted by name. */
+ * its conversation, and the commands granted by name.
+ *
+ * MCP tool ids are filtered out even if a caller passed them raw: an id alone
+ * is never consent. Bound MCP consents are resolved in `mcpRunTools`, not
+ * here. */
 export type ResolvedGrants = { tools: Set<string>; commands: string[] };
 
 export function grantsFor(settings: ApprovalSettings, conversationId: string): ResolvedGrants {
   return {
-    tools: new Set([...settings.auto, ...(settings.conversations[conversationId] ?? [])]),
+    tools: new Set(
+      [...settings.auto, ...(settings.conversations[conversationId] ?? [])].filter(
+        (tool) => !isMcpToolId(tool),
+      ),
+    ),
     commands: settings.commands,
   };
 }
