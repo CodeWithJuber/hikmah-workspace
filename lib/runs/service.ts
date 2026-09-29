@@ -21,6 +21,7 @@ import { mediaKeyFor } from './media.ts';
 import { executionAllowed } from './execution.ts';
 import { workbenchUserKey } from '../workbench/user-key.ts';
 import { createMemoryStore } from '../memory/store.ts';
+import { triageCandidate } from '../memory/triage.ts';
 import { recentUserText } from '../context-model/run-brief.ts';
 import type { MemoryToolContext } from '../ai/tools/memory.ts';
 import { withClosingStep } from '../ai/closing-step.ts';
@@ -489,14 +490,23 @@ function memoryContext(
   return {
     userId: run.user_id ?? '',
     store: createMemoryStore(getStorage().raw),
+    // The raw handle, for triage: it writes its own tables beside the store.
+    db: getStorage().raw,
     latestUserText: recentUserText(messages, 1),
     hasAttachments: (lastUser?.parts ?? []).some((part) => part?.type === 'file'),
     conversationId: run.conversation_id,
     conversationTitle: title || undefined,
-    // A task saves nothing without review: what it learned is exactly what the
-    // person is asked to look at when it finishes.
+    // A task never auto-saves a verbatim quote: its candidates go through
+    // the standing triage policy (see the `remember` tool), which decides
+    // what is saved outright, surfaced, or discarded.
     autoSaveQuotes: !config.task && config.remember?.autoSave !== false,
     unattended: Boolean(config.task),
+    // The run's consent state, for triage: incognito writes nothing at all.
+    incognito: config.incognito === true,
+    // The learner's only way into the memories table: triage decides, the
+    // tool never writes directly. Wired here, the one place the context is
+    // built, so no caller can forget it.
+    triage: triageCandidate,
   };
 }
 

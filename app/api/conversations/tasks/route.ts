@@ -87,10 +87,17 @@ export async function POST(request: Request) {
   // What the person has saved and said before, so the task builds on it rather
   // than starting from nothing. The co-model's notes are left out: they are
   // about the shape of a conversation, and a task is not one.
-  const saved = await knowledgeFor(user.userId, messages, {
-    conversationId,
-    recall: chatSettings.memory.recallConversations,
-  });
+  //
+  // Incognito: the session opts out entirely, server-side. Skipping the
+  // lookup here is what makes the toggle honest — no block, no recall, no
+  // used-count marks — and the run below is created with the remember tool
+  // withheld and learning capture disabled.
+  const saved = parsed.incognito
+    ? { block: '', recall: '', used: [], conversations: [] }
+    : await knowledgeFor(user.userId, messages, {
+        conversationId,
+        recall: chatSettings.memory.recallConversations,
+      });
 
   const runId = newRunId();
   try {
@@ -147,6 +154,11 @@ export async function POST(request: Request) {
         // Nothing a task keeps is saved without review.
         remember: { autoSave: false },
         task: { kind: 'learn', brief },
+        // Incognito narrows the server-owned learning consent to disabled and
+        // withholds the remember tool entirely (see service.ts): a task that
+        // cannot read memory must not write it either.
+        learning: parsed.incognito ? { enabled: false, revision: -1 } : undefined,
+        incognito: parsed.incognito,
         maxSteps: parsed.maxSteps,
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,

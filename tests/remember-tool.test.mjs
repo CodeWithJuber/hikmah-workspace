@@ -16,6 +16,7 @@ function setup(t, over = {}) {
   const context = {
     userId: 'u1',
     store,
+    db,
     latestUserText: 'Mujhe jawab hamesha simple Urdu mein chahiye. Mera beta Ahmed hai.',
     hasAttachments: false,
     conversationId: 'conv_1',
@@ -23,7 +24,7 @@ function setup(t, over = {}) {
     autoSaveQuotes: true,
     ...over,
   };
-  return { store, remember: rememberTools(context).remember, context };
+  return { db, store, remember: rememberTools(context).remember, context };
 }
 
 test('a quote that is not in the latest user message is refused', async (t) => {
@@ -128,16 +129,31 @@ test('the same words remembered twice are one memory', async (t) => {
   assert.equal(store.list('u1')[0].uses, 1, 'counted, not copied');
 });
 
-test('a background task may note what it learned, and it is filed as the model’s inference', async (t) => {
+test('a background task routes every remember through triage, never the store directly', async (t) => {
   // Unattended, there is no person's message to quote from — the brief is all
   // there is. The verbatim rule still holds for that brief; anything else the
-  // task wants to keep is saved as its own inference, suggested, never used
-  // until the person accepts it. That is what "Review what it learned" shows.
+  // task wants to keep is handed to triage as its own inference. The tool
+  // itself never writes: 'save' and 'surface' are triage's own writes.
+  const calls = [];
   const { remember, store } = setup(t, {
     latestUserText: 'Learn what the Hanafi school says about combining prayers when travelling.',
     unattended: true,
     autoSaveQuotes: false,
     conversationTitle: 'Learn: combining prayers',
+    triage: async (db, candidate, ctx) => {
+      calls.push({ candidate, ctx });
+      // The double stands in for the real policy: surface everything.
+      store.add('u1', { ...candidate, status: 'suggested' });
+      return {
+        id: 'triage_1',
+        candidateId: candidate.id,
+        action: 'surface',
+        rule: 'test-double',
+        confidence: null,
+        jevRaw: null,
+        createdAt: new Date().toISOString(),
+      };
+    },
   });
   const out = await remember.execute({
     title: 'Combining prayers (Hanafi)',
@@ -146,6 +162,9 @@ test('a background task may note what it learned, and it is filed as the model�
     kind: 'reference',
   });
   assert.equal(out.status, 'suggested');
+  assert.equal(calls.length, 1, 'triage was called exactly once');
+  assert.equal(calls[0].ctx.userId, 'u1', 'triage gets the run’s user');
+  assert.equal(calls[0].ctx.incognito, false);
   const [row] = store.list('u1', { status: 'suggested' });
   assert.equal(row.provenance, 'inference', 'not the person’s words, and not claimed to be');
   assert.equal(row.source, 'Hikmah · Learn: combining prayers');
@@ -158,10 +177,35 @@ test('a background task may note what it learned, and it is filed as the model�
     kind: 'reference',
   });
   assert.equal(quoted.status, 'suggested');
+  assert.equal(calls.length, 2, 'every learner write goes through triage');
   assert.equal(
-    store.list('u1', { status: 'suggested' }).find((m) => m.title === 'Topic').provenance,
+    calls[1].candidate.provenance,
     'quote',
+    'the brief’s own words stay the person’s even inside triage',
   );
+});
+
+test('without an injected double the learner still goes through the real triage', async (t) => {
+  // The context default is the real pipeline, not a direct write: with no
+  // Jev reachable a reference defers — nothing lands in the memories table.
+  const savedKey = process.env.TYPESAFE_API_KEY;
+  delete process.env.TYPESAFE_API_KEY;
+  t.after(() => {
+    if (savedKey !== undefined) process.env.TYPESAFE_API_KEY = savedKey;
+  });
+  const { db, remember, store } = setup(t, {
+    latestUserText: 'Learn something.',
+    unattended: true,
+    conversationTitle: 'Learn: x',
+  });
+  const out = await remember.execute({ title: 'x', quote: 'Learn something.', kind: 'reference' });
+  assert.equal(out.status, 'deferred');
+  assert.equal(store.count('u1'), 0, 'defer writes nothing to the memories table');
+  const audit = db
+    .prepare(`SELECT action, rule FROM triage_audit ORDER BY created_at DESC LIMIT 1`)
+    .get();
+  assert.equal(audit.action, 'defer');
+  assert.equal(audit.rule, 'fallback:deferred');
 });
 
 test('in a chat, a paraphrase is still refused', async (t) => {

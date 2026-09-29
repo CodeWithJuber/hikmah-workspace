@@ -170,6 +170,70 @@ export function MemoryPanel() {
     .filter((memory): memory is Memory => !!memory)
     .slice(0, 5);
 
+  // Triage 'surface' items: a small non-blocking inline chip each, never an
+  // approval card. One tap keeps it (it becomes a saved memory), one tap
+  // dismisses it, and the batch row handles the whole lot at once. Nothing
+  // here is used until kept, and nothing here blocks anything.
+  const keepAll = () =>
+    attempt(async () => {
+      for (const memory of suggested) await update(memory.id, { status: 'saved' });
+    });
+  const dismissAll = () =>
+    attempt(async () => {
+      for (const memory of suggested) await update(memory.id, { status: 'rejected' });
+    });
+  const suggestionChips = (
+    <section aria-label="Suggested memories">
+      <h3>Suggested ({counts.suggested})</h3>
+      <p className="memory-suggest-note">
+        Nothing here needs your approval — keep what looks useful, dismiss the rest. Nothing is used
+        until you keep it.
+      </p>
+      <ul className="memory-chips">
+        {suggested.map((memory) => (
+          <li key={memory.id} className="memory-chip-row">
+            <span className="memory-chip-title" title={memory.content} dir="auto">
+              {memory.title}
+            </span>
+            <span className={'memory-chip is-' + memory.provenance}>
+              {PROVENANCE[memory.provenance]}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={'Keep ' + memory.title}
+              onClick={() => void attempt(() => update(memory.id, { status: 'saved' }))}
+            >
+              <Check size={16} /> Keep
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={'Dismiss ' + memory.title}
+              onClick={() =>
+                void attempt(() =>
+                  // A dismissed suggestion is kept as rejected, so the same
+                  // one is not suggested again.
+                  update(memory.id, { status: 'rejected' }),
+                )
+              }
+            >
+              <X size={16} /> Dismiss
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <div className="memory-form-actions">
+        <Button size="sm" variant="outline" onClick={() => void keepAll()}>
+          Keep all
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => void dismissAll()}>
+          Dismiss all
+        </Button>
+      </div>
+    </section>
+  );
+
   const item = (memory: Memory) => {
     if (editing?.id === memory.id)
       return (
@@ -424,12 +488,7 @@ export function MemoryPanel() {
         </p>
       ) : (
         <>
-          {suggested.length > 0 && (
-            <section>
-              <h3>To review ({counts.suggested})</h3>
-              <ul>{suggested.map(item)}</ul>
-            </section>
-          )}
+          {suggested.length > 0 && suggestionChips}
           <section>
             <h3>Saved ({counts.saved})</h3>
             {saved.length ? (

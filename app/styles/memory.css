@@ -125,6 +125,33 @@
   .memory-chip.is-quote {
     color: var(--primary);
   }
+  /* Triage 'surface' items: a small non-blocking chip each, never an approval
+   * card. One line, one tap to keep, one tap to dismiss. */
+  .memory-suggest-note {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+  }
+  .memory-chips {
+    margin-top: 6px;
+  }
+  .memory-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--card);
+  }
+  .memory-chip-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
   .memory-source {
     color: var(--muted-foreground);
     font-size: var(--font-size-sm);

@@ -10,6 +10,9 @@ import { parseChatRequest } from '../lib/ai/chat-request.ts';
 import { applySchema } from './schema.mjs';
 import { createRunStore } from '../lib/runs/store.ts';
 import { createLearningStore } from '../lib/learning/store.ts';
+import { createMemoryStore } from '../lib/memory/store.ts';
+import { rememberTools } from '../lib/ai/tools/memory.ts';
+import { triageCandidate } from '../lib/memory/triage.ts';
 
 const valid = {
   baseUrl: 'https://openrouter.ai/api/v1',
@@ -79,4 +82,60 @@ test('a caller can never widen the stored learning consent', (t) => {
     config: { model: 'm', learning: { enabled: true, revision: 99 } },
   });
   assert.equal(storedLearning(store, 'hostile').enabled, false);
+});
+
+test('the remember tool refuses under incognito before any pipeline, writing nothing', async (t) => {
+  const db = applySchema(new DatabaseSync(':memory:'));
+  t.after(() => db.close());
+  let triageCalls = 0;
+  const remember = rememberTools({
+    userId: 'alice',
+    store: createMemoryStore(db),
+    db,
+    latestUserText: 'Remember that I like strong coffee.',
+    hasAttachments: false,
+    autoSaveQuotes: true,
+    unattended: true,
+    incognito: true,
+    triage: async () => {
+      triageCalls += 1;
+      throw new Error('triage must not run under incognito');
+    },
+  }).remember;
+  const out = await remember.execute({
+    title: 'Coffee',
+    quote: 'I like strong coffee.',
+    kind: 'preference',
+  });
+  assert.equal(out.status, 'refused');
+  assert.match(out.reason, /incognito/);
+  assert.equal(triageCalls, 0, 'no candidate, so no triage pipeline at all');
+  assert.equal(createMemoryStore(db).count('alice'), 0, 'no memory row');
+  const auditTables = db
+    .prepare(`SELECT name FROM sqlite_master WHERE name = 'triage_audit'`)
+    .all();
+  assert.equal(auditTables.length, 0, 'not even a triage audit table, let alone a row');
+});
+
+test('triage itself writes no memory under incognito — audit only, no content', async (t) => {
+  const db = applySchema(new DatabaseSync(':memory:'));
+  t.after(() => db.close());
+  const decision = await triageCandidate(
+    db,
+    {
+      id: 'mem_incog1',
+      kind: 'preference',
+      title: 'Coffee',
+      content: 'I like strong coffee.',
+      provenance: 'quote',
+      source: 'You',
+      sourceConversationId: null,
+      status: 'suggested',
+    },
+    { incognito: true, userId: 'alice' },
+  );
+  assert.equal(decision.action, 'discard');
+  assert.equal(decision.rule, 'policy:incognito-no-write');
+  assert.equal(decision.jevRaw, null, 'the audit row carries no content');
+  assert.equal(createMemoryStore(db).count('alice'), 0, 'no memory row');
 });
