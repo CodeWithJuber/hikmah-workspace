@@ -88,6 +88,11 @@ const ALLOW = [
   // mode.ts: chatModeFor is consumed by chat-view.tsx (free-mode pill); its
   // companion chatModeLabel is named by tests on purpose.
   /^lib\/chat\/mode\.ts$/,
+  // drawer-focus.ts (PR-11): focusFirstInDrawer, handleDrawerKey and
+  // pickReturnFocusTarget are consumed by chat-shell.tsx (the chat drawers);
+  // focusableElements is named by tests on purpose to pin the tab order the
+  // other three build on — the feature is wired, the heuristic is coarse.
+  /^lib\/ui\/drawer-focus\.ts$/,
   // jev-client.ts: JEV_DEFAULT_TIMEOUT_MS is named by tests on purpose; the
   // timeout itself drives the Jev lane wait in the run pipeline.
   /^lib\/integrations\/jev-client\.ts$/,
