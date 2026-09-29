@@ -1,6 +1,7 @@
 // The sr-only polite region announces the run edge (P0-4): "Working on your
-// request." while busy, "Response ready." once when streaming settles, then
-// silence. Never the answer text.
+// request." while busy, then exactly one settled announcement — "Response
+// ready.", "Response stopped.", or "The request failed." — then silence.
+// Never the answer text. A stop or failure must never be announced as ready.
 // Run: node --test tests/chat-announce.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,17 +30,34 @@ test('idle transitions never announce', () => {
 });
 
 test('busy announcement wins while busy', () => {
-  assert.equal(busyAnnouncement(true, true), 'Working on your request.');
-  assert.equal(busyAnnouncement(true, false), 'Working on your request.');
+  for (const outcome of [false, 'ready', 'stopped', 'error']) {
+    assert.equal(busyAnnouncement(true, outcome), 'Working on your request.');
+  }
 });
 
-test('just-finished announcement shows exactly once then clears', () => {
-  assert.equal(busyAnnouncement(false, true), 'Response ready.');
+test('a settled run announces ready', () => {
+  assert.equal(busyAnnouncement(false, 'ready'), 'Response ready.');
+});
+
+test('a stopped run is announced as stopped, never as ready', () => {
+  assert.equal(busyAnnouncement(false, 'stopped'), 'Response stopped.');
+});
+
+test('a failed run is announced as failed, never as ready', () => {
+  assert.equal(busyAnnouncement(false, 'error'), 'The request failed.');
+});
+
+test('silence when nothing settled', () => {
   assert.equal(busyAnnouncement(false, false), '');
 });
 
 test('announcement never carries answer text', () => {
-  for (const text of [busyAnnouncement(true, false), busyAnnouncement(false, true)]) {
+  for (const text of [
+    busyAnnouncement(true, false),
+    busyAnnouncement(false, 'ready'),
+    busyAnnouncement(false, 'stopped'),
+    busyAnnouncement(false, 'error'),
+  ]) {
     assert.ok(text.length < 40, 'announcement stays a short atomic label');
   }
 });

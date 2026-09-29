@@ -18,9 +18,16 @@ export function streamingJustSettled(prev: ChatRunStatus, next: ChatRunStatus): 
   return prev === 'streaming' && next !== 'streaming' && next !== 'submitted';
 }
 
+/** How a run settled, for the polite live region. A stop is announced as
+ *  stopped and a failure as failed — "Response ready." after either would be
+ *  the region lying to assistive tech. */
+export type SettledOutcome = 'ready' | 'stopped' | 'error';
+
 /** What the polite live region should read for the current run state. */
-export function busyAnnouncement(busy: boolean, justFinished: boolean): string {
+export function busyAnnouncement(busy: boolean, justFinished: false | SettledOutcome): string {
   if (busy) return 'Working on your request.';
-  if (justFinished) return 'Response ready.';
+  if (justFinished === 'stopped') return 'Response stopped.';
+  if (justFinished === 'error') return 'The request failed.';
+  if (justFinished === 'ready') return 'Response ready.';
   return '';
 }
