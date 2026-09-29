@@ -41,6 +41,10 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const toPosix = (p) => p.split('/').join('/');
 
+// Skip optional layers (forge/LLM/JEV) when set — for tests and CI safety.
+// The deterministic core handles all clear cases; optional layers only refine.
+const SKIP_OPTIONAL = process.env.SMART_TEST_SELECT_NO_OPTIONAL === '1';
+
 /** Changed files that always trigger the full suite. */
 const FULL_SUITE_PATTERNS = [
   /^package\.json$/,
@@ -127,6 +131,7 @@ function isTestOnly(changed) {
 
 /** Blast radius via `forge impact --json`. Returns file count or null. */
 function blastRadius(changed) {
+  if (SKIP_OPTIONAL) return null;
   const forge = sh('command -v forge');
   if (!forge) return null;
   let total = 0;
@@ -154,6 +159,7 @@ function blastRadius(changed) {
  * Only used to DOWNGRADE risk when confident; null -> no downgrade.
  */
 async function llmClassify(changed, diffSample) {
+  if (SKIP_OPTIONAL) return null;
   const { writeFileSync, unlinkSync, readFileSync, existsSync } = await import('node:fs');
   const { execFileSync } = await import('node:child_process');
 
@@ -217,6 +223,8 @@ Reply with exactly one word: behavioral, refactor, cosmetic, or config.
  * Low probability / uncertain -> escalate tier (more testing, never less).
  */
 function jevRisk(changed, blast, classification) {
+  if (SKIP_OPTIONAL) return null;
+  if (process.env.SMART_TEST_SELECT_NO_JEV === '1') return null;
   const jev = sh('command -v jev-ask');
   if (!jev) return null;
   const state = JSON.stringify({
@@ -361,24 +369,19 @@ async function main() {
   signals.jevRisk = risk;
 
   // Decision: escalate on any uncertainty, never de-escalate.
+  // v2 principle: JEV can only ESCALATE medium -> high, never downgrade.
+  // The deterministic core sets medium for source changes; JEV judges
+  // whether that's safe. Low P(safe) -> high tier (full suite).
   let tier = 'medium';
   let reason = 'source changed — impacted tests + typecheck (default)';
 
-  if (blast !== null && blast <= SMALL_BLAST_RADIUS) {
-    if (classification === 'refactor' || classification === 'cosmetic') {
-      // LLM confident it's behavior-preserving + small radius.
-      // JEV gets a vote: only downgrade if JEV is also confident.
-      if (risk !== null && risk >= 0.7) {
-        tier = 'low';
-        reason = `small blast radius (${blast}), LLM: ${classification}, JEV risk ${risk.toFixed(2)} — impacted tests only`;
-      } else {
-        reason = `small blast radius (${blast}), LLM: ${classification}, JEV uncertain (${risk ?? 'n/a'}) — keeping medium`;
-      }
-    } else if (risk !== null && risk >= 0.8) {
-      // JEV very confident despite unknown classification.
-      tier = 'low';
-      reason = `small blast radius (${blast}), JEV risk ${risk.toFixed(2)} — impacted tests only`;
-    }
+  // JEV escalation: if JEV is available and says P(safe) < 0.7, escalate to high.
+  // JEV unavailable -> keep medium (deterministic core already decided).
+  // This is the honesty invariant: AI can demand MORE testing, never less.
+  if (risk !== null && risk < 0.7) {
+    tier = 'high';
+    reason = `JEV risk judgment ${risk.toFixed(2)} < 0.7 — escalating to full suite`;
+    signals.jevEscalated = true;
   }
 
   // Empty impacted list with source changes -> medium is wrong; escalate to high.

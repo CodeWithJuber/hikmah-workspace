@@ -22,6 +22,7 @@ function select(...files) {
     cwd: root,
     encoding: 'utf8',
     timeout: 60000,
+    env: { ...process.env, SMART_TEST_SELECT_NO_OPTIONAL: '1' },
   });
   return JSON.parse(out);
 }
