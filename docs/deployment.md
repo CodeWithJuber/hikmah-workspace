@@ -44,7 +44,7 @@ Keep an existing application on ports 80/443 until its migration has been planne
 
 ## 3. Configure Actions
 
-Add these repository settings, or use a GitHub environment named `test-server`. Put credentials in **Secrets**, never in workflow files or issue bodies.
+Add these repository settings. Create a GitHub environment named `production` with protection rules (required reviewers) — the deploy workflow only runs behind that environment. Put credentials in **Secrets** (repository level, or inside the `production` environment), never in workflow files or issue bodies.
 
 | Name                    | Type                | Value                                                                                          |
 | ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
@@ -66,7 +66,7 @@ The app's owner password is independent of the server's SSH password. The bootst
 
 ## 4. Run and verify
 
-Push to `main`, or run **Verify and deploy Hikmah** from Actions. Deployments run only from `main`; pull requests get verification without deployment credentials.
+Push to `main`, or run **Verify and build Hikmah** from Actions. When verification passes on `main`, the separate **Deploy Hikmah** workflow deploys the exact verified commit — its workflow definition always comes from `main` (never from PR code), it is serialized by a concurrency group, and it confirms the artifact's provenance SHA before using any credential. Pull requests get verification without deployment credentials.
 
 1. Install locked dependencies and run app, storage, auth, runtime and configuration tests.
 2. Audit production dependencies; high/critical advisories fail the gate.
