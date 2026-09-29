@@ -179,7 +179,12 @@ const ALLOW = [
 // offered, which commands are grantable), asserted directly by the
 // approval-card tests — a closed Radix menu renders nothing to static
 // markup, so the options a card offers cannot be asserted through the DOM.
-const BASELINE = { orphanFiles: 0, testedOnly: 94, dead: 48 };
+// 94 → 95 for the tool-permission dispatch (2026-09-30, PR-14):
+// createToolDecider in lib/ai/run-agent.ts is the exported seam the policy
+// tests name on purpose; it is wired — buildRunAgent calls it to build the
+// agent's toolApproval — and the check only counts cross-file uses, so the
+// export reads as tested-only while the feature is live.
+const BASELINE = { orphanFiles: 0, testedOnly: 95, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

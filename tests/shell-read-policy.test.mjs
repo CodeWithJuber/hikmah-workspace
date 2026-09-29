@@ -99,7 +99,7 @@ test('harmless reads with safe argument forms run without asking', async () => {
   ];
   for (const command of reads) {
     assert.equal(isReadOnlyCommand(command), true, command);
-    assert.equal(await approval({ command }), 'approved', command);
+    assert.equal((await approval({ command })).gate, 'approved', command);
   }
 });
 
@@ -125,7 +125,7 @@ test('find actions that write, delete or execute ask — including abbreviations
   ];
   for (const command of dangerous) {
     assert.equal(isReadOnlyCommand(command), false, command);
-    assert.equal(await approval({ command }), 'user-approval', command);
+    assert.equal((await approval({ command })).gate, 'user-approval', command);
   }
 });
 
@@ -150,7 +150,7 @@ test('flags that turn a read command into a write or an execution ask', async ()
   ];
   for (const command of hooks) {
     assert.equal(isReadOnlyCommand(command), false, command);
-    assert.equal(await approval({ command }), 'user-approval', command);
+    assert.equal((await approval({ command })).gate, 'user-approval', command);
   }
 });
 
@@ -169,7 +169,7 @@ test('unknown or ambiguous argument forms ask rather than silently allowing', as
   ];
   for (const command of ambiguous.slice(0, 8)) {
     assert.equal(isReadOnlyCommand(command), false, command);
-    assert.equal(await approval({ command }), 'user-approval', command);
+    assert.equal((await approval({ command })).gate, 'user-approval', command);
   }
   assert.equal(isReadOnlyCommand('ls "unterminated'), false);
   // A quoted group with balanced quotes is still just an operand.

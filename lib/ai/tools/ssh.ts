@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { foldFrames, type CommandResult, type RunFrame } from '../../ssh/frames.ts';
 import { sshExecStream, type SshCredential } from '../../ssh/client.ts';
 import { isAutoApproved, parseAutoApprove, type SshHostRow } from '../../ssh/hosts.ts';
+import type { PolicyDecision } from '../tool-policy.ts';
 
 /** What the owner is shown on the approval card. */
 export type SshApprovalRequest = { hostId: string; hostLabel: string; command: string };
@@ -174,26 +175,37 @@ export function sshTools(context: SshToolContext) {
  * framework can do and a tool body cannot: by the time execute runs there is
  * nobody listening.
  *
- * Anything not on the owner's own per-host list asks. A host the model invented
- * is approved here and refused inside the tool, where the refusal can explain
- * itself and list the real hosts.
+ * Deny by default: a host id the owner never saved is denied at the gate,
+ * with the saved hosts named as the reason — the model gets the corrective
+ * list either way, but a call that was always going to be refused is refused
+ * before the owner is asked.
  */
 export function sshApprovalPolicy(context: {
   listHosts: () => SshHostRow[] | Promise<SshHostRow[]>;
   /** Tools the owner has granted, from the card: ssh_exec here means every
    * host, on top of each host's own allowlist. */
   grants?: { tools: Set<string> };
-}) {
+}): (raw: unknown) => Promise<PolicyDecision> {
   return async (raw: unknown) => {
     const input = (raw ?? {}) as { host_id?: unknown; command?: unknown };
     // Anything this cannot read is asked about rather than assumed safe.
     if (typeof input.host_id !== 'string' || typeof input.command !== 'string')
-      return 'user-approval' as const;
-    if (context.grants?.tools.has('ssh_exec')) return 'approved' as const;
-    const host = (await context.listHosts()).find((entry) => entry.id === input.host_id);
-    if (!host) return 'approved' as const;
+      return { gate: 'user-approval' as const, reason: 'The ssh command could not be read.' };
+    if (context.grants?.tools.has('ssh_exec')) return { gate: 'approved' as const };
+    const hosts = await context.listHosts();
+    const host = hosts.find((entry) => entry.id === input.host_id);
+    if (!host) {
+      const saved = hosts.map((entry) => `${entry.id} (${entry.name})`).join(', ') || 'none';
+      return {
+        gate: 'denied' as const,
+        reason: `No saved host with id "${input.host_id}". Saved hosts: ${saved}.`,
+      };
+    }
     return isAutoApproved(input.command, parseAutoApprove(host.auto_approve))
-      ? ('approved' as const)
-      : ('user-approval' as const);
+      ? { gate: 'approved' as const }
+      : {
+          gate: 'user-approval' as const,
+          reason: `ssh_exec on ${host.name} (${host.host}) needs approval.`,
+        };
   };
 }

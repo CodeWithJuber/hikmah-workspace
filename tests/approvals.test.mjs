@@ -109,17 +109,17 @@ test('stored grants are bounded and cleaned on the way in', () => {
 
 test('the shell policy honours a granted command, a granted tool, and nothing else', async () => {
   const ask = shellApprovalPolicy();
-  assert.equal(await ask({ command: 'python3 -m http.server 8080' }), 'user-approval');
+  assert.equal((await ask({ command: 'python3 -m http.server 8080' })).gate, 'user-approval');
   const byCommand = shellApprovalPolicy({ tools: new Set(), commands: ['python3 -m http.server'] });
-  assert.equal(await byCommand({ command: 'python3 -m http.server 8080' }), 'approved');
+  assert.equal((await byCommand({ command: 'python3 -m http.server 8080' })).gate, 'approved');
   assert.equal(
-    await byCommand({ command: 'python3 -m http.server 8080 | tee log' }),
+    (await byCommand({ command: 'python3 -m http.server 8080 | tee log' })).gate,
     'user-approval',
   );
-  assert.equal(await byCommand({ command: 'rm -rf build' }), 'user-approval');
+  assert.equal((await byCommand({ command: 'rm -rf build' })).gate, 'user-approval');
   const byTool = shellApprovalPolicy({ tools: new Set(['bash']), commands: [] });
-  assert.equal(await byTool({ command: 'rm -rf build' }), 'approved');
-  assert.equal(await byTool({}), 'user-approval', 'an unreadable call still asks');
+  assert.equal((await byTool({ command: 'rm -rf build' })).gate, 'approved');
+  assert.equal((await byTool({})).gate, 'user-approval', 'an unreadable call still asks');
 });
 
 test('an unbound MCP grant never approves by id', () => {

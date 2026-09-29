@@ -34,13 +34,13 @@ const call = (tools, name, input) =>
 test('a command that only looks runs without asking', async () => {
   for (const command of ['ls -la', 'pwd', 'cat README.md', 'grep -r todo src', 'git']) {
     const expected = command === 'git' ? 'user-approval' : 'approved';
-    assert.equal(await approval({ command }), expected, command);
+    assert.equal((await approval({ command })).gate, expected, command);
   }
 });
 
 test('a command that changes anything asks', async () => {
   for (const command of ['rm -rf build', 'npm install', 'git push', 'chmod +x run.sh', 'mv a b']) {
-    assert.equal(await approval({ command }), 'user-approval', command);
+    assert.equal((await approval({ command })).gate, 'user-approval', command);
   }
 });
 
@@ -55,13 +55,13 @@ test('a read-only name with a separator after it still asks', async () => {
     'echo $(whoami > /tmp/x)',
     'grep x file | tee /etc/hosts',
   ]) {
-    assert.equal(await approval({ command }), 'user-approval', command);
+    assert.equal((await approval({ command })).gate, 'user-approval', command);
   }
 });
 
 test('an unreadable or absent command asks rather than being assumed safe', async () => {
   for (const input of [{}, null, { command: 5 }, { command: '' }, { command: '   ' }]) {
-    assert.equal(await approval(input), 'user-approval', JSON.stringify(input));
+    assert.equal((await approval(input)).gate, 'user-approval', JSON.stringify(input));
   }
 });
 

@@ -7,7 +7,7 @@
  * with no stated consequence.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Plug, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plug, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,124 @@ async function send(method: string, body?: object, query = '') {
   const parsed = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(parsed.error ?? 'That did not work.');
   return parsed as { servers: Server[] };
+}
+
+type Consent = {
+  toolName: string;
+  scope: 'always' | 'conversation';
+  conversationId?: string;
+  grantedAt: string;
+  expiresAt: string | null;
+};
+
+/**
+ * The tools this server remembers a yes for. A grant is per connector
+ * account, tool and exact definition — revoking here takes effect on the next
+ * tool call, not the next run. Fetched lazily: most servers have none, and a
+ * grant cannot be created from this screen — only taken away — because
+ * granting binds the exact tool definition the owner saw, which needs a live
+ * connection.
+ */
+function Consents({ serverId, label }: { serverId: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const [consents, setConsents] = useState<Consent[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open || consents !== null) return;
+    let live = true;
+    clientFetch(`/api/mcp-servers/consents?serverId=${encodeURIComponent(serverId)}`)
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? 'Could not load remembered tools.');
+        return body.consents as Consent[];
+      })
+      .then((next) => {
+        if (live) setConsents(next);
+      })
+      .catch((error: unknown) => {
+        if (!live) return;
+        setConsents([]);
+        toast.error(error instanceof Error ? error.message : 'Could not load remembered tools.');
+      });
+    return () => {
+      live = false;
+    };
+  }, [open, consents, serverId]);
+
+  const revoke = async (consent: Consent) => {
+    setBusy(true);
+    try {
+      const query =
+        `?serverId=${encodeURIComponent(serverId)}` +
+        `&toolName=${encodeURIComponent(consent.toolName)}` +
+        `&scope=${encodeURIComponent(consent.scope)}` +
+        `&conversationId=${encodeURIComponent(consent.conversationId ?? '')}`;
+      const response = await clientFetch(`/api/mcp-servers/consents${query}`, {
+        method: 'DELETE',
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? 'That did not work.');
+      setConsents(body.consents as Consent[]);
+      toast.success(`Forgot ${consent.toolName}. It will ask again.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'That did not work.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <ShieldCheck className="size-3.5" aria-hidden />
+        {open ? 'Hide remembered tools' : 'Remembered tools'}
+      </button>
+      {open &&
+        (consents === null ? (
+          <Skeleton className="h-4 w-40" aria-label="Loading remembered tools" />
+        ) : consents.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nothing remembered. Every tool asks until you say yes on its card.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {consents.map((consent) => (
+              <li
+                key={`${consent.toolName}:${consent.scope}:${consent.conversationId ?? ''}`}
+                className="flex items-center justify-between gap-3 rounded border px-2 py-1.5 text-xs"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-mono">{consent.toolName}</p>
+                  <p className="text-muted-foreground">
+                    {consent.scope === 'always' ? 'Always' : 'This conversation'}
+                    {' · '}granted {new Date(consent.grantedAt).toLocaleDateString()}
+                    {consent.expiresAt
+                      ? ` · expires ${new Date(consent.expiresAt).toLocaleDateString()}`
+                      : ' · no expiry'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  aria-label={`Revoke ${consent.toolName} on ${label}`}
+                  onClick={() => void revoke(consent)}
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                  Revoke
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ))}
+    </div>
+  );
 }
 
 export function McpServers() {
@@ -310,6 +428,8 @@ export function McpServers() {
                     {server.lastError}
                   </p>
                 )}
+
+                <Consents serverId={server.id} label={server.label} />
               </li>
             );
           })}
