@@ -1,4 +1,10 @@
-name: Verify and deploy Hikmah
+name: Verify and build Hikmah
+# The UNTRUSTED workflow: it runs PR-supplied code (pull_request trigger), so
+# it must never see production credentials. No `secrets.*` reference (other
+# than the per-run GITHUB_TOKEN) may appear in this file — enforced by
+# scripts/check-workflow-isolation.mjs, which runs in the `checks` job below.
+# Deployment lives in deploy.yml, which only ever runs this workflow's
+# definition from the default branch.
 on:
   push:
     branches: [main]
@@ -52,6 +58,11 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with: { node-version: '24', cache: npm }
       - run: npm ci --ignore-scripts
+      # CI isolation gate (PR-05): asserts the deploy trust boundary in the
+      # workflow files themselves — no production secrets in this untrusted
+      # workflow, deploy.yml pinned to the verified SHA behind the protected
+      # production environment.
+      - run: node scripts/check-workflow-isolation.mjs
       - run: npm run format:check
       - run: npm run lint
       - run: npm run lint:styles
@@ -174,6 +185,9 @@ jobs:
           echo "Both smoke tests passed."
         env:
           SMOKE_REVISION: ${{ github.sha }}
+      # The deploy workflow (deploy.yml) is only allowed to deploy this exact
+      # commit, so the verified SHA travels with the artifact it verified.
+      # deploy.yml confirms provenance.json before touching any credential.
       - name: Package the verified image
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
         run: |
@@ -182,41 +196,12 @@ jobs:
           docker save "hikmah-workbench:$GITHUB_SHA" | gzip -1 > artifact/workbench.tar.gz
           cd artifact
           sha256sum image.tar.gz workbench.tar.gz > image.sha256
-      - name: Cache verified image for deployment
+          python3 -c "import json,os; json.dump({'sha': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'], 'repository': os.environ['GITHUB_REPOSITORY']}, open('provenance.json','w'))"
+      - name: Upload verified image for deployment
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
-        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
+          name: hikmah-images
           path: artifact/
-          key: hikmah-image-${{ github.sha }}-${{ github.run_id }}
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
-    # Same self-hosted runner: the deploy lands from the machine it runs on.
-    # DEPLOY_HOST should be the server's own address (SSH to self).
-    runs-on: [self-hosted, hikmah-prod]
-    timeout-minutes: 20
-    environment: test-server
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with: { persist-credentials: false }
-      - name: Restore verified image
-        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: artifact/
-          key: hikmah-image-${{ github.sha }}-${{ github.run_id }}
-          fail-on-cache-miss: true
-      - name: Prepare SSH client
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends sshpass
-      - name: Deploy the verified image and check HTTPS
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER || 'root' }}
-          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-          HIKMAH_DOMAIN: ${{ vars.HIKMAH_DOMAIN }}
-          HIKMAH_OWNER_EMAIL: ${{ secrets.HIKMAH_OWNER_EMAIL }}
-          HIKMAH_SESSION_SECRET: ${{ secrets.HIKMAH_SESSION_SECRET }}
-          HIKMAH_OWNER_PASSWORD: ${{ secrets.HIKMAH_OWNER_PASSWORD }}
-        run: bash deploy/from-actions.sh
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,90 @@
+name: Deploy Hikmah
+# The TRUSTED workflow. It only runs when the "Verify and build Hikmah"
+# workflow completes on main, and — critically — GitHub always runs THIS
+# file's definition from the default branch. A PR can edit ci.yml all it
+# wants; it can never touch this job, its `if` guards, or its secrets.
+#
+# REQUIRED repo setup (one-time, owner side): create a `production`
+# environment in Settings -> Environments with protection rules (required
+# reviewers). Until that exists this job waits for approval that never comes.
+on:
+  workflow_run:
+    workflows: ['Verify and build Hikmah']
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+# Deploys are serialized: a second main push waits instead of racing the
+# release already going out. A deploy is never cancelled mid-flight.
+concurrency:
+  group: hikmah-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    # Belt and braces on top of the branches: [main] filter: only a
+    # SUCCESSFUL verification run, never a pull_request event, and only when
+    # the operator has switched deploys on.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event != 'pull_request' &&
+      vars.DEPLOY_ENABLED == 'true'
+    # Same self-hosted runner: the deploy lands from the machine it runs on.
+    # DEPLOY_HOST should be the server's own address (SSH to self).
+    runs-on: [self-hosted, hikmah-prod]
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      # actions: read lets this run download the artifact of the workflow_run
+      # that triggered it.
+      actions: read
+    env:
+      VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      # Pinned to the exact commit the CI run verified — not a re-checkout of
+      # the branch tip, which could have moved since verification.
+      - name: Check out the exact verified commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Download the verified image artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: hikmah-images
+          path: artifact/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Deploy the exact SHA that passed verification. The artifact carries a
+      # provenance record written by the build job; the checkout is pinned to
+      # the same SHA. All three must agree before any credential is used.
+      - name: Confirm the artifact is the verified SHA
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          sha = os.environ.get('VERIFIED_SHA') or ''
+          assert re.fullmatch(r'[a-f0-9]{40}', sha), 'VERIFIED_SHA is not a full commit SHA'
+          prov = json.load(open('artifact/provenance.json'))
+          assert prov.get('sha') == sha, f"provenance SHA {prov.get('sha')} != verified commit {sha}"
+          head = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
+          assert head == sha, f'checkout is {head}, not the verified commit {sha}'
+          print(f'Provenance confirmed: artifact and checkout are the verified commit {sha}.')
+          PY
+      - name: Verify artifact checksums
+        run: (cd artifact && sha256sum --check image.sha256)
+      - name: Prepare SSH client
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends sshpass
+      - name: Deploy the verified image and check HTTPS
+        env:
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER || 'root' }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+          HIKMAH_DOMAIN: ${{ vars.HIKMAH_DOMAIN }}
+          HIKMAH_OWNER_EMAIL: ${{ secrets.HIKMAH_OWNER_EMAIL }}
+          HIKMAH_SESSION_SECRET: ${{ secrets.HIKMAH_SESSION_SECRET }}
+          HIKMAH_OWNER_PASSWORD: ${{ secrets.HIKMAH_OWNER_PASSWORD }}
+        run: bash deploy/from-actions.sh
