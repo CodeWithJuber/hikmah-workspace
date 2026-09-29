@@ -267,13 +267,13 @@ duplicate.
 
 What is gated, and by what rule:
 
-| Tool                | Rule                                                              |
-| ------------------- | ----------------------------------------------------------------- |
-| `ssh_exec`          | The owner's own per-host allowlist, matched on the whole command. |
-| `bash`              | A server-side read-only command list, matched on the first word.  |
-| `sandbox_run`       | Always asks.                                                      |
-| `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin. |
-| everything else     | Not gated. They read or compute.                                  |
+| Tool                | Rule                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `ssh_exec`          | The owner's own per-host allowlist, matched on the whole command.                                                      |
+| `bash`              | A server-side read-only command list: name plus explicitly permitted argument forms; execution/write flags always ask. |
+| `sandbox_run`       | Always asks.                                                                                                           |
+| `mcp__server__tool` | Server trust plus the tool's annotations, plus a description pin.                                                      |
+| everything else     | Not gated. They read or compute.                                                                                       |
 
 **A yes can be remembered.** Every gated call used to ask again, so a person
 starting the same preview server for the tenth time approved it for the tenth

@@ -32,7 +32,7 @@ export function fileTools(context: FileToolContext) {
   return {
     list_files: tool({
       description:
-        'List the files in this workspace, with their sizes. Names and sizes only — use read_file for contents.',
+        'List the files in this workspace, with their sizes. Names and sizes only — use read_file for contents. Prefer this over `ls` via bash for listing workspace files.',
       inputSchema: z.object({}),
       execute: async () => {
         // Named apart from the listing: usage carries a file *count*, and
@@ -45,7 +45,7 @@ export function fileTools(context: FileToolContext) {
 
     read_file: tool({
       description:
-        'Read a workspace file, in windows. Use the returned nextOffset to continue a long file rather than asking for it all at once.',
+        'Read a workspace file, in windows. Use the returned nextOffset to continue a long file rather than asking for it all at once. Prefer this over `cat`/`head`/`tail` via bash when you only need a workspace file’s contents.',
       inputSchema: z.object({
         path: z.string().min(1).max(700),
         offset: z.number().int().min(0).max(MAX_FILE_CHARACTERS).optional(),
