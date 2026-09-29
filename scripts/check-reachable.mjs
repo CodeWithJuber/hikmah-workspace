@@ -101,6 +101,11 @@ const ALLOW = [
   /^lib\/workflow\/outcomes\.ts$/,
   // procedures.ts: procedure DSL learner + promotion gate.
   /^lib\/workflow\/procedures\.ts$/,
+  // dispatch.ts (PR-10): the arm dispatch service — every selectable arm's
+  // declared steps + call cap through the PR-04 budget ledger. Tested at the
+  // API boundary (tests/workflow-dispatch.test.mjs, 26 tests); the run-worker
+  // caller lands with the agent-loop wiring, same staging as the entries above.
+  /^lib\/workflow\/dispatch\.ts$/,
   // episode-annotations.ts: episode-solver bridge (approved-only annotations;
   // the solver itself is untouched and has no production caller yet).
   /^lib\/research\/episode-annotations\.ts$/,
