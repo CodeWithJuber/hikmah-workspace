@@ -97,6 +97,14 @@ export function createAuth({
         // spends the mail quota and lands in a stranger's inbox.
         '/sign-up/email': { window: 3600, max: 5 },
         '/forget-password': { window: 3600, max: 5 },
+        // PR-16: the OAuth code exchange and the provider token refresh are
+        // single-attempt operations for a legitimate client — one
+        // authorization code is redeemed once per login, and a provider token
+        // is refreshed on its own schedule. Without an explicit rule these
+        // fell through to the default 100/min bucket; anything past a
+        // handful per minute is enumeration or brute force. JEV: five-per-min.
+        '/callback/*': { window: 60, max: 5 },
+        '/refresh-token': { window: 60, max: 5 },
       },
     },
     advanced: {
