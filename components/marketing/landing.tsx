@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { HikmahIcon } from '@/components/kernel/icons';
 import type { PublicAuthConfig } from '@/lib/auth/public-config';
-import { billingConfigured, priceLabelFor, type Plan } from '@/lib/billing/plans';
+import { billingConfigured, priceLabelFor, trialTermsFor, type Plan } from '@/lib/billing/plans';
 
 /** What it does for the work most people actually bring: writing, questions,
  * research, learning. Listed first, because a visitor who does not write code
@@ -197,12 +197,15 @@ export function Landing({ config, plans }: { config: PublicAuthConfig; plans: Pl
               {plan.tier === 'managed' && !billingConfigured() ? (
                 <p className="landing-price-tbd">Payments are not set up on this deployment yet.</p>
               ) : (
-                <Link
-                  href={start}
-                  className={plan.tier === 'managed' ? 'landing-primary' : undefined}
-                >
-                  {plan.trialDays ? `Start ${plan.trialDays} days free` : 'Start free'}
-                </Link>
+                <>
+                  <Link
+                    href={start}
+                    className={plan.tier === 'managed' ? 'landing-primary' : undefined}
+                  >
+                    {plan.trialDays ? `Start ${plan.trialDays} days free` : 'Start free'}
+                  </Link>
+                  {plan.trialDays > 0 && <p className="landing-terms">{trialTermsFor(plan)}</p>}
+                </>
               )}
             </article>
           ))}

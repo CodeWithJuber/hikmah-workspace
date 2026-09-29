@@ -1,7 +1,13 @@
 import { getChatGPTUser } from '../../chatgpt-auth';
 import { billingStore, entitlementsForUser } from '@/lib/billing/server';
 import { runAccess } from '@/lib/billing/access';
-import { PLANS, billingConfigured, priceIdFor } from '@/lib/billing/plans';
+import {
+  PLANS,
+  billingConfigured,
+  priceIdFor,
+  priceLabelFor,
+  trialTermsFor,
+} from '@/lib/billing/plans';
 import { periodStart } from '@/lib/billing/entitlements';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +30,10 @@ export async function GET() {
   const entitlements = entitlementsForUser(user);
   const from = periodStart();
   const usage = billingStore().usageThisMonth(user.userId, from);
+  // A renewal that failed while Stripe retries the card: the tier stays paid,
+  // and this is what the page renders its plain-language notice from. A
+  // failure Stripe later collected is resolved, not news.
+  const notice = billingStore().paymentFailureNotice(user.userId);
   return Response.json(
     {
       tier: entitlements.tier,
@@ -44,12 +54,15 @@ export async function GET() {
       usage,
       periodStart: from,
       configured: billingConfigured(),
+      notices: notice ? [{ kind: 'payment_failed', at: notice.at }] : [],
       plans: PLANS.map((plan) => ({
         id: plan.id,
         name: plan.name,
         tagline: plan.tagline,
         tier: plan.tier,
         trialDays: plan.trialDays,
+        trialTerms: trialTermsFor(plan),
+        priceLabel: priceLabelFor(plan),
         monthlyTokenCap: plan.monthlyTokenCap,
         features: plan.features,
         purchasable: Boolean(priceIdFor(plan)),

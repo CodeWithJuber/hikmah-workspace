@@ -3,7 +3,13 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { Check } from 'lucide-react';
 import { getChatGPTUser } from '../chatgpt-auth';
-import { PLANS, billingConfigured, priceIdFor, priceLabelFor } from '@/lib/billing/plans';
+import {
+  PLANS,
+  billingConfigured,
+  priceIdFor,
+  priceLabelFor,
+  trialTermsFor,
+} from '@/lib/billing/plans';
 import { publicAuthConfig } from '@/lib/auth/public-config';
 import { PlanCheckoutButton } from '@/components/billing/plan-checkout-button';
 import { HikmahIcon } from '@/components/kernel/icons';
@@ -71,14 +77,20 @@ export default async function PricingPage({
                 ) : !priceIdFor(plan) ? (
                   <p className="landing-price-tbd">This plan has no price configured yet.</p>
                 ) : (
-                  <PlanCheckoutButton
-                    planId={plan.id}
-                    label={
-                      plan.trialDays ? `Start ${plan.trialDays} days free` : `Choose ${plan.name}`
-                    }
-                    signedIn={Boolean(user)}
-                    signUpOpen={config.signUpOpen}
-                  />
+                  <>
+                    <PlanCheckoutButton
+                      planId={plan.id}
+                      planName={plan.name}
+                      label={
+                        plan.trialDays ? `Start ${plan.trialDays} days free` : `Choose ${plan.name}`
+                      }
+                      signedIn={Boolean(user)}
+                      signUpOpen={config.signUpOpen}
+                      trialTerms={trialTermsFor(plan)}
+                      priceLabel={priceLabelFor(plan)}
+                    />
+                    {plan.trialDays > 0 && <p className="landing-terms">{trialTermsFor(plan)}</p>}
+                  </>
                 )
               ) : (
                 <Link href={start}>Start free</Link>

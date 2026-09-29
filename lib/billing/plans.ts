@@ -11,6 +11,7 @@ import {
   planById as rawPlanById,
   priceIdFor as rawPriceIdFor,
   priceLabelFor as rawPriceLabelFor,
+  trialTermsFor as rawTrialTermsFor,
 } from '@/server/plans.mjs';
 
 /** What a person is allowed to do, named from where the money comes.
@@ -60,6 +61,11 @@ export function priceIdFor(plan: Plan, annual = false): string {
 /** What the card prints where the price goes. Empty when unset. */
 export function priceLabelFor(plan: Plan): string {
   return rawPriceLabelFor(plan) as string;
+}
+
+/** The trial's terms, stated exactly: what ends, when, what happens after. */
+export function trialTermsFor(plan: Plan): string {
+  return rawTrialTermsFor(plan) as string;
 }
 
 export { billingConfigured };

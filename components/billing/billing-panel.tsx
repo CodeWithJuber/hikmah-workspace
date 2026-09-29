@@ -21,11 +21,16 @@ type PlanView = {
   tagline: string;
   tier: string;
   trialDays: number;
+  /** The trial's terms, stated exactly: what ends, when, what happens after. */
+  trialTerms: string;
+  priceLabel: string;
   monthlyTokenCap: number | null;
   features: string[];
   purchasable: boolean;
   annual: boolean;
 };
+
+type BillingNotice = { kind: string; at: string };
 
 type Billing = {
   tier: 'owner' | 'byok' | 'managed';
@@ -34,20 +39,49 @@ type Billing = {
   usage: { tokens: number; runs: number };
   periodStart: string;
   configured: boolean;
+  notices: BillingNotice[];
   plans: PlanView[];
 };
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
 
 /** Which failed action the Retry button re-runs: the billing-details fetch, a
- * checkout open for a plan, or the billing-portal open. */
-type FailedAction = { kind: 'billing' } | { kind: 'checkout'; plan: string } | { kind: 'portal' };
+ * consent record, a checkout open for a plan, or the billing-portal open. */
+type FailedAction =
+  | { kind: 'billing' }
+  | { kind: 'consent'; plan: string }
+  | { kind: 'checkout'; plan: string }
+  | { kind: 'portal' };
+
+/** " on 12 March" for the payment-failure notice, or '' when undated. */
+function failedNoticeDate(notices: BillingNotice[]): string {
+  const at = notices.find((n) => n.kind === 'payment_failed')?.at;
+  if (!at) return '';
+  const d = new Date(at);
+  if (Number.isNaN(d.getTime())) return '';
+  return ' on ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+}
+
+/** The exact terms the consent checkbox agrees to: the trial terms when the
+ * plan has a trial, otherwise the price and the cancel policy. */
+function consentTerms(plan: PlanView): string {
+  if (plan.trialTerms) return plan.trialTerms;
+  const price = plan.priceLabel || 'the price shown at checkout';
+  return (
+    `${plan.name} at ${price}, billed monthly until you cancel. ` +
+    'Cancel any time and you land back on Free, keeping every conversation and file.'
+  );
+}
 
 export function BillingPanel() {
   const [data, setData] = useState<Billing | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [failedAction, setFailedAction] = useState<FailedAction | null>(null);
+  /** The plan whose consent card is open: nothing is charged and no checkout
+   * opens until the person ticks the agreement on it. */
+  const [consenting, setConsenting] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   /** ?upgraded=1 is Stripe's return leg: it resolves once, then the URL is
@@ -93,6 +127,23 @@ export function BillingPanel() {
     };
   }, [loadBilling, router, searchParams]);
 
+  /** The meter reads live from the usage ledger on every fetch, but the panel
+   * only fetched on mount: a tab left open while runs finished elsewhere
+   * showed a stale allowance. Re-read when the tab comes back into view; a
+   * failed background refresh never clobbers what is on screen. */
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      void loadBilling()
+        .then((payload) => {
+          if (payload) setData(payload);
+        })
+        .catch(() => {});
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [loadBilling]);
+
   /** Re-run whichever action failed last. Clears the error first so the panel
    * shows its loading state, never a dead Retry button. */
   function retry() {
@@ -107,7 +158,47 @@ export function BillingPanel() {
         })
         .catch(failBillingLoad);
     else if (failedAction.kind === 'portal') void portal();
-    else void upgrade(failedAction.plan);
+    else if (failedAction.kind === 'consent') {
+      const plan = data?.plans.find((p) => p.id === failedAction.plan);
+      if (plan) void agreeAndCheckout(plan);
+    } else void upgrade(failedAction.plan);
+  }
+
+  /** Open the consent card for a plan: the terms first, the checkout only
+   * after the person agrees. */
+  function startUpgrade(planId: string) {
+    setConsenting(planId);
+    setAgreed(false);
+    setError('');
+    setFailedAction(null);
+  }
+
+  /** Record the explicit consent, then open Stripe checkout.
+   *
+   * The consent is what the ticket requires before any charge: it is recorded
+   * server-side with the exact terms, and a checkout never opens without it.
+   * If recording fails the checkout does not open — nothing was charged.
+   */
+  async function agreeAndCheckout(plan: PlanView) {
+    setBusy(plan.id);
+    setError('');
+    setFailedAction(null);
+    try {
+      const r = await clientFetch('/api/billing/consent', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ planId: plan.id }),
+      });
+      if (!r.ok) throw new Error('consent not recorded');
+      await upgrade(plan.id);
+    } catch {
+      setError(
+        'Your agreement could not be recorded, so checkout was not opened. Nothing was charged.',
+      );
+      setFailedAction({ kind: 'consent', plan: plan.id });
+    } finally {
+      setBusy('');
+    }
   }
 
   async function upgrade(plan: string) {
@@ -258,6 +349,26 @@ export function BillingPanel() {
           </div>
         </div>
       )}
+      {data.notices.some((n) => n.kind === 'payment_failed') && data.tier !== 'owner' && (
+        <div className="billing-notice" role="status">
+          <p>
+            <strong>
+              Your last payment failed
+              {failedNoticeDate(data.notices)}.
+            </strong>{' '}
+            {data.tier === 'managed'
+              ? 'Your Pro access stays on while Stripe retries the card — update your payment method so the retry succeeds.'
+              : 'Pro ended because the payment could not be collected. You’re on Free — every conversation and file is intact, and you can re-subscribe any time.'}
+          </p>
+          {data.tier === 'managed' && (
+            <div className="billing-notice-actions">
+              <button type="button" onClick={portal} disabled={busy === 'portal'}>
+                {busy === 'portal' ? 'Opening…' : 'Update payment method'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {data.tier === 'managed' && cap !== null && percent >= 80 && (
         <div className={'billing-notice' + (percent >= 100 ? ' is-critical' : '')} role="status">
           <p>
@@ -368,24 +479,60 @@ export function BillingPanel() {
                 </p>
               ) : !plan.purchasable ? (
                 <p className="billing-note">This plan has no price configured yet.</p>
+              ) : consenting === plan.id ? (
+                // Consent before charge: the exact terms first, the checkbox,
+                // and only then the checkout. Nothing here charges anything.
+                <div className="billing-consent">
+                  <p className="billing-terms">{consentTerms(plan)}</p>
+                  <label className="billing-agree">
+                    <input
+                      type="checkbox"
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                    />
+                    <span>I agree to be charged exactly as described above.</span>
+                  </label>
+                  <div className="billing-consent-actions">
+                    <button
+                      type="button"
+                      className="n-press"
+                      disabled={!agreed || busy === plan.id}
+                      onClick={() => agreeAndCheckout(plan)}
+                    >
+                      {busy === plan.id ? (
+                        <>
+                          <LoaderCircle className="spin" size={16} aria-hidden />
+                          Recording…
+                        </>
+                      ) : (
+                        'Agree and continue to secure checkout'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="n-press n-cta-ghost"
+                      onClick={() => setConsenting(null)}
+                    >
+                      Back
+                    </button>
+                  </div>
+                  <p className="billing-note">
+                    Your agreement is recorded with the time and these exact terms. The card itself
+                    is handled by Stripe — we never see it.
+                  </p>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  className="n-press"
-                  onClick={() => upgrade(plan.id)}
-                  disabled={busy === plan.id}
-                >
-                  {busy === plan.id ? (
-                    <>
-                      <LoaderCircle className="spin" size={16} aria-hidden />
-                      Opening checkout…
-                    </>
-                  ) : plan.trialDays ? (
-                    `Start ${plan.trialDays} days free`
-                  ) : (
-                    `Choose ${plan.name}`
-                  )}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="n-press"
+                    onClick={() => startUpgrade(plan.id)}
+                    disabled={busy === plan.id}
+                  >
+                    {plan.trialDays ? `Start ${plan.trialDays} days free` : `Choose ${plan.name}`}
+                  </button>
+                  {plan.trialTerms && <p className="billing-terms">{plan.trialTerms}</p>}
+                </>
               )}
             </article>
           );

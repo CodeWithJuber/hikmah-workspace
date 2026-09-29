@@ -47,6 +47,19 @@ export function createBillingStore(
        FROM usage_events
        WHERE user_id = ? AND created_at >= ?`,
     ),
+    insertConsent: db.prepare(
+      `INSERT INTO billing_consents
+         (id, user_id, plan_id, price_label, terms, agreed_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ),
+    consentsFor: db.prepare(
+      `SELECT id, user_id, plan_id, price_label, terms, agreed_at
+       FROM billing_consents WHERE user_id = ? ORDER BY agreed_at DESC`,
+    ),
+    latestBillingEvent: db.prepare(
+      `SELECT kind, detail, created_at FROM billing_events
+       WHERE user_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1`,
+    ),
   };
 
   return {
@@ -92,6 +105,73 @@ export function createBillingStore(
     usageThisMonth(userId: string, from = periodStart()): { tokens: number; runs: number } {
       const row = statements.sumAll.get(userId, from) as { total: number; runs: number };
       return { tokens: row.total, runs: row.runs };
+    },
+
+    /** Record the explicit consent to be charged, with the exact terms agreed
+     * to. Written before any checkout opens: no charge without this row. */
+    recordConsent(consent: {
+      id: string;
+      userId: string;
+      planId: string;
+      priceLabel: string;
+      terms: string;
+    }): void {
+      statements.insertConsent.run(
+        consent.id,
+        consent.userId,
+        consent.planId,
+        consent.priceLabel,
+        consent.terms,
+        now(),
+      );
+    },
+
+    /** The consent history, newest first. Append-only: agreeing again adds a
+     * row rather than rewriting what was agreed before. */
+    consentsFor(
+      userId: string,
+    ): { id: string; plan_id: string; price_label: string; terms: string; agreed_at: string }[] {
+      return statements.consentsFor.all(userId) as {
+        id: string;
+        plan_id: string;
+        price_label: string;
+        terms: string;
+        agreed_at: string;
+      }[];
+    },
+
+    /** The most recent billing event of a kind for a person — what the billing
+     * page's notices render from — or null. */
+    latestBillingEvent(
+      userId: string,
+      kind: string,
+    ): { kind: string; detail: string; created_at: string } | null {
+      return (
+        (statements.latestBillingEvent.get(userId, kind) as
+          | {
+              kind: string;
+              detail: string;
+              created_at: string;
+            }
+          | undefined) ?? null
+      );
+    },
+
+    /** The unresolved payment failure to tell the person about, or null.
+     *
+     * A failure Stripe later collected writes a `payment_recovered` event when
+     * the subscription returns to active: only a failure with no later
+     * recovery is still news. Keeps the billing page from crying wolf after
+     * the card worked again. */
+    paymentFailureNotice(userId: string): { at: string } | null {
+      const latest = (kind: string) =>
+        (statements.latestBillingEvent.get(userId, kind) as { created_at: string } | undefined) ??
+        null;
+      const failed = latest('payment_failed');
+      if (!failed) return null;
+      const recovered = latest('payment_recovered');
+      if (recovered && recovered.created_at >= failed.created_at) return null;
+      return { at: failed.created_at };
     },
   };
 }
