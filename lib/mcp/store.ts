@@ -120,13 +120,14 @@ export function createMcpStore(
     unpin: db.prepare('DELETE FROM mcp_tool_pins WHERE server_id = ? AND tool_name = ?'),
     resetPins: db.prepare('DELETE FROM mcp_tool_pins WHERE server_id = ?'),
     consents: db.prepare(
-      'SELECT tool_name, fingerprint, scope, conversation_id, granted_at FROM mcp_tool_consents WHERE server_id = ?',
+      'SELECT tool_name, fingerprint, scope, conversation_id, granted_at, expires_at FROM mcp_tool_consents WHERE server_id = ?',
     ),
     grantConsent: db.prepare(
-      `INSERT INTO mcp_tool_consents (server_id, tool_name, fingerprint, scope, conversation_id, granted_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO mcp_tool_consents (server_id, tool_name, fingerprint, scope, conversation_id, granted_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (server_id, tool_name, scope, conversation_id)
-       DO UPDATE SET fingerprint = excluded.fingerprint, granted_at = excluded.granted_at`,
+       DO UPDATE SET fingerprint = excluded.fingerprint, granted_at = excluded.granted_at,
+                     expires_at = excluded.expires_at`,
     ),
     revokeConsent: db.prepare(
       'DELETE FROM mcp_tool_consents WHERE server_id = ? AND tool_name = ? AND scope = ? AND conversation_id = ?',
@@ -299,6 +300,7 @@ export function createMcpStore(
         scope: string;
         conversation_id: string;
         granted_at: string;
+        expires_at: string | null;
       }[];
       return rows.map((row) => ({
         toolName: row.tool_name,
@@ -306,6 +308,7 @@ export function createMcpStore(
         scope: row.scope as McpConsentScope,
         conversationId: row.conversation_id,
         grantedAt: row.granted_at,
+        expiresAt: row.expires_at,
       }));
     },
 
@@ -313,6 +316,12 @@ export function createMcpStore(
      * Record an explicit approved action. The fingerprint must be the
      * definition the owner actually saw when they approved; callers that do
      * not know it (the approval card today) cannot create a bound consent.
+     *
+     * A grant may carry an expiry: an explicit `expiresAt` ISO timestamp, or a
+     * `ttlMs` duration from now. Past its expiry the grant authorizes nothing —
+     * the policy checks this at call time, not just when the run is assembled.
+     * Omitted, the grant lives until revoked or the fingerprint changes; rows
+     * written before the column existed behave the same way.
      */
     grantConsent(
       serverId: string,
@@ -320,6 +329,7 @@ export function createMcpStore(
       fingerprint: string,
       scope: McpConsentScope,
       conversationId = '',
+      options: { expiresAt?: string; ttlMs?: number } = {},
     ): void {
       if (!toolName) throw new McpStoreError('A consent needs a tool name.');
       if (!/^[0-9a-f]{64}$/.test(fingerprint))
@@ -328,7 +338,25 @@ export function createMcpStore(
         throw new McpStoreError("Consent scope must be 'always' or 'conversation'.");
       if (scope === 'conversation' && !conversationId)
         throw new McpStoreError('A conversation-scoped consent needs its conversation.');
-      statements.grantConsent.run(serverId, toolName, fingerprint, scope, conversationId, now());
+      let expiresAt: string | null = null;
+      if (options.expiresAt !== undefined) {
+        if (!Number.isFinite(Date.parse(options.expiresAt)))
+          throw new McpStoreError('A consent expiry must be a parseable timestamp.');
+        expiresAt = options.expiresAt;
+      } else if (options.ttlMs !== undefined) {
+        if (!Number.isFinite(options.ttlMs))
+          throw new McpStoreError('A consent TTL must be a finite number of milliseconds.');
+        expiresAt = new Date(Date.parse(now()) + options.ttlMs).toISOString();
+      }
+      statements.grantConsent.run(
+        serverId,
+        toolName,
+        fingerprint,
+        scope,
+        conversationId,
+        now(),
+        expiresAt,
+      );
     },
 
     revokeConsent(
@@ -356,4 +384,7 @@ export type McpConsent = {
   /** Empty unless the scope is 'conversation'. */
   conversationId: string;
   grantedAt: string;
+  /** ISO-8601 UTC when the grant stops authorizing. Null means no expiry:
+   * the grant lives until revoked or the fingerprint changes. */
+  expiresAt: string | null;
 };

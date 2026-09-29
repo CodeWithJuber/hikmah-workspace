@@ -4,7 +4,13 @@
  * durable worker will use the same function later, so a run behaves identically
  * whether it is driven by an open tab or resumed by the server.
  */
-import { ToolLoopAgent, isStepCount, type LanguageModel } from 'ai';
+import {
+  ToolLoopAgent,
+  isStepCount,
+  type LanguageModel,
+  type ToolSet,
+  type TypedToolCall,
+} from 'ai';
 import { historyBudget, reduceMessages } from './context.ts';
 import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
@@ -13,8 +19,9 @@ import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
 import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
-import { mcpToolApproval, type McpRunTools } from '../mcp/run-context.ts';
+import { type McpRunTools } from '../mcp/run-context.ts';
 import { withServerGuidance } from './server-guidance.ts';
+import { createToolPolicy, type PolicyFn, type ToolDecider } from './tool-policy.ts';
 import { shellApprovalPolicy, shellTools, type ShellToolContext } from './tools/shell.ts';
 import { mediaTools, type MediaToolContext } from './tools/media.ts';
 import { fileTools, type FileToolContext } from './tools/files.ts';
@@ -120,7 +127,7 @@ export type RunAgentOptions = {
    * Connecting is the caller's job because it is async and has to happen once
    * per run, while this function is synchronous and may be called per step.
    */
-  mcp?: Pick<McpRunTools, 'tools' | 'approval' | 'guidance'>;
+  mcp?: Pick<McpRunTools, 'tools' | 'approval' | 'guidance' | 'callGate'>;
   /**
    * Nobody is watching this run: a background task, or a research lane.
    *
@@ -143,7 +150,34 @@ const SEARCH_TOOLS = new Set(['search_web', 'read_webpage']);
 const SEARCH_GUIDANCE =
   'For this message the person switched Search on. Search the web before answering, read the pages that matter, and say which pages the answer rests on. If the search finds nothing useful, say so rather than answering from memory as if it had.';
 
-export function buildRunAgent(options: RunAgentOptions) {
+/** Why the explicitly safe tools need no approval: they read or compute inside
+ * this process. None reaches a machine or an outside server. */
+const SAFE_TOOL_REASON =
+  'Reads or computes inside this process: reaches no machine and no outside server.';
+
+/**
+ * The permission decider for one run, built alongside its tool set.
+ *
+ * Deny by default: every tool the run offers gets an explicit decision — a
+ * per-tool gate for the ones that reach a machine or a server, an explicit
+ * safe-set membership for the ones that do not — and anything the decider was
+ * not built with is denied. This replaces the record-form `toolApproval`,
+ * where a tool with no entry fell back to the SDK's `not-applicable` and ran
+ * with no policy decision at all.
+ *
+ * Server (MCP) tools re-check their gate at call time through
+ * `McpRunTools.callGate`: a consent revoked after assembly, or one whose
+ * expiry passed mid-run, stops authorizing here rather than at the next run.
+ */
+export function createToolDecider(options: RunAgentOptions): {
+  decide: ToolDecider;
+  tools: ToolSet;
+  /** Tools the policy explicitly allows without a gate. The SDK mapping below
+   * keeps their old status (`not-applicable`): approval never applied to
+   * them, so emitting approval bookkeeping would tell the closing step — and
+   * the activity log — that every turn stopped on a person. */
+  safeTools: Set<string>;
+} {
   const disabled = new Set(options.disabledTools ?? []);
   const all = {
     ...researchTools({ savedSearchKey: options.savedSearchKey, signal: options.signal }),
@@ -166,7 +200,7 @@ export function buildRunAgent(options: RunAgentOptions) {
   };
   const allowed = new Set(options.enabledTools ?? []);
   // What would stop on a person. Withheld entirely from an unattended run, so
-  // the approval maps below have nothing to gate and the run cannot pause.
+  // the gates below have nothing to decide and the run cannot pause.
   const wouldWait = (name: string) =>
     name === 'ask_user' ||
     name === 'ssh_exec' ||
@@ -186,11 +220,13 @@ export function buildRunAgent(options: RunAgentOptions) {
         !(options.unattended && wouldWait(name)),
     ),
   );
+
+  const grants = options.approvals;
   // The fan-out, over the run's own model. Its lanes get the research tools
   // and the auto-approved server tools from the set above — never a tool that
   // would wait on a person, and never itself — so a lane is an unattended run
   // by construction, sharing the parent's connections rather than opening its
-  // own.
+  // own. Built before the gates so the decider covers it explicitly.
   if (options.deepResearch && !disabled.has('deep_research')) {
     const model = options.model ?? createLanguageModel(options.provider);
     const laneTools = Object.fromEntries(
@@ -215,6 +251,49 @@ export function buildRunAgent(options: RunAgentOptions) {
       }),
     );
   }
+
+  const gates: Record<string, PolicyFn> = {};
+  // One server tool's gate, decided at call time, not from the assembly
+  // snapshot. Mirrors `mcpToolApproval`'s grant override: what the owner said
+  // yes to on the card runs, whatever the policy said at assembly.
+  const mcpGate =
+    (toolId: string): PolicyFn =>
+    () => {
+      const decided = options.mcp?.callGate(toolId) ?? 'deny';
+      if (decided === 'deny')
+        return { gate: 'denied', reason: `The ${toolId} tool is denied by policy.` };
+      if (grants?.tools.has(toolId)) return { gate: 'approved' };
+      if (decided === 'auto') return { gate: 'approved' };
+      return {
+        gate: 'user-approval',
+        reason: `The ${toolId} tool needs the owner's approval.`,
+      };
+    };
+  for (const name of Object.keys(tools)) {
+    if (name === 'ssh_exec' && options.ssh && !disabled.has('ssh_exec'))
+      gates[name] = sshApprovalPolicy({ listHosts: options.ssh.listHosts, grants });
+    else if (name.startsWith('mcp__') && options.mcp) gates[name] = mcpGate(name);
+    else if (name === 'bash' && options.shell?.available && !disabled.has('bash'))
+      gates[name] = shellApprovalPolicy(grants);
+    else if (name === 'sandbox_run' && options.shell?.available && !disabled.has('sandbox_run'))
+      // Never auto-approved by a rule: a program is not something anyone can
+      // skim the way they can skim `ls -la`. Only the owner's own grant from
+      // the card, for this conversation or always, lets it run unasked.
+      gates[name] = () =>
+        grants?.tools.has('sandbox_run')
+          ? { gate: 'approved' }
+          : {
+              gate: 'user-approval',
+              reason: 'sandbox_run runs a program in the workbench; it always asks first.',
+            };
+  }
+  const safeTools = new Set(Object.keys(tools).filter((name) => !(name in gates)));
+  const decide = createToolPolicy({ gates, safeTools, safeReason: SAFE_TOOL_REASON });
+  return { decide, tools, safeTools };
+}
+
+export function buildRunAgent(options: RunAgentOptions) {
+  const { decide, tools, safeTools } = createToolDecider(options);
   // What actually fits, from this model's own window, minus the system prompt
   // and the tool schemas this run is about to send. Computed after `tools` so
   // the count is the real one — an owner with the Qur'an server enabled offers
@@ -225,33 +304,6 @@ export function buildRunAgent(options: RunAgentOptions) {
     tools: Object.keys(tools).length,
     ceiling: options.contextCharacters,
   });
-
-  // Only tools that reach outside this process are gated. Everything else in the
-  // set reads or computes; ssh_exec runs a command on a machine the owner cares
-  // about, and an MCP tool belongs to a server that is not on our side.
-  const grants = options.approvals;
-  const sshApproval =
-    options.ssh && !disabled.has('ssh_exec')
-      ? { ssh_exec: sshApprovalPolicy({ listHosts: options.ssh.listHosts, grants }) }
-      : undefined;
-  const mcpApproval = options.mcp?.approval.size
-    ? mcpToolApproval(options.mcp.approval, grants)
-    : undefined;
-  // sandbox_run is never auto-approved by a rule: a program is not something
-  // anyone can skim the way they can skim `ls -la`. Only the owner's own grant
-  // from the card, for this conversation or always, lets it run unasked.
-  const shellApproval = options.shell?.available
-    ? {
-        ...(disabled.has('bash') ? {} : { bash: shellApprovalPolicy(grants) }),
-        ...(disabled.has('sandbox_run')
-          ? {}
-          : {
-              sandbox_run: grants?.tools.has('sandbox_run')
-                ? ('approved' as const)
-                : ('user-approval' as const),
-            }),
-      }
-    : undefined;
 
   // Asked for in words, not forced with `toolChoice`. A forced tool choice is
   // enforced by the SDK: a model that answers in prose anyway — most free
@@ -268,27 +320,21 @@ export function buildRunAgent(options: RunAgentOptions) {
     tools,
     stopWhen: isStepCount(options.maxSteps ?? DEFAULT_MAX_STEPS),
     prepareStep: ({ messages }) => ({ messages: reduceMessages(messages, limit) }),
-    // Everything that reaches a machine is gated: ssh_exec a remote one, bash
-    // and sandbox_run the workbench, an MCP tool somebody else's server. The
-    // rest of the set reads or computes.
+    // The single dispatch for every tool call this run makes. The SDK's
+    // function form is invoked for *every* tool call — unlike the record
+    // form it replaces, which silently ran any tool with no entry — and the
+    // decider denies by default: only an explicit gate or an explicit
+    // safe-set membership lets a call through. Denials reach the model as an
+    // execution-denied tool result, carrying the policy's reason.
     //
-    // shellApproval was computed here and then left out of this spread, so
-    // `bash` ran whatever it liked and `sandbox_run` — documented as always
-    // asking — never asked. Nothing failed: the tools worked, they just worked
-    // without the card.
-    ...(sshApproval || mcpApproval || shellApproval
-      ? {
-          toolApproval: Object.fromEntries(
-            // Only for tools actually offered: an unattended run withheld every
-            // gated one above, and a policy for a tool that is not there is a
-            // promise the run cannot keep.
-            Object.entries({
-              ...mcpApproval,
-              ...shellApproval,
-              ...sshApproval,
-            }).filter(([name]) => name in tools),
-          ),
-        }
-      : {}),
+    // The safe set keeps its old SDK status (`not-applicable`): approval
+    // never applied to these tools, and emitting approval bookkeeping for
+    // them would tell the closing step that every turn stopped on a person.
+    toolApproval: async ({ toolCall }: { toolCall: TypedToolCall<ToolSet> }) => {
+      const decision = await decide(toolCall.toolName, toolCall.input);
+      if (decision.gate === 'approved' && safeTools.has(toolCall.toolName))
+        return 'not-applicable' as const;
+      return decision.gate;
+    },
   });
 }

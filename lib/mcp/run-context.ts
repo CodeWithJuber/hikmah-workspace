@@ -20,8 +20,18 @@ import { toRecord, type McpConsent, type McpStore } from './store.ts';
 /** What a run gets: the tools, how each is gated, and how to let go of them. */
 export type McpRunTools = {
   tools: ToolSet;
-  /** Tool id to the decision the policy reached, for `toolApproval`. */
+  /** Tool id to the decision the policy reached at assembly, for `toolApproval`. */
   approval: Map<string, ApprovalMode>;
+  /**
+   * Re-decide one tool's gate at call time, from fresh store state.
+   *
+   * The `approval` map above is a snapshot from run assembly. A grant revoked
+   * after assembly — or one whose expiry passed mid-run — must not keep
+   * authorizing calls, so the dispatch path asks this per call instead of
+   * trusting the snapshot. A store read that fails asks rather than approving:
+   * a check that could not run is not a yes.
+   */
+  callGate: (toolId: string) => ApprovalMode;
   /** Tool ids whose description changed since the owner last saw it. */
   changed: string[];
   /**
@@ -36,6 +46,7 @@ export type McpRunTools = {
 export const EMPTY_MCP_TOOLS: McpRunTools = {
   tools: {},
   approval: new Map(),
+  callGate: () => 'deny',
   changed: [],
   guidance: [],
   close: async () => {},
@@ -66,6 +77,11 @@ export type McpRunOptions = {
   connectTimeoutMs?: number;
   /** Likewise, for the per-call deadline. */
   callTimeoutMs?: number;
+  /**
+   * The clock the policy reads for grant expiry. Injected by the tests, so a
+   * suite can move time past an expiry without waiting for it.
+   */
+  now?: () => Date;
 };
 
 /**
@@ -126,8 +142,18 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
   const connected: ConnectedServer[] = [];
   const tools: ToolSet = {};
   const approval = new Map<string, ApprovalMode>();
+  /** What the call-time gate needs per tool: the account, the name, the
+   * definition the owner saw, and its annotations. The store state (consents,
+   * pins, policy) is re-read per call; this part cannot change mid-run. */
+  const live = new Map<
+    string,
+    { serverId: string; name: string; fingerprint: string; annotations: Record<string, unknown> }
+  >();
   const changed: string[] = [];
   const guidance: { server: string; instructions: string }[] = [];
+
+  const now = options.now ?? (() => new Date());
+  const conversationId = options.conversationId ?? '';
 
   attempts.forEach((attempt, index) => {
     // Row order, not settle order: the assembly below is deterministic and
@@ -167,31 +193,75 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
       // and is reported.
       if (pinned && pinned !== fingerprint) changed.push(id);
 
-      const decided = approvalFor(record, {
-        name,
-        annotations: (tool as { annotations?: Record<string, unknown> }).annotations,
-      });
       // Consent, not discovery, decides. A pin records that this definition was
       // shown; it never approves. Auto-approval needs a bound consent for this
       // exact connector account, fingerprint and scope — or an explicit install
       // policy whose presented definition has not changed since. The first
       // sighting always asks; a hard deny is never offered, whatever consents
       // or grants remember.
-      let gate: ApprovalMode = 'ask';
-      if (decided === 'deny') gate = 'deny';
-      else if (consentApplies(consents, name, fingerprint, options.conversationId)) gate = 'auto';
-      else if (decided === 'auto' && pinned === fingerprint) gate = 'auto';
+      const annotations = (tool as { annotations?: Record<string, unknown> }).annotations ?? {};
+      const gate = decideGate({
+        record,
+        name,
+        fingerprint,
+        annotations,
+        pins,
+        consents,
+        conversationId,
+        now: now(),
+      });
 
       if (gate === 'deny') continue;
       tools[id] = bounded(tool, id, options.callTimeoutMs ?? MCP_CALL_TIMEOUT_MS);
       approval.set(id, gate);
+      live.set(id, { serverId: row.id, name, fingerprint, annotations });
       if (!pinned) options.store.pin(row.id, name, fingerprint);
     }
   });
 
+  // The call-time gate: the same decision as assembly, re-run against fresh
+  // store state for every call. A consent revoked after assembly, or one whose
+  // expiry passed mid-run, stops authorizing here — the assembly snapshot is
+  // never trusted past the moment it was taken.
+  const callGate = (toolId: string): ApprovalMode => {
+    const info = live.get(toolId);
+    if (!info) return 'deny';
+    let row;
+    try {
+      row = options.store.get(info.serverId, options.userId);
+    } catch {
+      return 'ask';
+    }
+    // The connector account the consent bound is gone: nothing it granted
+    // can follow it.
+    if (!row) return 'deny';
+    let pins;
+    let freshConsents;
+    try {
+      pins = options.store.pins(info.serverId);
+      freshConsents = options.store.consents(info.serverId);
+    } catch {
+      // A check that could not run is not a yes. Asking leaves the run
+      // usable — the owner can still approve this call — where denying would
+      // brick the tool until the store recovers.
+      return 'ask';
+    }
+    return decideGate({
+      record: toRecord(row),
+      name: info.name,
+      fingerprint: info.fingerprint,
+      annotations: info.annotations,
+      pins,
+      consents: freshConsents,
+      conversationId,
+      now: now(),
+    });
+  };
+
   return {
     tools,
     approval,
+    callGate,
     changed,
     guidance,
     close: async () => {
@@ -201,27 +271,67 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
 }
 
 /**
+ * One tool's gate, from the server's policy and the owner's bound consents.
+ *
+ * Shared by assembly and the call-time gate so the two cannot drift apart:
+ * the decision a call gets is the decision assembly would reach with the
+ * store as it is at that moment.
+ */
+function decideGate(args: {
+  record: ReturnType<typeof toRecord>;
+  name: string;
+  fingerprint: string;
+  annotations: Record<string, unknown>;
+  pins: Map<string, string>;
+  consents: McpConsent[];
+  conversationId: string;
+  now: Date;
+}): ApprovalMode {
+  const decided = approvalFor(args.record, { name: args.name, annotations: args.annotations });
+  if (decided === 'deny') return 'deny';
+  if (consentApplies(args.consents, args.name, args.fingerprint, args.conversationId, args.now))
+    return 'auto';
+  if (decided === 'auto' && args.pins.get(args.name) === args.fingerprint) return 'auto';
+  return 'ask';
+}
+
+/**
  * Does a bound consent cover this call? The account is the server row the
  * consents were read for; the tool name, the exact approved fingerprint and
  * the scope must all match. An unknown or empty fingerprint never consents.
+ *
+ * Expiry is checked here, at call time, not just when the run is assembled:
+ * a grant past its `expires_at` authorizes nothing. The comparison is
+ * fail-closed on clock skew — an unparseable stamp, or a grant stamped in the
+ * future relative to the checking clock, never authorizes.
  */
 function consentApplies(
   consents: McpConsent[],
   toolName: string,
   fingerprint: string,
-  conversationId?: string,
+  conversationId: string,
+  now: Date,
 ): boolean {
   if (!fingerprint) return false;
   const conversation = conversationId ?? '';
-  return consents.some(
-    (consent) =>
-      consent.toolName === toolName &&
-      consent.fingerprint === fingerprint &&
-      (consent.scope === 'always' ||
-        (consent.scope === 'conversation' &&
-          consent.conversationId !== '' &&
-          consent.conversationId === conversation)),
-  );
+  const at = now.getTime();
+  return consents.some((consent) => {
+    if (consent.toolName !== toolName || consent.fingerprint !== fingerprint) return false;
+    if (!(
+      consent.scope === 'always' ||
+      (consent.scope === 'conversation' &&
+        consent.conversationId !== '' &&
+        consent.conversationId === conversation)
+    ))
+      return false;
+    const granted = Date.parse(consent.grantedAt);
+    if (!Number.isFinite(granted) || granted > at) return false;
+    if (consent.expiresAt != null) {
+      const expires = Date.parse(consent.expiresAt);
+      if (!Number.isFinite(expires) || at >= expires) return false;
+    }
+    return true;
+  });
 }
 
 /**
