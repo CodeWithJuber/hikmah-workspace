@@ -51,6 +51,14 @@ export type McpRunOptions = {
   bridge?: { url: string; token: string };
   /** The conversation the run belongs to, for conversation-scoped consents. */
   conversationId?: string;
+  /**
+   * Which servers this turn may need. Absent means every enabled server —
+   * the historical behavior, kept so a caller that does not know the turn's
+   * needs changes nothing. A turn that knows it needs nothing passes
+   * `{ servers: [] }` and no server is handshaked at all; a turn that needs
+   * specific servers names them and only those are connected.
+   */
+  scope?: McpScope;
   /** Injected by the tests. */
   connect?: typeof connectServer;
   /** Injected by the tests, so a suite does not pay the real deadline to prove
@@ -61,7 +69,23 @@ export type McpRunOptions = {
 };
 
 /**
- * Connect every enabled server and assemble the run's MCP tools.
+ * Which of the owner's servers one turn may need.
+ *
+ * The run layer decides relevance — it sees the turn — and this module only
+ * enforces it, so a plain chat turn pays no handshake: no connection, no
+ * credential decryption, no status churn on servers it never touched.
+ */
+export type McpScope = {
+  /**
+   * Server names to handshake, matched against the owner's enabled servers.
+   * An empty list connects nothing. Names that are not enabled (or not known)
+   * are skipped, never an error: a scope is a wish, not a demand.
+   */
+  servers: string[];
+};
+
+/**
+ * Connect the enabled servers in scope and assemble the run's MCP tools.
  *
  * A server that fails to connect is recorded and skipped rather than failing the
  * run: one unreachable server should cost its own tools, not the conversation.
@@ -69,7 +93,13 @@ export type McpRunOptions = {
 export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> {
   const connect = options.connect ?? connectServer;
   const rows = options.store.enabled(options.userId);
-  if (rows.length === 0) return EMPTY_MCP_TOOLS;
+  // Selective capabilities (PR-08): only handshake the servers this turn may
+  // need. Without a scope this is every enabled server, exactly as before;
+  // with one — including the empty scope of a plain chat turn — anything
+  // unnamed is never contacted.
+  const scope = options.scope;
+  const scoped = scope ? rows.filter((row) => scope.servers.includes(row.name)) : rows;
+  if (scoped.length === 0) return EMPTY_MCP_TOOLS;
 
   // Every server at once. The sequential loop made the run wait up to N × the
   // per-server deadline before it had streamed a byte; now the wait is the
@@ -78,7 +108,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
   // results are applied in row order afterwards, so tool order, statuses and
   // guidance read exactly as they did when the loop was sequential.
   const attempts = await Promise.allSettled(
-    rows.map((row) => {
+    scoped.map((row) => {
       const record = toRecord(row);
       return withDeadline(
         connect(record, {
@@ -102,7 +132,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
   attempts.forEach((attempt, index) => {
     // Row order, not settle order: the assembly below is deterministic and
     // identical to the old sequential loop's.
-    const row = rows[index];
+    const row = scoped[index];
     const record = toRecord(row);
     if (attempt.status === 'rejected') {
       const error = attempt.reason;
@@ -266,22 +296,36 @@ async function withDeadline(
   limit: number,
 ): Promise<ConnectedServer> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let settled = false;
+  let onAbort: (() => void) | undefined;
+  // Set when the deadline or the abort wins the race while the attempt is
+  // still in flight. When that attempt eventually settles, a server that
+  // answered late is closed rather than left holding a socket for the life
+  // of the worker. (The old `settled` flag could not do this: it was set by
+  // the race branch whose .then was attached first, so it was already true
+  // by the time the abandon handler ran and the late server was never
+  // closed.)
+  let lost = false;
+  let closedLate = false;
   const abandon = (reason: string) => {
+    lost = true;
     void work.then(
       (server) => {
-        if (!settled) void server.close().catch(() => {});
+        if (lost && !closedLate) {
+          closedLate = true;
+          void server.close().catch(() => {});
+        }
       },
       () => {},
     );
     return new Error(reason);
   };
+  // A turn that is already dead must not start a handshake it will abandon:
+  // adding a listener to an already-aborted signal never fires, so without
+  // this the attempt would run until the deadline.
+  if (signal?.aborted) throw abandon(`Connecting to "${name}" was cancelled.`);
   try {
     return await Promise.race([
-      work.then((server) => {
-        settled = true;
-        return server;
-      }),
+      work.then((server) => server),
       new Promise<never>((_, reject) => {
         timer = setTimeout(
           () =>
@@ -292,16 +336,20 @@ async function withDeadline(
             ),
           limit,
         );
-        signal?.addEventListener(
-          'abort',
-          () => reject(abandon(`Connecting to "${name}" was cancelled.`)),
-          {
-            once: true,
-          },
-        );
+        if (signal) {
+          onAbort = () => reject(abandon(`Connecting to "${name}" was cancelled.`));
+          // Detached in the finally below. Without this, every run left one
+          // listener per server on a signal that can outlive the run — a slow
+          // handle leak on the exact path PR-08 is asked to keep clean.
+          signal.addEventListener('abort', onAbort, { once: true });
+        }
       }),
     ]);
   } finally {
     clearTimeout(timer);
+    // The race is over: a listener left here would fire on a later abort and
+    // reject a promise nobody is awaiting anymore. Removing an already-fired
+    // (once:true) listener is a no-op.
+    if (signal && onAbort) signal.removeEventListener('abort', onAbort);
   }
 }

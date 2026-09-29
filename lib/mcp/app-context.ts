@@ -10,7 +10,7 @@ import { MCP_SECRET_DESTINATION, referencedVariables } from './config.ts';
 import { workbenchConfig } from '../ssh/client.ts';
 
 import { createMcpStore } from './store.ts';
-import { EMPTY_MCP_TOOLS, mcpRunTools, type McpRunTools } from './run-context.ts';
+import { EMPTY_MCP_TOOLS, mcpRunTools, type McpRunTools, type McpScope } from './run-context.ts';
 
 /**
  * Connect this owner's enabled servers for one run.
@@ -18,18 +18,28 @@ import { EMPTY_MCP_TOOLS, mcpRunTools, type McpRunTools } from './run-context.ts
  * `${VAR}` references are resolved up front rather than lazily: expansion is
  * synchronous inside the manager, and a run should fail to connect one server
  * rather than block on a decryption in the middle of assembling a tool set.
+ *
+ * A scope narrows the handshake to the servers the turn may need — and an
+ * empty one skips it entirely: not even the credentials of an unneeded server
+ * are decrypted.
  */
-export async function mcpForUser(userId: string, signal?: AbortSignal): Promise<McpRunTools> {
+export async function mcpForUser(
+  userId: string,
+  signal?: AbortSignal,
+  scope?: McpScope,
+): Promise<McpRunTools> {
   const store = createMcpStore(getStorage().raw);
   const rows = store.enabled(userId);
-  if (rows.length === 0) return EMPTY_MCP_TOOLS;
+  const scoped = scope ? rows.filter((row) => scope.servers.includes(row.name)) : rows;
+  if (scoped.length === 0) return EMPTY_MCP_TOOLS;
 
   const secrets = createSecretStore();
   const resolved = new Map<string, string>();
   // Only the names a server actually references are decrypted, so enabling one
-  // server does not unseal every credential in the workspace.
+  // server does not unseal every credential in the workspace — and a scoped
+  // turn does not unseal the credentials of servers it never contacts.
   const wanted = new Set<string>();
-  for (const row of rows)
+  for (const row of scoped)
     for (const name of referencedVariables(JSON.parse(row.config))) wanted.add(name);
   for (const name of wanted) {
     try {
@@ -54,5 +64,6 @@ export async function mcpForUser(userId: string, signal?: AbortSignal): Promise<
     secret: (name) => resolved.get(name),
     bridge,
     signal,
+    scope,
   });
 }
