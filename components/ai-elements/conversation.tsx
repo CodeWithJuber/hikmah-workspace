@@ -18,8 +18,21 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
     // edge. With hidden there is then no way to scroll back to it: the message
     // is simply cut off, which is what the last turn did.
     className={cn("relative flex-1 overflow-y-auto", className)}
+    // `resize="instant"` (not "smooth"): use-stick-to-bottom's mergeAnimations
+    // silently IGNORES the "smooth" ScrollBehavior string — only "instant" is
+    // honored, everything else degrades to the default spring animation. With
+    // the spring, every content resize during streaming starts a rAF loop that
+    // writes scrollTop EVERY FRAME for 350ms; on Android touch (which only
+    // produces scroll events, no wheel events — the lib has no touch
+    // handling) each frame's programmatic write overrides the user's finger
+    // scroll, so the transcript feels frozen mid-stream. "instant" assigns
+    // scrollTop once per resize with no animation loop, so touch scrolls are
+    // never fought. Programmatic scrolls still don't flip the lock state
+    // (the lib's ignoreScrollToTop guard), so stick-to-bottom is preserved.
+    // Pending on-device verification that this resolves the frozen-scroll
+    // report (see track-4 report).
     initial="smooth"
-    resize="smooth"
+    resize="instant"
     role="log"
     {...props}
   />

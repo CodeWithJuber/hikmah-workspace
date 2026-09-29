@@ -20,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import {
   AlertCircle,
+  ArrowUp,
   Bookmark,
   BookmarkCheck,
   Check,
@@ -37,7 +38,7 @@ import {
   MessageToolbar,
 } from '@/components/ai-elements/message';
 import { describeWorking, groupParts, toolLabel } from '@/lib/chat/working';
-import { dedupeSources, sourceAnchorId } from '@/lib/chat/citations';
+import { dedupeSources, sourceAnchorId, type CitedSource } from '@/lib/chat/citations';
 import { CitedText } from './citation-pills';
 import { AnswerPyramid } from './answer-pyramid';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
@@ -73,6 +74,98 @@ const FOLLOW_UP_SUGGESTIONS = [
   'What should I do next?',
   'Make it shorter',
 ];
+
+function hostOf(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+/** The source strip for research answers: a horizontal scroll of source cards
+ * instead of the Sources collapsible. Each card keeps the anchor id the
+ * citation pills link to, so tapping a [n] pill in the answer still lands on
+ * its card. */
+export function ResearchSourceStrip({
+  messageId,
+  sources,
+}: {
+  messageId: string;
+  sources: CitedSource[];
+}) {
+  return (
+    <div className="chat-source-strip" role="group" aria-label={`${sources.length} sources`}>
+      {sources.map((source, index) => {
+        const id = sourceAnchorId(messageId, index);
+        const title = source.title ?? source.url ?? 'Source';
+        const host = source.type === 'source-url' && source.url ? hostOf(source.url) : undefined;
+        const card = (
+          <>
+            <span className="chat-source-index" aria-hidden="true">
+              {index + 1}
+            </span>
+            <span className="chat-source-card-text">
+              <span className="chat-source-title">{title}</span>
+              {host && <span className="chat-source-host">{host}</span>}
+            </span>
+          </>
+        );
+        // A source-document has no URL, and an <a> without href is not a
+        // link: the keyboard cannot reach it while it still looks like every
+        // other citation. Render those as plain cards, same as the list did.
+        return source.type === 'source-url' && source.url ? (
+          <a
+            key={id}
+            id={id}
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chat-source-card"
+          >
+            {card}
+          </a>
+        ) : (
+          // A source-document has no URL: a plain card, not a link to nowhere.
+          // The id is still the fragment target the citation pills jump to.
+          <span key={id} id={id} className="chat-source-card">
+            {card}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A one-line follow-up box under a research answer. Sending fills the main
+ * composer as an editable draft — it never sends directly, same as the chips. */
+export function MiniFollowUpComposer({ onSubmit }: { onSubmit: (text: string) => void }) {
+  const [value, setValue] = useState('');
+  return (
+    <form
+      className="chat-mini-followup"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const text = value.trim();
+        if (!text) return;
+        onSubmit(text);
+        setValue('');
+      }}
+    >
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Ask a follow-up…"
+        aria-label="Ask a follow-up"
+        maxLength={2000}
+      />
+      <button type="submit" disabled={!value.trim()} aria-label="Put follow-up in the composer">
+        <ArrowUp size={16} aria-hidden="true" />
+      </button>
+    </form>
+  );
+}
 
 /** Answers one paused tool call. Resolved by the chat view, which owns useChat. */
 export type RespondToApproval = (response: { id: string; approved: boolean }) => void;
@@ -557,7 +650,7 @@ function WorkflowPlanCard({
     <Collapsible
       style={{
         border: '1px solid color-mix(in srgb, currentColor 14%, transparent)',
-        borderRadius: 10,
+        borderRadius: 'var(--radius-element)',
         padding: '6px 10px',
         marginBottom: 8,
         fontSize: 13,
@@ -731,6 +824,7 @@ function MessagePartsInner({
   memoryById,
   onJumpToMemory,
   onFollowUpSelect,
+  queryText,
 }: {
   message: UIMessage;
   status: ChatStatus;
@@ -783,6 +877,10 @@ function MessagePartsInner({
   onJumpToMemory?: (memoryId: string) => void;
   /** A follow-up chip fills the composer as an editable draft. */
   onFollowUpSelect?: (suggestion: string) => void;
+  /** The question this answer answers (the nearest preceding user message's
+   * text). Research answers restate it as a heading, so the reader sees what
+   * was asked without scrolling up. */
+  queryText?: string;
 }) {
   // Only the message actually being written is animating.
   //
@@ -799,6 +897,10 @@ function MessagePartsInner({
   // first-mention order — the pills and the count below both read from this.
   const sources = useMemo(() => dedupeSources(sourceParts(message)), [message]);
   const answered = message.role === 'assistant' && settled;
+  /** A research answer: settled, with sources to show. It reads like a brief
+   * — the question restated, the sources as cards, the cited answer — rather
+   * than a chat bubble with a sources drawer bolted on. */
+  const research = answered && sources.length > 0;
   // Copy, read aloud and answer again all act on the text of an answer. A turn
   // that stopped to ask permission has no text yet, so the row was three
   // controls that would each do nothing, under a card asking a question — and a
@@ -831,6 +933,23 @@ function MessagePartsInner({
   // message, which backtracks hard when a fence is unclosed or the language is
   // one it does not match.
   const artifact = useMemo(() => (answered ? messageArtifact(message) : null), [answered, message]);
+  /** The artifact's caption: the agent's own first sentence about what it
+   * built. The card header already says what kind of thing it is; this says
+   * what it does, in the agent's words. */
+  const artifactCaption = useMemo(() => {
+    if (!artifact) return undefined;
+    const text = message.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => (part as { text?: unknown }).text)
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!text) return undefined;
+    const match = text.match(/^.*?[.!?](\s|$)/);
+    const first = (match ? match[0] : text).trim();
+    return first.length > 140 ? first.slice(0, 140).trimEnd() + '…' : first;
+  }, [message, artifact]);
   const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
   // Sorted before it is rendered, so the answer, the working and anything
@@ -1102,6 +1221,9 @@ function MessagePartsInner({
   return (
     <Message from={message.role} className="chat-message">
       <MessageContent>
+        {/* A research answer reads like a brief: the question restated up top,
+          so the reader sees what was asked without scrolling up. */}
+        {research && queryText && <h2 className="chat-research-query">{queryText}</h2>}
         {blank && (
           <p className="chat-blank-turn">
             {working.length
@@ -1121,6 +1243,10 @@ function MessagePartsInner({
             )}
           </p>
         )}
+        {/* Research answers get the source strip before the answer instead of
+          the collapsible after it: the cards are the first thing a reader
+          scans. Everything else keeps the Sources drawer. */}
+        {research && <ResearchSourceStrip messageId={message.id} sources={sources} />}
         {showActivity && working.length > 0 && (
           /* The working, as one thing rather than scattered through the
              answer. The header names which sources answered and how many
@@ -1138,7 +1264,7 @@ function MessagePartsInner({
         )}
         {rest.map(renderPart)}
 
-        {sources.length > 0 && (
+        {!research && sources.length > 0 && (
           <Sources>
             <SourcesTrigger count={sources.length} />
             <SourcesContent>
@@ -1171,7 +1297,9 @@ function MessagePartsInner({
           </Sources>
         )}
 
-        {artifact && onArtifact && <InlineArtifact files={artifact} onOpen={onArtifact} />}
+        {artifact && onArtifact && (
+          <InlineArtifact files={artifact} caption={artifactCaption} onOpen={onArtifact} />
+        )}
 
         {answered && showActivity && <ChatReceipt message={message} />}
 
@@ -1187,6 +1315,13 @@ function MessagePartsInner({
           source, so an LLM-generated set can replace it later. */}
         {answered && isLast && onFollowUpSelect && (
           <FollowUpChips suggestions={FOLLOW_UP_SUGGESTIONS} onSelect={onFollowUpSelect} />
+        )}
+
+        {/* A research answer ends with its own one-line follow-up box: typing
+          here fills the main composer as an editable draft, same as the chips
+          — it never sends directly. */}
+        {research && isLast && onFollowUpSelect && (
+          <MiniFollowUpComposer onSubmit={onFollowUpSelect} />
         )}
 
         {answered && hasText && (

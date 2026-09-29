@@ -55,9 +55,8 @@ const noop = () => {};
 
 test('empty state: first-run sells the value prop, not a blank box', () => {
   const html = render(EmptyStateOnboarding, { variant: 'first-run', onPick: noop });
-  assert.match(html, /Your second brain starts here/);
-  assert.match(html, /Start asking/);
-  assert.match(html, /Summarize something/);
+  assert.match(html, /Ask anything\. Build anything\. Teach it\./);
+  assert.match(html, /Show me — build a calculator/);
   assert.match(html, /data-slot="empty-state-onboarding"/);
 });
 
@@ -67,15 +66,33 @@ test('empty state: cleared thread gets its own copy, not the new-user pitch', ()
   assert.match(cleared, /A clean slate/);
   assert.match(cleared, /Ask something new/);
   assert.notEqual(first, cleared);
-  assert.doesNotMatch(cleared, /Your second brain starts here/);
+  assert.doesNotMatch(cleared, /Ask anything\. Build anything/);
 });
 
-test('empty state: starter chips are real buttons that say what they do', () => {
+test('empty state: persona cards surface the specialists with starters', () => {
   const html = render(EmptyStateOnboarding, { variant: 'first-run', onPick: noop });
-  assert.match(html, /Ideas to get started/);
+  assert.match(html, /aria-label="Specialists"/);
+  for (const name of ['Research', 'Code', 'Teach']) {
+    assert.match(html, new RegExp(name), `missing persona card: ${name}`);
+  }
+  assert.match(html, /Build a calculator/);
+  assert.match(html, /Compare approaches/);
+  assert.match(html, /Remember this/);
+});
+
+test('empty state: first-run carries the AI disclosure and the upgrade path', () => {
+  const html = render(EmptyStateOnboarding, { variant: 'first-run', onPick: noop });
+  assert.match(html, /chatting with an AI/);
+  assert.match(html, /Need faster answers/);
+  assert.match(html, /See plans/);
+  assert.match(html, /href="\/pricing"/);
+});
+
+test('empty state: one primary action plus persona starters, all real buttons', () => {
+  const html = render(EmptyStateOnboarding, { variant: 'first-run', onPick: noop });
   const buttons = (html.match(/<button/g) ?? []).length;
-  // 1 primary action + 4 starter chips
-  assert.ok(buttons >= 5, `expected at least 5 buttons, got ${buttons}`);
+  // 1 primary action + 6 persona starters + 1 disclosure dismiss
+  assert.ok(buttons >= 8, `expected at least 8 buttons, got ${buttons}`);
 });
 
 test('staged loading: narrates the named pipeline stages', () => {

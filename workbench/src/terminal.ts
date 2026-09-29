@@ -49,6 +49,14 @@ export function createTerminal(options: TerminalOptions): TerminalSession {
   // an argument to the wrapper, which cds after the uid has dropped, because
   // node-pty also chdir's before it setuid's and the supervisor cannot enter a
   // 0700 slot directory itself.
+  //
+  // That means the spawn's own cwd must never be the slot home: the supervisor
+  // holds no CAP_DAC_OVERRIDE, so the chdir fails with EPERM before the drop
+  // ever happens, the shell exits immediately, and the panel shows "The
+  // session ended." for a session that never started. Spawn in the shared
+  // workspace — enterable by the supervisor — and let the wrapper cd after
+  // the drop.
+  const spawnCwd = slot ? (process.env.HIKMAH_WORKSPACE_DIR ?? '/workspace') : options.cwd;
   const wrapper = process.env.HIKMAH_SHELL_WRAPPER || SHELL_WRAPPER;
   const command = slot ? wrapper : (options.shell ?? process.env.SHELL ?? '/bin/bash');
   const args = slot ? [slot.home] : ['-l'];
@@ -57,7 +65,7 @@ export function createTerminal(options: TerminalOptions): TerminalSession {
     name: 'xterm-256color',
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
-    cwd: options.cwd,
+    cwd: spawnCwd,
     env: {
       ...environment,
       ...(slot ? { HOME: slot.home, USER: slot.name, LOGNAME: slot.name } : {}),

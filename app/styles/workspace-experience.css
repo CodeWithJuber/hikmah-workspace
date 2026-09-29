@@ -464,7 +464,7 @@
     display: none;
   }
   .mobile-nav-sheet {
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-container) var(--radius-container) 0 0;
     padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
   .mobile-nav-sheet-list {

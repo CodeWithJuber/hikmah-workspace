@@ -512,3 +512,28 @@ test('Anthropic is asked with its own headers, and its display names are kept', 
   assert.equal(model.pricing.output, 15);
   assert.equal(model.context_length, 200000);
 });
+
+test('the catalogue is bounded to 30s, not the 300s chat idle timeout', async (t) => {
+  // "Loading the catalogue…" used to spin for minutes on a slow provider
+  // because the models operation shared the chat's 5-minute idle bound.
+  const realSetTimeout = globalThis.setTimeout;
+  const delays = [];
+  t.mock.method(globalThis, 'setTimeout', (callback, ms) => {
+    delays.push(ms);
+    return 0; // never fires: this test measures the bound, not the abort
+  });
+  t.mock.method(globalThis, 'fetch', async () => new Promise(() => {}));
+  const controller = new AbortController();
+  const pending = relayProviderRequest(
+    request({ operation: 'models', signal: controller.signal }),
+    true,
+  );
+  await new Promise((resolve) => realSetTimeout(resolve, 20));
+  assert.ok(
+    delays.includes(30_000),
+    `the catalogue bound should be 30s, saw timeouts: ${delays.join(', ')}`,
+  );
+  assert.ok(!delays.includes(300_000), 'the chat idle timeout must not apply to the catalogue');
+  controller.abort();
+  await pending;
+});

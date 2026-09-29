@@ -66,6 +66,24 @@ const ALLOW = [
   /^components\/app\/mobile-nav-bar\.tsx$/,
   // use-visual-viewport.ts: readVisualViewport, bindVisualViewport.
   /^hooks\/use-visual-viewport\.ts$/,
+  // Pure helpers exported so unit tests can name them on purpose; each is
+  // consumed by its own module's component, which routes do render. The check
+  // only counts cross-file uses, so these read as tested-only — the feature
+  // is wired, the heuristic is coarse.
+  // message-parts.tsx: ResearchSourceStrip, MiniFollowUpComposer — rendered in
+  // isolation by tests, consumed by MessageParts in the same module (research
+  // answer layout: query heading → source strip → cited answer → follow-ups).
+  // access.ts: usageAlert — pure 80%/100% boundary helper tested in isolation;
+  // billing-panel.tsx computes the same thresholds inline from its /api/billing
+  // payload (different data shape: no Entitlements object client-side).
+  /^components\/chat\/message-parts\.tsx$/,
+  /^lib\/billing\/access\.ts$/,
+  // mode.ts: chatModeFor is consumed by chat-view.tsx (free-mode pill); its
+  // companion chatModeLabel is named by tests on purpose.
+  /^lib\/chat\/mode\.ts$/,
+  // jev-client.ts: JEV_DEFAULT_TIMEOUT_MS is named by tests on purpose; the
+  // timeout itself drives the Jev lane wait in the run pipeline.
+  /^lib\/integrations\/jev-client\.ts$/,
   // v5 control layer (Phase 3, 2026-09-28): tested library modules staged for
   // Phase-4 agent-loop wiring. Budgets are stamped on every run via
   // enqueueRun() and visible in the run card; the feedback-recording and

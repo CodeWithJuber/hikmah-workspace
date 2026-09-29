@@ -54,7 +54,7 @@ export function RuntimeHome() {
         <SidebarTrigger />
         <h1>Tools & runtimes</h1>
         <Button variant="outline" asChild>
-          <Link href="/admin/connectors">
+          <Link href="/settings/connectors">
             Manage connections <ArrowUpRight size={16} />
           </Link>
         </Button>
@@ -151,7 +151,7 @@ export function RuntimeHome() {
               exactly which actions your server exposes.
             </p>
             <Button variant="outline" asChild>
-              <Link href="/admin/connectors">Connect an MCP server</Link>
+              <Link href="/settings/connectors">Connect an MCP server</Link>
             </Button>
           </section>
           <section>
@@ -182,7 +182,7 @@ export function RuntimeHome() {
                 </p>
               </div>
               <Button variant="ghost" asChild>
-                <Link href="/admin/connectors">Configure</Link>
+                <Link href="/settings/connectors">Configure</Link>
               </Button>
             </div>
           ))
@@ -193,7 +193,7 @@ export function RuntimeHome() {
             description="Your OpenRouter key supplies the model. A separate runtime supplies Python, Node, SSH or browser control. The app never claims those actions ran without a connected tool result."
             action={
               <Button variant="outline" asChild>
-                <Link href="/admin/connectors">Connect a service</Link>
+                <Link href="/settings/connectors">Connect a service</Link>
               </Button>
             }
           />

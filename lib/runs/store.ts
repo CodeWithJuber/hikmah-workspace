@@ -153,6 +153,11 @@ export function createRunStore(
     // message, and a later message must not rename a conversation the owner has
     // been finding by that name.
     setTitle: db.prepare("UPDATE conversations SET title = ? WHERE id = ? AND title = ''"),
+    // A sibling's title, for the dedupe below. The conversation being named is
+    // excluded: naming it what it is already called is not a collision.
+    titleTaken: db.prepare(
+      'SELECT 1 AS taken FROM conversations WHERE user_id = ? AND title = ? AND id != ? LIMIT 1',
+    ),
     deleteConversation: db.prepare(
       'DELETE FROM conversations WHERE id = ? AND user_id = ? RETURNING id',
     ),
@@ -209,7 +214,10 @@ export function createRunStore(
     setStatus: db.prepare('UPDATE runs SET status = ? WHERE id = ?'),
     finish: db.prepare(`UPDATE runs SET status = ?, error = ?, ended_at = ?,
       config = CASE WHEN json_valid(config) THEN json_remove(config, '$.apiKey', '$.providerCredential') ELSE '{}' END
-      WHERE id = ?`),
+      -- Terminal is terminal: a drive that settles late (after a forced
+      -- cancel, after a resume) must not overwrite the outcome already
+      -- recorded, or a cancelled run comes back as done and the badge with it.
+      WHERE id = ? AND status NOT IN ('done', 'failed', 'cancelled')`),
     bumpSteps: db.prepare('UPDATE runs SET step_count = step_count + 1 WHERE id = ?'),
     // A process that dies mid-run leaves rows marked running with nobody
     // driving them. Requeue on boot and on shutdown so the work resumes instead
@@ -388,6 +396,22 @@ export function createRunStore(
     /** Name a conversation, if it does not have one yet. */
     setTitle(conversationId: string, title: string) {
       statements.setTitle.run(title, conversationId);
+    },
+
+    /** A title no other conversation of this owner's already carries.
+     *
+     * Auto-titles come from the opening message, so two conversations that
+     * start the same way used to share one identical sidebar row. The first
+     * keeps the bare title; later ones get " (2)", " (3)", … — the file
+     * manager's convention, and readable in a narrow sidebar. */
+    uniqueTitle(userId: string, base: string, excludeId = ''): string {
+      const taken = (title: string) =>
+        statements.titleTaken.get(userId, title, excludeId) !== undefined;
+      if (!taken(base)) return base;
+      for (let n = 2; ; n += 1) {
+        const candidate = `${base} (${n})`;
+        if (!taken(candidate)) return candidate;
+      }
     },
 
     /**
@@ -595,6 +619,9 @@ export function createRunStore(
       // final tokens.
       flushEvents();
       statements.finish.run(status, error ?? null, now(), id);
+      // Always: a terminal run must never keep a conversation marked as
+      // answering, even if this call lost the race to finish it first. The
+      // sidebar badge reads active_run_id, so this is what clears it.
       const run = one<RunRow>(statements.getRun.get(id));
       if (run) statements.setActiveRun.run(null, now(), run.conversation_id);
     },

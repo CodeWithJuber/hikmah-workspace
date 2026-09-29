@@ -161,7 +161,10 @@ export function KernelCenter({
             {t === 'training'
               ? 'Train context model'
               : t === 'context'
-                ? 'Understand'
+                ? // "Understand" is the ContextStudio's own first nav item
+                  // below; labelling the tab that opens it the same word put
+                  // two adjacent "Understand" buttons on screen.
+                  'Analyze'
                 : t === 'overview'
                   ? 'Legacy model'
                   : t === 'learning'

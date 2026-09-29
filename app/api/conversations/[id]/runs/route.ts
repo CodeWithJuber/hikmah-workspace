@@ -240,33 +240,43 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   // Name it from the message that started it. setTitle only writes when the
   // title is still empty, so a later message cannot rename a conversation the
-  // owner has been finding in the list by that name.
+  // owner has been finding in the list by that name. uniqueTitle keeps two
+  // conversations that open the same way from sharing one sidebar row.
   if (incoming.role === 'user') {
     const title = conversationTitle(incoming.parts);
-    if (title) store.setTitle(conversationId, title);
+    if (title)
+      store.setTitle(conversationId, store.uniqueTitle(user.userId, title, conversationId));
   }
 
-  // The co-model's notes on the recent turns, composed here rather than sent by
-  // the client: it needs the field checkpoints on disk and whichever one this
-  // owner has activated, and a run resumed after the tab closed has no client
-  // to ask. Written onto the run row with the rest of the instructions, so a
-  // run paused on an approval resumes with the notes it started with.
-  const contextNotes = await contextBriefFor(user.userId, messages);
-  // What this person has saved, and what the operator has published. Both were
-  // written, tested and then called by nothing after the browser run loop was
-  // deleted — the Memory screen has been saving items no answer could read.
-  //
-  // Incognito: the session opts out entirely, server-side, not just in the
-  // UI. Skipping the lookup here is what makes the toggle honest — no block,
-  // no recall, no used-count marks — rather than a client-side promise the
-  // server quietly breaks.
+  // The two aids are independent — the brief never reads the knowledge rows
+  // and the knowledge lookup never reads the brief — so they are fetched
+  // together: sequential awaits made every run pay the sum of both lookups
+  // before it could be queued. Both functions are noexcept by construction
+  // (they catch and log internally), so Promise.all preserves the old error
+  // semantics exactly.
   const chatSettings = createChatSettingsStore(getStorage().raw).read(user.userId);
-  const saved = parsed.incognito
-    ? { block: '', recall: '', used: [], conversations: [] }
-    : await knowledgeFor(user.userId, messages, {
-        conversationId,
-        recall: chatSettings.memory.recallConversations,
-      });
+  const [contextNotes, saved] = await Promise.all([
+    // The co-model's notes on the recent turns, composed here rather than sent by
+    // the client: it needs the field checkpoints on disk and whichever one this
+    // owner has activated, and a run resumed after the tab closed has no client
+    // to ask. Written onto the run row with the rest of the instructions, so a
+    // run paused on an approval resumes with the notes it started with.
+    contextBriefFor(user.userId, messages),
+    // What this person has saved, and what the operator has published. Both were
+    // written, tested and then called by nothing after the browser run loop was
+    // deleted — the Memory screen has been saving items no answer could read.
+    //
+    // Incognito: the session opts out entirely, server-side, not just in the
+    // UI. Skipping the lookup here is what makes the toggle honest — no block,
+    // no recall, no used-count marks — rather than a client-side promise the
+    // server quietly breaks.
+    parsed.incognito
+      ? Promise.resolve({ block: '', recall: '', used: [], conversations: [] })
+      : knowledgeFor(user.userId, messages, {
+          conversationId,
+          recall: chatSettings.memory.recallConversations,
+        }),
+  ]);
 
   const runId = newRunId();
   try {

@@ -69,23 +69,16 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
   const rows = options.store.enabled(options.userId);
   if (rows.length === 0) return EMPTY_MCP_TOOLS;
 
-  const connected: ConnectedServer[] = [];
-  const tools: ToolSet = {};
-  const approval = new Map<string, ApprovalMode>();
-  const changed: string[] = [];
-  const guidance: { server: string; instructions: string }[] = [];
-
-  for (const row of rows) {
-    const record = toRecord(row);
-    let server: ConnectedServer;
-    try {
-      // Bounded. `connectServer` awaits a handshake and then a tools listing
-      // with no limit of its own, and the catch below only sees a *failure* —
-      // a hang never returns. So one unresponsive server held the whole run
-      // open before it had streamed a byte, and the composer sat on its stop
-      // button with nothing arriving. Here rather than inside connectServer so
-      // that any connect implementation is bounded, the tests' included.
-      server = await withDeadline(
+  // Every server at once. The sequential loop made the run wait up to N × the
+  // per-server deadline before it had streamed a byte; now the wait is the
+  // slowest server, not the sum. Each attempt is still bounded by
+  // withDeadline — a hang is not a failure the catch below could see — and the
+  // results are applied in row order afterwards, so tool order, statuses and
+  // guidance read exactly as they did when the loop was sequential.
+  const attempts = await Promise.allSettled(
+    rows.map((row) => {
+      const record = toRecord(row);
+      return withDeadline(
         connect(record, {
           secret: options.secret,
           signal: options.signal,
@@ -95,14 +88,30 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
         options.signal,
         options.connectTimeoutMs ?? MCP_CONNECT_TIMEOUT_MS,
       );
-    } catch (error) {
+    }),
+  );
+
+  const connected: ConnectedServer[] = [];
+  const tools: ToolSet = {};
+  const approval = new Map<string, ApprovalMode>();
+  const changed: string[] = [];
+  const guidance: { server: string; instructions: string }[] = [];
+
+  attempts.forEach((attempt, index) => {
+    // Row order, not settle order: the assembly below is deterministic and
+    // identical to the old sequential loop's.
+    const row = rows[index];
+    const record = toRecord(row);
+    if (attempt.status === 'rejected') {
+      const error = attempt.reason;
       options.store.setStatus(
         row.id,
         'failed',
         error instanceof Error ? error.message : 'Could not connect.',
       );
-      continue;
+      return;
     }
+    const server = attempt.value;
     connected.push(server);
     options.store.setStatus(row.id, 'connected', null);
     if (server.instructions)
@@ -137,7 +146,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
       approval.set(id, gate);
       if (!pinned) options.store.pin(row.id, name, fingerprint);
     }
-  }
+  });
 
   return {
     tools,

@@ -138,3 +138,30 @@ test('a real shell runs a command and exits', async () => {
   assert.equal(code, 0);
   assert.match(output.join(''), /workbench-ok/);
 });
+
+test('a slot shell spawns outside the 0700 home and the wrapper cds after the drop', () => {
+  // The supervisor holds no CAP_DAC_OVERRIDE and node-pty chdir's before it
+  // setuid's, so spawning with the slot home as cwd failed with EPERM and the
+  // panel showed "The session ended." for a session that never started. The
+  // spawn starts in the shared workspace; hikmah-shell takes the home as $1
+  // and cds after the uid drop.
+  const pty = fakePty();
+  const slot = { name: 'hk99', uid: 40099, gid: 40099, home: '/workspace/u/hk99' };
+  const seenArgs = [];
+  const spawn = (command, args, options) => {
+    seenArgs.push([command, args]);
+    return pty.spawn(command, args, options);
+  };
+  createTerminal({ ...sink, cwd: slot.home, slot, spawn });
+  const [command, args] = seenArgs[0];
+  assert.match(command, /hikmah-shell/, 'the slot still goes through the wrapper');
+  assert.deepEqual(args, [slot.home], 'the home reaches the wrapper as an argument');
+  assert.notEqual(
+    pty.calls.options.cwd,
+    slot.home,
+    'the spawn itself never chdirs into the 0700 home',
+  );
+  assert.equal(pty.calls.options.cwd, process.env.HIKMAH_WORKSPACE_DIR ?? '/workspace');
+  assert.equal(pty.calls.options.uid, slot.uid, 'the drop still happens');
+  assert.equal(pty.calls.options.env.HOME, slot.home, 'the shell still lands in its home');
+});

@@ -417,6 +417,16 @@
     padding: 0;
     gap: 22px;
     overflow-x: auto;
+    /* The tab row scrolls on narrow screens (seven tabs never fit a phone),
+       but a bare overflow gives no affordance: on a phone the row just looks
+       cut off. The fade says "there is more", and the hidden scrollbar keeps
+       the 51px tab bar visually clean. (Device report 2026-09-29.) */
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, black calc(100% - 36px), transparent 100%);
+  }
+  .admin-tabs > [data-slot='tabs-list']::-webkit-scrollbar {
+    display: none;
   }
   .admin-tabs > [data-slot='tabs-list'] > [data-slot='tabs-trigger'] {
     flex: initial;
@@ -4138,6 +4148,60 @@
     font-size: var(--font-size-2xl);
     font-weight: 650;
     letter-spacing: -0.8px;
+  }
+  /* The artifact's caption: the agent's own first sentence about what it
+     built, under the card header. */
+  .inline-artifact-caption {
+    margin: 0;
+    padding: 10px 15px 0;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+  /* The version strip in the expanded panel: every distinct set of files the
+     panel was shown gets a version; tapping one views it, and an old version
+     offers a restore back to the workspace. */
+  .artifact-versions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+  }
+  .artifact-version {
+    /* 40px: version pills are thumb targets in a bottom-docked panel on
+       phones; 28px was a miss (Jev bump-40, mobile audit 2026-09-29). The
+       strip wraps, so the extra height costs no horizontal room. */
+    min-height: 40px;
+    padding: 2px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: none;
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    cursor: pointer;
+  }
+  .artifact-version:hover {
+    color: var(--foreground);
+    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  }
+  .artifact-version.is-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+    font-weight: 600;
+  }
+  .artifact-version:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .artifact-restore-note {
+    margin: 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
   }
 }
 

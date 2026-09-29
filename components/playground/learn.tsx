@@ -1,4 +1,14 @@
 'use client';
+/** The learning lab, restructured as a 60-second loop: Show it → Teach it →
+ * Try it.
+ *
+ * Before, this page opened on an editable JSON textarea with three "Load"
+ * buttons — a machine's view of teaching. Now the first thing on screen is
+ * a live probe: what the model hears in a sentence, as labeled chips. Then
+ * one button trains a candidate. Then the same probe shows before and after.
+ * The JSON, the equation and the reference checks still exist, one
+ * disclosure level down, for the owners who want them.
+ */
 import { randomId } from '../../lib/id.ts';
 
 import { useState } from 'react';
@@ -27,18 +37,35 @@ import {
   Equation,
   errorMessage,
   pretty,
-  downloadJson,
 } from './common';
 import wb from './workbench.module.css';
 import { languageOptions } from './meaning';
+
 type Candidate = {
   rows: TrainingRow[];
   result: ReturnType<typeof compareCandidates>;
-  kind: string;
 };
+
+/** The 60-second guided first teach: one tap adds a complete, correct
+ * example ("Sara helped Lina.") so the first train → apply loop needs no
+ * JSON, no forms, no decisions. */
+const GUIDED = {
+  sentence: 'Sara helped Lina.',
+  agentName: 'sara',
+  patientName: 'lina',
+  action: 'action:qroot:ع-و-ن#help',
+  tense: 'past' as const,
+  polarity: 'positive' as const,
+  language: 'en',
+};
+
+/** The key the chat watches: after a successful teach the next chat visit
+ * surfaces one AhaMoment line — then it is done. */
+const LAST_TEACH_KEY = 'hikmah:ui:last-teach';
+
 export function Learn() {
   const kernel = useKernel();
-  const { model, additions, applyRows } = usePlayground();
+  const { model, additions } = usePlayground();
   const [rowsJson, setRowsJson] = useState(JSON.stringify(dataset.good_update_train, null, 2));
   const [developmentJson, setDevelopmentJson] = useState('[]');
   const [candidate, setCandidate] = useState<Candidate | null>(null);
@@ -46,7 +73,6 @@ export function Learn() {
   const [notice, setNotice] = useState('');
   const [probe, setProbe] = useState('Sara did help Lina.');
   const [probeLanguage, setProbeLanguage] = useState('en');
-  const [kind, setKind] = useState('good');
   const [diagnostics, setDiagnostics] = useState<ReturnType<typeof evaluate> | null>(null);
   const [sentence, setSentence] = useState('Zoya helped Sara.');
   const [agentName, setAgentName] = useState('zoya');
@@ -60,21 +86,83 @@ export function Learn() {
     setCandidate(null);
     setNotice('');
   };
-  const load = (k: string) => {
-    setKind(k);
-    const rows =
-      k === 'good'
-        ? dataset.good_update_train
-        : k === 'bad'
-          ? dataset.bad_update_train
-          : dataset.bad_update_train.map((r) => ({
-              ...r,
-              id: r.id.replace('train-future', 'user-correct-future'),
-              gold: { ...r.gold, tense: 'future' },
-              annotation_note: 'Correct future label, user lesson.',
-            }));
-    changeRows(JSON.stringify(rows, null, 2));
-    setProbe(k === 'good' ? 'Sara did help Lina.' : 'Sara will help Lina.');
+  /** Build one labeled training row from form fields. Shared by the manual
+   * form and the guided example, so both validate names the same way. */
+  const makeRow = (fields: {
+    sentence: string;
+    agentName: string;
+    patientName: string;
+    action: string;
+    tense: Frame['tense'];
+    polarity: 'positive' | 'negative';
+    language: string;
+  }) => {
+    const person = (v: string) => {
+      const s = v.trim().toLowerCase();
+      if (!/^[a-z][a-z0-9_-]{0,40}$/.test(s))
+        throw Error('Person IDs should use simple lowercase names such as zoya.');
+      return 'person:' + s;
+    };
+    const frame: Frame = {
+      agent: person(fields.agentName),
+      patient: person(fields.patientName),
+      action: fields.action,
+      polarity: fields.polarity === 'positive',
+      tense: fields.tense,
+      modality: 'assertion',
+    };
+    return {
+      id: 'user-' + randomId(),
+      family: [frame.agent, frame.action, frame.patient, frame.polarity].join('/'),
+      split: 'train',
+      language: fields.language,
+      category: 'user_teaching',
+      text: fields.sentence,
+      gold: frame,
+    };
+  };
+  const addExample = () => {
+    try {
+      const row = makeRow({
+        sentence,
+        agentName,
+        patientName,
+        action,
+        tense: tense as Frame['tense'],
+        polarity: polarity as 'positive' | 'negative',
+        language,
+      });
+      const old = parseRowsJson(rowsJson, 'train');
+      changeRows(JSON.stringify([...old, row], null, 2));
+      setError('');
+      setNotice(
+        'Example added. Add varied names and actions so lexical intersections can separate the roles.',
+      );
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+  /** The guided first teach: fill the form AND add the example in one tap, so
+   * the owner sees the full loop — example → train → apply — in a minute. */
+  const guidedExample = () => {
+    setSentence(GUIDED.sentence);
+    setAgentName(GUIDED.agentName);
+    setPatientName(GUIDED.patientName);
+    setAction(GUIDED.action);
+    setTense(GUIDED.tense);
+    setPolarity(GUIDED.polarity);
+    setLanguage(GUIDED.language);
+    try {
+      const row = makeRow(GUIDED);
+      const old = parseRowsJson(rowsJson, 'train');
+      changeRows(JSON.stringify([...old, row], null, 2));
+      setError('');
+      setNotice(
+        'Guided example added. Now press Train candidate below — the whole loop takes about a minute.',
+      );
+    } catch (e) {
+      setError(errorMessage(e));
+    }
   };
   const fit = () => {
     try {
@@ -89,7 +177,7 @@ export function Learn() {
         ...(dataset.development as Row[]),
         ...extraDev,
       ]);
-      setCandidate({ rows, result, kind });
+      setCandidate({ rows, result });
       setError('');
       setNotice('Candidate trained and checked. The active model is unchanged until you apply it.');
     } catch (e) {
@@ -97,38 +185,30 @@ export function Learn() {
       setCandidate(null);
     }
   };
-  const addExample = () => {
+  const apply = async () => {
+    if (!candidate) return;
     try {
-      const person = (v: string) => {
-        const s = v.trim().toLowerCase();
-        if (!/^[a-z][a-z0-9_-]{0,40}$/.test(s))
-          throw Error('Person IDs should use simple lowercase names such as zoya.');
-        return 'person:' + s;
-      };
-      const frame: Frame = {
-        agent: person(agentName),
-        patient: person(patientName),
-        action,
-        polarity: polarity === 'positive',
-        tense: tense as Frame['tense'],
-        modality: 'assertion',
-      };
-      const row = {
-        id: 'user-' + randomId(),
-        family: [frame.agent, frame.action, frame.patient, frame.polarity].join('/'),
-        split: 'train',
-        language,
-        category: 'user_teaching',
-        text: sentence,
-        gold: frame,
-      };
-      const old = parseRowsJson(rowsJson, 'train');
-      changeRows(JSON.stringify([...old, row], null, 2));
-      setKind('custom');
-      setError('');
-      setNotice(
-        'Example added. Add varied names and actions so lexical intersections can separate the roles.',
-      );
+      await kernel.act({
+        type: 'teach',
+        rows: candidate.rows,
+        development: parseRowsJson(developmentJson, 'development'),
+      });
+      // The chat's applause: the next chat visit surfaces one AhaMoment line
+      // naming what the teaching changed — then it is done.
+      try {
+        window.localStorage.setItem(
+          LAST_TEACH_KEY,
+          JSON.stringify({
+            at: new Date().toISOString(),
+            learned: candidate.result.receipt.new_correct_frames,
+            broken: candidate.result.receipt.regressions.length,
+          }),
+        );
+      } catch {
+        // Private mode: the teach still applied; the moment just won't surface.
+      }
+      setCandidate(null);
+      setNotice('Saved. Your next chat visit will show what your teaching changed.');
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -143,6 +223,18 @@ export function Learn() {
       return errorMessage(e);
     }
   };
+  // The live probe: what the model hears in the sentence right now. A failed
+  // parse is not an error — it is the honest "it hasn't learned this yet".
+  const probeFrame = (() => {
+    try {
+      return predict(model, probeLanguage, probe).frame ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  // The receipt in plain words: how many new things were learned, how many
+  // broke. The machine's reason stays one line below.
+  const receipt = candidate?.result.receipt;
   return (
     <>
       <div className={wb.metricRow}>
@@ -150,24 +242,106 @@ export function Learn() {
         <Metric value={model.lexicon.length} label="learned token mappings" />
         <Metric value={model.rules.length} label="learned constructions" />
       </div>
-      <div className={wb.twoColumns}>
-        <section>
-          <h2>Teach a construction</h2>
-          <p className={wb.smallNote}>
-            Train a candidate, compare it against development examples, then apply an approved
-            update. These are real local computations.
-          </p>
-          <div className={wb.actions}>
-            <Button variant="outline" onClick={() => load('good')}>
-              Load valid update
-            </Button>
-            <Button variant="outline" onClick={() => load('bad')}>
-              Load corrupt update
-            </Button>
-            <Button variant="outline" onClick={() => load('future')}>
-              Load future tense
-            </Button>
+
+      <section className={wb.section}>
+        <h2>1 · Show it</h2>
+        <p className={wb.smallNote}>
+          This is what the model hears in a sentence right now — who did what to whom. Type anything
+          and watch it label the parts it already knows. These are real local computations.
+        </p>
+        <div className={wb.fields}>
+          <Choice
+            label="Probe language"
+            value={probeLanguage}
+            onChange={setProbeLanguage}
+            options={languageOptions}
+          />
+        </div>
+        <Input
+          aria-label="Learning probe"
+          value={probe}
+          maxLength={512}
+          onChange={(e) => setProbe(e.target.value)}
+        />
+        {probeFrame ? (
+          <div className="learn-chips" role="status" aria-live="polite">
+            <span className="learn-chip">
+              <span className="learn-chip-label">Who</span>
+              {pretty(probeFrame.agent)}
+            </span>
+            <span className="learn-chip">
+              <span className="learn-chip-label">Did</span>
+              {pretty(probeFrame.action)}
+            </span>
+            <span className="learn-chip">
+              <span className="learn-chip-label">Whom</span>
+              {pretty(probeFrame.patient)}
+            </span>
+            <span className="learn-chip">
+              <span className="learn-chip-label">When</span>
+              {probeFrame.tense}
+            </span>
+            <span className="learn-chip">
+              <span className="learn-chip-label">How</span>
+              {probeFrame.polarity ? 'positive' : 'negative'}
+            </span>
           </div>
+        ) : (
+          <p className={wb.smallNote} role="status">
+            No match yet — it hasn&rsquo;t learned this construction. Teach it below.
+          </p>
+        )}
+      </section>
+
+      <section className={wb.section}>
+        <h2>2 · Teach it</h2>
+        <div className="learn-guided">
+          <p>
+            <strong>First time?</strong> One tap adds a complete example. Then train, then apply —
+            the whole loop takes about a minute.
+          </p>
+          <Button type="button" variant="outline" onClick={guidedExample}>
+            Start with: &ldquo;Sara helped Lina.&rdquo;
+          </Button>
+        </div>
+        <div className={wb.actions}>
+          <Button onClick={fit}>Train candidate</Button>
+        </div>
+        <p className={wb.smallNote}>
+          Trains a candidate and checks it against development examples. The active model is
+          unchanged until you apply it.
+        </p>
+        {candidate && receipt && (
+          <>
+            <Notice error={!receipt.approved}>
+              <strong>
+                {receipt.approved
+                  ? `✓ ${receipt.new_correct_frames} new ${
+                      receipt.new_correct_frames === 1 ? 'thing' : 'things'
+                    } learned, ${receipt.regressions.length} broken.`
+                  : '✗ Nothing learned this time — nothing changed.'}
+              </strong>
+              <p>{receipt.reason.replace(/_/g, ' ')}.</p>
+            </Notice>
+            <div className={wb.actions}>
+              <Button disabled={!receipt.approved} onClick={() => void apply()}>
+                Apply approved update
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCandidate(null);
+                  setNotice('Candidate discarded.');
+                }}
+              >
+                Discard candidate
+              </Button>
+            </div>
+            <JsonView value={receipt} label="Inspect the development decision" />
+          </>
+        )}
+        <details className={wb.disclosure}>
+          <summary>Advanced: edit the training JSON</summary>
           <label
             className={wb.smallNote}
             htmlFor="training-json"
@@ -180,114 +354,42 @@ export function Learn() {
             className={wb.trainInput}
             value={rowsJson}
             maxLength={500000}
-            onChange={(e) => {
-              setKind('custom');
-              changeRows(e.target.value);
-            }}
+            onChange={(e) => changeRows(e.target.value)}
             spellCheck={false}
           />
-          <div className={wb.actions}>
-            <Button onClick={fit}>Train candidate</Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                downloadJson(
-                  { model, training: [...baseRows, ...additions] },
-                  'hikmah-learned-model.json',
-                )
-              }
-            >
-              Export learned model
-            </Button>
-          </div>
-        </section>
-        <section>
-          <h2>Test before and after</h2>
-          <div className={wb.fields}>
-            <Choice
-              label="Probe language"
-              value={probeLanguage}
-              onChange={setProbeLanguage}
-              options={languageOptions}
-            />
-          </div>
-          <Input
-            aria-label="Learning probe"
-            value={probe}
-            maxLength={512}
-            onChange={(e) => setProbe(e.target.value)}
-          />
-          <DataTable
-            heads={['Version', 'Prediction']}
-            rows={[
-              ['Active model', getProbe(model)],
-              [
-                'Candidate',
-                candidate
-                  ? getProbe(
-                      candidate.result.candidateEvaluation
-                        ? train([...baseRows, ...candidate.rows])
-                        : model,
-                    )
-                  : 'Train a candidate to compare',
-              ],
-            ]}
-          />
-          {candidate && (
-            <>
-              <Notice error={!candidate.result.receipt.approved}>
-                <strong>
-                  {candidate.result.receipt.approved ? 'Update approved' : 'Update rejected'}
-                </strong>
-                <p>
-                  {candidate.result.receipt.reason.replace(/_/g, ' ')}. New correct frames:{' '}
-                  {candidate.result.receipt.new_correct_frames}. Regressions:{' '}
-                  {candidate.result.receipt.regressions.length}. Wrong emitted frames:{' '}
-                  {candidate.result.receipt.wrong_emitted_frames.length}.
-                </p>
-              </Notice>
-              <div className={wb.actions}>
-                <Button
-                  disabled={!candidate.result.receipt.approved}
-                  onClick={async () => {
-                    try {
-                      await kernel.act({
-                        type: 'teach',
-                        rows: candidate.rows,
-                        development: parseRowsJson(developmentJson, 'development'),
-                      });
-                      setCandidate(null);
-                      setNotice(
-                        'Reviewed examples saved and processed by the durable training pipeline. Inspect the co-model center for its release decision.',
-                      );
-                    } catch (e) {
-                      setError(errorMessage(e));
-                    }
-                  }}
-                >
-                  Apply approved update
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCandidate(null);
-                    setNotice('Candidate discarded.');
-                  }}
-                >
-                  Discard candidate
-                </Button>
-              </div>
-              <JsonView value={candidate.result.receipt} label="Inspect the development decision" />
-            </>
-          )}
-          <p className={wb.smallNote} style={{ marginTop: 18 }}>
-            A no-gain candidate needs independent development examples. More observations are not a
-            confidence probability. Final test labels never select updates.
-          </p>
-        </section>
-      </div>
+        </details>
+      </section>
+
+      <section className={wb.section}>
+        <h2>3 · Try it</h2>
+        <p className={wb.smallNote}>
+          The same probe, before and after your candidate — proof the teaching worked.
+        </p>
+        <DataTable
+          heads={['Version', 'Prediction']}
+          rows={[
+            ['Active model', getProbe(model)],
+            [
+              'Candidate',
+              candidate
+                ? getProbe(
+                    candidate.result.candidateEvaluation
+                      ? train([...baseRows, ...candidate.rows])
+                      : model,
+                  )
+                : 'Train a candidate to compare',
+            ],
+          ]}
+        />
+        <p className={wb.smallNote} style={{ marginTop: 18 }}>
+          A no-gain candidate needs independent development examples. More observations are not a
+          confidence probability. Final test labels never select updates.
+        </p>
+      </section>
+
       {error && <Notice error>{error}</Notice>}
       {notice && <Notice>{notice}</Notice>}
+
       <details className={wb.disclosure}>
         <summary>Add your own labeled sentence</summary>
         <div className={wb.fields}>
@@ -404,8 +506,8 @@ export function Learn() {
           </>
         )}
       </details>
-      <section className={wb.section}>
-        <h2>What the algorithm learns</h2>
+      <details className={wb.disclosure}>
+        <summary>Advanced: what the algorithm learns</summary>
         <Equation description="For each word, intersect the semantic atoms of every labeled sentence containing it. A unique surviving atom becomes a lexical entry. Multiple candidates remain unresolved.">
           C(w) = ⋂ {'{ atoms(yᵢ) : w ∈ tokens(xᵢ) }'}
         </Equation>
@@ -415,7 +517,7 @@ export function Learn() {
           schema; the system has not learned unrestricted language or a new universal foundation
           model.
         </p>
-      </section>
+      </details>
     </>
   );
 }

@@ -99,7 +99,9 @@ export async function POST(request: Request) {
       userId: user.userId,
       mode: 'task',
       model: parsed.model,
-      title: TASK_TITLE_PREFIX + conversationTitle(turn.parts),
+      // Two tasks that start the same way share an opening line; the suffix
+      // keeps their sidebar rows distinct.
+      title: store.uniqueTitle(user.userId, TASK_TITLE_PREFIX + conversationTitle(turn.parts)),
     });
     store.appendMessage(conversationId, {
       id: turn.id,

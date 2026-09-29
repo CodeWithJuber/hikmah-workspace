@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createAuthClient } from 'better-auth/react';
 import { stripeClient } from '@better-auth/stripe/client';
 import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
@@ -48,6 +49,11 @@ export function BillingPanel() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [failedAction, setFailedAction] = useState<FailedAction | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  /** ?upgraded=1 is Stripe's return leg: it resolves once, then the URL is
+   * cleaned so a reload or a shared link never re-announces it. */
+  const [justUpgraded, setJustUpgraded] = useState(searchParams.get('upgraded') === '1');
 
   /** The billing-details fetch, shared by the mount effect and the Retry
    * button. Returns the payload instead of setting state: the React Compiler
@@ -72,8 +78,13 @@ export function BillingPanel() {
     void loadBilling()
       .then((payload) => {
         if (!live) return;
-        if (payload) setData(payload);
-        else failBillingLoad();
+        if (payload) {
+          setData(payload);
+          // The ?upgraded=1 return leg means nothing for the operator tier —
+          // there is nothing to buy — so the URL is cleaned without fanfare.
+          if (searchParams.get('upgraded') === '1' && payload.tier === 'owner')
+            router.replace('/billing', { scroll: false });
+        } else failBillingLoad();
       })
       .catch(() => {
         if (live) failBillingLoad();
@@ -81,7 +92,7 @@ export function BillingPanel() {
     return () => {
       live = false;
     };
-  }, [loadBilling]);
+  }, [loadBilling, router, searchParams]);
 
   /** Re-run whichever action failed last. Clears the error first so the panel
    * shows its loading state, never a dead Retry button. */
@@ -109,7 +120,7 @@ export function BillingPanel() {
       // an error is the only outcome there is anything to say about.
       const result = await auth.subscription.upgrade({
         plan,
-        successUrl: '/billing',
+        successUrl: '/billing?upgraded=1',
         cancelUrl: '/billing',
       });
       if (result?.error) {
@@ -172,6 +183,18 @@ export function BillingPanel() {
     day: 'numeric',
     month: 'long',
   });
+  const period = new Date(data.periodStart);
+  const resetsOn = new Date(period.getFullYear(), period.getMonth() + 1, 1).toLocaleDateString(
+    undefined,
+    { day: 'numeric', month: 'long' },
+  );
+
+  /** The ?upgraded=1 param is answered once; the URL is cleaned so a reload or
+   * a shared link never re-announces it. */
+  function dismissUpgradeNotice() {
+    setJustUpgraded(false);
+    router.replace('/billing', { scroll: false });
+  }
 
   return (
     <div className="billing">
@@ -182,6 +205,60 @@ export function BillingPanel() {
         </Link>
         <h1>Plan and usage</h1>
       </header>
+
+      {justUpgraded && data.tier === 'managed' && (
+        <div className="billing-notice" role="status">
+          <p>
+            <strong>Your Pro plan is active.</strong>
+            Five million included tokens a month, fast models, no key to manage — and you can still
+            use your own key any time. Manage the plan from this page.
+          </p>
+          <div className="billing-notice-actions">
+            <button type="button" onClick={dismissUpgradeNotice}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+      {justUpgraded && data.tier === 'byok' && (
+        <div className="billing-notice" role="status">
+          <p>
+            <strong>Payment received — your plan is activating.</strong>
+            The confirmation usually lands in under a minute. If this page still shows Free, wait a
+            moment and retry.
+          </p>
+          <div className="billing-notice-actions">
+            <button
+              type="button"
+              onClick={() => {
+                void loadBilling().then((payload) => {
+                  if (payload) setData(payload);
+                });
+              }}
+            >
+              Retry
+            </button>
+            <button type="button" onClick={dismissUpgradeNotice}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+      {data.tier === 'managed' && cap !== null && percent >= 80 && (
+        <div className={'billing-notice' + (percent >= 100 ? ' is-critical' : '')} role="status">
+          <p>
+            <strong>
+              {percent >= 100
+                ? 'This month’s included tokens are used up.'
+                : `You’ve used ${percent}% of this month’s included tokens.`}
+            </strong>
+            They reset on {resetsOn}. Runs on your own key never count against the allowance.
+          </p>
+          <div className="billing-notice-actions">
+            <Link href="/pricing?plan=pro">See plans</Link>
+          </div>
+        </div>
+      )}
 
       <section className="billing-current">
         <p className="billing-eyebrow">CURRENT PLAN</p>
@@ -264,8 +341,13 @@ export function BillingPanel() {
                 </p>
               ) : !data.configured ? (
                 // Honest rather than a button that fails: this deployment has
-                // been given no Stripe credentials.
-                <p className="billing-note">Payments are not set up on this deployment yet.</p>
+                // been given no Stripe credentials. Point at the plans page so
+                // the person can see what Pro will be, and say what works now.
+                <p className="billing-note">
+                  Payments are not set up on this deployment yet — see{' '}
+                  <Link href="/pricing">pricing</Link> for what Pro will offer. The Free plan with
+                  your own key works today.
+                </p>
               ) : !plan.purchasable ? (
                 <p className="billing-note">This plan has no price configured yet.</p>
               ) : (

@@ -326,3 +326,56 @@ test('a tool that answers is not delayed or altered by the deadline', async (t) 
 test('the call deadline is a stated number, generous enough for a real tool', () => {
   assert.ok(MCP_CALL_TIMEOUT_MS >= 30_000 && MCP_CALL_TIMEOUT_MS <= 180_000);
 });
+
+// --- Parallel connects -----------------------------------------------------
+// The sequential loop made the run wait up to N × the per-server deadline
+// before streaming a byte. Now the wait is the slowest server, not the sum.
+
+test('two hung servers cost one deadline, not two', async (t) => {
+  const store = setup(t);
+  only(store, ['quran', 'context7']);
+  const started = Date.now();
+  const result = await run(store, () => new Promise(() => {}), { connectTimeoutMs: 80 });
+  const elapsed = Date.now() - started;
+  assert.deepEqual(result.tools, {});
+  // Sequential would have paid the deadline twice (~160ms). Parallel pays it
+  // once; the bound below leaves generous headroom for a loaded machine.
+  assert.ok(elapsed < 150, `took ${elapsed}ms for two hung servers`);
+  for (const name of ['quran', 'context7']) {
+    const row = store.list('user-1').find((r) => r.name === name);
+    assert.equal(row.status, 'failed');
+    assert.match(row.last_error, /did not answer within/);
+  }
+});
+
+test('a hung server does not delay the tools of a fast one', async (t) => {
+  const store = setup(t);
+  only(store, ['quran', 'context7']);
+  const connect = async (record) => {
+    if (record.name === 'context7') return new Promise(() => {}); // hangs
+    return serving({ quran: { fetch_quran: readOnly('Fetch.') } }).connect(record);
+  };
+  const started = Date.now();
+  const result = await run(store, connect, { connectTimeoutMs: 80 });
+  const elapsed = Date.now() - started;
+  assert.deepEqual(Object.keys(result.tools), ['mcp__quran__fetch_quran']);
+  assert.ok(elapsed < 150, `took ${elapsed}ms`);
+  const failed = store.list('user-1').find((r) => r.name === 'context7');
+  assert.equal(failed.status, 'failed');
+});
+
+test('assembly follows row order even when servers settle out of order', async (t) => {
+  // store.list is ORDER BY name, so rows are [context7, quran]: the second
+  // row's server answers first, but its tools must still come second.
+  const store = setup(t);
+  only(store, ['quran', 'context7']);
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const connect = async (record) => {
+    if (record.name === 'quran') await delay(30);
+    const offered =
+      record.name === 'quran' ? { fetch_quran: readOnly('Fetch.') } : { docs: readOnly('Docs.') };
+    return serving({ [record.name]: offered }).connect(record);
+  };
+  const result = await run(store, connect);
+  assert.deepEqual(Object.keys(result.tools), ['mcp__context7__docs', 'mcp__quran__fetch_quran']);
+});

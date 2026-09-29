@@ -1,5 +1,17 @@
 'use client';
-import { useMemo, useState } from 'react';
+/** Artifacts: the page (or code, or document) an answer produced.
+ *
+ * The inline card is always live — scripts run, the network stays isolated —
+ * because the old Run/Stop toggle made every demo start dead. The iframe
+ * remounts whenever its document changes, so the preview follows the code as
+ * it arrives instead of freezing on the first paint.
+ *
+ * The expanded panel adds a client-side version strip: every distinct set of
+ * files the panel is shown gets snapshotted, an old version can be viewed,
+ * and restoring one writes it back to the workspace with PUT
+ * /api/workspace/files.
+ */
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -12,9 +24,10 @@ import {
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import { HikmahIcon } from './icons';
 import { copyText } from '@/components/playground/error-card';
-import { Maximize2, PencilLine, Play, Square, FileCode2, FileText, Eye } from 'lucide-react';
+import { Maximize2, PencilLine, FileCode2, FileText, Eye, History, RotateCcw } from 'lucide-react';
 import { PagePreview } from '@/components/chat/page-preview';
 import { Streamdown } from 'streamdown';
+import { clientFetch } from '@/lib/client/request';
 
 /** Human title for the artifact card header, based on what the files are. */
 function kindTitle(kind: ArtifactKind): string {
@@ -44,6 +57,14 @@ function kindSubtitle(kind: ArtifactKind, files: WorkspaceFiles): string {
     case 'empty':
       return 'No files yet';
   }
+}
+
+/** Tiny content hash: the iframe's key. It only needs to change when the
+ * document does. */
+function hashString(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return 'd' + (h >>> 0).toString(36);
 }
 
 /** Compact file list + primary file snippet for non-web artifacts inline. */
@@ -80,12 +101,15 @@ function InlineCodePreview({ files }: { files: WorkspaceFiles }) {
 
 export function InlineArtifact({
   files,
+  caption,
   onOpen,
 }: {
   files: WorkspaceFiles;
+  /** One line saying what this is, under the header — the agent's own
+   * description of what it built. */
+  caption?: string;
   onOpen: (files: WorkspaceFiles) => void;
 }) {
-  const [run, setRun] = useState(false);
   const kind = useMemo(() => detectArtifactKind(files), [files]);
   const doc = useMemo(() => (kind === 'web' ? previewDocument(files) : ''), [files, kind]);
   const primary = useMemo(() => primaryArtifactFile(files), [files]);
@@ -102,20 +126,25 @@ export function InlineArtifact({
           Expand
         </Button>
       </header>
+      {caption && <p className="inline-artifact-caption">{caption}</p>}
       {kind === 'web' && (
         <>
           <iframe
-            key={run ? 'run' : 'static'}
+            // Keyed on the document, not on a toggle: as the code arrives the
+            // preview re-renders with it. An iframe does not reload when its
+            // srcDoc attribute is updated, so without the key it would freeze
+            // on the first paint.
+            key={hashString(doc)}
             title="Inline generated page preview"
-            sandbox={run ? 'allow-scripts' : ''}
+            // Always live: scripts run, the network stays isolated. The old
+            // Run/Stop toggle made every demo start dead — "Static preview"
+            // with a button to make it work is not a preview.
+            sandbox="allow-scripts"
             referrerPolicy="no-referrer"
             srcDoc={doc}
           />
           <footer>
-            <span>{run ? 'Interactive preview · network isolated' : 'Static preview'}</span>
-            <Button variant="ghost" onClick={() => setRun(!run)}>
-              {run ? 'Stop interactions' : 'Run interactions'}
-            </Button>
+            <span>Interactive preview · network isolated</span>
           </footer>
         </>
       )}
@@ -135,6 +164,8 @@ export function InlineArtifact({
   );
 }
 
+type Snapshot = { at: number; files: WorkspaceFiles };
+
 export function ArtifactPanel({
   files,
   previewBase,
@@ -149,12 +180,30 @@ export function ArtifactPanel({
   onClose: () => void;
   onEdit: () => void;
 }) {
-  const [run, setRun] = useState(false);
   const [full, setFull] = useState(false);
-  const kind = useMemo(() => detectArtifactKind(files), [files]);
-  const doc = useMemo(() => (kind === 'web' ? previewDocument(files) : ''), [files, kind]);
-  // Code artifacts have no visual preview, so land on the Source tab; web and
-  // markdown artifacts land on Preview.
+  // The version strip: every distinct set of files the panel is shown gets
+  // snapshotted, oldest first. Client-side only — it lives as long as the
+  // panel does. A new snapshot returns the view to the latest.
+  const [history, setHistory] = useState<Snapshot[]>([]);
+  /** Which snapshot is on screen, or null for the live files. */
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreNote, setRestoreNote] = useState('');
+  const sigRef = useRef('');
+  useEffect(() => {
+    const sig = JSON.stringify(files);
+    if (sigRef.current === sig) return;
+    sigRef.current = sig;
+    setHistory((current) => [...current, { at: Date.now(), files }].slice(-10));
+    setViewIndex(null);
+  }, [files]);
+  const shown = viewIndex === null ? files : (history[viewIndex]?.files ?? files);
+  const live = viewIndex === null;
+
+  const kind = useMemo(() => detectArtifactKind(shown), [shown]);
+  const doc = useMemo(() => (kind === 'web' ? previewDocument(shown) : ''), [shown, kind]);
+  // Code artifacts have no visual preview, so they get no Preview tab at all
+  // and land on Source; web and markdown artifacts land on Preview.
   const defaultTab = kind === 'code' || kind === 'empty' ? 'code' : 'preview';
   const [tab, setTab] = useState(defaultTab);
   // A new artifact (different kind) resets the tab choice.
@@ -163,10 +212,48 @@ export function ArtifactPanel({
     setLastKind(kind);
     setTab(defaultTab);
   }
-  const primary = useMemo(() => primaryArtifactFile(files), [files]);
-  const page = Object.keys(files).find((name) => /\.html?$/i.test(name)) ?? 'index.html';
-  const href = kind === 'web' && previewBase ? previewBase + page : undefined;
-  const fileCount = Object.keys(files).length;
+  const primary = useMemo(() => primaryArtifactFile(shown), [shown]);
+  const page = Object.keys(shown).find((name) => /\.html?$/i.test(name)) ?? 'index.html';
+  // The served page always shows what is in the workspace *now*, so an old
+  // version is previewed from its snapshot document instead — otherwise the
+  // strip would lie about what v1 looked like.
+  const href = live && kind === 'web' && previewBase ? previewBase + page : undefined;
+  const fileCount = Object.keys(shown).length;
+
+  /** Write an old version back to the workspace, one PUT per file, then treat
+   * it as the latest: the workspace is now at that content. */
+  const restore = async (index: number) => {
+    const snap = history[index];
+    if (!snap || restoring) return;
+    setRestoring(true);
+    setRestoreNote('');
+    try {
+      const entries = Object.entries(snap.files);
+      for (const [path, content] of entries) {
+        const response = await clientFetch('/api/workspace/files', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path, content }),
+        });
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error ?? `Could not write ${path}.`);
+        }
+      }
+      setHistory((current) => [...current, { at: Date.now(), files: snap.files }].slice(-10));
+      setViewIndex(null);
+      setRestoreNote(
+        `Restored v${index + 1} — ${entries.length} file${entries.length === 1 ? '' : 's'} written to the workspace.`,
+      );
+    } catch (error) {
+      setRestoreNote(error instanceof Error ? error.message : 'Restore failed.');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   return (
     <aside className="artifact-panel">
       {full && href && <PagePreview href={href} title={page} onClose={() => setFull(false)} />}
@@ -174,7 +261,7 @@ export function ArtifactPanel({
         <HikmahIcon name="artifact" />
         <div className="artifact-panel-heading">
           <strong>{kindTitle(kind)}</strong>
-          <span>{kindSubtitle(kind, files)}</span>
+          <span>{kindSubtitle(kind, shown)}</span>
         </div>
         <Button
           variant="ghost"
@@ -185,13 +272,60 @@ export function ArtifactPanel({
           <HikmahIcon name="close" />
         </Button>
       </header>
+      {/* The version strip: only when there is more than one version to move
+          between. The single-version case stays exactly as quiet as before. */}
+      {history.length > 1 && (
+        <div className="artifact-versions" role="group" aria-label="Version history">
+          <History size={16} aria-hidden="true" />
+          {history.map((entry, index) => {
+            const active = (viewIndex ?? history.length - 1) === index;
+            const latest = index === history.length - 1;
+            return (
+              <button
+                key={entry.at + '-' + index}
+                type="button"
+                className={'artifact-version' + (active ? ' is-active' : '')}
+                aria-pressed={active}
+                title={new Date(entry.at).toLocaleString()}
+                onClick={() => {
+                  setViewIndex(latest ? null : index);
+                  setRestoreNote('');
+                }}
+              >
+                {latest ? 'Latest' : `v${index + 1}`}
+              </button>
+            );
+          })}
+          {!live && viewIndex !== null && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={restoring}
+              onClick={() => void restore(viewIndex)}
+            >
+              <RotateCcw size={16} aria-hidden="true" />
+              {restoring ? 'Restoring…' : `Restore v${viewIndex + 1}`}
+            </Button>
+          )}
+        </div>
+      )}
+      {restoreNote && (
+        <p className="artifact-restore-note" role="status">
+          {restoreNote}
+        </p>
+      )}
       <Tabs value={tab} onValueChange={setTab} className="artifact-panel-tabs">
         <div className="artifact-panel-toolbar">
           <TabsList aria-label="Artifact view">
-            <TabsTrigger value="preview">
-              <Eye size={16} aria-hidden="true" />
-              Preview
-            </TabsTrigger>
+            {/* Code has no visual preview, so no Preview tab — the old one
+                showed an empty "No visual preview" card behind a tab that
+                promised a preview. */}
+            {kind !== 'code' && (
+              <TabsTrigger value="preview">
+                <Eye size={16} aria-hidden="true" />
+                Preview
+              </TabsTrigger>
+            )}
             <TabsTrigger value="code">
               <FileCode2 size={16} aria-hidden="true" />
               Source
@@ -201,22 +335,6 @@ export function ArtifactPanel({
               the row wraps under the tabs whole, rather than the buttons
               stacking at whatever width their words happened to need. */}
           <div className="artifact-panel-actions">
-            {kind === 'web' && (
-              <Button
-                variant="outline"
-                aria-pressed={run}
-                aria-label={run ? 'Stop interactions' : 'Run interactions'}
-                title={run ? 'Stop interactions' : 'Run the page’s scripts'}
-                onClick={() => setRun(!run)}
-              >
-                {run ? (
-                  <Square size={16} aria-hidden="true" />
-                ) : (
-                  <Play size={16} aria-hidden="true" />
-                )}
-                <span>{run ? 'Stop' : 'Run'}</span>
-              </Button>
-            )}
             {href && (
               <Button
                 variant="outline"
@@ -243,42 +361,26 @@ export function ArtifactPanel({
           {kind === 'web' &&
             (href ? (
               <iframe
-                key={run ? 'run' : 'static'}
+                key={hashString(doc)}
                 title="Expanded generated page preview"
-                // The served page, so css/ and js/ links resolve. Static until
-                // interactions are switched on, like the inline version.
-                sandbox={run ? 'allow-scripts allow-forms allow-modals' : ''}
+                // The served page, so css/ and js/ links resolve. Always
+                // live; the network stays isolated by the sandbox.
+                sandbox="allow-scripts allow-forms allow-modals"
                 referrerPolicy="no-referrer"
                 src={href}
               />
             ) : (
               <iframe
-                key={run ? 'run' : 'static'}
+                key={hashString(doc)}
                 title="Expanded generated page preview"
-                sandbox={run ? 'allow-scripts' : ''}
+                sandbox="allow-scripts"
                 referrerPolicy="no-referrer"
                 srcDoc={doc}
               />
             ))}
           {kind === 'markdown' && primary && (
             <div className="artifact-panel-markdown">
-              <Streamdown>{files[primary] ?? ''}</Streamdown>
-            </div>
-          )}
-          {kind === 'code' && (
-            <div className="artifact-preview-empty">
-              <FileCode2 size={24} aria-hidden="true" />
-              <p>
-                <strong>No visual preview</strong>
-                <span>
-                  Code files don’t render as a page — {fileCount} file
-                  {fileCount === 1 ? '' : 's'} in {artifactLanguageLabel(files)}. See the Source tab
-                  for the full code.
-                </span>
-              </p>
-              <Button variant="outline" onClick={() => setTab('code')}>
-                View source
-              </Button>
+              <Streamdown>{shown[primary] ?? ''}</Streamdown>
             </div>
           )}
           {kind === 'empty' && (
@@ -301,7 +403,7 @@ export function ArtifactPanel({
               </p>
             </div>
           ) : (
-            Object.entries(files).map(([name, code]) => (
+            Object.entries(shown).map(([name, code]) => (
               <section key={name}>
                 <header>
                   <strong>{name}</strong>

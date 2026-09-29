@@ -45,7 +45,7 @@ test('the More sheet holds exactly the remaining primaries', () => {
   const overflow = api.mobileNavOverflow();
   assert.deepEqual(
     overflow.map((t) => t.label),
-    ['Playground', 'Settings'],
+    ['Playground', 'Billing', 'Settings'],
   );
 });
 

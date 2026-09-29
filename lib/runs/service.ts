@@ -36,10 +36,28 @@ import type { LearningConsent } from '../learning/types.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
 import { jevLane, applyJevLane } from './jev-lane.ts';
+import { withFirstByteLimit } from '../ai/first-byte.ts';
 
 declare global {
   var __hikmahRunService: Worker | undefined;
 }
+
+/** How long a free-tier run waits for the provider's first byte.
+ *
+ * Free models queue server-side, and the SDK retries quietly, so one slow
+ * upstream call used to become minutes of "Planning the answer…" with zero
+ * tokens and nothing to act on. Past this bound the run fails with a sentence
+ * the person can act on instead of stalling silently. Paid and BYOK runs keep
+ * the patient default: their providers answer, they just sometimes think. */
+const FREE_FIRST_BYTE_MS = 90_000;
+
+/** Stored on the run and shown on the failure card when the bound above trips.
+ * A plain sentence, because the failure path passes a plain Error's message
+ * through untouched — and because "your message is saved, try again" is the
+ * whole difference between a dead end and a queue. */
+const FREE_QUEUE_BUSY =
+  'The free model queue is busy — no answer started within 90 seconds. ' +
+  'Your message is saved; wait a moment and try again, or add your own key for instant answers.';
 
 /** Per-request configuration. The durable row replaces apiKey with an
  * authenticated encrypted snapshot; it is decrypted only while executing. */
@@ -263,10 +281,19 @@ async function driveWithAgent({
   });
 
   try {
+    // The free tier queues server-side: bound the wait for the provider's
+    // first byte. A linked controller, so the person's own stop still aborts
+    // through the same path and the run is recorded cancelled, not failed.
+    const byteController = config.freeOnly ? new AbortController() : null;
+    if (byteController) {
+      if (signal.aborted) byteController.abort(signal.reason);
+      else
+        signal.addEventListener('abort', () => byteController.abort(signal.reason), { once: true });
+    }
     const stream = await createAgentUIStream({
       agent,
       uiMessages: messages,
-      abortSignal: signal,
+      abortSignal: byteController?.signal ?? signal,
       // What the answer cost, recorded on the answer itself. Without it the
       // composer can show a context meter for the conversation it is about to
       // send and nothing at all for the one already written, and a reload
@@ -319,7 +346,7 @@ async function driveWithAgent({
             // reached the owner as "stopped without writing an answer". See
             // lib/ai/closing-step.ts.
             let started = false;
-            for await (const chunk of withClosingStep(stream as AsyncIterable<UIMessageChunk>, {
+            const answerChunks = withClosingStep(stream as AsyncIterable<UIMessageChunk>, {
               model,
               tools: agent.tools,
               instructions: config.instructions,
@@ -331,7 +358,20 @@ async function driveWithAgent({
                   '[hikmah] closing step failed:',
                   safeDiagnostic(error, [config.apiKey]),
                 ),
-            })) {
+            });
+            // Free-tier only: fail fast with an honest sentence when the
+            // provider's first byte never comes, instead of stalling for
+            // minutes. The abort kills the hung provider call; the thrown
+            // error becomes the run's failure reason.
+            const bounded = byteController
+              ? withFirstByteLimit(
+                  answerChunks,
+                  FREE_FIRST_BYTE_MS,
+                  () => byteController.abort(),
+                  () => new Error(FREE_QUEUE_BUSY),
+                )
+              : answerChunks;
+            for await (const chunk of bounded) {
               push(name(chunk));
               // Right after the message opens, so the fold has a message to
               // attach it to: which memories this answer was written with.

@@ -21,6 +21,7 @@ import { allModelsFree } from '@/lib/ai/endpoint';
 import type { PickerModel } from './model-picker';
 import { defaultProvider } from '@/lib/playground/session';
 import { personalPrompt, type ChatSettings } from '@/lib/chat/settings';
+import { AGENT_STARTERS } from '@/lib/chat/agent-starters';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import type { GrantHandler } from './approval-card';
 import type { FeedbackValue } from '@/lib/chat/feedback-store';
@@ -30,31 +31,6 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 /** The same openers the workspace offers, so the two surfaces do not disagree
  * about what this assistant is for. */
 const STARTERS: string[] = [];
-
-/** Openers for an agent that has its own kind of work.
- *
- * This is what the workspace's four modes were mostly for: `coding` differed
- * from `chat` by three starter prompts and one sentence appended to the
- * instructions, which is precisely what an agent already is here. Keyed by name
- * rather than id, because the built-in templates are seeded per owner and get a
- * fresh id each time. An agent with nothing listed falls back to the general
- * three, so a custom one is never left with an empty screen. */
-const AGENT_STARTERS: Record<string, string[]> = {
-  'Code partner': [
-    'Build a clean calculator with HTML, CSS and JavaScript.',
-    'Create a responsive support request form.',
-    'Review my workspace files and suggest improvements.',
-  ],
-  'Research partner': [
-    'Compare two approaches to a reliable support workflow.',
-    'Find and cite the primary sources on this question.',
-    'Summarise what is settled here and what is still open.',
-  ],
-  Operations: [
-    'Check what is running on my server and report back.',
-    'Walk through this deployment and tell me what would break first.',
-  ],
-};
 
 type RunConfig = {
   baseUrl: string;
@@ -69,6 +45,20 @@ const FALLBACK: RunConfig = {
   model: 'openrouter/free',
   freeOnly: true,
   instructions: HIKMAH_CORE,
+};
+
+/** The free-only connection "Try it free now" switches to: the same config
+ * the chat falls back to when nothing is saved — free models, no key. */
+export const FREE_FALLBACK_CONNECTION: {
+  baseUrl: string;
+  model: string;
+  freeOnly: boolean;
+  apiKeySecret: string;
+} = {
+  baseUrl: FALLBACK.baseUrl,
+  model: FALLBACK.model,
+  freeOnly: true,
+  apiKeySecret: '',
 };
 
 type Loaded = {
@@ -172,7 +162,10 @@ export function ChatPreview({
   banner,
   needsKey = false,
   onOpenSettings,
+  onUseFree,
   onGrant,
+  onAgent,
+  onOpenAgents,
 }: {
   conversationId: string;
   /** Shown above the transcript. */
@@ -181,11 +174,18 @@ export function ChatPreview({
   needsKey?: boolean;
   /** Opens the Settings tab, where the key goes. */
   onOpenSettings?: () => void;
+  /** Switches the saved connection to the free-only config — no key needed. */
+  onUseFree?: () => void;
   /** Remembers a yes from the approval card, with its scope. */
   onGrant?: GrantHandler;
   /** Applied to the next turn: its instructions are added and its tool list
    * narrows what the model is offered. */
   agent?: Agent | null;
+  /** Apply an agent to the next turn (or null to switch off). The composer's
+   * agent picker calls this; the panel stays the manage-only surface. */
+  onAgent?: (agent: Agent | null) => void;
+  /** Open the agents panel (manage-only surface). */
+  onOpenAgents?: () => void;
   /** The owner's chat preferences, loaded once by the shell. Folded into every
    * turn, so a change applies from the next message rather than needing a
    * reload. */
@@ -398,7 +398,11 @@ export function ChatPreview({
           banner={banner}
           needsKey={needsKey}
           onOpenSettings={onOpenSettings}
+          onUseFree={onUseFree}
           onGrant={onGrant}
+          activeAgentId={agent?.id ?? null}
+          onAgent={onAgent}
+          onOpenAgents={onOpenAgents}
           // No `empty` prop: ChatView renders the onboarding empty state
           // (EmptyStateOnboarding) when the conversation is empty.
         />

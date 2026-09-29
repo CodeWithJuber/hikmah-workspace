@@ -5,7 +5,14 @@ import { useState } from 'react';
 import { Ellipsis, LogOut, Moon, Plus, Sun } from 'lucide-react';
 import { useKernel } from '@/components/kernel/context';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { adminNavItems, isNavActive, primaryNavItems, type ProductNavItem } from './product-nav';
+import {
+  adminNavItems,
+  isNavActive,
+  primaryNavItems,
+  staffConsoleNavItem,
+  useStaffAccess,
+  type ProductNavItem,
+} from './product-nav';
 
 /** Thumb-primary destinations on the bottom bar; the rest live in More. */
 const MOBILE_TAB_COUNT = 4;
@@ -43,6 +50,7 @@ export function MobileNavBar({
   const kernel = useKernel();
   const [moreOpen, setMoreOpen] = useState(false);
   const isOwner = kernel.ready && kernel.role === 'super_admin';
+  const staffAccess = useStaffAccess();
   const close = () => setMoreOpen(false);
 
   const tab = (item: ProductNavItem) => {
@@ -117,12 +125,13 @@ export function MobileNavBar({
                 sheetLink(item)
               ),
             )}
-            {isOwner && (
+            {(isOwner || staffAccess) && (
               <>
                 <p className="mobile-nav-sheet-group" aria-hidden="true">
                   Administration
                 </p>
-                {adminNavItems.map(sheetLink)}
+                {staffAccess && sheetLink(staffConsoleNavItem)}
+                {isOwner && adminNavItems.map(sheetLink)}
               </>
             )}
             {onNewChat && (

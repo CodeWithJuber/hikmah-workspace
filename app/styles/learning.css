@@ -1955,4 +1955,52 @@
       padding: 20px 20px 28px;
     }
   }
+
+  /* The learning lab's probe chips: what the model hears in a sentence, as
+     labeled chips instead of a machine string. Auto-labeled — the labels
+     (who/did/whom/when/how) come from the frame, not the owner. */
+  .learn-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .learn-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--muted);
+    font-size: var(--font-size-sm);
+    color: var(--foreground);
+  }
+  .learn-chip-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+  }
+  /* The 60-second guided first teach: one quiet strip, one tap. */
+  .learn-guided {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-element);
+    background: color-mix(in srgb, var(--primary) 4%, var(--background));
+  }
+  .learn-guided p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+  .learn-guided p strong {
+    color: var(--foreground);
+  }
 }

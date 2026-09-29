@@ -66,3 +66,24 @@ export function refusal(input: {
     return 'You have used this month’s included tokens. They reset on the first of the month, or you can add your own provider key under Settings → Connection to keep going now.';
   return '';
 }
+
+export type UsageAlert = { level: 'near' | 'at'; percent: number };
+
+/** Where this month's metered usage sits against the allowance, for alerts.
+ *
+ * Only a metered tier can approach a cap: a run on the person's own key
+ * costs the deployment nothing, so there is nothing to warn about. Returns
+ * null below 80% — the chat and the billing page ask this on every load, and
+ * silence is the common case.
+ */
+export function usageAlert(input: {
+  entitlements: Entitlements;
+  meteredThisMonth: number;
+}): UsageAlert | null {
+  const cap = input.entitlements.monthlyTokenCap;
+  if (!input.entitlements.managedKey || cap === null || cap <= 0) return null;
+  const percent = Math.min(100, Math.round((input.meteredThisMonth / cap) * 100));
+  if (percent >= 100) return { level: 'at', percent };
+  if (percent >= 80) return { level: 'near', percent };
+  return null;
+}

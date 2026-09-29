@@ -94,6 +94,11 @@ export type WorkerOptions = {
    * otherwise. Above one, the last slot is kept for a chat: a background task
    * is claimed only while no other task is running. */
   concurrency?: number;
+  /** How long after a cancel's abort to wait for the driver to settle the run
+   * itself before the worker settles it as cancelled. A driver hung in an
+   * await that ignores the abort would otherwise leave the run marked running
+   * forever — and the sidebar's "Still answering" badge with it. */
+  cancelGraceMs?: number;
   onError?: (error: unknown, run: RunRow) => void;
   /** Runs after a successful answer is durable. Its failure must never turn a
    * completed conversation into a failed one. Pauses/cancellation skip it. */
@@ -326,6 +331,23 @@ export function createWorker(options: WorkerOptions): Worker {
       const controller = running.get(runId);
       if (controller) {
         controller.abort();
+        // A driver that ignores the abort — hung in an await that never
+        // listens to the signal — would otherwise leave the run marked
+        // running forever, and the sidebar's "Still answering" badge with it,
+        // across reloads. If the drive has not settled the run itself within
+        // the grace period, settle it here. The store's finish is idempotent
+        // over terminal states, so a drive that settles late cannot resurrect
+        // the run or flip its recorded outcome.
+        const grace = Math.max(0, options.cancelGraceMs ?? 5_000);
+        const forceFinish = setTimeout(() => {
+          try {
+            const run = store.getRun(runId);
+            if (run && !store.isTerminal(run.status)) store.finish(runId, 'cancelled');
+          } catch {
+            /* the store is gone; nothing left to settle */
+          }
+        }, grace);
+        (forceFinish as unknown as { unref?: () => void }).unref?.();
         return true;
       }
       // Not started yet: mark it so the worker never picks it up.

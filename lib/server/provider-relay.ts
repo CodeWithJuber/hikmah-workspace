@@ -156,10 +156,15 @@ export async function relayProviderRequest(
 
   const controller = new AbortController();
   const abort = () => controller.abort();
+  // The catalogue is one small JSON document, not a stream: it should never
+  // hold the dialog's "Loading the catalogue…" spinner for minutes the way a
+  // patient chat call legitimately can. Bound it to half a minute; the client
+  // already renders the abort as a plain error on the picker.
+  const timeoutMs = operation === 'models' ? 30_000 : TRANSPORT_LIMITS.timeoutMs;
   let timer: ReturnType<typeof setTimeout>;
   const touch = () => {
     clearTimeout(timer);
-    timer = setTimeout(abort, TRANSPORT_LIMITS.timeoutMs);
+    timer = setTimeout(abort, timeoutMs);
   };
   touch();
   request.signal.addEventListener('abort', abort, { once: true });

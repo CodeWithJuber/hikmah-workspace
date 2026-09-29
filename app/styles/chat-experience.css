@@ -213,6 +213,21 @@
     line-height: 1.5;
     text-align: center;
   }
+  /* The hint describes keyboard behavior; on touch devices the desktop
+     wording ("Shift + Enter") is wrong, so the touch wording shows instead.
+     display:none keeps exactly one of them in the accessibility tree.
+     (Jev short-text, device report 2026-09-29.) */
+  .workspace-experience .chat-hint-touch {
+    display: none;
+  }
+  @media (hover: none) {
+    .workspace-experience .chat-hint-desktop {
+      display: none;
+    }
+    .workspace-experience .chat-hint-touch {
+      display: inline;
+    }
+  }
   .workspace-experience .chat-draft-saved {
     display: inline-flex;
     align-items: center;
@@ -269,6 +284,75 @@
     color: var(--primary);
     cursor: pointer;
     font-weight: 600;
+  }
+  /* The two-option model card's quiet secondary action: a link, not a third
+     button competing with the primary. */
+  .workspace-experience .chat-key-link {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .workspace-experience .chat-key-link:hover {
+    color: var(--foreground);
+  }
+  /* Free-tier indicator in the composer: honest about the trade-off (slower,
+     queued) and a one-tap upgrade path to /pricing. A link, never a gate. */
+  .workspace-experience .chat-free-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    /* 40px: the upgrade path is a primary CTA on the phone, and 32px was a
+       missable sliver in a crowded tools row. Matches the follow-up-chips
+       precedent (Jev bump-40, mobile audit 2026-09-29). */
+    min-height: 40px;
+    padding: 2px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .workspace-experience .chat-free-pill:hover {
+    color: var(--foreground);
+    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  }
+  .workspace-experience .chat-free-pill:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
+  /* The learning lab's applause: one AhaMoment line, dismissible, then done. */
+  .workspace-experience .chat-teach-moment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 16px 0;
+  }
+  .workspace-experience .chat-teach-dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: var(--radius-full);
+    color: var(--muted-foreground);
+    cursor: pointer;
+  }
+  .workspace-experience .chat-teach-dismiss:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+  .workspace-experience .chat-teach-dismiss:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
   .workspace-experience .chat-connection-notice {
     display: flex;
@@ -413,12 +497,12 @@
     background: var(--user-bubble);
     padding: 13px 18px;
     font-size: var(--font-size-base);
-    line-height: 1.7;
+    line-height: 1.65;
   }
   .workspace-experience .chat-message.is-assistant > div:first-child {
     width: 100%;
     font-size: var(--font-size-base);
-    line-height: 1.75;
+    line-height: 1.65;
   }
   .workspace-experience .chat-working {
     background: transparent;
@@ -592,6 +676,80 @@
     .workspace-experience .chat-intent-shortcuts button,
     .workspace-experience .chat-composer > [data-slot='input-group'] {
       transition: none;
+    }
+  }
+  /* The agent picker's sheet portals to document.body, so these stay
+     unscoped: the sheet never lives under .workspace-experience. On a phone
+     it docks to the bottom (thumb-reachable); on desktop it stays the
+     centered dialog DialogContent ships as. */
+  .agent-picker-sheet {
+    max-height: min(80dvh, 640px);
+    overflow-y: auto;
+  }
+  .agent-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .agent-picker-list li {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    padding: 10px 12px;
+  }
+  .agent-picker-list li.is-active {
+    border-color: var(--primary);
+  }
+  .agent-picker-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .agent-picker-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .agent-picker-outcome {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+  }
+  .agent-picker-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .agent-picker-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+  @media (max-width: 600px) {
+    /* Bottom sheet: override the centered-dialog position utilities
+       (top/left/translate) that DialogContent ships with. */
+    .agent-picker-sheet {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      translate: none;
+      width: 100%;
+      max-width: none;
+      border-radius: var(--radius-container) var(--radius-container) 0 0;
+      /* The sheet docks to the screen bottom: without this the footer's
+         "Manage agents" row sits under the home indicator on phones. */
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
     }
   }
 }

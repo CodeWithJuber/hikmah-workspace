@@ -26,6 +26,19 @@ type JevClientOptions = {
 const secretPattern = /(sk-[A-Za-z0-9_-]{12,}|bearer\s+[A-Za-z0-9._-]{12,})/i;
 const safeUrl = (value: string) => value.replace(/\/$/, '');
 
+/**
+ * How long a lane proposal may take before it reads as "unreachable".
+ *
+ * The lane is advisory — null means the run proceeds exactly as it would have
+ * without the preflight — so a slow Jev must never slow the run. Three seconds
+ * is ample for one choice question to a small typed model; anything slower is
+ * treated the same as a connection failure. The run pipeline already overlaps
+ * this wait with the MCP connects (lib/runs/service.ts), so in practice it
+ * only costs wall time when Jev is slower than every server handshake.
+ * Overridable per call.
+ */
+export const JEV_DEFAULT_TIMEOUT_MS = 3_000;
+
 export async function systemOne(
   state: Record<string, unknown>,
   questions: JevQuestion[],
@@ -35,7 +48,7 @@ export async function systemOne(
   if (!apiKey || !questions.length) return null;
   const fetcher = options.fetcher ?? fetch;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 8_000);
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? JEV_DEFAULT_TIMEOUT_MS);
   try {
     const response = await fetcher(
       `${safeUrl(options.baseUrl ?? process.env.TYPESAFE_BASE_URL ?? 'https://api.typesafe.ai')}/v1/systemone`,

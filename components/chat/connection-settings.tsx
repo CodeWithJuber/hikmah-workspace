@@ -365,7 +365,11 @@ export function ConnectionSettings({
               autoComplete="off"
               placeholder={
                 keySaved
-                  ? `A key is saved for ${preset?.name ?? 'this endpoint'}. Type to replace it.`
+                  ? // Short enough to fit a phone-width input without
+                    // truncating mid-word (device report 2026-09-29: "Type t").
+                    // The provider name is already shown in the preset
+                    // selector above this field.
+                    'Saved — type here to replace it.'
                   : `Paste your ${preset?.name ?? 'provider'} key`
               }
               onChange={(event) => {
@@ -494,11 +498,11 @@ export function ConnectionSettings({
           Save connection
         </Button>
         {takesKey && (
-          <Button
-            variant="outline"
-            onClick={() => void testConnection()}
-            disabled={Boolean(busy) || (!key.trim() && !keySaved)}
-          >
+          // Always clickable: with no key or no model the click says what is
+          // missing ("Save your API key first…", "Choose a model first…"). A
+          // disabled button with no explanation left people wondering whether
+          // the dialog was broken.
+          <Button variant="outline" onClick={() => void testConnection()} disabled={Boolean(busy)}>
             {busy === 'test' && <LoaderCircle size={16} className="spin" />}
             Test connection
           </Button>

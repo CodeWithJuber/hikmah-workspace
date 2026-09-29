@@ -170,4 +170,39 @@
     color: var(--muted-foreground);
     line-height: 1.6;
   }
+  /* Post-purchase confirmation and usage alerts. The palette stays the page's
+   * own: the accent rail carries the message, destructive only at the cap. */
+  .billing-notice {
+    border: 1px solid var(--border);
+    border-inline-start: 4px solid var(--primary);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 12px 16px;
+    margin: 0 0 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .billing-notice.is-critical {
+    border-inline-start-color: var(--destructive);
+  }
+  .billing-notice p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    line-height: 1.5;
+  }
+  .billing-notice p strong {
+    display: block;
+    font-size: var(--font-size-base);
+    color: var(--foreground);
+    margin-bottom: 2px;
+  }
+  .billing-notice-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: none;
+  }
 }

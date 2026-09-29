@@ -66,6 +66,7 @@ import { LearnTaskDialog } from './learn-task';
 import { ModelPicker, type PickerModel } from './model-picker';
 import { EmptyStateOnboarding } from './empty-state-onboarding';
 import { StagedLoading } from './staged-loading';
+import { pipelineStageIndex } from '@/lib/chat/pipeline-stage';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,9 +82,14 @@ import { MessageParts, messageText, type BranchInfo } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import type { FeedbackValue } from '@/lib/chat/feedback-store';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AgentPicker } from './agent-picker';
+import type { Agent } from './agents-panel';
+import { AhaMoment } from './aha-moment';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
+import { chatModeFor } from '@/lib/chat/mode';
 import { useMemory } from '@/hooks/use-memory';
 import { getIncognito, useIncognito } from '@/lib/memory/incognito';
 import { useVisualViewport } from '@/hooks/use-visual-viewport';
@@ -121,6 +127,14 @@ type AnswerMetadata = { model?: string; usage?: LanguageModelUsage };
  * scroll by measuring the content, and a windowing library that swaps rows
  * under it fights that. A slice does not. */
 const WINDOW = 40;
+
+/** The scripted first message the empty state's "Show me" button sends: a
+ * real turn that returns a real answer with a live artifact, not a draft. */
+const DEMO_TURN = 'Build a clean calculator with HTML, CSS and JavaScript.';
+
+/** Written by the learning lab on a successful teach; the next chat visit
+ * surfaces one AhaMoment line from it, then it is done. */
+const LAST_TEACH_KEY = 'hikmah:ui:last-teach';
 
 /** What an attachment may be, and how much of it. The composer inlines a file
  * as a data URL rather than uploading it, so these caps are what keeps a
@@ -301,11 +315,21 @@ export type ChatViewProps = {
   onArtifact?: (files: WorkspaceFiles) => void;
   /** Shown above the transcript: a background task says what it is. */
   banner?: React.ReactNode;
-  /** Nothing would pay for a message: the empty state asks for a key instead
-   * of offering starters that would fail. */
+  /** The paid model is configured with no key to pay for it: the card offers
+   * the free tier or the settings, and the send stays blocked for paid runs.
+   * Free-only mode never sets this — the first message always goes through. */
   needsKey?: boolean;
   /** Opens the Settings tab. */
   onOpenSettings?: () => void;
+  /** Switches the saved connection to the free-only config — no key needed. */
+  onUseFree?: () => void;
+  /** The agent driving the next turn, if any. The composer's agent picker
+   * toggles it; picking on an empty conversation surfaces its starters. */
+  activeAgentId?: string | null;
+  /** Apply an agent to the next turn (or null to switch off). */
+  onAgent?: (agent: Agent | null) => void;
+  /** Open the agents panel (manage-only surface). */
+  onOpenAgents?: () => void;
   /** Remembers a yes from the approval card, with its scope. */
   onGrant?: GrantHandler;
 };
@@ -330,6 +354,10 @@ export function ChatView({
   needsKey = false,
   onGrant,
   onOpenSettings,
+  onUseFree,
+  activeAgentId = null,
+  onAgent,
+  onOpenAgents,
 }: ChatViewProps) {
   // A lazy initial state rather than useMemo: this must be created exactly
   // once, and useMemo is a cache React is free to discard, not a guarantee.
@@ -460,6 +488,14 @@ export function ChatView({
   // settles, cleared after a second so it doesn't linger for assistive tech.
   // Per-chunk updates would break VoiceOver, so only the transition is
   // announced — never the answer text itself.
+  // The first-run demo turn earned its celebration: one line, once ever, in
+  // the aha-moment grammar. Marked in the settle effect, not on click, so it
+  // only appears when the demo actually finished. localStorage is the source
+  // of truth (a state mirror would go stale across the effect's closure);
+  // private mode just means it shows this visit only.
+  const DEMO_CELEBRATED_KEY = 'hikmah:ui:demo-celebrated';
+  const demoTurnRef = useRef(false);
+  const [showDemoCelebration, setShowDemoCelebration] = useState(false);
   const [justFinished, setJustFinished] = useState(false);
   const statusRef = useRef(status);
   useEffect(() => {
@@ -467,6 +503,17 @@ export function ChatView({
     statusRef.current = status;
     if (!streamingJustSettled(prev, status)) return;
     setJustFinished(true);
+    if (demoTurnRef.current) {
+      demoTurnRef.current = false;
+      let celebrated = false;
+      try {
+        celebrated = window.localStorage.getItem(DEMO_CELEBRATED_KEY) === '1';
+        if (!celebrated) window.localStorage.setItem(DEMO_CELEBRATED_KEY, '1');
+      } catch {
+        // Private mode: the line shows this visit only.
+      }
+      if (!celebrated) setShowDemoCelebration(true);
+    }
     const timer = window.setTimeout(() => setJustFinished(false), 1000);
     return () => window.clearTimeout(timer);
   }, [status]);
@@ -530,8 +577,77 @@ export function ChatView({
   // one button. `hidden` is how many that button is offering.
   const hidden = showEarlier ? 0 : Math.max(0, messages.length - WINDOW);
   const visible = hidden ? messages.slice(hidden) : messages;
+  // The question each answer answers: the nearest preceding user message's
+  // text. Research answers restate it as a heading, so the reader sees what
+  // was asked without scrolling up. A Map, not a parallel array: the render
+  // below maps over `visible`, and the lookup is by id.
+  const queryByMessageId = useMemo(() => {
+    const map = new Map<string, string>();
+    let lastUserText: string | undefined;
+    for (const message of visible) {
+      if (message.role === 'user') {
+        const text = messageText(message).trim();
+        if (text) lastUserText = text;
+      } else if (message.role === 'assistant' && lastUserText) {
+        map.set(message.id, lastUserText);
+      }
+    }
+    return map;
+  }, [visible]);
 
   const busy = status === 'submitted' || status === 'streaming';
+  // Free tier, no key: the run goes to free models. The pill says so, and
+  // where the fast models are — one tap to /pricing, never a gate.
+  // chatModeFor is the single definition of the mode (lib/chat/mode.ts):
+  // a local/all-free server with freeOnly on reads as plan, not free.
+  // How long the current run has been going, for the staged loader's long-run
+  // copy ("Still working — some answers take a moment." at 20s). The start
+  // lives in a ref and the tick writes the state, so the effect body itself
+  // never calls setState (react-hooks/set-state-in-effect is an error here).
+  const runStartedAtRef = useRef<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!busy) {
+      runStartedAtRef.current = null;
+      return;
+    }
+    if (runStartedAtRef.current === null) runStartedAtRef.current = Date.now();
+    const timer = window.setInterval(() => {
+      const started = runStartedAtRef.current;
+      setElapsedSeconds(started === null ? 0 : Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [busy]);
+  const freeMode = chatModeFor(run) === 'free' && !run.apiKeySecret;
+  // The learning lab's applause: after a successful teach there, the next
+  // chat visit surfaces one AhaMoment line naming what changed — then it is
+  // done. Read lazily so a repeat visit never flashes it on first paint (and
+  // SSR, which has no localStorage, paints the undisclosed state).
+  const [lastTeach, setLastTeach] = useState<{ learned: number; broken: number } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(LAST_TEACH_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { at?: string; learned?: number; broken?: number };
+      // Older than a week is just plumbing, not an aha.
+      if (!parsed.at || Date.now() - new Date(parsed.at).getTime() > 7 * 24 * 3600 * 1000)
+        return null;
+      return {
+        learned: Number(parsed.learned ?? 0),
+        broken: Number(parsed.broken ?? 0),
+      };
+    } catch {
+      return null;
+    }
+  });
+  const dismissTeach = () => {
+    try {
+      window.localStorage.removeItem(LAST_TEACH_KEY);
+    } catch {
+      // Private mode: the moment just hides for this visit.
+    }
+    setLastTeach(null);
+  };
   // A new run supersedes the finished announcement: the polite region belongs
   // to the current run, so a stale "Response ready." must not survive into it.
   // Render-time reset, the same pattern as the stale-conversation reset above.
@@ -1061,6 +1177,46 @@ export function ChatView({
     <PricingContext.Provider value={pricing}>
       <div className={'chat-view' + (messages.length === 0 ? ' is-empty' : '')}>
         {banner}
+        {/* The learning lab's applause, once: what the owner's teaching
+          changed. Dismissing clears it everywhere; a week-old teach is not an
+          aha, so the state never shows it. */}
+        {lastTeach && (
+          <div className="chat-teach-moment">
+            <AhaMoment
+              sourceLabel="What you taught me in the learning lab"
+              detail={`${lastTeach.learned} new ${
+                lastTeach.learned === 1 ? 'thing' : 'things'
+              } learned`}
+            />
+            <button
+              type="button"
+              aria-label="Dismiss teaching moment"
+              onClick={dismissTeach}
+              className="chat-teach-dismiss"
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+        {/* The first-run demo turn's applause, once ever: the demo built a
+          working app, and the line points at the transcript below. Dismissing
+          hides it; localStorage keeps it gone. */}
+        {showDemoCelebration && (
+          <div className="chat-teach-moment">
+            <AhaMoment
+              sourceLabel="That was a live app"
+              detail="Tap it — everything here works like this"
+            />
+            <button
+              type="button"
+              aria-label="Dismiss demo celebration"
+              onClick={() => setShowDemoCelebration(false)}
+              className="chat-teach-dismiss"
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        )}
         {messages.length > 0 && (
           <div className="chat-transcript-head flex items-center justify-between gap-2 px-1 py-2">
             <span className="text-sm text-muted-foreground">
@@ -1100,7 +1256,9 @@ export function ChatView({
                 variant="ghost"
                 size="sm"
                 onClick={exportTranscript}
-                title="Download the visible answers and sources as Markdown"
+                // The export is the whole conversation — both sides' turns,
+                // attachments and sources — not just the visible answers.
+                title="Download the full conversation as Markdown"
               >
                 {exported ? (
                   <Check size={16} aria-hidden="true" />
@@ -1131,6 +1289,10 @@ export function ChatView({
                   <EmptyStateOnboarding
                     variant="first-run"
                     onPick={chooseStarter}
+                    onDemo={() => {
+                      demoTurnRef.current = true;
+                      submit({ text: DEMO_TURN });
+                    }}
                     title={starters?.length ? 'Ask this agent' : undefined}
                     chips={
                       starters?.length
@@ -1202,6 +1364,10 @@ export function ChatView({
                   memoryById={memoryById}
                   onJumpToMemory={jumpToMemory}
                   onFollowUpSelect={failure ? undefined : pickFollowUp}
+                  // The question this answer answers, for the research
+                  // heading. Undefined for the first turn and for anything
+                  // without a preceding user message.
+                  queryText={queryByMessageId.get(message.id)}
                 />
               </div>
             ))}
@@ -1216,29 +1382,26 @@ export function ChatView({
               The pipeline is narrated stage by stage ("Consulting your memory"
               → "Checking tools" → …) instead of a dead spinner — the richer
               pipeline is the differentiation, so it gets named. */}
-            {busy &&
-              (() => {
-                const pipelineIndex = !online
-                  ? 0
-                  : status === 'submitted'
-                    ? 0
-                    : /^(Using|Running)/.test(activity.label) || activity.completed > 0
-                      ? 1
-                      : streamingText
-                        ? 3
-                        : 2;
-                return (
-                  <div className="chat-thinking chat-run-progress" role="status">
-                    {!online ? (
-                      <span>Connection lost — reconnect when you’re online</span>
-                    ) : (
-                      <StagedLoading currentIndex={pipelineIndex} />
-                    )}
-                    {activity.completed > 0 && <small>{activity.completed} tools completed</small>}
-                    {streamingText && <span className="sr-only">Response is streaming.</span>}
-                  </div>
-                );
-              })()}
+            {busy && (
+              <div className="chat-thinking chat-run-progress" role="status">
+                {!online ? (
+                  <span>Connection lost — reconnect when you’re online</span>
+                ) : (
+                  <StagedLoading
+                    currentIndex={pipelineStageIndex({
+                      online,
+                      status,
+                      activityLabel: activity.label,
+                      activityCompleted: activity.completed,
+                      streamingText,
+                    })}
+                    elapsedSeconds={elapsedSeconds}
+                  />
+                )}
+                {activity.completed > 0 && <small>{activity.completed} tools completed</small>}
+                {streamingText && <span className="sr-only">Response is streaming.</span>}
+              </div>
+            )}
             {/* The answer region is announced while a run is in progress, so a
               screen reader learns that work is happening and when it lands.
               Only the transition is announced — never the streamed answer
@@ -1331,6 +1494,16 @@ export function ChatView({
                     : failure}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
+                  {/* The two plan refusals (allowance used up, or no key while a
+                  plan would include models) are answered by the pricing page —
+                  the same destination the in-chat quota banner points at. */}
+                  {/used this month’s included tokens|upgrade to a plan that includes models/i.test(
+                    failure ?? '',
+                  ) && (
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href="/pricing">See plans</Link>
+                    </Button>
+                  )}
                   {/* A run paused on a card this tab has lost track of — answered
                 once and refused, or answered from another tab — is put right by
                 reloading, which shows the card again from the stored turn.
@@ -1463,7 +1636,10 @@ export function ChatView({
                   else updateDraft(event.currentTarget.value);
                 }}
                 aria-label={editing ? 'Edit your message' : 'Message Hikmah'}
-                aria-describedby="chat-composer-hint"
+                // The hint only: the row also carries the draft-saved note and
+                // the context token estimate, and a screen reader was reading
+                // the token count number into the composer's label.
+                aria-describedby="chat-composer-hint-text"
                 onKeyDown={(event) => {
                   if (
                     event.key === 'Enter' &&
@@ -1526,6 +1702,17 @@ export function ChatView({
                     aria-hidden="true"
                   />
                 </PromptInputButton>
+                {/* Specialists for the next turn: the bottom sheet lists the
+                  built-in agents with outcome descriptions and starters.
+                  The side panel stays the manage-only surface. */}
+                {onAgent && onOpenAgents && (
+                  <AgentPicker
+                    activeAgentId={activeAgentId}
+                    onPick={(agent) => onAgent(agent)}
+                    onStarter={chooseStarter}
+                    onManage={onOpenAgents}
+                  />
+                )}
                 {!editing && <ImageCommandButton onInsert={insertImageCommand} />}
                 {onModel && (
                   <ModelPicker
@@ -1537,6 +1724,18 @@ export function ChatView({
                     className="chat-model-select"
                     local={allModelsFree(run.baseUrl)}
                   />
+                )}
+                {/* Free tier indicator and one-tap upgrade path: the free tier
+                  is slower and queued, a plan buys fast models. Tapping goes
+                  to /pricing — it never blocks sending. */}
+                {freeMode && (
+                  <Link
+                    href="/pricing"
+                    className="chat-free-pill"
+                    title="Free tier is slower and queued — a plan gets you fast models"
+                  >
+                    Free mode · slower — Upgrade for fast models →
+                  </Link>
                 )}
               </PromptInputTools>
               {/* The meter is a diagnostic, and it was on screen permanently: a bare
@@ -1597,9 +1796,17 @@ export function ChatView({
               </AlertDescription>
             </Alert>
           )}
-          {needsKey && onOpenSettings && <ConnectModelCard onOpenSettings={onOpenSettings} />}
+          {needsKey && onOpenSettings && onUseFree && (
+            <ConnectModelCard onUseFree={onUseFree} onOpenSettings={onOpenSettings} />
+          )}
           <div className="chat-composer-hint" id="chat-composer-hint">
-            <span>Enter to send · Shift + Enter for a new line</span>
+            {/* Two hint wordings, toggled by input modality: phones have no
+              Shift+Enter, so the desktop wording is wrong there (Jev
+              short-text, device report 2026-09-29). CSS shows exactly one. */}
+            <span id="chat-composer-hint-text" className="chat-hint-desktop">
+              Enter to send · Shift + Enter for a new line
+            </span>
+            <span className="chat-hint-touch">Tap the arrow to send</span>
             {draftSaved && draft && !editing && (
               <span className="chat-draft-saved">
                 <Check size={12} aria-hidden="true" /> Draft saved in this tab

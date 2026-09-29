@@ -23,7 +23,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   contextLabel,
@@ -86,7 +85,6 @@ export function ModelPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [filtersOpen, setFiltersOpen] = useState(false);
   if (!active && open) {
     setOpen(false);
     setQuery('');
@@ -150,54 +148,41 @@ export function ModelPicker({
           value={query}
           onValueChange={setQuery}
         />
-        {/* The summary rules in chat.css target `> summary`; the trigger keeps
-            the disclosure's footprint with utilities instead. */}
-        <Collapsible
-          open={filtersOpen}
-          onOpenChange={setFiltersOpen}
-          className="model-dialog-filter-disclosure"
+        {/* The filters sit inline under the search, not behind a disclosure:
+            a first-time user never learns a hidden filter exists, and the row
+            costs one line. */}
+        <div
+          className="flex flex-wrap items-center gap-2 px-3 pb-3"
+          role="group"
+          aria-label="Filter models"
         >
-          <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between px-3 py-2.5 text-sm">
-            <span className="flex items-center gap-1.5">
-              <ChevronDown
-                size={16}
-                aria-hidden="true"
-                className={'shrink-0 transition-transform' + (filtersOpen ? ' rotate-180' : '')}
-              />
-              Filter models
-            </span>
-            {loading ? (
-              <Skeleton className="h-4 w-20" aria-label="Loading model count" role="status" />
-            ) : (
-              <span className="text-muted-foreground">{models.length} available</span>
-            )}
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="flex flex-wrap gap-2 px-3 pb-3" role="group" aria-label="Filter models">
-              {(
-                [
-                  ['all', 'All'],
-                  ['free', 'Free'],
-                  ['tools', 'Tools'],
-                  ['reasoning', 'Reasoning'],
-                ] as [Filter, string][]
-              )
-                .filter(([key]) => key !== 'free' || hasFree)
-                .map(([key, label]) => (
-                  <Button
-                    key={key}
-                    type="button"
-                    size="sm"
-                    variant={filter === key ? 'secondary' : 'outline'}
-                    aria-pressed={filter === key}
-                    onClick={() => setFilter(key)}
-                  >
-                    {label}
-                  </Button>
-                ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {(
+            [
+              ['all', 'All'],
+              ['free', 'Free'],
+              ['tools', 'Tools'],
+              ['reasoning', 'Reasoning'],
+            ] as [Filter, string][]
+          )
+            .filter(([key]) => key !== 'free' || hasFree)
+            .map(([key, label]) => (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant={filter === key ? 'secondary' : 'outline'}
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+              >
+                {label}
+              </Button>
+            ))}
+          {loading ? (
+            <Skeleton className="ml-auto h-4 w-20" aria-label="Loading model count" role="status" />
+          ) : (
+            <span className="ml-auto text-xs text-muted-foreground">{models.length} available</span>
+          )}
+        </div>
         <CommandList className="model-dialog-list">
           {loading && !models.length ? (
             <div className="model-dialog-empty" role="status">

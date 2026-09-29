@@ -164,7 +164,10 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
       </header>
       <div className="admin-scroll">
         <AdminBreadcrumb
-          trail={[{ label: 'Admin', href: '/admin/overview' }, { label: tabLabels[tab] ?? tab }]}
+          trail={[
+            { label: 'Settings', href: '/settings/overview' },
+            { label: tabLabels[tab] ?? tab },
+          ]}
         />
         <div className="admin-intro">
           <div>
@@ -178,9 +181,9 @@ export function WorkspaceAdmin({ initialTab = 'overview' }: { initialTab?: strin
         </div>
         <Tabs
           value={tab}
-          // Admin tabs are routes (/admin/<tab>); the page remounts per tab via
+          // Settings tabs are routes (/settings/<tab>); the page remounts per tab via
           // key, so navigation alone switches the tab.
-          onValueChange={(v) => router.push('/admin/' + v)}
+          onValueChange={(v) => router.push('/settings/' + v)}
           className="admin-tabs"
         >
           <TabsList>

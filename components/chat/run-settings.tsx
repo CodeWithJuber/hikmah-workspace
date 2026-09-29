@@ -126,7 +126,7 @@ export function RunSettings({
         <CollapsibleContent className="chat-settings-disclosure-body">
           <div className="flex items-start justify-between gap-4 py-2">
             <div className="space-y-1">
-              <p className="text-sm font-medium">Show activity</p>
+              <p className="text-sm font-medium">Show run activity &amp; usage</p>
               <p className="text-sm text-muted-foreground">
                 Tool activity and usage details beneath each answer.
               </p>
@@ -134,7 +134,7 @@ export function RunSettings({
             <Switch
               checked={settings.showActivity}
               disabled={saving}
-              aria-label="Show activity"
+              aria-label="Show run activity & usage"
               onCheckedChange={(checked) => void apply({ showActivity: checked })}
             />
           </div>

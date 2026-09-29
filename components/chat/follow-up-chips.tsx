@@ -1,6 +1,5 @@
 'use client';
 
-import { MessageCirclePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -29,8 +28,8 @@ export function FollowUpChips({ suggestions, onSelect, loading = false }: Follow
         role="group"
         aria-label="Follow-up ideas"
       >
-        <Skeleton className="h-8 w-32 rounded-full" />
-        <Skeleton className="h-8 w-40 rounded-full" />
+        <Skeleton className="h-10 w-32 rounded-full" />
+        <Skeleton className="h-10 w-40 rounded-full" />
       </div>
     );
   }
@@ -44,16 +43,18 @@ export function FollowUpChips({ suggestions, onSelect, loading = false }: Follow
       aria-label="Follow-up ideas"
     >
       <span className="text-xs text-muted-foreground">Keep going</span>
+      {/* Text-only chips: an icon on every chip was visual noise next to the
+          label, and Perplexity's follow-ups read as plain text suggestions.
+          h-10 keeps them thumb-sized. */}
       {shown.map((suggestion) => (
         <Button
           key={suggestion}
           type="button"
           variant="outline"
           size="sm"
-          className="rounded-full"
+          className="h-10 rounded-full px-4"
           onClick={() => onSelect(suggestion)}
         >
-          <MessageCirclePlus size={16} aria-hidden="true" />
           {suggestion}
         </Button>
       ))}

@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookOpenCheck, Bot, History, X } from 'lucide-react';
+import { BookOpenCheck, Bot, Gauge, History, X } from 'lucide-react';
 import { MobileNavBar } from '@/components/app/mobile-nav-bar';
 import { KernelProvider } from '@/components/kernel/context';
 import { HikmahIcon } from '@/components/kernel/icons';
 import { PlaygroundProvider } from '@/components/playground/context';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { ChatPreview } from './chat-preview';
+import { ChatPreview, FREE_FALLBACK_CONNECTION } from './chat-preview';
 import { ConversationList, type ConversationSummary } from './conversation-list';
 import { FilesPanel } from './files-panel';
 import { AgentsPanel, type Agent } from './agents-panel';
@@ -91,6 +91,11 @@ export function ChatShell({
   const [artifact, setArtifact] = useState<WorkspaceFiles | null>(null);
   const [previewBase, setPreviewBase] = useState('');
   const [managedKey, setManagedKey] = useState<boolean | null>(null);
+  /** Near the monthly token allowance: shown once per period, dismissible.
+   * The chat never nags — one banner, gone for the month when dismissed. */
+  const [quotaBanner, setQuotaBanner] = useState<{ percent: number; periodStart: string } | null>(
+    null,
+  );
   const sidebarRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const navigationButtonRef = useRef<HTMLButtonElement>(null);
@@ -165,9 +170,37 @@ export function ChatShell({
     let live = true;
     void clientFetch('/api/billing')
       .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { managedKey?: boolean } | null) => {
-        if (live) setManagedKey(Boolean(payload?.managedKey));
-      })
+      .then(
+        (
+          payload: {
+            managedKey?: boolean;
+            tier?: string;
+            metered?: number;
+            monthlyTokenCap?: number | null;
+            periodStart?: string;
+          } | null,
+        ) => {
+          if (!live) return;
+          setManagedKey(Boolean(payload?.managedKey));
+          // The allowance banner: only a metered tier can approach a cap, and
+          // only once per billing period — a dismissal sticks until the reset.
+          if (
+            payload?.tier === 'managed' &&
+            typeof payload.monthlyTokenCap === 'number' &&
+            payload.monthlyTokenCap > 0 &&
+            typeof payload.metered === 'number' &&
+            payload.periodStart &&
+            window.localStorage.getItem('hikmah-quota-banner:' + payload.periodStart) !==
+              'dismissed'
+          ) {
+            const percent = Math.min(
+              100,
+              Math.round((payload.metered / payload.monthlyTokenCap) * 100),
+            );
+            if (percent >= 80) setQuotaBanner({ percent, periodStart: payload.periodStart });
+          }
+        },
+      )
       .catch(() => {
         if (live) setManagedKey(false);
       });
@@ -175,10 +208,29 @@ export function ChatShell({
       live = false;
     };
   }, []);
+  /** The banner's own Dismiss: the month, not the message, is what is being
+   * waved away — the banner returns after the reset if the cap is near again. */
+  const dismissQuotaBanner = useCallback(() => {
+    setQuotaBanner((current) => {
+      if (current)
+        window.localStorage.setItem('hikmah-quota-banner:' + current.periodStart, 'dismissed');
+      return null;
+    });
+  }, []);
+  // The gate is for paid models, never for the first message: free-only mode
+  // (the default) always sends on the free tier, key or no key. A keyless
+  // paid configuration still blocks, with the two-option card below.
   const needsKey =
+    !settings.connection.freeOnly &&
     managedKey === false &&
     Boolean(providerDestination(settings.connection.baseUrl)) &&
     !settings.connection.apiKeySecret;
+  // "Try it free now": back to the free-only config — no key, no setup.
+  const useFreeConnection = useCallback(() => {
+    void change({ connection: { ...FREE_FALLBACK_CONNECTION } }).catch(() => {
+      toast.error('Could not switch to the free tier. Please try again.');
+    });
+  }, [change]);
   useEffect(() => {
     if (!artifact || previewBase) return;
     let live = true;
@@ -368,7 +420,10 @@ export function ChatShell({
                   onSettled={settled}
                   needsKey={needsKey}
                   onOpenSettings={openSettings}
+                  onUseFree={useFreeConnection}
                   onGrant={grant}
+                  onAgent={setAgent}
+                  onOpenAgents={() => openPanel('agents')}
                   banner={
                     task ? (
                       <div className="chat-task-banner" role="note">
@@ -376,6 +431,19 @@ export function ChatShell({
                         <span>A background task. Suggestions wait for your review.</span>
                         <button type="button" onClick={() => openPanel('memory')}>
                           Review what it learned
+                        </button>
+                      </div>
+                    ) : quotaBanner ? (
+                      <div className="chat-task-banner" role="note">
+                        <Gauge size={16} aria-hidden />
+                        <span>
+                          {quotaBanner.percent >= 100
+                            ? 'You’ve used this month’s included tokens. Fast models pause until the reset — your own key keeps working.'
+                            : `You’ve used ${quotaBanner.percent}% of this month’s included tokens.`}
+                        </span>
+                        <Link href="/pricing?plan=pro">See plans</Link>
+                        <button type="button" onClick={dismissQuotaBanner}>
+                          Dismiss
                         </button>
                       </div>
                     ) : null

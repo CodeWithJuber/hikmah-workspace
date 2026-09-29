@@ -10,12 +10,15 @@ export function ConnectionsPage() {
         <SidebarTrigger />
         <div>
           <h1>Integrations</h1>
-          <p>Services the assistant can use in your workspace.</p>
+          <p>
+            External services the assistant can use. Model API keys live separately, under{' '}
+            <strong>Model connection</strong> in the sidebar footer.
+          </p>
         </div>
       </header>
       <div className="px-6 pb-8 grid gap-10 max-w-4xl">
-        <section aria-label="AI services">
-          <h2 className="section-label">AI services</h2>
+        <section aria-label="Tool servers">
+          <h2 className="section-label">Tool servers</h2>
           <McpServers />
         </section>
       </div>

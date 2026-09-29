@@ -806,6 +806,15 @@
     height: 100dvh;
     min-width: 0;
     background: var(--background);
+    /* The shell (.studio-shell.app-shell) is height:100dvh + overflow:hidden,
+       so without this every (app) page taller than the viewport — labs,
+       settings, billing — is clipped with no way to reach it. On phones the
+       content visibly died behind the bottom nav (device report 2026-09-29:
+       "No scroll in other pages"). The chat route does not use this element
+       (it has its own inner-scrolling transcript), so this changes nothing
+       there. The mobile bottom-nav clearance already lives on this element
+       (padding-bottom: 76px + safe-area in workspace-experience.css). */
+    overflow-y: auto;
   }
   .hikmah-brand {
     display: flex;

@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Loading state for /admin/[tab] — mirrors WorkspaceAdmin's settings layout. */
+/** Loading state for /settings/[tab] — mirrors WorkspaceAdmin's settings layout. */
 export default function AdminTabLoading() {
   return (
     <div className="admin-page">

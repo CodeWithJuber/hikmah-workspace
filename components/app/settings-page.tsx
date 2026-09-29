@@ -27,7 +27,7 @@ const groups: { title: string; items: SettingLink[] }[] = [
       {
         href: '/connections',
         label: 'Integrations',
-        blurb: 'Services the assistant can use — AI providers and servers.',
+        blurb: 'MCP servers the assistant can call.',
         icon: Plug,
       },
       {

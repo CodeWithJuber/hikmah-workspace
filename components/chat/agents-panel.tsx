@@ -30,6 +30,33 @@ const EMPTY: Omit<Agent, 'id' | 'builtIn'> = {
   model: '',
 };
 
+/** "Start from an example": a blank editor is a wall of empty fields, so each
+ * template pre-fills the name, the one-line outcome description, the
+ * instructions and a sane tool set. The owner edits, then saves. */
+const EXAMPLE_TEMPLATES: Omit<Agent, 'id' | 'builtIn' | 'model'>[] = [
+  {
+    name: 'Code reviewer',
+    description: 'Reviews a change and names what would break first.',
+    instructions:
+      'Review the change in front of you. Name what it does, what could break, and the smallest fix for each risk. Do not rewrite the code unless asked.',
+    tools: ['read_file', 'list_files'],
+  },
+  {
+    name: 'Research brief',
+    description: 'Reads sources and delivers a cited brief.',
+    instructions:
+      'Search the web and read primary sources. Cite the exact URLs retrieved. Distinguish evidence, interpretation and missing sources. Deliver a concise brief naming unresolved questions.',
+    tools: ['search_web', 'read_webpage', 'search_reference'],
+  },
+  {
+    name: 'Meeting prep',
+    description: 'Turns rough notes into a tight agenda.',
+    instructions:
+      'Turn the notes into a tight agenda: goal, topics with time boxes, decisions needed, and owners. Ask for anything missing before finalizing.',
+    tools: [],
+  },
+];
+
 export function AgentsPanel({
   activeId = null,
   onPick,
@@ -158,7 +185,8 @@ export function AgentsPanel({
         </div>
       ) : agents.length === 0 ? (
         <p className="files-note">
-          No agents yet. An agent is a named set of instructions and tools.
+          No specialists yet. Pick an agent before a message and it runs that turn with its own
+          instructions and tools — create one below to get started.
         </p>
       ) : null}
 
@@ -203,11 +231,44 @@ export function AgentsPanel({
 
       {open && (
         <div className="files-editor">
+          {/* Templates only for a new agent: applying one to an existing
+              agent would clobber its instructions without a way back. */}
+          {!editing && (
+            <div className="agents-templates">
+              <p className="agents-templates-label">Start from an example</p>
+              <div className="agents-templates-row">
+                {EXAMPLE_TEMPLATES.map((template) => (
+                  <button
+                    key={template.name}
+                    type="button"
+                    className="agents-template"
+                    onClick={() =>
+                      setDraft((current) => ({ ...current, ...template, model: current.model }))
+                    }
+                    title={template.description}
+                  >
+                    <span className="agents-template-name">{template.name}</span>
+                    <span className="agents-template-desc">{template.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <label htmlFor="agent-name">Name</label>
           <input
             id="agent-name"
             value={draft.name}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+          />
+
+          {/* The one line the picker shows next to the name: what picking it
+              does to the next turn — an outcome, not a model fact. */}
+          <label htmlFor="agent-description">What it does</label>
+          <input
+            id="agent-description"
+            value={draft.description}
+            placeholder="One line: what picking it does for the next turn"
+            onChange={(event) => setDraft({ ...draft, description: event.target.value })}
           />
 
           <label htmlFor="agent-instructions">Instructions</label>
