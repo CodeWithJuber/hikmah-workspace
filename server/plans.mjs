@@ -80,6 +80,35 @@ export function priceLabelFor(plan) {
   return typeof named === 'string' ? named.trim().slice(0, 40) : '';
 }
 
+/** The trial's terms, stated exactly, for every place the trial is mentioned.
+ *
+ * What ends (the free trial), when (on day trialDays + 1), and what happens
+ * after (the charge starts automatically; cancelling lands back on Free with
+ * everything kept). A plan with no trial carries no terms. Pure, so the
+ * pricing page, the billing panel and the consent step cannot word it
+ * differently from each other.
+ */
+export function trialTermsFor(plan) {
+  const days = plan?.trialDays ?? 0;
+  if (!days) return '';
+  const price = priceLabelFor(plan);
+  // "$19 a month" reads as "the $19-a-month Pro charge"; any other label is
+  // quoted as-is rather than mangled into a monthly shape it does not have.
+  const charge = price
+    ? price.endsWith(' a month')
+      ? `the ${price.slice(0, -' a month'.length)}-a-month Pro charge`
+      : `the Pro charge of ${price}`
+    : 'the Pro price shown at checkout';
+  const when = price
+    ? `On day ${days + 1}, ${charge} starts automatically.`
+    : `When the trial ends, ${charge} starts automatically.`;
+  return (
+    `${days} days free. ${when} ` +
+    'Cancel any time before then and you pay nothing. ' +
+    'Cancel later and you land back on Free, keeping every conversation and file.'
+  );
+}
+
 /** Whether this deployment can take money at all. */
 export function billingConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);

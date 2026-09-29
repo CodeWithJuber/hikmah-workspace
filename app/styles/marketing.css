@@ -317,6 +317,48 @@
     color: var(--muted-foreground);
     margin-top: 2px;
   }
+  /* The trial's exact terms, under the call-to-action: small, but never
+   * hidden behind the button. */
+  .landing-terms {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    line-height: 1.6;
+    margin-top: 8px;
+  }
+  /* Consent before charge on the pricing page: inline, so it works at any
+   * width, including phones. */
+  .landing-consent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 14px 16px;
+  }
+  .landing-agree {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .landing-agree input {
+    margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    flex: none;
+    accent-color: var(--primary);
+  }
+  .landing-consent-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
   .landing-tagline {
     font-size: var(--font-size-base);
     line-height: 1.6;

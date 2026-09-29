@@ -19,7 +19,10 @@ test('a trial counts as paid, because the point of a trial is that it works', ()
 });
 
 test('everything else falls back to the free tier rather than staying paid', () => {
-  for (const status of ['canceled', 'unpaid', 'past_due', 'incomplete', 'paused', undefined])
+  // past_due is deliberately absent here: PR-15 keeps the paid tier while
+  // Stripe retries the card (see billing-clarity.test.mjs), so a failed
+  // renewal degrades gracefully instead of locking the person out.
+  for (const status of ['canceled', 'unpaid', 'incomplete', 'paused', undefined])
     assert.equal(tierForSubscription({ status, plan: 'pro' }), 'byok', String(status));
   assert.equal(tierForSubscription(undefined), 'byok');
   assert.equal(tierForSubscription(null), 'byok');

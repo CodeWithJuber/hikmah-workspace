@@ -140,6 +140,48 @@
     color: var(--muted-foreground);
     line-height: 1.6;
   }
+  /* The trial's exact terms, under the call-to-action: small, but never
+   * hidden behind the button. */
+  .billing-terms {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    line-height: 1.6;
+    margin: 8px 0 0;
+  }
+  /* Consent before charge: the terms, the checkbox, the agreement button.
+   * Inline rather than a modal, so it works at any width, including phones. */
+  .billing-consent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 14px 16px;
+  }
+  .billing-agree {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .billing-agree input {
+    margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    flex: none;
+    accent-color: var(--primary);
+  }
+  .billing-consent-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
   /* Post-purchase confirmation and usage alerts. The palette stays the page's
    * own: the accent rail carries the message, destructive only at the cap. */
   .billing-notice {
