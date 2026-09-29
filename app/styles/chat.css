@@ -2272,6 +2272,32 @@
     max-height: 40vh;
     overflow: auto;
   }
+  /* The rest of the payload beside the command: every parameter the tool was
+   asked with, so "run this" never hides what "this" takes. Same wrapping as
+   the command — on a phone it flows, never overflows. */
+  .chat-approval-params {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--radius-element);
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 40vh;
+    overflow: auto;
+  }
+  /* The cost type of the action, in the system's own terms, and the notes for
+   approvals that cannot be answered or remembered: quiet lines, never
+   competing with the question. */
+  .chat-approval-cost,
+  .chat-approval-note {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
   .chat-approval-actions {
     display: flex;
     flex-wrap: wrap;

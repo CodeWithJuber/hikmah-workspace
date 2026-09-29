@@ -952,6 +952,19 @@ function MessagePartsInner({
   }, [message, artifact]);
   const hasPlan = message.parts.some((part) => part.type === 'data-plan');
 
+  // The run's budget, when it published one in a data-workflow part. The
+  // approval card names the action's cost against it — the one cost figure
+  // the system actually records — so it is validated here the same way the
+  // plan card below validates it, and stays null when there is none rather
+  // than inventing one.
+  const workflowBudget = (() => {
+    const plan = message.parts.find((part) => part.type === 'data-workflow') as
+      { data?: { budget?: { maxCalls?: unknown } } } | undefined;
+    const maxCalls = plan?.data?.budget?.maxCalls;
+    return typeof maxCalls === 'number' ? { maxCalls } : null;
+  })();
+  const toolCallsUsed = message.parts.filter(isToolUIPart).length;
+
   // Sorted before it is rendered, so the answer, the working and anything
   // still asking the reader are three things instead of one interleaved
   // column. See lib/chat/working.ts for why.
@@ -1065,6 +1078,8 @@ function MessagePartsInner({
             conversationId={conversationId}
             onApproval={onApproval}
             onGrant={onGrant}
+            budget={workflowBudget}
+            callsUsed={toolCallsUsed}
           />
         );
       // The plan is rendered as its own card from the data part, so the
