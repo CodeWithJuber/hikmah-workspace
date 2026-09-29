@@ -51,13 +51,33 @@ test('an untrusted server always asks, whatever its tools claim about themselves
   );
 });
 
-test('a trusted server may auto-approve genuinely read-only tools', () => {
+test('a trusted server may auto-approve genuinely read-only tools — only with an explicit policy', () => {
+  // A seeded default is the catalogue's choice, not the owner's, so it never
+  // consents: trusted + read-only still asks until the owner sets the policy.
   assert.equal(
     approvalFor(server({ trusted: true }), { name: 'fetch', annotations: { readOnlyHint: true } }),
+    'ask',
+  );
+  assert.equal(
+    approvalFor(server({ trusted: true, consentExplicit: true }), {
+      name: 'fetch',
+      annotations: { readOnlyHint: true },
+    }),
     'auto',
   );
   // Without the hint it still asks.
-  assert.equal(approvalFor(server({ trusted: true }), { name: 'write' }), 'ask');
+  assert.equal(
+    approvalFor(server({ trusted: true, consentExplicit: true }), { name: 'write' }),
+    'ask',
+  );
+  // Same for approval='auto': explicit, or ask.
+  assert.equal(approvalFor(server({ trusted: true, approval: 'auto' }), { name: 'write' }), 'ask');
+  assert.equal(
+    approvalFor(server({ trusted: true, approval: 'auto', consentExplicit: true }), {
+      name: 'write',
+    }),
+    'auto',
+  );
 });
 
 test('destructive or open-world tools always ask, even on a trusted server', () => {

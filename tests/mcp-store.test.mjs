@@ -12,6 +12,7 @@ function store(t) {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
   db.exec(readFileSync(new URL('../drizzle/0005_mcp.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../drizzle/0026_mcp_consent.sql', import.meta.url), 'utf8'));
   t.after(() => db.close());
   let counter = 0;
   return createMcpStore(db, { newId: () => `s${++counter}` });

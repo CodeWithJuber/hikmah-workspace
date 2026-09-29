@@ -32,6 +32,11 @@ export type ServerRecord = {
   approval: ApprovalMode;
   allowTools?: string[];
   denyTools?: string[];
+  /**
+   * The owner chose this policy themselves. Seeded catalogue defaults never
+   * count: only an explicit install policy can consent to auto-approval.
+   */
+  consentExplicit?: boolean;
 };
 
 /** A tool's description is part of the prompt, so its identity must include it.
@@ -63,6 +68,11 @@ export function matchesPattern(name: string, pattern: string): boolean {
  * Read-only hints are accepted only from a server the owner marked trusted,
  * because an annotation is supplied by the same server that supplies the tool:
  * treating it as authoritative would let any server opt itself out of approval.
+ *
+ * Auto-approval additionally needs the owner's own explicit decision: a
+ * seeded default is the catalogue's choice, not the owner's, so it never
+ * consents. Explicitly written allow-patterns are the owner's words and
+ * always count.
  */
 export function approvalFor(
   server: ServerRecord,
@@ -75,6 +85,7 @@ export function approvalFor(
 
   const annotations = tool.annotations ?? {};
   if (annotations.destructiveHint === true || annotations.openWorldHint === true) return 'ask';
+  if (!server.consentExplicit) return 'ask';
   if (server.trusted && annotations.readOnlyHint === true) return 'auto';
   return server.approval === 'auto' && server.trusted ? 'auto' : 'ask';
 }

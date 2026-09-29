@@ -15,7 +15,7 @@ import {
   type ApprovalMode,
   type ConnectedServer,
 } from './manager.ts';
-import { toRecord, type McpStore } from './store.ts';
+import { toRecord, type McpConsent, type McpStore } from './store.ts';
 
 /** What a run gets: the tools, how each is gated, and how to let go of them. */
 export type McpRunTools = {
@@ -49,6 +49,8 @@ export type McpRunOptions = {
   signal?: AbortSignal;
   /** Where stdio servers are hosted, when this deployment has a workbench. */
   bridge?: { url: string; token: string };
+  /** The conversation the run belongs to, for conversation-scoped consents. */
+  conversationId?: string;
   /** Injected by the tests. */
   connect?: typeof connectServer;
   /** Injected by the tests, so a suite does not pay the real deadline to prove
@@ -118,6 +120,7 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
       guidance.push({ server: record.name, instructions: server.instructions });
 
     const pins = options.store.pins(row.id);
+    const consents = options.store.consents(row.id);
     for (const [id, tool] of Object.entries(server.tools)) {
       const name = parseToolId(id)?.tool ?? id;
       const fingerprint =
@@ -130,16 +133,24 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
       const pinned = pins.get(name);
 
       // A description the owner has not seen is not automatically hostile, but
-      // it has not been agreed to either: it may be auto-approved only once it
-      // has been. A changed one is the rug-pull case and is reported.
+      // it has not been agreed to either. A changed one is the rug-pull case
+      // and is reported.
       if (pinned && pinned !== fingerprint) changed.push(id);
 
       const decided = approvalFor(record, {
         name,
         annotations: (tool as { annotations?: Record<string, unknown> }).annotations,
       });
-      const gate: ApprovalMode =
-        pinned === fingerprint ? decided : decided === 'deny' ? 'deny' : 'ask';
+      // Consent, not discovery, decides. A pin records that this definition was
+      // shown; it never approves. Auto-approval needs a bound consent for this
+      // exact connector account, fingerprint and scope — or an explicit install
+      // policy whose presented definition has not changed since. The first
+      // sighting always asks; a hard deny is never offered, whatever consents
+      // or grants remember.
+      let gate: ApprovalMode = 'ask';
+      if (decided === 'deny') gate = 'deny';
+      else if (consentApplies(consents, name, fingerprint, options.conversationId)) gate = 'auto';
+      else if (decided === 'auto' && pinned === fingerprint) gate = 'auto';
 
       if (gate === 'deny') continue;
       tools[id] = bounded(tool, id, options.callTimeoutMs ?? MCP_CALL_TIMEOUT_MS);
@@ -160,22 +171,48 @@ export async function mcpRunTools(options: McpRunOptions): Promise<McpRunTools> 
 }
 
 /**
+ * Does a bound consent cover this call? The account is the server row the
+ * consents were read for; the tool name, the exact approved fingerprint and
+ * the scope must all match. An unknown or empty fingerprint never consents.
+ */
+function consentApplies(
+  consents: McpConsent[],
+  toolName: string,
+  fingerprint: string,
+  conversationId?: string,
+): boolean {
+  if (!fingerprint) return false;
+  const conversation = conversationId ?? '';
+  return consents.some(
+    (consent) =>
+      consent.toolName === toolName &&
+      consent.fingerprint === fingerprint &&
+      (consent.scope === 'always' ||
+        (consent.scope === 'conversation' &&
+          consent.conversationId !== '' &&
+          consent.conversationId === conversation)),
+  );
+}
+
+/**
  * Turn the decisions into the per-tool approval map `ToolLoopAgent` takes.
  *
  * `'ask'` becomes `'user-approval'` so the run pauses and the owner answers,
- * which is the same path ssh_exec uses.
+ * which is the same path ssh_exec uses. Only `'auto'` — already resolved
+ * against bound consents and the explicit install policy above — is approved.
+ *
+ * The grants argument is legacy: remembered tool ids are unbound by
+ * construction (see lib/chat/approvals.ts), and an id alone must never
+ * approve a tool, so they are not consulted here. Kept in the signature for
+ * the existing call site.
  */
 export function mcpToolApproval(
   approval: Map<string, ApprovalMode>,
   grants?: { tools: Set<string> },
 ) {
+  void grants;
   return Object.fromEntries(
-    [...approval].map(([id, mode]) => [
-      id,
-      // The server's own setting, or a grant the owner made from the card:
-      // "always allow this tool", here or anywhere.
-      mode === 'auto' || grants?.tools.has(id) ? 'approved' : 'user-approval',
-    ]),
+    [...approval].map(([id, mode]) => [id, mode === 'auto' ? 'approved' : 'user-approval']),
   );
 }
 

@@ -122,16 +122,20 @@ test('the shell policy honours a granted command, a granted tool, and nothing el
   assert.equal(await byTool({}), 'user-approval', 'an unreadable call still asks');
 });
 
-test('an MCP tool switched to auto by a grant runs without the card', () => {
+test('an unbound MCP grant never approves by id', () => {
+  // Legacy grants remembered bare tool ids. An id alone is not consent: the
+  // consent must bind the connector account, the approved fingerprint and the
+  // scope, which lives in the MCP store, not here. mcpToolApproval maps the
+  // decisions already resolved there, and ignores id-based grants entirely.
   const policy = mcpToolApproval(
     new Map([
-      ['mcp__quran__search', 'ask'],
+      ['mcp__quran__search', 'auto'],
       ['mcp__quran__fetch', 'ask'],
     ]),
-    { tools: new Set(['mcp__quran__search']), commands: [] },
+    { tools: new Set(['mcp__quran__search', 'mcp__quran__fetch']), commands: [] },
   );
-  assert.equal(policy['mcp__quran__search'], 'approved');
-  assert.equal(policy['mcp__quran__fetch'], 'user-approval');
+  assert.equal(policy['mcp__quran__search'], 'approved', 'resolved to auto upstream');
+  assert.equal(policy['mcp__quran__fetch'], 'user-approval', 'a grant cannot override ask');
 });
 
 const usage = { inputTokens: { total: 5, noCache: 5 }, outputTokens: { total: 5, text: 5 } };
