@@ -253,6 +253,10 @@ export function createRunStore(
     // driving them. Requeue on boot and on shutdown so the work resumes instead
     // of being stranded.
     requeueRunning: db.prepare("UPDATE runs SET status = 'queued' WHERE status = 'running'"),
+    // The interrupted attempts, for reconciliation in requeueRunning below:
+    // only a run that was mid-drive can hold events from an attempt that will
+    // never finish.
+    interruptedRuns: db.prepare("SELECT id FROM runs WHERE status = 'running'"),
     // Only from waiting_approval: a run that is already queued or running must
     // not be restarted underneath the worker driving it.
     requeueApproved: db.prepare(
@@ -727,9 +731,24 @@ export function createRunStore(
     },
 
     /** Reclaim runs stranded by a crash or a restart. Returns nothing useful; it
-     * is called for effect on boot and on SIGTERM. */
+     * is called for effect on boot and on SIGTERM.
+     *
+     * Reconciliation (PR-09): a requeued run is driven again from scratch, so
+     * the interrupted attempt's events are stale — replaying them ahead of the
+     * new attempt's chunks would show a reconnecting client phantom output
+     * from an answer that will never be finished. They are pruned here, at the
+     * recovery point. The row's event_seq is deliberately left to keep
+     * climbing: a client holding a cursor from before the interruption then
+     * replays exactly the new attempt's events — no gap from a reset cursor,
+     * no repeat of the old ones. */
     requeueRunning() {
       flushEvents();
+      const interrupted = (statements.interruptedRuns.all() as Array<{ id: string }>).map(
+        (row) => row.id,
+      );
+      // After the flush above, nothing is still buffered for these runs, so
+      // the delete cannot be resurrected by a later write of the same rows.
+      for (const id of interrupted) statements.pruneEvents.run(id);
       statements.requeueRunning.run();
     },
 

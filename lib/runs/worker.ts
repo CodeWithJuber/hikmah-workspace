@@ -175,6 +175,44 @@ export function createWorker(options: WorkerOptions): Worker {
     bus.emit(runId, { seq, payload: chunk });
   }
 
+  /** Settle a drive that stopped because its abort signal fired.
+   *
+   * Cancellation is recorded exactly once. The force-finish timer in cancel()
+   * may already have settled the run while a hung drive was still unwinding;
+   * announcing again would put a second 'cancelled' phase chunk on the stream,
+   * and a reconnecting client would receive the termination twice. Terminal
+   * is terminal: the first outcome stands.
+   *
+   * A shutdown is not a cancellation. stop() already handed the run back to
+   * the queue and pruned the dead attempt's events; settling it here would
+   * misrecord a restart as the owner stopping the run — and strand work the
+   * next boot was meant to pick up, since a cancelled run is never re-driven.
+   * Anything the drive emitted while unwinding is pruned with it, so the next
+   * attempt starts from a clean timeline. */
+  function settleAborted(run: RunRow) {
+    if (stopped) {
+      // Best effort, like the telemetry writes: a database already closing
+      // under a shutting-down process must not turn the settle into a throw.
+      try {
+        store.pruneEvents(run.id);
+      } catch (error) {
+        console.error(
+          '[hikmah] shutdown prune failed:',
+          error instanceof Error ? error.message : error,
+        );
+      }
+      return;
+    }
+    // The run may be gone (its conversation was deleted mid-run) or already
+    // settled by the force-finish timer — either way there is nothing to
+    // record, and announcing would throw or duplicate.
+    const current = store.getRun(run.id);
+    if (current && !store.isTerminal(current.status)) {
+      announce(run.id, 'cancelled', 'cancelled');
+      store.finish(run.id, 'cancelled', undefined, 'cancelled');
+    }
+  }
+
   async function tick(): Promise<RunRow | null> {
     if (active >= concurrency || stopped) return null;
     active += 1;
@@ -214,8 +252,7 @@ export function createWorker(options: WorkerOptions): Worker {
         });
 
         if (controller.signal.aborted) {
-          announce(run.id, 'cancelled', 'cancelled');
-          store.finish(run.id, 'cancelled', undefined, 'cancelled');
+          settleAborted(run);
         } else {
           // Persist the finished answer, then drop the resume buffer: once the
           // message is a row, replaying chunks would duplicate it.
@@ -314,8 +351,7 @@ export function createWorker(options: WorkerOptions): Worker {
         if (error instanceof Error) safe.name = error.name;
         options.onError?.(safe, run);
         if (controller.signal.aborted) {
-          announce(run.id, 'cancelled', 'cancelled');
-          store.finish(run.id, 'cancelled', undefined, 'cancelled');
+          settleAborted(run);
         } else {
           // The provider's own words where there are any, and a sentence the
           // person can act on where the fault is ours. Either way the raw
@@ -405,8 +441,8 @@ export function createWorker(options: WorkerOptions): Worker {
           try {
             const run = store.getRun(runId);
             if (run && !store.isTerminal(run.status)) {
-              store.finish(runId, 'cancelled', undefined, 'cancelled');
               announce(runId, 'cancelled', 'cancelled');
+              store.finish(runId, 'cancelled', undefined, 'cancelled');
             }
           } catch {
             /* the store is gone; nothing left to settle */
@@ -418,8 +454,8 @@ export function createWorker(options: WorkerOptions): Worker {
       // Not started yet: mark it so the worker never picks it up.
       const run = store.getRun(runId);
       if (run && !store.isTerminal(run.status)) {
-        store.finish(runId, 'cancelled', undefined, 'cancelled');
         announce(runId, 'cancelled', 'cancelled');
+        store.finish(runId, 'cancelled', undefined, 'cancelled');
         return true;
       }
       return false;
