@@ -37,8 +37,10 @@ export type KnowledgeSources = {
   shared(): Promise<string[]>;
   /** The person's memories from their own table — saved, suggested and
    * disabled alike; retrieval decides which travel. Absent on a source built
-   * before the table existed, in which case the blob is read as it always was. */
-  memories?(userId: string): Promise<KnowledgeItem[]>;
+   * before the table existed, in which case the blob is read as it always was.
+   * `scope` narrows to that project scope plus the global scope; omitted
+   * means the global scope only. */
+  memories?(userId: string, scope?: string): Promise<KnowledgeItem[]>;
 };
 
 /**
@@ -52,12 +54,16 @@ export type KnowledgeSources = {
 export async function collectKnowledge(
   sources: KnowledgeSources,
   userId: string,
+  /** Project/workspace scope: memories from this scope plus the global one.
+   * Omitted, only global memories are collected — a fact learned in project
+   * A never leaks into project B. */
+  scope?: string,
 ): Promise<KnowledgeItem[]> {
   const items: KnowledgeItem[] = [];
 
   if (sources.memories) {
     try {
-      items.push(...(await sources.memories(userId)));
+      items.push(...(await sources.memories(userId, scope)));
     } catch {
       /* a table this run cannot read is a lookup that finds nothing */
     }
@@ -106,10 +112,12 @@ export async function knowledgeForRun(options: {
   /** Told which items were chosen, so the route can count them as used and
    * the answer can say what it drew on. */
   onSelected?: (items: KnowledgeItem[]) => void;
+  /** Project/workspace scope for memory recall; see collectKnowledge. */
+  scope?: string;
 }): Promise<string> {
   if (!options.query.trim()) return '';
   try {
-    const items = await collectKnowledge(options.sources, options.userId);
+    const items = await collectKnowledge(options.sources, options.userId, options.scope);
     if (!items.length) return '';
     const selected = retrieveKnowledge(items, options.query);
     if (selected.length) options.onSelected?.(selected);
