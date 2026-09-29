@@ -16,6 +16,7 @@ import { DEFAULT_MAX_STEPS } from './chat-request.ts';
 import { createLanguageModel, type ModelRequest } from './models.ts';
 import { askTools } from './tools/ask.ts';
 import { deterministicTools, type PlanStep } from './tools/deterministic.ts';
+import { DISAGREEMENT_PART_ID, DISAGREEMENT_PART_TYPE } from '../chat/verifiability.ts';
 import { javascriptTools } from './tools/javascript.ts';
 import { researchTools } from './tools/research.ts';
 import { sshApprovalPolicy, sshTools, type SshToolContext } from './tools/ssh.ts';
@@ -247,6 +248,8 @@ export function createToolDecider(options: RunAgentOptions): {
         diagnosticSecrets: [options.provider.apiKey ?? ''],
         publish: (view: ResearchView) =>
           options.onData?.({ type: 'data-' + RESEARCH_PART_ID, id: RESEARCH_PART_ID, data: view }),
+        publishDisagreement: (data) =>
+          options.onData?.({ type: DISAGREEMENT_PART_TYPE, id: DISAGREEMENT_PART_ID, data }),
         onLaneUsage: options.onLaneUsage,
       }),
     );

@@ -14,7 +14,9 @@
 import type { UIMessage } from 'ai';
 import { isToolUIPart } from 'ai';
 import type { LanguageModelUsage } from 'ai';
+import { useMemo } from 'react';
 import { estimatedCost } from '@/lib/playground/model-catalog';
+import { verdictLine, verifyMessage } from '@/lib/chat/verifiability';
 import { usePricing } from './pricing-context';
 
 type AnswerMetadata = { model?: string; usage?: LanguageModelUsage };
@@ -56,6 +58,12 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
         String((part.output as { status?: string } | undefined)?.status),
       ),
   ).length;
+  // Verifiable answers (PR-17): what the claim check found, in one plain
+  // line. Null for answers with no research intent — an ordinary chat answer
+  // gets no verifiability surface — so the receipt stays quiet where there is
+  // nothing to check.
+  const verifiability = useMemo(() => verifyMessage(message.parts), [message]);
+  const verdict = verifiability ? verdictLine(verifiability) : null;
 
   // Nothing recorded and nothing run means nothing worth a line of chrome.
   if (!meta.model && !meta.usage && !tools.length && !used && !recalled) return null;
@@ -99,6 +107,16 @@ export function ChatReceipt({ message }: { message: UIMessage }) {
       {failed > 0 && (
         <span className="chat-receipt-failed">
           {count(failed)} tool call{failed === 1 ? '' : 's'} did not succeed
+        </span>
+      )}
+      {verdict && (
+        <span
+          className={
+            'chat-receipt-verifiability chat-receipt-verifiability-' + verifiability!.verdict
+          }
+          title="Claim check: which of the answer's claims link to a source."
+        >
+          {verdict}
         </span>
       )}
       {/* The caveat is still true and still worth saying — these are recorded

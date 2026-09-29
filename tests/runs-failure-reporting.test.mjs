@@ -137,6 +137,9 @@ test('tool calls without words are not an answer', () => {
   assert.equal(answered([]), false);
   // Whitespace is not words.
   assert.equal(answered([{ type: 'text', text: '  \n ' }]), false);
+  // A disagreement record is bookkeeping like the research card: a turn that
+  // published one and wrote nothing still wrote nothing.
+  assert.equal(answered([{ type: 'data-disagreement' }]), false);
 });
 
 test('text, a file or a data part all count as answering', () => {

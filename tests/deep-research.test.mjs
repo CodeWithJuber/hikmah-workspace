@@ -239,3 +239,53 @@ test('a real lane over a scripted model: reads a page, and the finding cites onl
   assert.ok(seen[0].inputTokens > 0);
   assert.equal(RESEARCH_PART_ID, 'research');
 });
+
+test('a lane disagreement over pages it actually read is published', async () => {
+  const runLane = async () => ({
+    summary:
+      'The cap is disputed.\n' +
+      'DISAGREEMENT | the visa cap | https://example.org/a :: says 7500 | https://example.org/b :: says 8000',
+    sources: ['https://example.org/a', 'https://example.org/b'],
+  });
+  const published = [];
+  await deepResearch(
+    base({
+      runLane,
+      plan: async () => ['What is the cap?'],
+      publishDisagreement: (data) => published.push(data),
+    }),
+    { question: 'What is the cap?' },
+  );
+  assert.equal(published.length, 1);
+  assert.equal(published[0].disagreements.length, 1);
+  assert.equal(published[0].disagreements[0].claim, 'the visa cap');
+  assert.equal(published[0].disagreements[0].parties.length, 2);
+});
+
+test('a disagreement naming pages the lane never read is dropped', async () => {
+  const runLane = async () => ({
+    summary:
+      'The cap is 7500.\n' +
+      'DISAGREEMENT | the visa cap | https://example.org/unread :: says 9000 | https://example.org/a :: says 7500',
+    sources: ['https://example.org/a'],
+  });
+  const published = [];
+  await deepResearch(
+    base({
+      runLane,
+      plan: async () => ['What is the cap?'],
+      publishDisagreement: (data) => published.push(data),
+    }),
+    { question: 'What is the cap?' },
+  );
+  assert.equal(published.length, 0);
+});
+
+test('no disagreement lines means nothing published', async () => {
+  const { runLane } = timedLanes();
+  const published = [];
+  await deepResearch(base({ runLane, publishDisagreement: (data) => published.push(data) }), {
+    question: 'A, B and C?',
+  });
+  assert.equal(published.length, 0);
+});

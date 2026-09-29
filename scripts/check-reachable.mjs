@@ -184,7 +184,19 @@ const ALLOW = [
 // tests name on purpose; it is wired — buildRunAgent calls it to build the
 // agent's toolApproval — and the check only counts cross-file uses, so the
 // export reads as tested-only while the feature is live.
-const BASELINE = { orphanFiles: 0, testedOnly: 95, dead: 48 };
+// 95 → 99 for verifiable answers (2026-09-30, PR-17): parseLaneDisagreements
+// in lib/ai/tools/deep-research.ts is the pure rule that admits a lane's
+// disagreement only over pages the lane actually read, and extractClaims,
+// collectEvidence and readDisagreements in lib/chat/verifiability.ts are the
+// three stages of the claim check (which sentences are claims, what exact
+// quote backs each source, which disagreements the run reported) — each
+// asserted directly by the verifiability tests rather than through a rendered
+// chat, the same "named on purpose" pattern as parseSubQuestions above.
+// dead 48 → 47 is not this ticket: the dead export set is byte-identical with
+// this ticket's files stashed versus applied, so the drop came from other
+// uncommitted worktree changes predating the ticket; recording the measured
+// 47 so the gate stays honest.
+const BASELINE = { orphanFiles: 0, testedOnly: 99, dead: 47 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
