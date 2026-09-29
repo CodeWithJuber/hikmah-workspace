@@ -126,6 +126,11 @@ export function runStream(options: {
 }): ReadableStream<UIMessageChunk> {
   const doFetch = options.fetch ?? globalThis.fetch;
   let cursor = options.after ?? -1;
+  // The highest frame id already handed to the caller. The cursor only ever
+  // moves forward, so a frame at or behind it — repeated by a reconnect that
+  // raced the previous connection's last read, or announced twice server-side
+  // — was already folded in and must not be delivered again.
+  let lastDelivered = cursor;
 
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
@@ -169,7 +174,13 @@ export function runStream(options: {
             // asked for 200 times at 4 requests a second.
             if (!received) attempt = 0;
             received = true;
-            if (frame.id !== null) cursor = frame.id;
+            if (frame.id !== null) {
+              // Sequence dedup: the transport never delivers a chunk twice,
+              // however the server framed it.
+              if (frame.id <= lastDelivered) continue;
+              lastDelivered = frame.id;
+              cursor = frame.id;
+            }
             try {
               controller.enqueue(JSON.parse(frame.data) as UIMessageChunk);
             } catch {

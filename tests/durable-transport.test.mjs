@@ -109,18 +109,19 @@ test('a dropped connection resumes from the last sequence seen', async () => {
 });
 
 test('a chunk already delivered is never delivered twice', async () => {
-  // The server replays from the cursor inclusive-exclusive; a client that
-  // re-counted its own cursor would double the last token of every drop.
+  // Sequence dedup on the transport (PR-09): a frame whose id is at or behind
+  // the highest id already delivered — repeated by a reconnect that raced the
+  // previous connection's last read, announced twice server-side, or replayed
+  // out of order — was already folded in and is dropped, not delivered again.
   const { fetch } = scripted([
     async () => sse(frame(0, { type: 'a' }) + frame(1, { type: 'b' })),
-    async () => sse(frame(1, { type: 'b' }) + frame(2, { type: 'c' })),
+    async () => sse(frame(1, { type: 'b' }) + frame(0, { type: 'a' }) + frame(2, { type: 'c' })),
     async () => new Response(null, { status: 204 }),
   ]);
   const chunks = await drain(runStream({ runId: 'r1', fetch }));
   assert.deepEqual(
     chunks.map((chunk) => chunk.type),
-    ['a', 'b', 'b', 'c'],
-    'the client forwards what the server sent: de-duplication is the log’s job',
+    ['a', 'b', 'c'],
   );
 });
 
