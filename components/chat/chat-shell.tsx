@@ -26,6 +26,7 @@ import { themeCookie, type Theme } from '@/lib/theme';
 import { toast } from 'sonner';
 import { clientFetch } from '@/lib/client/request';
 import { useKeyboardShortcuts } from '@/lib/chat/shortcuts';
+import { focusFirstInDrawer, handleDrawerKey, pickReturnFocusTarget } from '@/lib/ui/drawer-focus';
 
 const NARROW = '(max-width: 900px)';
 type Panel = 'files' | 'agents' | 'memory' | 'settings';
@@ -103,6 +104,10 @@ export function ChatShell({
   const sidebarRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const navigationButtonRef = useRef<HTMLButtonElement>(null);
+  // The phone's topbar back chevron: the return-focus fallback when the drawer
+  // opened with no usable opener (e.g. a ?settings=connection deep link) and
+  // the desktop Conversations button is not rendered.
+  const backButtonRef = useRef<HTMLAnchorElement | null>(null);
   const drawerOpenerRef = useRef<HTMLElement | null>(null);
   const settled = useCallback(() => setRevision((value) => value + 1), []);
   const changeTools = useCallback((disabledTools: string[]) => change({ disabledTools }), [change]);
@@ -270,11 +275,16 @@ export function ChatShell({
       const previous = drawerOpenerRef.current;
       if (previous) {
         drawerOpenerRef.current = null;
-        const target =
-          previous.getClientRects().length && !previous.closest('[inert]')
-            ? previous
-            : navigationButtonRef.current;
-        target?.focus();
+        // The opener may be gone — unmounted, inert, or document.body when the
+        // drawer opened from a deep link like ?settings=connection. Focusing
+        // body is a silent no-op that strands keyboard users, so the helper
+        // skips it and the fallbacks cover the phone: the desktop Conversations
+        // button is not rendered below the breakpoint, the back chevron is.
+        pickReturnFocusTarget(
+          previous,
+          [navigationButtonRef.current, backButtonRef.current],
+          document.body,
+        )?.focus();
       }
       return;
     }
@@ -286,41 +296,17 @@ export function ChatShell({
           ? document.activeElement
           : navigationButtonRef.current;
     }
-    const focusable = () =>
-      [
-        ...root.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),a[href],summary,input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
-        ),
-      ].filter((item) => item.getClientRects().length > 0);
-    const frame = requestAnimationFrame(() => (focusable()[0] ?? root).focus());
+    const frame = requestAnimationFrame(() => focusFirstInDrawer(root));
     const trap = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
+      const outcome = handleDrawerKey(
+        root,
+        document.activeElement instanceof HTMLElement ? document.activeElement : null,
+        event,
+      );
+      if (outcome === 'close') {
         setSidebarOpen(false);
         closePanel();
         setArtifact(null);
-      }
-      if (event.key !== 'Tab') return;
-      const items = focusable();
-      const first = items[0];
-      const last = items.at(-1);
-      if (!first || !last) {
-        event.preventDefault();
-        root.focus();
-        return;
-      }
-      if (
-        event.shiftKey &&
-        (document.activeElement === first || !root.contains(document.activeElement))
-      ) {
-        event.preventDefault();
-        last.focus();
-      } else if (
-        !event.shiftKey &&
-        (document.activeElement === last || !root.contains(document.activeElement))
-      ) {
-        event.preventDefault();
-        first.focus();
       }
     };
     root.addEventListener('keydown', trap);
@@ -354,7 +340,7 @@ export function ChatShell({
                   aria-label="Back to chats"
                   asChild
                 >
-                  <Link href="/chat">
+                  <Link href="/chat" ref={backButtonRef}>
                     <ChevronLeft size={20} />
                   </Link>
                 </Button>
