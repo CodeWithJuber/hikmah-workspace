@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { createToolPolicy } from '../lib/ai/tool-policy.ts';
 import { createToolDecider } from '../lib/ai/run-agent.ts';
 import { McpStoreError, createMcpStore } from '../lib/mcp/store.ts';
@@ -19,8 +19,13 @@ import { sshApprovalPolicy } from '../lib/ai/tools/ssh.ts';
 import { toolFingerprint, toolId } from '../lib/mcp/manager.ts';
 
 // Scratch databases go under the workspace, not the system tmp: the sandbox
-// /tmp is a 512MB tmpfs shared by the whole run and fills fast.
-const scratchDir = () => mkdtempSync(join(homedir(), 'workspace', 'tmp', 'pr14-'));
+// /tmp is a 512MB tmpfs shared by the whole run and fills fast. On hosts
+// without a workspace tmp dir (e.g. the CI runner) fall back to the system tmp.
+const scratchBase = () => {
+  const preferred = join(homedir(), 'workspace', 'tmp');
+  return existsSync(preferred) ? preferred : tmpdir();
+};
+const scratchDir = () => mkdtempSync(join(scratchBase(), 'pr14-'));
 
 // One fixed clock for grants and checks. The store stamps grants with its
 // own clock while consentApplies fails closed on a grant stamped in the
