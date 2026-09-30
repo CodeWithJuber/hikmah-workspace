@@ -262,7 +262,16 @@ const ALLOW = [
 // lib/whatsapp/webhook.ts (Meta's status vocabulary: unknown stays unknown).
 // isCostedType stays module-private in cost.ts, so this ticket adds nothing
 // to the dead count.
-const BASELINE = { orphanFiles: 0, testedOnly: 115, dead: 48 };
+// 115 → 118 for learning release controls (2026-09-30, PR-25): the three
+// pure rules the release tests name on purpose — datasetHash in
+// lib/learning/releases.ts (the content-hash primitive the version-bump
+// tests assert against directly; planDatasetVersion consumes it in the
+// propose route), and weightProvenance/formatWeights in
+// lib/learning/metrics.ts (the weights-honesty rules the misrepresentation
+// tests name directly; metricsReport enforces them on every canary record).
+// planRollback is consumed by the rollback route's pre-check, so it adds
+// nothing; the release store and remaining exports are route-reachable.
+const BASELINE = { orphanFiles: 0, testedOnly: 118, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
