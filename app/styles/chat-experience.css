@@ -580,7 +580,12 @@
       padding-block: 24px;
     }
     .workspace-experience .chat-transcript-content {
-      padding: 20px 14px 28px;
+      /* The composer sits in-flow below the transcript and is ~200px tall on
+         this range: without clearance the last turn's chips end up flush
+         against the floating card, reading as buried behind it. This padding
+         is inside the scroller, so the last message can always scroll clear
+         of the composer; safe-area aware for the home-indicator zone. */
+      padding: 20px 14px calc(228px + env(safe-area-inset-bottom, 0px));
       gap: 24px;
     }
     .workspace-experience .chat-welcome {
