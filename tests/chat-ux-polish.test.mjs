@@ -142,6 +142,20 @@ test('follow-up chips: loading shows placeholders, never a dead gap', () => {
   assert.match(html, /data-slot="follow-up-chips"/);
 });
 
+test('follow-up chips: a scroll row on narrow screens, never clipped wrapped rows', () => {
+  // On a 390px phone the old flex-wrap rows clipped the "Keep going" label at
+  // the message's overflow-hidden edge. The row now scrolls horizontally
+  // (the shared .n-chip-row pattern) with every chip at its natural width.
+  const html = render(FollowUpChips, {
+    suggestions: ['Explain this more simply', 'Give me an example', 'What next?'],
+    onSelect: noop,
+  });
+  assert.match(html, /n-chip-row/);
+  assert.doesNotMatch(html, /flex-wrap/);
+  // The label and every chip keep their natural width inside the scroller.
+  assert.match(html, /shrink-0/);
+});
+
 test('send-stop button: idle is a send button', () => {
   const html = render(SendStopButton, { state: 'idle', onSend: noop, onStop: noop });
   assert.match(html, /aria-label="Send message"/);

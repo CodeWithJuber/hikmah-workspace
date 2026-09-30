@@ -18,18 +18,23 @@ export type FollowUpChipsProps = {
  * disguised as suggestions, keeping the conversation alive. Selecting one
  * fills the composer as an editable draft — the user stays in control and
  * learns what the product can do, turn by turn.
+ *
+ * A horizontal scroll row (the shared .n-chip-row pattern), never a wrapped
+ * one: on a 390px phone the wrapped rows clipped the "Keep going" label at
+ * the message's overflow-hidden edge, and the row scrolls inside itself so
+ * nothing is ever cut off. shrink-0 keeps every chip at its natural width.
  */
 export function FollowUpChips({ suggestions, onSelect, loading = false }: FollowUpChipsProps) {
   if (loading) {
     return (
       <div
         data-slot="follow-up-chips"
-        className="flex flex-wrap gap-2"
+        className="n-chip-row items-center"
         role="group"
         aria-label="Follow-up ideas"
       >
-        <Skeleton className="h-10 w-32 rounded-full" />
-        <Skeleton className="h-10 w-40 rounded-full" />
+        <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
+        <Skeleton className="h-10 w-40 shrink-0 rounded-full" />
       </div>
     );
   }
@@ -38,11 +43,11 @@ export function FollowUpChips({ suggestions, onSelect, loading = false }: Follow
   return (
     <div
       data-slot="follow-up-chips"
-      className="flex flex-wrap items-center gap-2"
+      className="n-chip-row items-center"
       role="group"
       aria-label="Follow-up ideas"
     >
-      <span className="text-xs text-muted-foreground">Keep going</span>
+      <span className="shrink-0 text-xs text-muted-foreground">Keep going</span>
       {/* Text-only chips: an icon on every chip was visual noise next to the
           label, and Perplexity's follow-ups read as plain text suggestions.
           h-10 keeps them thumb-sized. */}
@@ -52,7 +57,7 @@ export function FollowUpChips({ suggestions, onSelect, loading = false }: Follow
           type="button"
           variant="outline"
           size="sm"
-          className="h-10 rounded-full px-4"
+          className="h-10 shrink-0 rounded-full px-4"
           onClick={() => onSelect(suggestion)}
         >
           {suggestion}

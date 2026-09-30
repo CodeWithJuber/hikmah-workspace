@@ -15,7 +15,7 @@
  * a deployment that has not applied the migration — recalls nothing rather
  * than failing the message.
  */
-import { terms } from '../text/normalise.ts';
+import { contentKey, terms } from '../text/normalise.ts';
 
 export type SqliteHandle = {
   prepare(sql: string): {
@@ -82,10 +82,80 @@ const FILLER_TERMS = new Set([
   'مرحبا',
 ]);
 
+/** Greeting and small-talk phrases that can never benefit from retrieval, in
+ * the languages this product is used in. Matched against the whole
+ * normalised query, not its words: "how are you" skips, but "how are you
+ * feeling about zakat" still retrieves, because a longer query never equals
+ * a phrase. Arabic entries are in normalised form, like FILLER_TERMS.
+ */
+const GREETING_PHRASES = new Set([
+  // English
+  'how are you',
+  'how r u',
+  'how are u',
+  'hows it going', // how's it going
+  'how is it going',
+  'whats up', // what's up
+  'what is up',
+  'good morning',
+  'good afternoon',
+  'good evening',
+  'good day',
+  'good night',
+  'how do you do',
+  'how are you doing',
+  'how have you been',
+  'hope you are well',
+  'nice to meet you',
+  // Hinglish / Urdu (latin)
+  'kaise ho',
+  'kya haal hai',
+  'kya haal chaal hai',
+  'aur batao',
+  'kya chal raha hai',
+  // Urdu (script) — normalised form
+  'اپ کیسے ہیں', // آپ کیسے ہیں
+  'کیا حال ہے', // کیا حال ہے
+  // Arabic (script) — normalised form
+  'کیف حالک', // كيف حالك
+  'کیفک', // كيفك
+  'صباح الخیر', // صباح الخير
+  'مساء الخیر', // مساء الخير
+  'السلام علیکم', // السلام عليكم
+  'ازیک', // ازيك
+  'عامل ایه', // عامل ايه
+]);
+
+/** The comparable form of a whole query for phrase matching: normalised,
+ * apostrophes dropped ("what's up" is "whats up"), punctuation collapsed to
+ * single spaces. "Hi, how are you?" and "how are you" are the same greeting.
+ */
+function phraseForm(text: string): string {
+  return contentKey(text)
+    .replace(/['’]/g, '')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** True when the query is a greeting or small talk and nothing else. Leading
+ * pleasantries ("hey", "hi") are stripped first, so "hey, what's up" skips
+ * while "hi, what is zakat" still retrieves — the match is on the full
+ * remaining string, never on a substring.
+ */
+function isGreeting(query: string): boolean {
+  const words = phraseForm(query).split(' ');
+  let start = 0;
+  while (start < words.length && FILLER_TERMS.has(words[start])) start++;
+  const rest = words.slice(start).join(' ');
+  return rest.length > 0 && GREETING_PHRASES.has(rest);
+}
+
 /** True when the query is one or more filler terms and nothing else. */
 export function isFillerQuery(query: string): boolean {
   const q = terms(query);
-  return q.size > 0 && [...q].every((t) => FILLER_TERMS.has(t));
+  if (q.size > 0 && [...q].every((t) => FILLER_TERMS.has(t))) return true;
+  return isGreeting(query);
 }
 
 /** Query terms past this add cost and no precision. */

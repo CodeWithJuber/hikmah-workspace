@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { applySchema } from './schema.mjs';
 import { createRunStore } from '../lib/runs/store.ts';
-import { createRecall, matchQuery, recallPrompt } from '../lib/memory/recall.ts';
+import { createRecall, isFillerQuery, matchQuery, recallPrompt } from '../lib/memory/recall.ts';
 
 function setup(t) {
   const db = new DatabaseSync(':memory:');
@@ -162,4 +162,51 @@ test('a filler-only query recalls nothing — "Nothing" is a dismissal, not a qu
   assert.equal(recall.recall('u1', 'zakat', 'B').length, 0, 'no zakat here');
   say('A', 'user', 'Zakat is due in Ramadan.');
   assert.equal(recall.recall('u1', 'zakat', 'B').length, 1, 'distinctive single word recalls');
+});
+
+test('greetings skip retrieval: "Hi how are you?" is small talk, not a question', (t) => {
+  // A greeting once cost 18,405 input tokens: "how"/"are"/"you" are not
+  // filler terms, so the old every-term check missed it and full retrieval
+  // ran (8 memories + 3 recalled conversations for a hello).
+  for (const q of [
+    'Hi how are you?',
+    "what's up",
+    'good morning',
+    'hey, how are you doing?',
+    'GOOD EVENING!',
+    'kaise ho',
+    'kya haal hai',
+    'aur batao',
+    'السلام عليكم',
+    'كيف حالك',
+    'صباح الخير',
+  ]) {
+    assert.equal(isFillerQuery(q), true, JSON.stringify(q) + ' is a greeting');
+  }
+  // The contract the other way: a greeting followed by a distinctive word, or
+  // a longer sentence that merely contains one, still retrieves.
+  for (const q of [
+    'how are you feeling about zakat',
+    'hi, what is zakat',
+    'zakat',
+    'Mumbai cap',
+    'good morning, what is the Mumbai cap?',
+  ]) {
+    assert.equal(isFillerQuery(q), false, JSON.stringify(q) + ' must still retrieve');
+  }
+});
+
+test('a greeting recalls no earlier conversations, even one that mentions it', (t) => {
+  const { store, recall, say } = setup(t);
+  store.createConversation({ id: 'A', userId: 'u1', title: 'Small talk', model: 'm' });
+  store.createConversation({ id: 'B', userId: 'u1', title: 'Current', model: 'm' });
+  say('A', 'user', 'Hi, how are you doing today? All good here, how are you?');
+  assert.deepEqual(
+    recall.recall('u1', 'Hi how are you?', 'B'),
+    [],
+    'a greeting must not recall the conversation that merely contains the phrase',
+  );
+  // ...while a real question still reaches the earlier conversation.
+  say('A', 'user', 'Zakat is due in Ramadan.');
+  assert.equal(recall.recall('u1', 'when is zakat due', 'B').length, 1);
 });
