@@ -11,8 +11,9 @@ const store = () => createReleaseStore(getStorage().raw);
  * First-class operation: the release is deactivated and the release it
  * superseded is reactivated. Datasets, holdouts, canary records and metrics
  * are never deleted — the audit trail survives the rollback. */
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await ownerIdentity();
     sameOrigin(request);
     if (!request.headers.get('content-type')?.startsWith('application/json'))
@@ -33,10 +34,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // Validate the plan before touching state: only the active release can
     // be rolled back, and it must supersede a previous version.
     const plan = planRollback(releases.listReleases());
-    if (plan.deactivateId !== params.id)
-      return fail(`Release ${params.id} is not the active release; ${plan.deactivateId} is.`, 409);
+    if (plan.deactivateId !== id)
+      return fail(`Release ${id} is not the active release; ${plan.deactivateId} is.`, 409);
     const result = releases.rollback({
-      releaseId: params.id,
+      releaseId: id,
       approver: user.userId,
       reason,
     });

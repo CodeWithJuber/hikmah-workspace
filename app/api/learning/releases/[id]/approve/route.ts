@@ -26,8 +26,9 @@ async function readBody(request: Request) {
 
 /** Approve or reject a proposed release. A decision is recorded with the
  * owner's reason — silent approvals are refused. */
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await ownerIdentity();
     sameOrigin(request);
     const body = await readBody(request);
@@ -37,15 +38,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return fail('Record a reason for the decision.', 400);
     const releases = store();
     releases.recordApproval({
-      releaseId: params.id,
+      releaseId: id,
       approver: user.userId,
       decision: body.decision,
       reason: body.reason,
     });
-    releases.setStatus(params.id, body.decision === 'approved' ? 'approved' : 'rejected', [
-      'proposed',
-    ]);
-    return Response.json({ release: releases.release(params.id) }, { headers });
+    releases.setStatus(id, body.decision === 'approved' ? 'approved' : 'rejected', ['proposed']);
+    return Response.json({ release: releases.release(id) }, { headers });
   } catch (error) {
     if (error instanceof LearningReleaseError) return fail(error.message, error.status);
     if (error instanceof KernelHttpError) return failure(error);

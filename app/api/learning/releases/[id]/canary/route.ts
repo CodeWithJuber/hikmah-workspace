@@ -45,28 +45,29 @@ function stageState(release: { canaries: { stage: string; status: string }[] }) 
 /** Start a canary stage, or record a stage's metric report. Stages run
  * 5% → 25% → 100% in order; a failed gate blocks advancement until the
  * owner retries the stage or rolls back (inspect-then-decide). */
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await ownerIdentity();
     sameOrigin(request);
     const body = await readBody(request);
     const releases = store();
     if (body.action === 'start') {
       if (typeof body.stage !== 'string') return fail('Choose a canary stage to start.', 400);
-      const release = releases.release(params.id);
+      const release = releases.release(id);
       if (release.status !== 'approved' && release.status !== 'canarying')
         return fail(
-          `Release ${params.id} is ${release.status}; only an approved release can canary.`,
+          `Release ${id} is ${release.status}; only an approved release can canary.`,
           409,
         );
       const { passed, blocked } = stageState(release);
       const stage = startCanaryStage({ stage: body.stage, passed, blocked });
       const canaryId = releases.startCanary({
-        releaseId: params.id,
+        releaseId: id,
         stage,
         cohortPct: stageCohort(stage),
       });
-      if (release.status === 'approved') releases.setStatus(params.id, 'canarying', ['approved']);
+      if (release.status === 'approved') releases.setStatus(id, 'canarying', ['approved']);
       return Response.json(
         { canaryId, stage, cohortPct: stageCohort(stage), retry: blocked.includes(stage) },
         { headers },
@@ -96,7 +97,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       });
       // The gate compares against what production runs today: the newest
       // live release other than this one. A first release has no baseline.
-      const live = releases.latestLive(params.id);
+      const live = releases.latestLive(id);
       const baseline = live ? releases.lastPassedMetrics(live.id) : null;
       const gate = checkCanaryGate({ baseline, candidate: report.perLanguage });
       const outcome = recordCanaryOutcome({ gatePassed: gate.passed });
@@ -116,11 +117,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
 }
 
 /** The canary plan for a release: which stage is next, which are blocked. */
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await ownerIdentity();
     const releases = store();
-    const release = releases.release(params.id);
+    const release = releases.release(id);
     const { passed, blocked } = stageState(release);
     return Response.json(
       { stages: CANARY_STAGES, passed, blocked, next: nextCanaryStage({ passed, blocked }) },
