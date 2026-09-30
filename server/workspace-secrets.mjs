@@ -39,6 +39,10 @@ export function validateDestination(destination) {
       // row names the secret (GMAIL_OAUTH_<UPPER_HEX>); the vault holds the
       // refresh token, and the binding keeps it spendable only as gmail:oauth.
       'gmail:oauth',
+      // A WhatsApp Business access token behind one connected account. The
+      // account row names the secret; the vault holds the token, and the
+      // binding keeps it spendable only as whatsapp:token.
+      'whatsapp:token',
     ].includes(destination)
   )
     return destination;

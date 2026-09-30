@@ -240,7 +240,18 @@ const ALLOW = [
 // the task-continuity tests — the same "named on purpose" pattern as
 // isRateLimit and isExpired. PENDING_RUN_STATUSES stays module-private, so
 // this ticket adds nothing to the dead count.
-const BASELINE = { orphanFiles: 0, testedOnly: 108, dead: 48 };
+// 108 → 115 for the WhatsApp channel (2026-09-30, PR-21): the seven pure
+// rules the new tests name on purpose rather than asserting through a
+// webhook or a send — signForTest in lib/whatsapp/signature.ts (the fixture
+// builder that signs test bodies the way Meta would), SESSION_WINDOW_MS,
+// findTemplate and renderTemplate in lib/whatsapp/templates.ts (the 24h
+// constant the boundary test asserts against, the lookup, and the {{n}}
+// filler), MESSAGE_COST_USD and MAX_MESSAGE_COST_USD in lib/whatsapp/cost.ts
+// (the estimate table and its bound), and mapMetaStatus in
+// lib/whatsapp/webhook.ts (Meta's status vocabulary: unknown stays unknown).
+// isCostedType stays module-private in cost.ts, so this ticket adds nothing
+// to the dead count.
+const BASELINE = { orphanFiles: 0, testedOnly: 115, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
