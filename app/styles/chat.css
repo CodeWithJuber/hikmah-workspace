@@ -2363,6 +2363,85 @@
   .chat-receipt-memories {
     color: var(--primary);
   }
+  /* Verifiable answers (PR-17): the claim-check verdict, one plain line in the
+   * receipt. The unsupported and disputed states read in the warning colour;
+   * a clean check stays quiet. */
+  .chat-receipt-verifiability {
+    font-weight: 600;
+  }
+  .chat-receipt-verifiability-unsupported,
+  .chat-receipt-verifiability-disputed,
+  .chat-receipt-verifiability-source-error {
+    color: var(--warning);
+  }
+  .chat-receipt-verifiability-partial {
+    color: var(--muted-foreground);
+  }
+  /* The exact data a source card's claim rests on: the snippet or page window
+   * the run actually read, with an honest label for where it came from. */
+  .chat-source-quote {
+    display: grid;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border);
+  }
+  .chat-source-quote-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+  }
+  .chat-source-quote-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: var(--font-size-xs);
+    line-height: 1.45;
+    color: var(--muted-foreground);
+    white-space: normal;
+  }
+  /* A disagreement the run's research reported, shown explicitly above the
+   * answer instead of silently cherry-picking one side. */
+  .chat-disagreement {
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--warning);
+    border-left-width: 3px;
+    border-radius: var(--radius-element);
+    background: var(--warning-bg);
+  }
+  .chat-disagreement-title {
+    margin: 0 0 8px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+  }
+  .chat-disagreement-item + .chat-disagreement-item {
+    margin-top: 10px;
+  }
+  .chat-disagreement-claim {
+    margin: 0 0 4px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  .chat-disagreement-parties {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+  }
+  .chat-disagreement-parties li {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+  .chat-disagreement-source {
+    font-weight: 700;
+    color: var(--foreground);
+    margin-right: 6px;
+  }
   /* The rest of a long conversation, one button away.
  *
  * Only the newest turns are rendered: every message on screen costs a markdown

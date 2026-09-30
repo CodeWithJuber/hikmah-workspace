@@ -91,9 +91,10 @@ export const NO_ANSWER =
  * words is a real answer.
  */
 /** Data parts that record how a turn was worked, not what it said: which
- * memories the prompt carried, and the research lanes' progress. A turn that
- * fanned out five lanes and then wrote nothing still wrote nothing. */
-const BOOKKEEPING = new Set(['data-memories', 'data-research']);
+ * memories the prompt carried, the research lanes' progress, and disagreements
+ * the lanes reported. A turn that fanned out five lanes and then wrote nothing
+ * still wrote nothing. */
+const BOOKKEEPING = new Set(['data-memories', 'data-research', 'data-disagreement']);
 
 export function answered(parts: readonly { type?: string; text?: string }[]): boolean {
   return parts.some(

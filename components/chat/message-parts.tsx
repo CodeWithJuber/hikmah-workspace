@@ -39,6 +39,13 @@ import {
 } from '@/components/ai-elements/message';
 import { describeWorking, groupParts, toolLabel } from '@/lib/chat/working';
 import { dedupeSources, sourceAnchorId, type CitedSource } from '@/lib/chat/citations';
+import {
+  DISAGREEMENT_PART_TYPE,
+  provenanceLabel,
+  verifyMessage,
+  type SourceEvidence,
+} from '@/lib/chat/verifiability';
+import { DisagreementBanner } from './verifiability';
 import { CitedText } from './citation-pills';
 import { AnswerPyramid } from './answer-pyramid';
 import { Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
@@ -86,13 +93,18 @@ function hostOf(url: string): string | undefined {
 /** The source strip for research answers: a horizontal scroll of source cards
  * instead of the Sources collapsible. Each card keeps the anchor id the
  * citation pills link to, so tapping a [n] pill in the answer still lands on
- * its card. */
+ * its card. Verifiable answers (PR-17): each card also shows the exact data
+ * the claim rests on — the snippet or page window the run actually read —
+ * or says plainly that the source was not read in this run. */
 export function ResearchSourceStrip({
   messageId,
   sources,
+  evidence,
 }: {
   messageId: string;
   sources: CitedSource[];
+  /** One entry per deduped source, in source order; from verifyMessage. */
+  evidence?: SourceEvidence[];
 }) {
   return (
     <div className="chat-source-strip" role="group" aria-label={`${sources.length} sources`}>
@@ -100,6 +112,7 @@ export function ResearchSourceStrip({
         const id = sourceAnchorId(messageId, index);
         const title = source.title ?? source.url ?? 'Source';
         const host = source.type === 'source-url' && source.url ? hostOf(source.url) : undefined;
+        const proof = evidence?.find((entry) => entry.index === index);
         const card = (
           <>
             <span className="chat-source-index" aria-hidden="true">
@@ -108,6 +121,16 @@ export function ResearchSourceStrip({
             <span className="chat-source-card-text">
               <span className="chat-source-title">{title}</span>
               {host && <span className="chat-source-host">{host}</span>}
+              {proof && (
+                <span className="chat-source-quote">
+                  <span className="chat-source-quote-label">
+                    {provenanceLabel(proof.provenance)}
+                  </span>
+                  {proof.quote ? (
+                    <span className="chat-source-quote-text">“{proof.quote}”</span>
+                  ) : null}
+                </span>
+              )}
             </span>
           </>
         );
@@ -897,6 +920,14 @@ function MessagePartsInner({
   // first-mention order — the pills and the count below both read from this.
   const sources = useMemo(() => dedupeSources(sourceParts(message)), [message]);
   const answered = message.role === 'assistant' && settled;
+  /** Verifiable answers (PR-17): the claim check over the settled message —
+   *  which claims cite a source, the exact data behind each source, admitted
+   *  disagreements. Null when the message shows no research intent, so
+   *  ordinary chat answers get no verifiability surface. */
+  const verifiability = useMemo(
+    () => (answered ? verifyMessage(message.parts) : null),
+    [answered, message],
+  );
   /** A research answer: settled, with sources to show. It reads like a brief
    * — the question restated, the sources as cards, the cited answer — rather
    * than a chat bubble with a sources drawer bolted on. */
@@ -1171,6 +1202,11 @@ function MessagePartsInner({
     // reads it; here it would be a line above the answer saying the same.
     if (part.type === 'data-memories') return null;
 
+    // A disagreement the run's research reported. The verifiability check
+    // above the answer reads it and renders the banner; here it would be a
+    // second, unvalidated copy of the same record.
+    if (part.type === DISAGREEMENT_PART_TYPE) return null;
+
     // The run's progress phase (PR-07 telemetry). It drives the narrated
     // loading stages while the run works; rendered here it would be a
     // meaningless line above the answer.
@@ -1233,6 +1269,7 @@ function MessagePartsInner({
         'step-start',
         'data-plan',
         'data-research',
+        DISAGREEMENT_PART_TYPE,
         'source-url',
         'source-document',
       ].includes(part.type),
@@ -1267,7 +1304,18 @@ function MessagePartsInner({
         {/* Research answers get the source strip before the answer instead of
           the collapsible after it: the cards are the first thing a reader
           scans. Everything else keeps the Sources drawer. */}
-        {research && <ResearchSourceStrip messageId={message.id} sources={sources} />}
+        {research && (
+          <ResearchSourceStrip
+            messageId={message.id}
+            sources={sources}
+            evidence={verifiability?.evidence}
+          />
+        )}
+        {/* A disagreement the run's own research reported is shown explicitly,
+          above the answer — never silently cherry-picked away. */}
+        {verifiability?.verdict === 'disputed' && (
+          <DisagreementBanner disagreements={verifiability.disagreements} />
+        )}
         {showActivity && working.length > 0 && (
           /* The working, as one thing rather than scattered through the
              answer. The header names which sources answered and how many

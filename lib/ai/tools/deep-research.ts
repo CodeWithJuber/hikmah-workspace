@@ -81,6 +81,12 @@ export type DeepResearchContext = {
   diagnosticSecrets?: readonly string[];
   /** Writes the progress card into the run's stream. */
   publish?: (view: ResearchView) => void;
+  /** Writes a validated disagreement record into the run's stream, so the
+   *  answer's verifiability check can surface it instead of the final answer
+   *  silently cherry-picking one side. */
+  publishDisagreement?: (data: {
+    disagreements: { claim: string; parties: { url: string; says: string }[] }[];
+  }) => void;
   /** One call per finished lane, so each lane's tokens become a usage row. */
   onLaneUsage?: (lane: string, usage: LaneUsage) => void;
   /** Injected by the tests; the defaults talk to the model. */
@@ -110,7 +116,62 @@ const MAX_SUMMARY = 2_000;
  * call, not a cap on a lane already running. */
 const RESEARCH_TOKEN_BUDGET = 120_000;
 
-const LANE_BRIEF = `You are one research lane of a larger investigation, working unattended. Answer the sub-question below and nothing else. Search, then read the pages that matter — a search snippet is a lead, not a source — and write a finding of at most two paragraphs. Every claim must come from a page you actually read in this lane; name the exact URL beside it. Say plainly what you could not find or verify. Do not ask questions; nobody will answer.`;
+const LANE_BRIEF = `You are one research lane of a larger investigation, working unattended. Answer the sub-question below and nothing else. Search, then read the pages that matter — a search snippet is a lead, not a source — and write a finding of at most two paragraphs. Every claim must come from a page you actually read in this lane; name the exact URL beside it. Say plainly what you could not find or verify. If two pages you read disagree on a fact — or a page contradicts the question's premise — report it on its own final line, exactly: DISAGREEMENT | <the disputed fact> | <page URL> :: <what it says> | <page URL> :: <what it says>. Do not ask questions; nobody will answer.`;
+
+/** A disagreement a lane reported: what is disputed, and what each page says. */
+export type LaneDisagreement = {
+  claim: string;
+  parties: { url: string; says: string }[];
+};
+
+const MAX_DISAGREEMENT_PARTIES = 4;
+const MAX_DISAGREEMENT_FIELD = 500;
+
+/**
+ * Parse the `DISAGREEMENT | <fact> | <url> :: <says> | <url> :: <says>` lines a
+ * lane was briefed to write. Strict on shape, tolerant on surrounding prose: a
+ * malformed line is dropped, never half-parsed into a disagreement that was
+ * not reported. Same contract as parseSubQuestions — a marker line, not JSON,
+ * because that is what unattended models write reliably.
+ */
+export function parseLaneDisagreements(summary: string): LaneDisagreement[] {
+  const disagreements: LaneDisagreement[] = [];
+  for (const rawLine of String(summary ?? '').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!/^disagreement\s*\|/i.test(line)) continue;
+    const segments = line
+      .split('|')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    // Marker + disputed fact + at least two "url :: says" parties.
+    if (segments.length < 4) continue;
+    const claim = segments[1].slice(0, MAX_DISAGREEMENT_FIELD);
+    if (!claim) continue;
+    const parties: { url: string; says: string }[] = [];
+    for (const segment of segments.slice(2, 2 + MAX_DISAGREEMENT_PARTIES)) {
+      const at = segment.indexOf('::');
+      if (at < 0) continue;
+      const url = segment.slice(0, at).trim();
+      const says = segment
+        .slice(at + 2)
+        .trim()
+        .slice(0, MAX_DISAGREEMENT_FIELD);
+      if (!isHttpUrl(url) || !says) continue;
+      parties.push({ url, says });
+    }
+    if (parties.length >= 2) disagreements.push({ claim, parties });
+  }
+  return disagreements;
+}
+
+function isHttpUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 /** Break a question into sub-questions, one per numbered line.
  *
@@ -320,14 +381,44 @@ export async function deepResearch(
     gaps,
     note: stop ?? (clock.signal.aborted ? 'Stopped at the time limit.' : undefined),
   });
+  // A disagreement is only admitted when every party is a page the lane
+  // actually read — a lane must not manufacture a dispute from a snippet it
+  // never opened, and the read list is the record of what it opened.
+  if (context.publishDisagreement) {
+    const read = new Set<string>();
+    for (const lane of view.lanes) for (const url of lane.sources) read.add(normLaneUrl(url));
+    const disagreements: { claim: string; parties: { url: string; says: string }[] }[] = [];
+    for (const lane of view.lanes) {
+      if (lane.status !== 'done' || !lane.summary) continue;
+      for (const reported of parseLaneDisagreements(lane.summary)) {
+        const parties = reported.parties.filter((party) => read.has(normLaneUrl(party.url)));
+        if (parties.length >= 2) disagreements.push({ claim: reported.claim, parties });
+      }
+    }
+    if (disagreements.length > 0) context.publishDisagreement({ disagreements });
+  }
   return { findings, gaps, ...(view.note ? { note: view.note } : {}) };
+}
+
+/** Lane read-URLs and reported URLs compared on the same footing. */
+function normLaneUrl(raw: string): string {
+  try {
+    const url = new URL(raw.trim());
+    return (
+      url.hostname.toLowerCase().replace(/^www\./, '') +
+      url.pathname.replace(/\/+$/, '') +
+      url.search
+    );
+  } catch {
+    return raw.trim().toLowerCase();
+  }
 }
 
 export function deepResearchTools(context: DeepResearchContext) {
   return {
     deep_research: tool({
       description:
-        'Investigate a question thoroughly: it is broken into sub-questions, each researched in parallel by its own agent that searches and reads real pages, and the findings come back with the exact URLs each one read. Use for questions that need several sources compared, not for a fact one search would settle. Report the findings with their sources, and name the gaps it reports as unanswered rather than filling them from memory.',
+        'Investigate a question thoroughly: it is broken into sub-questions, each researched in parallel by its own agent that searches and reads real pages, and the findings come back with the exact URLs each one read. Use for questions that need several sources compared, not for a fact one search would settle. Report the findings with their sources, and name the gaps it reports as unanswered rather than filling them from memory. When the lanes report that sources disagree, surface the disagreement explicitly — never cherry-pick one side silently.',
       inputSchema: z.object({
         question: z.string().min(1).max(2000).describe('The question to investigate, in full.'),
         breadth: z

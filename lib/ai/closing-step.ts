@@ -66,9 +66,14 @@ export type ClosingStepOptions = {
 function answers(chunk: UIMessageChunk): boolean {
   if (chunk.type === 'text-delta') return chunk.delta.trim().length > 0;
   if (chunk.type === 'file') return true;
-  // Except the bookkeeping part naming which memories the prompt carried.
+  // Except the bookkeeping parts naming which memories the prompt carried, the
+  // research lanes' progress, and disagreements the lanes reported.
   if (chunk.type.startsWith('data-'))
-    return chunk.type !== 'data-memories' && chunk.type !== 'data-research';
+    return (
+      chunk.type !== 'data-memories' &&
+      chunk.type !== 'data-research' &&
+      chunk.type !== 'data-disagreement'
+    );
   // A failure or an abort is an ending of its own; a second step after it
   // would spend more on a turn that has already been explained.
   return chunk.type === 'error' || chunk.type === 'abort';
