@@ -3,6 +3,9 @@ import { publicOrigin } from '@/lib/server/origin';
 import { FileError, createFileStore } from '@/lib/files/store';
 import { PREVIEW_TTL_MS, previewPath, signPreviewToken } from '@/lib/files/preview-link';
 import { getStorage } from '@/server/storage.mjs';
+import { teamStore } from '@/lib/team/server';
+import { assertCanRead, assertCanWrite, ownerOf, TeamAccessDenied } from '@/lib/team/enforcement';
+import { canRead } from '@/lib/team/ownership';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +29,23 @@ export async function GET(request: Request) {
 
   const files = store();
   const path = new URL(request.url).searchParams.get('path');
+  const raw = getStorage().raw;
+  const team = teamStore();
   if (!path) {
+    // Optional ?owner=: list a teammate's workspace when the caller holds a
+    // read grant on the owner's workspace; anything else is the same 404.
+    const ownerParam = new URL(request.url).searchParams.get('owner');
+    let listOwner = user.userId;
+    if (ownerParam && ownerParam !== user.userId) {
+      try {
+        const role = team.teamRoleOnOwner(ownerParam, user.userId);
+        if (!canRead(user.userId, ownerParam, role)) throw new TeamAccessDenied();
+        listOwner = ownerParam;
+      } catch (error) {
+        if (error instanceof TeamAccessDenied) return fail('Not found.', 404);
+        throw error;
+      }
+    }
     // Where this workspace's pages are served, for a week: the Files panel's
     // full-page preview and its private link. Minted per read, so the link is
     // never older than the listing it came with.
@@ -37,16 +56,20 @@ export async function GET(request: Request) {
         )
       : undefined;
     return Response.json(
-      { ...files.usage(user.userId), files: files.list(user.userId), preview },
+      { ...files.usage(listOwner), files: files.list(listOwner), preview },
       { headers },
     );
   }
 
   try {
-    const file = files.read(user.userId, path);
+    // The team layer resolves the owner from the row: the caller, or a
+    // teammate with a read grant. Anyone else gets 404.
+    const ownerId = assertCanRead(raw, team, user.userId, 'file', path);
+    const file = files.read(ownerId, path);
     if (!file) return fail('There is no file with that name.', 404);
     return Response.json({ file }, { headers });
   } catch (error) {
+    if (error instanceof TeamAccessDenied) return fail('There is no file with that name.', 404);
     if (error instanceof FileError) return fail(error.message, error.status);
     throw error;
   }
@@ -66,9 +89,18 @@ export async function PUT(request: Request) {
   if (!body || typeof body.content !== 'string') return fail('Send a path and its content.', 400);
 
   try {
-    const file = store().write(user.userId, body.path as string, body.content);
+    // A write to an existing row needs a write grant on its owner; a new
+    // path is the caller's own file, so it is always theirs to create.
+    const raw = getStorage().raw;
+    const team = teamStore();
+    const existingOwner = ownerOf(raw, team, 'file', user.userId, body.path as string);
+    const ownerId = existingOwner
+      ? assertCanWrite(raw, team, user.userId, 'file', body.path as string)
+      : user.userId;
+    const file = store().write(ownerId, body.path as string, body.content);
     return Response.json({ file: { path: file.path, updated_at: file.updated_at } }, { headers });
   } catch (error) {
+    if (error instanceof TeamAccessDenied) return fail('There is no file with that name.', 404);
     if (error instanceof FileError) return fail(error.message, error.status);
     throw error;
   }
@@ -84,8 +116,19 @@ export async function DELETE(request: Request) {
   const path = new URL(request.url).searchParams.get('path');
   if (!path) return fail('Name the file to delete.', 400);
   try {
-    return Response.json({ deleted: store().delete(user.userId, path) }, { headers });
+    // Deleting a teammate's file needs a write grant; deleting something
+    // absent stays a non-error, exactly as before.
+    const raw = getStorage().raw;
+    const team = teamStore();
+    const existingOwner = ownerOf(raw, team, 'file', user.userId, path);
+    if (existingOwner && existingOwner !== user.userId)
+      assertCanWrite(raw, team, user.userId, 'file', path);
+    return Response.json(
+      { deleted: store().delete(existingOwner ?? user.userId, path) },
+      { headers },
+    );
   } catch (error) {
+    if (error instanceof TeamAccessDenied) return fail('There is no file with that name.', 404);
     if (error instanceof FileError) return fail(error.message, error.status);
     throw error;
   }

@@ -105,6 +105,17 @@ const ALLOW = [
   /^lib\/gmail\/scopes\.ts$/,
   // messages.ts: base64UrlDecode (used by parseGmailPayload in the same module).
   /^lib\/gmail\/messages\.ts$/,
+  // Team foundation (PR-22, 2026-09-30): pure helpers exported so the
+  // isolation tests can name them on purpose; each is consumed within its own
+  // module by the enforcement layer the routes call. The check only counts
+  // cross-file uses, so these read as tested-only — the feature is wired,
+  // the heuristic is coarse.
+  // ownership.ts: canWrite (canRead/canAccess are used across files).
+  // roles.ts: teamPermissionsFor.
+  // support-view.ts: CONTENT_COLUMNS, projectMetadata (projectMetadataList is cross-file used).
+  /^lib\/team\/ownership\.ts$/,
+  /^lib\/team\/roles\.ts$/,
+  /^lib\/team\/support-view\.ts$/,
   // v5 control layer (Phase 3, 2026-09-28): tested library modules staged for
   // Phase-4 agent-loop wiring. Budgets are stamped on every run via
   // enqueueRun() and visible in the run card; the feedback-recording and

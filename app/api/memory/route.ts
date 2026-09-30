@@ -11,6 +11,8 @@ import { inspectPii } from '@/lib/memory/pii';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { PROVENANCES, type Provenance } from '@/lib/playground/knowledge';
 import { getStorage } from '@/server/storage.mjs';
+import { teamStore } from '@/lib/team/server';
+import { canRead } from '@/lib/team/ownership';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,29 +45,40 @@ export async function GET(request: Request) {
     return fail('Use this from your signed-in workspace.', 403);
 
   const storage = getStorage();
+  const params = new URL(request.url).searchParams;
+  // Optional ?user_id=: read a teammate's memories when the caller holds a
+  // read grant on their workspace. Anything else is the same 404 — the route
+  // never confirms whose memories these are to someone without the grant.
+  let listUserId = user.userId;
+  const targetUserId = params.get('user_id');
+  if (targetUserId && targetUserId !== user.userId) {
+    const team = teamStore();
+    const role = team.teamRoleOnOwner(targetUserId, user.userId);
+    if (!canRead(user.userId, targetUserId, role)) return fail('Not found.', 404);
+    listUserId = targetUserId;
+  }
   // The one-time import lives in the run's knowledge sources; calling it here
   // means the screen and the run see the same rows from the first visit.
-  await createKnowledgeSources(storage.raw, storage.BUCKET).memories?.(user.userId);
+  await createKnowledgeSources(storage.raw, storage.BUCKET).memories?.(listUserId);
   const memories = store();
-  const params = new URL(request.url).searchParams;
 
   // Inspect: which of the person's memories carry personal identifiers, and
   // which kinds — never the values or the content. They open the memory
   // itself to review it, or delete it. Minimisation by design.
   if (params.get('inspect') === 'pii')
-    return Response.json({ findings: inspectPii(memories.list(user.userId)) }, { headers });
+    return Response.json({ findings: inspectPii(memories.list(listUserId)) }, { headers });
 
   // Conflicts: memories the person (or the model) corrected twice, where the
   // corrections disagree. One correction supersedes cleanly; two need a human.
   if (params.get('view') === 'conflicts')
-    return Response.json({ conflicts: memories.conflicts(user.userId) }, { headers });
+    return Response.json({ conflicts: memories.conflicts(listUserId) }, { headers });
 
   const scope = params.get('scope');
   return Response.json(
     {
-      memories: memories.list(user.userId, scope ? { scope } : {}),
-      counts: memories.counts(user.userId),
-      recent: memories.recentlyUsed(user.userId).map((memory) => memory.id),
+      memories: memories.list(listUserId, scope ? { scope } : {}),
+      counts: memories.counts(listUserId),
+      recent: memories.recentlyUsed(listUserId).map((memory) => memory.id),
     },
     { headers },
   );

@@ -1,6 +1,9 @@
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
 import { runService } from '@/lib/runs/service';
+import { getStorage } from '@/server/storage.mjs';
+import { assertCanWrite, TeamAccessDenied } from '@/lib/team/enforcement';
+import { teamStore } from '@/lib/team/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +24,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const worker = runService();
   const run = worker.store.getRun(id);
-  if (!run || run.user_id !== user.userId)
-    return Response.json({ error: 'Run not found.' }, { status: 404 });
+  if (!run) return Response.json({ error: 'Run not found.' }, { status: 404 });
+  // Stopping a run is a write: the owner, or a team member (not a viewer) of
+  // the owner's workspace. Same 404 shape for every denial.
+  try {
+    assertCanWrite(getStorage().raw, teamStore(), user.userId, 'run', id);
+  } catch (error) {
+    if (error instanceof TeamAccessDenied)
+      return Response.json({ error: 'Run not found.' }, { status: 404 });
+    throw error;
+  }
 
   const stopped = worker.cancel(id);
   return Response.json({ stopped, status: worker.store.getRun(id)?.status ?? run.status });
