@@ -23,6 +23,10 @@ export type KnowledgeItem = {
   createdAt: string;
   updatedAt: string;
   enabled: boolean;
+  /** ISO timestamp after which the item is never retrieved, if set. */
+  expiresAt?: string;
+  /** The project/workspace scope, 'global' when unscoped. */
+  scope?: string;
 };
 export function parseKnowledge(raw: unknown): KnowledgeItem[] {
   if (raw === undefined) return [];
@@ -44,6 +48,12 @@ export function parseKnowledge(raw: unknown): KnowledgeItem[] {
     if (!x.id || !x.content.trim() || ids.has(x.id))
       throw Error('Invalid or duplicate knowledge item.');
     ids.add(x.id);
+    const expiresAt =
+      typeof x.expiresAt === 'string' &&
+      x.expiresAt.length <= 40 &&
+      !Number.isNaN(Date.parse(x.expiresAt))
+        ? new Date(Date.parse(x.expiresAt)).toISOString()
+        : undefined;
     return {
       status: x.status === 'suggested' ? 'suggested' : 'saved',
       ...(PROVENANCES.includes(x.provenance) ? { provenance: x.provenance as Provenance } : {}),
@@ -56,6 +66,8 @@ export function parseKnowledge(raw: unknown): KnowledgeItem[] {
       updatedAt: x.updatedAt,
       enabled: x.enabled !== false,
       kind: x.kind === 'preference' ? 'preference' : 'reference',
+      ...(expiresAt ? { expiresAt } : {}),
+      ...(typeof x.scope === 'string' && x.scope ? { scope: x.scope } : {}),
     };
   });
 }
@@ -67,17 +79,48 @@ export function parseKnowledge(raw: unknown): KnowledgeItem[] {
  * the ones answers have actually drawn on. */
 const MAX_PREFERENCES = 6;
 
+/** Half-life of the recency decay, in days. */
+const RECENCY_HALF_LIFE_DAYS = 180;
+
+/** True when the item carries an expiry that has passed. */
+export function isExpiredItem(item: Pick<KnowledgeItem, 'expiresAt'>, now: number): boolean {
+  if (!item.expiresAt) return false;
+  const at = Date.parse(item.expiresAt);
+  return !Number.isNaN(at) && at <= now;
+}
+
+/** 1 for fresh items, decaying towards 0 with age — 0.5 at 180 days, 0.14 at
+ * three years. Multiplicative only: it can never promote an item past a
+ * genuinely better match, and it never reaches exactly zero. */
+export function recencyDecay(updatedAt: string, now: number): number {
+  const at = Date.parse(updatedAt);
+  if (Number.isNaN(at)) return 1;
+  const ageDays = Math.max(0, (now - at) / 86_400_000);
+  return 1 / (1 + ageDays / RECENCY_HALF_LIFE_DAYS);
+}
+
 /** Transparent lexical retrieval, not embeddings or an assertion of semantic equivalence.
  * Score = sum(log(1+(N-df+.5)/(df+.5))) / sqrt(document term count).
  * Explicit preferences are included first, references must share query terms.
  * The tokeniser is lib/text/normalise.ts, shared with the full-text index.
+ *
+ * Two staleness rules, per the learning-memory ticket:
+ * - Expiry is a hard gate: an item past its `expiresAt` is never retrieved,
+ *   however well it matches. An outdated fact must not override a newer one.
+ * - Age is a decay, not a gate: a reference's lexical score is scaled by
+ *   1/(1+ageDays/180), so when two items match comparably the fresher one
+ *   wins, but a much better old match still beats a weak fresh one. Recency
+ *   scales relevance; it never vetoes it.
  */
 export function retrieveKnowledge(
   items: KnowledgeItem[],
   query: string,
   budget = 8000,
+  options: { now?: number } = {},
 ): KnowledgeItem[] {
-  const enabled = items.filter((x) => x.enabled && x.status !== 'suggested');
+  const now = options.now ?? Date.now();
+  const live = items.filter((x) => !isExpiredItem(x, now));
+  const enabled = live.filter((x) => x.enabled && x.status !== 'suggested');
   const preferences = new Set(
     enabled
       .filter((x) => x.kind === 'preference')
@@ -95,12 +138,14 @@ export function retrieveKnowledge(
       score:
         item.kind === 'preference'
           ? 1e6
-          : [...q]
+          : ([...q]
               .filter((t) => documents[i].has(t))
               .reduce((n, t) => {
                 const df = frequencies.get(t) ?? 0;
                 return n + Math.log(1 + (active.length - df + 0.5) / (df + 0.5));
-              }, 0) / Math.sqrt(Math.max(1, documents[i].size)),
+              }, 0) /
+              Math.sqrt(Math.max(1, documents[i].size))) *
+            recencyDecay(item.updatedAt, now),
     }))
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score || b.item.updatedAt.localeCompare(a.item.updatedAt));

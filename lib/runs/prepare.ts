@@ -153,7 +153,7 @@ function skipRetrieval(query: string): boolean {
 export async function knowledgeFor(
   userId: string,
   messages: UIMessage[],
-  options: { conversationId: string; recall: boolean },
+  options: { conversationId: string; recall: boolean; scope?: string },
 ): Promise<{
   block: string;
   recall: string;
@@ -171,6 +171,7 @@ export async function knowledgeFor(
       sources: createKnowledgeSources(storage.raw, storage.BUCKET),
       userId,
       query,
+      scope: options.scope,
       onSelected: (items) => {
         used = items.map((item) => ({ id: item.id, title: item.title, kind: item.kind }));
       },

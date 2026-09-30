@@ -24,6 +24,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { createMemoryStore, type MemoryKind, type NewMemory, type SqliteHandle } from './store.ts';
+import { detectPii } from './pii.ts';
 import { systemOne } from '../integrations/jev-client.ts';
 
 export type TriageAction = 'save' | 'discard' | 'surface' | 'defer';
@@ -427,6 +428,23 @@ export async function triageCandidate(
       confidence: null,
       jevRaw: null,
     });
+
+  // 3b. Personal identifiers: never auto-saved. The candidate is surfaced for
+  // the person to review — as 'suggested', never 'saved' — and the audit row
+  // carries only the kinds found, never the values. Minimisation is about the
+  // secondary copies: the suggested memory row is the person's own data to
+  // inspect and delete; the operational audit trail keeps no identifiers.
+  const pii = detectPii(haystack);
+  if (pii.length > 0) {
+    persist(handle, ctx.userId, candidate, 'suggested');
+    return writeAudit(handle, {
+      candidateId: candidate.id,
+      action: 'surface',
+      rule: 'deterministic:pii-review',
+      confidence: null,
+      jevRaw: { piiKinds: pii.map((hit) => hit.kind) },
+    });
+  }
 
   // 4. Auto-save kinds: an explicit durable preference, saved on sight.
   if (policy.autoSaveKinds.includes(candidate.kind)) {

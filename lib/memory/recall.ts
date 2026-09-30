@@ -91,6 +91,19 @@ export function isFillerQuery(query: string): boolean {
 /** Query terms past this add cost and no precision. */
 const MAX_TERMS = 24;
 
+/** A year-old conversation scores no recency bonus; a conversation from today
+ * scores the full one. The bonus shifts close matches — it cannot promote a
+ * weak match past a genuinely better one. */
+const RECENCY_WINDOW_DAYS = 365;
+const RECENCY_WEIGHT = 2;
+
+function recencyBonus(date: string, now: number): number {
+  const at = Date.parse(date || '');
+  if (Number.isNaN(at)) return 0;
+  const ageDays = Math.max(0, (now - at) / 86_400_000);
+  return Math.max(0, 1 - ageDays / RECENCY_WINDOW_DAYS) * RECENCY_WEIGHT;
+}
+
 /**
  * The FTS5 query for a piece of text: every term quoted and OR'ed.
  *
@@ -148,12 +161,18 @@ export function createRecall(db: SqliteHandle) {
     /**
      * The best-matching turns from this person's other conversations, at most
      * one per conversation, best first.
+     *
+     * "Best" is BM25 adjusted for recency: when two conversations match
+     * comparably, the fresher one wins, so stale context decays instead of
+     * overriding newer context. A clearly better old match still wins — the
+     * bonus is bounded. `now` is injectable for tests.
      */
     recall(
       userId: string,
       query: string,
       excludeConversationId: string,
       limit = RECALL_LIMIT,
+      now: number = Date.now(),
     ): RecalledTurn[] {
       const match = matchQuery(query);
       if (!match) return [];
@@ -170,10 +189,19 @@ export function createRecall(db: SqliteHandle) {
           original: string;
           title: string;
           date: string;
+          score: number;
         }[];
+        const ranked = rows
+          .map((row) => ({
+            row,
+            // FTS5 bm25() is negative with more-negative-is-better, and the
+            // SQL already orders by it; the recency bonus only reorders.
+            effective: Number(row.score) - recencyBonus(row.date, now),
+          }))
+          .sort((a, b) => a.effective - b.effective);
         const seen = new Set<string>();
         const out: RecalledTurn[] = [];
-        for (const row of rows) {
+        for (const { row } of ranked) {
           if (seen.has(row.conversation_id)) continue;
           seen.add(row.conversation_id);
           out.push({

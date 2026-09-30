@@ -196,7 +196,17 @@ const ALLOW = [
 // this ticket's files stashed versus applied, so the drop came from other
 // uncommitted worktree changes predating the ticket; recording the measured
 // 47 so the gate stays honest.
-const BASELINE = { orphanFiles: 0, testedOnly: 99, dead: 47 };
+// 99 → 104 for learning memory and context (2026-09-30, PR-18): the six
+// pure rules the new tests name on purpose rather than asserting through
+// recall — containsPii and redactPii in lib/memory/pii.ts (the minimisation
+// primitives: what counts as an identifier, and placeholder replacement),
+// GLOBAL_SCOPE and isExpired in lib/memory/store.ts (the scope constant and
+// the expiry predicate), and isExpiredItem and recencyDecay in
+// lib/playground/knowledge.ts (the two staleness rules: expiry as a hard
+// gate, age as a multiplicative decay). detectPii, inspectPii,
+// normalizeScope, normalizeExpiresAt, addCorrection, forRecall and friends
+// are route-reachable; only the units under direct test sit in this list.
+const BASELINE = { orphanFiles: 0, testedOnly: 104, dead: 47 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

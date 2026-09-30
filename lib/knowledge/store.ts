@@ -28,8 +28,13 @@ export function createKnowledgeSources(db: SqliteHandle, bucket?: ObjectStore): 
      * marked itself done would lose everything in it. The marker is written
      * only after the rows landed (see importItems), so a read that throws is
      * retried on the next run rather than recorded as finished.
+     *
+     * `scope` narrows recall to that project scope plus the global scope, so
+     * a fact learned in project A never leaks into project B. What travels is
+     * the recall set — enabled, accepted, unexpired, and not corrected by a
+     * live row — not the raw table; the Memory screen keeps its own listing.
      */
-    async memories(userId) {
+    async memories(userId, scope) {
       if (!memories.imported(userId)) {
         let items: KnowledgeItem[] = [];
         try {
@@ -38,11 +43,11 @@ export function createKnowledgeSources(db: SqliteHandle, bucket?: ObjectStore): 
         } catch {
           // Unreadable is not the same as empty: leave the marker unwritten so
           // the next run tries again, and answer from the table as it stands.
-          return memories.list(userId).map(toKnowledgeItem);
+          return memories.forRecall(userId, { scope }).map(toKnowledgeItem);
         }
         memories.importItems(userId, items);
       }
-      return memories.list(userId).map(toKnowledgeItem);
+      return memories.forRecall(userId, { scope }).map(toKnowledgeItem);
     },
     async personal(userId) {
       const row = statements.state.get(userId) as { body?: string } | undefined;

@@ -1,6 +1,13 @@
 import { getChatGPTUser } from '../../chatgpt-auth';
 import { publicOrigin } from '@/lib/server/origin';
-import { createMemoryStore, type MemoryKind, type MemoryStatus } from '@/lib/memory/store';
+import {
+  createMemoryStore,
+  normalizeExpiresAt,
+  normalizeScope,
+  type MemoryKind,
+  type MemoryStatus,
+} from '@/lib/memory/store';
+import { inspectPii } from '@/lib/memory/pii';
 import { createKnowledgeSources } from '@/lib/knowledge/store';
 import { PROVENANCES, type Provenance } from '@/lib/playground/knowledge';
 import { getStorage } from '@/server/storage.mjs';
@@ -40,9 +47,23 @@ export async function GET(request: Request) {
   // means the screen and the run see the same rows from the first visit.
   await createKnowledgeSources(storage.raw, storage.BUCKET).memories?.(user.userId);
   const memories = store();
+  const params = new URL(request.url).searchParams;
+
+  // Inspect: which of the person's memories carry personal identifiers, and
+  // which kinds — never the values or the content. They open the memory
+  // itself to review it, or delete it. Minimisation by design.
+  if (params.get('inspect') === 'pii')
+    return Response.json({ findings: inspectPii(memories.list(user.userId)) }, { headers });
+
+  // Conflicts: memories the person (or the model) corrected twice, where the
+  // corrections disagree. One correction supersedes cleanly; two need a human.
+  if (params.get('view') === 'conflicts')
+    return Response.json({ conflicts: memories.conflicts(user.userId) }, { headers });
+
+  const scope = params.get('scope');
   return Response.json(
     {
-      memories: memories.list(user.userId),
+      memories: memories.list(user.userId, scope ? { scope } : {}),
       counts: memories.counts(user.userId),
       recent: memories.recentlyUsed(user.userId).map((memory) => memory.id),
     },
@@ -70,6 +91,13 @@ export async function POST(request: Request) {
     : 'quote';
   const conversationId =
     typeof body.sourceConversationId === 'string' ? body.sourceConversationId : null;
+  // An expiry must be a real timestamp; a malformed one is a 400, not a
+  // silent "never expires".
+  let expiresAt: string | null = null;
+  if (body.expiresAt !== undefined && body.expiresAt !== null) {
+    expiresAt = normalizeExpiresAt(body.expiresAt);
+    if (!expiresAt) return fail('Send expiresAt as an ISO timestamp, or leave it out.', 400);
+  }
   // A memory taken from a message is named after its conversation: "You · <title>"
   // for the person's own words, "Hikmah · <title>" for an answer's.
   const title = conversationId
@@ -93,6 +121,9 @@ export async function POST(request: Request) {
     sourceConversationId: conversationId,
     // Only a person's own words may be saved without review.
     status: provenance === 'quote' && body.status !== 'suggested' ? 'saved' : 'suggested',
+    // Scoped memory: a fact learned in one project stays in that project.
+    scope: typeof body.scope === 'string' ? normalizeScope(body.scope) : undefined,
+    expiresAt,
   });
   if (!saved) return fail('That could not be saved. Up to 500 memories are kept.', 409);
   return Response.json(
@@ -110,12 +141,21 @@ export async function PUT(request: Request) {
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body.id !== 'string') return fail('Say which memory to change.', 400);
+  let expiresAt: string | null | undefined;
+  if (body.expiresAt !== undefined && body.expiresAt !== null) {
+    expiresAt = normalizeExpiresAt(body.expiresAt);
+    if (!expiresAt) return fail('Send expiresAt as an ISO timestamp, or leave it out.', 400);
+  } else if (body.expiresAt === null) {
+    expiresAt = null;
+  }
   const memory = store().update(user.userId, body.id, {
     ...(typeof body.title === 'string' ? { title: body.title } : {}),
     ...(typeof body.content === 'string' ? { content: body.content } : {}),
     ...(KINDS.has(body.kind as string) ? { kind: body.kind as MemoryKind } : {}),
     ...(STATUSES.has(body.status as string) ? { status: body.status as MemoryStatus } : {}),
     ...(typeof body.enabled === 'boolean' ? { enabled: body.enabled } : {}),
+    ...(typeof body.scope === 'string' ? { scope: body.scope } : {}),
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
   });
   if (!memory) return fail('That memory was not found, or the edit would duplicate another.', 404);
   return Response.json({ memory }, { headers });
