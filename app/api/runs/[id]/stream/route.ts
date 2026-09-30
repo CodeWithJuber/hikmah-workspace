@@ -2,6 +2,9 @@ import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { SSE_HEADERS, resumeCursor, runEventStream } from '@/lib/runs/sse';
 import { runService } from '@/lib/runs/service';
 import { nothingToSend } from '@/lib/runs/resume';
+import { getStorage } from '@/server/storage.mjs';
+import { assertCanRead, TeamAccessDenied } from '@/lib/team/enforcement';
+import { teamStore } from '@/lib/team/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +27,17 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const { id } = await context.params;
   const worker = runService();
   const run = worker.store.getRun(id);
-  if (!run || run.user_id !== user.userId)
-    return Response.json({ error: 'Run not found.' }, { status: 404 });
+  if (!run) return Response.json({ error: 'Run not found.' }, { status: 404 });
+  // Ownership through the team layer: the owner, or an active team
+  // member/viewer of the owner's workspace. Anything else is the same 404 —
+  // the route never distinguishes "not yours" from "does not exist".
+  try {
+    assertCanRead(getStorage().raw, teamStore(), user.userId, 'run', id);
+  } catch (error) {
+    if (error instanceof TeamAccessDenied)
+      return Response.json({ error: 'Run not found.' }, { status: 404 });
+    throw error;
+  }
 
   const after = resumeCursor(request);
   // Nothing left to send and nothing that will send more without someone

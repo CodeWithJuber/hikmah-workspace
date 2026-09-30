@@ -1,5 +1,8 @@
 import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { runService } from '@/lib/runs/service';
+import { getStorage } from '@/server/storage.mjs';
+import { assertCanRead, TeamAccessDenied } from '@/lib/team/enforcement';
+import { teamStore } from '@/lib/team/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +29,15 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const { id } = await context.params;
   const worker = runService();
   const run = worker.store.getRun(id);
-  if (!run || run.user_id !== user.userId)
-    return Response.json({ error: 'Run not found.' }, { status: 404 });
+  if (!run) return Response.json({ error: 'Run not found.' }, { status: 404 });
+  // Telemetry is a read of someone's run: owner or team reader, else 404.
+  try {
+    assertCanRead(getStorage().raw, teamStore(), user.userId, 'run', id);
+  } catch (error) {
+    if (error instanceof TeamAccessDenied)
+      return Response.json({ error: 'Run not found.' }, { status: 404 });
+    throw error;
+  }
 
   // Segments and durations only — never prompt text, tool arguments or keys.
   return Response.json({
