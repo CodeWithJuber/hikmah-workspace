@@ -22,6 +22,13 @@ import { toolFingerprint, toolId } from '../lib/mcp/manager.ts';
 // /tmp is a 512MB tmpfs shared by the whole run and fills fast.
 const scratchDir = () => mkdtempSync(join(homedir(), 'workspace', 'tmp', 'pr14-'));
 
+// One fixed clock for grants and checks. The store stamps grants with its
+// own clock while consentApplies fails closed on a grant stamped in the
+// future relative to the checking clock — so a test that grants with the
+// real clock and checks with a fixed one becomes a time bomb the moment
+// wall time passes the fixture (this file went red at 2026-09-30T01:00Z).
+const FIXED_NOW = '2026-09-30T01:00:00.000Z';
+
 const MIGRATIONS = ['0005_mcp.sql', '0026_mcp_consent.sql', '0029_mcp_consent_expiry.sql'];
 
 function setup(t, { file, now } = {}) {
@@ -57,7 +64,7 @@ const run = (store, connect, extra = {}) =>
     userId: 'user-1',
     secret: () => undefined,
     connect,
-    now: () => new Date('2026-09-30T01:00:00.000Z'),
+    now: () => new Date(FIXED_NOW),
     ...extra,
   });
 
@@ -131,7 +138,7 @@ test('every tool the run offers gets an explicit decision: no allow-by-omission'
 });
 
 test('revoking a consent mid-run is honored at the next call, not the next run', async (t) => {
-  const store = setup(t);
+  const store = setup(t, { now: () => FIXED_NOW });
   only(store, ['quran']);
   const id = quranId(store);
   const fingerprint = fingerprintFor('Fetch a verse.');
@@ -192,7 +199,7 @@ test('a consent granted for a rotated fingerprint does not authorize at call tim
   // The definition the run connected with (fingerprint A) is what the owner
   // saw. A consent bound to any other fingerprint — granted after assembly,
   // e.g. against a stale approval — must not upgrade the gate.
-  const store = setup(t);
+  const store = setup(t, { now: () => FIXED_NOW });
   only(store, ['quran']);
   const id = quranId(store);
   const { connect } = serving({ quran: { fetch_quran: readOnly('Fetch a verse.') } });
@@ -213,7 +220,7 @@ test('a consent granted for a rotated fingerprint does not authorize at call tim
 });
 
 test('a connector removed mid-run denies at call time', async (t) => {
-  const store = setup(t);
+  const store = setup(t, { now: () => FIXED_NOW });
   only(store, ['quran']);
   const id = quranId(store);
   const fingerprint = fingerprintFor('Fetch a verse.');
@@ -239,6 +246,7 @@ test('a grant storage failure at call time asks rather than approving', async (t
       let n = 0;
       return () => `s${++n}`;
     })(),
+    now: () => FIXED_NOW,
   });
   t.after(() => {
     try {

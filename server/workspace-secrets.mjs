@@ -52,6 +52,12 @@ export function validateDestination(destination) {
   // editing the host after the fact.
   if (typeof destination === 'string' && /^ssh:[A-Za-z0-9_-]{1,64}$/.test(destination))
     return destination;
+  // A GitHub token belongs to one connection row and nothing else. Bound to
+  // the connection id (PR-18), so a token cannot be repointed at a different
+  // connection by editing the row after the fact — the same binding the ssh:
+  // form gives host credentials.
+  if (typeof destination === 'string' && /^github:[A-Za-z0-9_-]{1,64}$/.test(destination))
+    return destination;
   // A key for an endpoint this deployment has no preset for. Without it the
   // only way to use a custom provider was a field that kept the key in browser
   // memory until the tab reloaded, which is not somewhere a credential belongs.

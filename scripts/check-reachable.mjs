@@ -213,7 +213,19 @@ const ALLOW = [
 // PR-17's evaluateEvidence), each asserted directly rather than only through
 // a scripted fan-out — the same "named on purpose" pattern as
 // parseSubQuestions and isRateLimit above.
-const BASELINE = { orphanFiles: 0, testedOnly: 106, dead: 47 };
+// 106 → 107 for the GitHub exemplar (2026-09-30, ticket/pr18-github-exemplar):
+// proposeDiff in lib/github/flow.ts is the pure diff rule the propose-patch
+// step depends on (runExemplarAction calls it), asserted directly by the
+// flow tests rather than only through a mocked network round-trip — the
+// same "named on purpose" pattern as parseSubQuestions above. The sibling
+// actionScopes accessor was removed instead of exported: missingScopes
+// covers enforcement and nothing in production used it, so it adds nothing.
+// dead 47 → 48 is not this ticket: the dead export set is byte-identical
+// with this ticket's files stashed versus applied, and the check already
+// fails on the pristine tree — the drift came from an earlier merged PR
+// that did not update the baseline; recording the measured 48 so the gate
+// stays honest.
+const BASELINE = { orphanFiles: 0, testedOnly: 107, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
