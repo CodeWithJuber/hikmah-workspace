@@ -90,6 +90,7 @@ test('the prompt sections are composed in the stated order', () => {
   const composed = composePrompt({
     base: 'BASE',
     principles: 'PRINCIPLES',
+    lane: 'LANE',
     knowledge: 'KNOWLEDGE',
     contextNotes: 'NOTES',
     serverGuidance: 'GUIDANCE',
@@ -97,6 +98,7 @@ test('the prompt sections are composed in the stated order', () => {
   assert.deepEqual(composed.split('\n\n'), [
     'BASE',
     'PRINCIPLES',
+    'LANE',
     'KNOWLEDGE',
     'NOTES',
     'GUIDANCE',
@@ -105,7 +107,7 @@ test('the prompt sections are composed in the stated order', () => {
   // asserting a sequence nothing else uses.
   assert.deepEqual(
     [...PROMPT_ORDER],
-    ['base', 'principles', 'knowledge', 'recall', 'contextNotes', 'serverGuidance'],
+    ['base', 'principles', 'lane', 'knowledge', 'recall', 'contextNotes', 'serverGuidance'],
   );
 });
 

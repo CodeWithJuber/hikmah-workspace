@@ -37,6 +37,7 @@ import type { LearningConsent } from '../learning/types.ts';
 import { executionRunConfig } from '../../server/run-credentials.mjs';
 import { safeDiagnostic } from './safe-error.ts';
 import { jevLane, applyJevLane } from './jev-lane.ts';
+import type { DispatchLane } from './dispatch.ts';
 import { withFirstByteLimit } from '../ai/first-byte.ts';
 import { createRunBudgetLedger, asBudget } from '../workflow/ledger.ts';
 import { withRunBudget, BudgetExhaustedError } from '../ai/budget-middleware.ts';
@@ -113,6 +114,15 @@ export type RunConfig = {
    * behaves as it did, the same convention `execution` uses.
    */
   toolFree?: boolean;
+  /**
+   * The dispatcher's lane for this turn (lib/runs/dispatch.ts), stamped at
+   * creation like toolFree so the receipt can say which lane the turn took.
+   * Absent means the normal lane — every run row written before this existed
+   * behaves as it did, the same convention `execution` uses.
+   */
+  lane?: DispatchLane;
+  /** True when Jev's advisory picked the lane (ambiguous turn). */
+  jevAdvised?: boolean;
   /** Offer `deep_research` this turn. */
   deepResearch?: boolean;
   /**

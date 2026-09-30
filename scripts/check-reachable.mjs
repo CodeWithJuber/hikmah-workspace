@@ -291,7 +291,15 @@ const ALLOW = [
 // scripts/seed-catalog.mjs is a skipped build input); registryKeys in
 // lib/catalog/registry.ts (pins the curated executable set the registry
 // tests assert on).
-const BASELINE = { orphanFiles: 0, testedOnly: 123, dead: 48 };
+// 123 → 128 for the smart dispatcher (2026-09-30): five pure helpers the
+// dispatcher tests name on purpose — classifyDispatch, adviseLane and
+// toDecision in lib/runs/dispatch.ts (the classification matrix, the
+// Jev-advisory contract, and the lane decision table), and
+// registerResearchSlot/unregisterResearchSlot in lib/research/tool-slot.ts
+// (the honest-stub registry round-trip). dispatchTurn, laneToolAllowlist and
+// researchSlotNames are route-reachable (the runs route wires them in), so
+// this ticket adds nothing to the dead count.
+const BASELINE = { orphanFiles: 0, testedOnly: 128, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

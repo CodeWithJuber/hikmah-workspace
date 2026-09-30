@@ -9,12 +9,8 @@ import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
 import { phaseChunk } from '@/lib/runs/telemetry';
 import { createWorkflowStore } from '@/lib/workflow/store';
 import { answerIdFor } from '@/lib/runs/answer-id';
-import {
-  contextBriefFor,
-  isToolFreeTurn,
-  knowledgeFor,
-  resolveRunAccess,
-} from '@/lib/runs/prepare';
+import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
+import { dispatchTurn, laneToolAllowlist } from '@/lib/runs/dispatch';
 import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
 import { composePrompt } from '@/lib/ai/compose-prompt';
@@ -270,35 +266,45 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       store.setTitle(conversationId, store.uniqueTitle(user.userId, title, conversationId));
   }
 
-  // The two aids are independent — the brief never reads the knowledge rows
-  // and the knowledge lookup never reads the brief — so they are fetched
-  // together: sequential awaits made every run pay the sum of both lookups
-  // before it could be queued. Both functions are noexcept by construction
-  // (they catch and log internally), so Promise.all preserves the old error
-  // semantics exactly.
   const chatSettings = createChatSettingsStore(getStorage().raw).read(user.userId);
-  const [contextNotes, saved] = await Promise.all([
-    // The co-model's notes on the recent turns, composed here rather than sent by
-    // the client: it needs the field checkpoints on disk and whichever one this
-    // owner has activated, and a run resumed after the tab closed has no client
-    // to ask. Written onto the run row with the rest of the instructions, so a
-    // run paused on an approval resumes with the notes it started with.
+  // The dispatcher decides what this turn needs BEFORE anything is fetched,
+  // because the lane decides what is worth fetching: a greeting needs neither
+  // tools nor retrieval, a research turn needs web tools, a Quran turn needs
+  // the quran tools with the lens constraint. Deterministic rules first (zero
+  // model cost); an ambiguous turn gets a Jev advisory (3s cap, fail-open) —
+  // Jev proposes, it never blocks the turn.
+  //
+  // The co-model's notes are lane-independent, so the brief is composed
+  // alongside the dispatch: composed here rather than sent by the client, it
+  // needs the field checkpoints on disk and whichever one this owner has
+  // activated, and a run resumed after the tab closed has no client to ask.
+  // Written onto the run row with the rest of the instructions, so a run
+  // paused on an approval resumes with the notes it started with.
+  const [contextNotes, dispatch] = await Promise.all([
     contextBriefFor(user.userId, messages),
-    // What this person has saved, and what the operator has published. Both were
-    // written, tested and then called by nothing after the browser run loop was
-    // deleted — the Memory screen has been saving items no answer could read.
-    //
-    // Incognito: the session opts out entirely, server-side, not just in the
-    // UI. Skipping the lookup here is what makes the toggle honest — no block,
-    // no recall, no used-count marks — rather than a client-side promise the
-    // server quietly breaks.
-    parsed.incognito
-      ? Promise.resolve({ block: '', recall: '', used: [], conversations: [] })
-      : knowledgeFor(user.userId, messages, {
+    dispatchTurn(lastUserText(messages), {
+      webSearch: parsed.webSearch,
+      deepResearch: parsed.deepResearch,
+      incognito: parsed.incognito,
+    }),
+  ]);
+  // What this person has saved, and what the operator has published. Both were
+  // written, tested and then called by nothing after the browser run loop was
+  // deleted — the Memory screen has been saving items no answer could read.
+  // Gated on the lane now, not just the toggle: a direct (greeting) turn
+  // retrieves nothing, like the old skipRetrieval rule.
+  //
+  // Incognito: the session opts out entirely, server-side, not just in the
+  // UI. Skipping the lookup here is what makes the toggle honest — no block,
+  // no recall, no used-count marks — rather than a client-side promise the
+  // server quietly breaks.
+  const saved =
+    parsed.incognito || !dispatch.retrieval
+      ? { block: '', recall: '', used: [], conversations: [] }
+      : await knowledgeFor(user.userId, messages, {
           conversationId,
           recall: chatSettings.memory.recallConversations,
-        }),
-  ]);
+        });
 
   const runId = newRunId();
   try {
@@ -340,6 +346,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         instructions: composePrompt({
           base: parsed.instructions,
           principles: principleDigest(),
+          lane: dispatch.laneConstraint || undefined,
           knowledge: saved.block,
           recall: saved.recall,
           contextNotes,
@@ -364,19 +371,26 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         contextCharacters: parsed.contextCharacters,
         contextWindow: parsed.contextWindow,
         disabledTools: parsed.disabledTools,
-        enabledTools: parsed.enabledTools,
+        // A narrowed lane offers only its tools (research: web tools; quran:
+        // quran tools). An explicit allowlist on the run wins over the lane:
+        // the lane narrows, it never widens past what was asked for.
+        enabledTools: laneToolAllowlist(dispatch, parsed.enabledTools) ?? parsed.enabledTools,
         compare: parsed.compare,
         deepResearch: parsed.deepResearch,
-        // A greeting/filler turn gets no tools at all: the 24 tool
-        // definitions were ~15k of the 16.8k input tokens on a "Hi" run even
-        // after retrieval was skipped, and a greeting can never use a tool.
-        // Decided at creation like execution/media, from the same signal that
-        // skips retrieval. An explicit tool request wins: the Search switch
-        // or deep research keeps its tools even for a one-word turn.
-        toolFree: isToolFreeTurn(lastUserText(messages), {
-          webSearch: parsed.webSearch,
-          deepResearch: parsed.deepResearch,
-        }),
+        // The dispatcher's lane for this turn: a greeting/filler turn gets no
+        // tools at all (the 24 tool definitions were ~15k of the 16.8k input
+        // tokens on a "Hi" run), a research turn gets web tools, a Quran turn
+        // gets the quran tools. Decided at creation like execution/media, so
+        // a plan that changes while a run is queued or paused must not widen
+        // or narrow work already in flight. An explicit tool request wins: the
+        // Search switch or deep research routes to the research lane even for
+        // a one-word turn.
+        toolFree: dispatch.tools === 'none',
+        // Stamped like toolFree so the receipt can say which lane the turn
+        // took — and what it deliberately skipped. jevAdvised marks the turns
+        // where Jev's advisory picked the lane.
+        lane: dispatch.lane,
+        jevAdvised: dispatch.jevAdvised,
         // The interrupted card's last published view, when the UI's Resume
         // attached it: validated inside the research tool, never stored.
         researchResume: parsed.researchResume,

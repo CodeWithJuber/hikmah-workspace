@@ -19,6 +19,12 @@ export type PromptParts = {
   /** The 22 principles, generated from lib/kernel/principles.json. Above the
    * retrieved material because they say how to treat it. */
   principles?: string;
+  /** The dispatcher's lane constraint for this turn (lib/runs/dispatch.ts):
+   * today only the quran lane carries one (the owner's Quran lens:
+   * lā taqfu / tabayyun / amāna). Placed with the principles, because it
+   * says how to treat the material below it, and it must survive a
+   * truncating provider like the principles do. */
+  lane?: string;
   /** What this person saved and what the operator published. */
   knowledge?: string;
   /** Excerpts from this person's earlier conversations that share words with
@@ -43,6 +49,7 @@ export type PromptParts = {
 export const PROMPT_ORDER = [
   'base',
   'principles',
+  'lane',
   'knowledge',
   'recall',
   'contextNotes',
