@@ -1,6 +1,7 @@
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { McpServers } from '@/components/settings/mcp-servers';
+import { GithubConnection } from '@/components/settings/github-connection';
 
 /** One integrations hub: every service the assistant can use lives here. */
 export function ConnectionsPage() {
@@ -20,6 +21,10 @@ export function ConnectionsPage() {
         <section aria-label="Tool servers">
           <h2 className="section-label">Tool servers</h2>
           <McpServers />
+        </section>
+        <section aria-label="GitHub">
+          <h2 className="section-label">GitHub</h2>
+          <GithubConnection />
         </section>
       </div>
     </div>
