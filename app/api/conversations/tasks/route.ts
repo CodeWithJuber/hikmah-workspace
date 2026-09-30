@@ -13,10 +13,15 @@ import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
 import { composePrompt } from '@/lib/ai/compose-prompt';
 import { principleDigest } from '@/lib/kernel/principles';
+import { createTaskContinuityStore } from '@/lib/tasks/continuity-store';
 
 export const dynamic = 'force-dynamic';
 
 const headers = { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' };
+/** Idempotency keys are client-generated per start-dialog opening, so a retry
+ * of the same start replays the same task instead of dispatching a duplicate. */
+const MAX_IDEMPOTENCY_KEY = 128;
+
 const fail = (error: string, status: number) => Response.json({ error }, { status, headers });
 
 /** A brief is a paragraph, not a document: what to learn, not the material. */
@@ -56,6 +61,25 @@ export async function POST(request: Request) {
   const brief = typeof body?.brief === 'string' ? body.brief.trim() : '';
   if (!brief) return fail('Say what to learn.', 400);
   if (brief.length > MAX_BRIEF) return fail('Keep the brief under 4,000 characters.', 400);
+
+  const rawKey = body?.idempotencyKey;
+  const idempotencyKey = typeof rawKey === 'string' && rawKey.length > 0 ? rawKey : null;
+  if (idempotencyKey && idempotencyKey.length > MAX_IDEMPOTENCY_KEY)
+    return fail('That start key is too long.', 400);
+
+  const continuity = createTaskContinuityStore(getStorage().raw);
+  if (idempotencyKey) {
+    // Idempotent replay: this key already started a task. Return its ids
+    // instead of dispatching a duplicate — a retried start (lost response,
+    // reload mid-flight) must not spend twice or create a second task.
+    const existing = continuity.findByKey(user.userId, idempotencyKey);
+    if (existing) {
+      return Response.json(
+        { conversationId: existing.conversationId, runId: existing.runId, resumed: true },
+        { headers },
+      );
+    }
+  }
 
   // The brief is the task's first and only user turn, so the run configuration
   // is validated exactly as a chat turn's is.
@@ -124,6 +148,37 @@ export async function POST(request: Request) {
   } catch {
     return fail('The task could not be started. Try again.', 503);
   }
+  // The continuity row is what makes a retried start replay this task instead
+  // of dispatching a duplicate (PR-16b). Written after the conversation exists
+  // (foreign key) and before the run is queued, so the row always names a
+  // real task.
+  try {
+    continuity.create({
+      conversationId,
+      userId: user.userId,
+      idempotencyKey,
+      runId,
+    });
+  } catch (error) {
+    const raced =
+      idempotencyKey &&
+      /UNIQUE constraint failed/i.test(error instanceof Error ? error.message : String(error));
+    if (raced) {
+      // A racing POST with the same key won: replay the winner rather than
+      // queue a second run. The winner's row is the dedupe arbiter.
+      const winner = continuity.findByKey(user.userId, idempotencyKey as string);
+      if (winner) {
+        return Response.json(
+          { conversationId: winner.conversationId, runId: winner.runId, resumed: true },
+          { headers },
+        );
+      }
+    }
+    // Degraded but working: the task exists and will run; only the
+    // retry-safety record is missing. Failing the start here would be worse —
+    // the client would retry and create the very duplicate this prevents.
+    console.error('[hikmah] task continuity row not recorded:', error);
+  }
   try {
     enqueueRun({
       runId,
@@ -172,6 +227,15 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    // The task never started, so its continuity row must not outlive it:
+    // otherwise a retry with the same key would replay a task that does not
+    // exist. Removing our own just-written row is cleanup, not deletion of
+    // user data.
+    try {
+      continuity.remove(conversationId);
+    } catch {
+      /* best effort — the row is harmless without a queued run */
+    }
     if (error instanceof EnqueueFullError)
       return fail('Too many runs are already in progress. Wait for one to finish.', 429);
     return fail('The task could not be started. Try again.', 503);

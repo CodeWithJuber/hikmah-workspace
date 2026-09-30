@@ -225,7 +225,13 @@ const ALLOW = [
 // fails on the pristine tree — the drift came from an earlier merged PR
 // that did not update the baseline; recording the measured 48 so the gate
 // stays honest.
-const BASELINE = { orphanFiles: 0, testedOnly: 107, dead: 48 };
+// 107 → 108 for task continuity (2026-09-30, PR-16b): isPendingRunStatus in
+// lib/tasks/continuity.ts is the pure rule the reload re-bind depends on
+// (which run states still have a run to re-bind to), asserted directly by
+// the task-continuity tests — the same "named on purpose" pattern as
+// isRateLimit and isExpired. PENDING_RUN_STATUSES stays module-private, so
+// this ticket adds nothing to the dead count.
+const BASELINE = { orphanFiles: 0, testedOnly: 108, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
