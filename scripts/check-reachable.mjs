@@ -281,7 +281,17 @@ const ALLOW = [
 // tests name directly; metricsReport enforces them on every canary record).
 // planRollback is consumed by the rollback route's pre-check, so it adds
 // nothing; the release store and remaining exports are route-reachable.
-const BASELINE = { orphanFiles: 0, testedOnly: 118, dead: 48 };
+// 118 → 123 for the connector catalog (2026-09-30, PR-26): five pure
+// helpers the catalog tests name on purpose rather than asserting through
+// HTTP — CATALOG_PERMISSIONS in lib/catalog/manifest.ts (the closed
+// vocabulary the validation tests assert against); canonicalBytes,
+// generateSigningKey and signManifest in lib/catalog/signing.ts (the
+// canonical-bytes fixture, the throwaway-key mint, and the owner-side signing
+// primitive — production only ever verifies, and the minting caller
+// scripts/seed-catalog.mjs is a skipped build input); registryKeys in
+// lib/catalog/registry.ts (pins the curated executable set the registry
+// tests assert on).
+const BASELINE = { orphanFiles: 0, testedOnly: 123, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

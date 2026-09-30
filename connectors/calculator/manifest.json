@@ -1,0 +1,9 @@
+{
+  "name": "calculator",
+  "version": "1.0.0",
+  "description": "Evaluates arithmetic expressions with a safe built-in parser: addition, subtraction, multiplication, division, modulo, powers and parentheses. No code execution, no network.",
+  "permissions": ["calc:compute"],
+  "entrypoint": "calculator",
+  "signature": "iySk0AHsC0+8Z9INQnDBlWpCVypcYXkjjkpRIBc+pbxeKCE8j4Dv+JQSPYek5iBix21WYajI8qXMeq/v2BcwAA==",
+  "signer": "MCowBQYDK2VwAyEACrbfVnpXP+v0h+6QRgyWw4QXypI0Zr3jbqIlibaxIMI="
+}

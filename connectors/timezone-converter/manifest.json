@@ -1,0 +1,9 @@
+{
+  "name": "timezone-converter",
+  "version": "1.0.0",
+  "description": "Converts a moment between IANA timezones using the platform time-zone database. Pure computation: no network calls, no lookups.",
+  "permissions": ["time:read"],
+  "entrypoint": "timezone-converter",
+  "signature": "nEIen+5OpaCba5XnHS536HMbhlaVVw1jdKuxA7+58jryjD0llcgMLIoXY/DXyxA/6xMlHechMlrpWjWiAzKrDg==",
+  "signer": "MCowBQYDK2VwAyEACrbfVnpXP+v0h+6QRgyWw4QXypI0Zr3jbqIlibaxIMI="
+}

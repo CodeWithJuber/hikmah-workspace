@@ -3,6 +3,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { McpServers } from '@/components/settings/mcp-servers';
 import { GithubConnection } from '@/components/settings/github-connection';
 import { GmailPanel } from '@/components/settings/gmail';
+import { ConnectorCatalog } from '@/components/settings/catalog';
 
 /** One integrations hub: every service the assistant can use lives here. */
 export function ConnectionsPage() {
@@ -30,6 +31,10 @@ export function ConnectionsPage() {
         <section aria-label="Gmail">
           <h2 className="section-label">Gmail</h2>
           <GmailPanel />
+        </section>
+        <section aria-label="Connector catalog">
+          <h2 className="section-label">Connector catalog</h2>
+          <ConnectorCatalog />
         </section>
       </div>
     </div>
