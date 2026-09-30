@@ -206,7 +206,14 @@ const ALLOW = [
 // gate, age as a multiplicative decay). detectPii, inspectPii,
 // normalizeScope, normalizeExpiresAt, addCorrection, forRecall and friends
 // are route-reachable; only the units under direct test sit in this list.
-const BASELINE = { orphanFiles: 0, testedOnly: 104, dead: 47 };
+// 104 → 106 for research grounding (2026-09-30, PR-19): parseClaims and
+// detectContradictions in lib/ai/tools/deep-research.ts are the pure rules
+// the contradiction display depends on (how SUPPORTS:/REFUTES: lines are
+// read, and how opposing claims become one shown disagreement through
+// PR-17's evaluateEvidence), each asserted directly rather than only through
+// a scripted fan-out — the same "named on purpose" pattern as
+// parseSubQuestions and isRateLimit above.
+const BASELINE = { orphanFiles: 0, testedOnly: 106, dead: 47 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

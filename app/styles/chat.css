@@ -1974,6 +1974,156 @@
     color: var(--destructive);
   }
 
+  /* Progress stages: what is done, what is current. A horizontal stepper
+   that wraps; on a phone it becomes a column of steps. */
+  .chat-research-stages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    font-size: var(--font-size-sm);
+  }
+  .chat-research-stage {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .chat-research-stage-mark {
+    font-size: 0.8em;
+  }
+  .chat-research-stage-done {
+    color: var(--foreground);
+  }
+  .chat-research-stage-current {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  .chat-research-stage-current .chat-research-stage-mark {
+    color: var(--primary);
+  }
+
+  /* Source inspection: each source is a row whose disclosure holds what the
+   lane extracted from that page. Long URLs break rather than overflow —
+   on a phone nothing here forces horizontal scroll. */
+  .chat-research-sources li + li {
+    margin-top: 4px;
+  }
+  .chat-research-source-trigger {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+  .chat-research-source-trigger a {
+    flex: 1;
+    min-width: 160px;
+    overflow-wrap: anywhere;
+    font-size: var(--font-size-sm);
+  }
+  .chat-research-extract-label {
+    margin: 6px 0 2px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  .chat-research-extract {
+    margin: 0 0 4px;
+    font-size: var(--font-size-sm);
+    color: var(--foreground);
+  }
+  .chat-research-meta {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+  }
+
+  /* Contradiction display: the claim, then the two sides with the lanes
+   and pages behind each. The sides sit side by side on wide screens and
+   stack on a phone. */
+  .chat-research-conflicts {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-element);
+    background: var(--muted);
+  }
+  .chat-research-conflicts-title {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .chat-research-conflict + .chat-research-conflict {
+    margin-top: 6px;
+  }
+  .chat-research-conflict summary {
+    font-weight: 600;
+  }
+  .chat-research-conflict-sides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 6px;
+  }
+  .chat-research-conflict-sides > div {
+    flex: 1;
+    min-width: 200px;
+  }
+  .chat-research-conflict-side {
+    margin: 0 0 4px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  .chat-research-conflict-sides ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: var(--font-size-sm);
+  }
+  .chat-research-conflict-sides li {
+    display: block;
+    margin-bottom: 4px;
+  }
+  .chat-research-conflict-sides a {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  /* Resume: the button and the line explaining what resume keeps. */
+  .chat-research-resume-row {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .chat-research-resume-row .chat-research-note {
+    flex: 1;
+    min-width: 200px;
+    margin-top: 0;
+  }
+  .chat-research-resume {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .chat-research-resume:hover {
+    background: color-mix(in srgb, var(--primary) 88%, black);
+  }
+  .chat-research-resume:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   /* Inline citation pills: superscript links threaded in the answer text,
    each pointing at its entry in the deduped source list below. Always in
    the tab order (real <a> elements); the title shows on hover natively and

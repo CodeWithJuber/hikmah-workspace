@@ -108,6 +108,11 @@ export type RunConfig = {
   compare?: { model?: string };
   /** Offer `deep_research` this turn. */
   deepResearch?: boolean;
+  /**
+   * Resume snapshot for this turn's research, from the chat request body.
+   * The tool validates it; the run never stores it.
+   */
+  researchResume?: unknown;
   /** Search the web this turn: the composer's Search switch. */
   webSearch?: boolean;
   /** The saved memories this run's prompt drew on, decided at creation. Streamed
@@ -260,6 +265,7 @@ async function driveWithAgent({
     // the one thing the run did that nobody was charged for.
     onLaneUsage: (_lane, usage) => recordLaneUsage(run, config, usage),
     deepResearch: routed.deepResearch,
+    researchResume: config.researchResume,
     webSearch: config.webSearch === true,
     meaningModel: initialModel,
     disabledTools: config.disabledTools ?? [],

@@ -12,6 +12,8 @@ import { MockLanguageModelV4 } from 'ai/test';
 import {
   deepResearch,
   deepResearchTools,
+  detectContradictions,
+  parseClaims,
   parseSubQuestions,
   isRateLimit,
   RESEARCH_PART_ID,
@@ -233,7 +235,8 @@ test('a real lane over a scripted model: reads a page, and the finding cites onl
     { toolCallId: 't', messages: [] },
   );
   assert.equal(out.findings.length, 1);
-  assert.deepEqual(out.findings[0].sources, ['https://example.org/a']);
+  // Sources are records now: the URL plus what the lane extracted from it.
+  assert.deepEqual(out.findings[0].sources, [{ url: 'https://example.org/a' }]);
   assert.match(out.findings[0].summary, /Found it/);
   assert.equal(seen.length, 1);
   assert.ok(seen[0].inputTokens > 0);
@@ -288,4 +291,230 @@ test('no disagreement lines means nothing published', async () => {
     question: 'A, B and C?',
   });
   assert.equal(published.length, 0);
+});
+
+test('sources carry what was extracted: a bounded excerpt and the retrieval time', async () => {
+  // The lane read a real page; the source record keeps the head of the page
+  // text it actually saw, so the card can show what was extracted from it.
+  const usage = { inputTokens: { total: 5, noCache: 5 }, outputTokens: { total: 5, text: 5 } };
+  const steps = [
+    {
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'read_webpage',
+          input: JSON.stringify({ url: 'https://example.org/a' }),
+        },
+      ],
+      finishReason: { unified: 'tool-calls' },
+      usage,
+      warnings: [],
+    },
+    {
+      content: [{ type: 'text', text: 'Found it at https://example.org/a.' }],
+      finishReason: { unified: 'stop' },
+      usage,
+      warnings: [],
+    },
+  ];
+  let step = 0;
+  const model = new MockLanguageModelV4({ doGenerate: async () => steps[step++] });
+  const read = tool({
+    description: 'x',
+    inputSchema: jsonSchema({ type: 'object', properties: { url: { type: 'string' } } }),
+    execute: async () => ({
+      source: 'https://example.org/a',
+      content: 'Alpha beta gamma. ' + 'filler '.repeat(500),
+      retrievedAt: '2026-09-30T00:00:00.000Z',
+      untrusted: true,
+    }),
+  });
+  const { deep_research } = deepResearchTools({
+    model,
+    tools: { read_webpage: read },
+    signal: new AbortController().signal,
+    freeOnly: true,
+    plan: async () => ['Where is it?'],
+  });
+  const out = await deep_research.execute(
+    { question: 'Where is it?' },
+    { toolCallId: 't', messages: [] },
+  );
+  const source = out.findings[0].sources[0];
+  assert.equal(source.url, 'https://example.org/a');
+  assert.match(source.excerpt ?? '', /^Alpha beta gamma\./);
+  assert.ok((source.excerpt ?? '').length <= 400, 'the excerpt is bounded');
+  assert.equal(source.retrievedAt, '2026-09-30T00:00:00.000Z');
+});
+
+test('claims are read off SUPPORTS:/REFUTES: lines, bullets and all', () => {
+  const text =
+    'Finding text.\nSUPPORTS: X causes Y.\n- REFUTES: Z prevents Y\nsupports:  short  \nNot a claim line.\nSUPPORTS:';
+  assert.deepEqual(parseClaims(text), [
+    { text: 'X causes Y.', stance: 'supports' },
+    { text: 'Z prevents Y', stance: 'refutes' },
+    { text: 'short', stance: 'supports' },
+  ]);
+});
+
+test('detectContradictions groups exact claims and gates on the contract', () => {
+  const lane = (question, claims, sources = []) => ({ question, status: 'done', sources, claims });
+  const url = 'https://example.org/a';
+  const contradictions = detectContradictions(
+    [
+      lane('Lane one?', [{ text: 'X causes Y', stance: 'supports' }], [{ url }]),
+      lane('Lane two?', [{ text: 'X causes Y.', stance: 'refutes' }], [{ url }]),
+      lane('Lane three?', [{ text: 'X causes Y', stance: 'supports' }], [{ url }]),
+    ],
+    'Does X cause Y?',
+  );
+  assert.equal(contradictions.length, 1, 'one group, however many lanes repeat it');
+  assert.equal(contradictions[0].supporting.length, 2);
+  assert.equal(contradictions[0].refuting.length, 1);
+  assert.deepEqual(contradictions[0].refuting[0].sources, [url]);
+
+  // One-sided groups are not contradictions, however many lanes agree.
+  assert.deepEqual(
+    detectContradictions(
+      [
+        lane('A?', [{ text: 'X causes Y', stance: 'supports' }]),
+        lane('B?', [{ text: 'X causes Y', stance: 'supports' }]),
+      ],
+      'q',
+    ),
+    [],
+  );
+  // Lanes with no claims contribute nothing.
+  assert.deepEqual(detectContradictions([lane('A?', undefined)], 'q'), []);
+});
+
+test('opposing lane claims on the same proposition surface as a contradiction', async () => {
+  const published = [];
+  const runLane = async (question) => ({
+    summary: 'Finding for ' + question,
+    sources: [{ url: 'https://example.org/' + encodeURIComponent(question) }],
+    claims: question.includes('A')
+      ? [{ text: 'X causes Y', stance: 'supports' }]
+      : [{ text: 'X causes Y', stance: 'refutes' }],
+  });
+  const out = await deepResearch(
+    base({
+      runLane,
+      plan: async () => ['Claim about A?', 'Claim about B?'],
+      publish: (view) => published.push(structuredClone(view)),
+    }),
+    { question: 'q' },
+  );
+  assert.equal(out.contradictions.length, 1);
+  const contradiction = out.contradictions[0];
+  assert.equal(contradiction.claim, 'X causes Y');
+  assert.equal(contradiction.supporting.length, 1);
+  assert.equal(contradiction.refuting.length, 1);
+  assert.equal(contradiction.supporting[0].lane, 'Claim about A?');
+  assert.equal(contradiction.refuting[0].lane, 'Claim about B?');
+  assert.ok(contradiction.supporting[0].sources[0].includes('example.org'));
+  const last = published.at(-1);
+  assert.equal(last.contradictions.length, 1);
+});
+
+test('differently worded claims do not count as a contradiction', async () => {
+  // evaluateEvidence demands exact scoped identity: near-misses are not
+  // contradictions, and the tool must not invent one.
+  const runLane = async (question) => ({
+    summary: 'Finding for ' + question,
+    sources: [],
+    claims: question.includes('A')
+      ? [{ text: 'X causes Y', stance: 'supports' }]
+      : [{ text: 'X might cause Y', stance: 'refutes' }],
+  });
+  const out = await deepResearch(
+    base({ runLane, plan: async () => ['Claim about A?', 'Claim about B?'] }),
+    { question: 'q' },
+  );
+  assert.deepEqual(out.contradictions, []);
+});
+
+test('resume keeps finished lanes and only runs the rest', async () => {
+  const seen = [];
+  const runLane = async (question) => {
+    seen.push(question);
+    return { summary: 'Fresh: ' + question, sources: [] };
+  };
+  const published = [];
+  const out = await deepResearch(
+    base({ runLane, publish: (view) => published.push(structuredClone(view)) }),
+    {
+      question: 'A, B and C?',
+      resumeFrom: {
+        status: 'interrupted',
+        question: 'A, B and C?',
+        lanes: [
+          {
+            question: 'What is A?',
+            status: 'done',
+            summary: 'Already found A',
+            sources: [{ url: 'https://example.org/a', excerpt: 'aaa' }],
+          },
+          { question: 'What is B?', status: 'running', sources: [] },
+          { question: 'What is C?', status: 'queued', sources: [] },
+        ],
+        gaps: [],
+      },
+    },
+  );
+  assert.deepEqual(seen, ['What is B?', 'What is C?'], 'the finished lane never re-ran');
+  assert.equal(out.findings.length, 3);
+  assert.equal(out.findings[0].summary, 'Already found A');
+  assert.deepEqual(out.findings[0].sources, [{ url: 'https://example.org/a', excerpt: 'aaa' }]);
+  const running = published.find((view) => view.status === 'running');
+  assert.equal(running.lanes[0].status, 'done', 'the resumed lane shows done from the start');
+  assert.deepEqual(running.lanes[0].sources, [{ url: 'https://example.org/a', excerpt: 'aaa' }]);
+});
+
+test('a malformed resume snapshot is ignored, not fatal', async () => {
+  const { spans, runLane } = timedLanes();
+  const out = await deepResearch(base({ runLane }), {
+    question: 'q',
+    resumeFrom: { lanes: 'nope', question: 42 },
+  });
+  assert.equal(spans.length, 3, 'planned fresh and every lane ran');
+  assert.equal(out.findings.length, 3);
+});
+
+test('a resume snapshot for another question is ignored', async () => {
+  const { spans, runLane } = timedLanes();
+  await deepResearch(base({ runLane }), {
+    question: 'Something else entirely?',
+    resumeFrom: {
+      status: 'interrupted',
+      question: 'A, B and C?',
+      lanes: [{ question: 'What is A?', status: 'done', summary: 'Stale', sources: [] }],
+      gaps: [],
+    },
+  });
+  assert.equal(spans.length, 3, 'no lane was taken from the mismatched snapshot');
+});
+
+test('interruption publishes a resumable state instead of a stuck spinner', async () => {
+  const controller = new AbortController();
+  const published = [];
+  const runLane = (_q, signal) =>
+    new Promise((_, reject) =>
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }),
+    );
+  const pending = deepResearch(
+    base({
+      runLane,
+      signal: controller.signal,
+      plan: async () => ['x'],
+      publish: (view) => published.push(structuredClone(view)),
+    }),
+    { question: 'q' },
+  );
+  setTimeout(() => controller.abort(), 20);
+  await assert.rejects(pending, 'the abort still rejects, as before');
+  const last = published.at(-1);
+  assert.equal(last.status, 'interrupted');
+  assert.match(last.note ?? '', /esume/);
 });

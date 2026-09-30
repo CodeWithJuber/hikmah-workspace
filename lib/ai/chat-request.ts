@@ -24,6 +24,13 @@ export type ChatRequestBody = {
   compare?: { model?: string };
   /** Offer `deep_research` this turn: sub-agents fanned out over the question. */
   deepResearch: boolean;
+  /**
+   * Resume snapshot for this turn's research, from the chat request body.
+   * Kept as unknown here: the research tool validates it at its own trust
+   * boundary and ignores anything malformed. Only ever used when its
+   * question matches the question the model asks.
+   */
+  researchResume: unknown;
   /** Search the web this turn, whatever the conversation's tool switches say. */
   webSearch: boolean;
   /**
@@ -174,6 +181,9 @@ export function parseChatRequest(raw: unknown): ChatRequestBody {
     // Per turn, like compare: a fan-out is a choice made for a question, not a
     // setting that follows every one.
     deepResearch: body.deepResearch === true,
+    // A resume snapshot rides the request body next to the research switch:
+    // the client owns the last published view, the server never stores it.
+    researchResume: (body as { researchResume?: unknown }).researchResume,
     // The composer's Search switch, per turn for the same reason.
     webSearch: body.webSearch === true,
     // Session incognito: only an explicit true counts — a mistyped value
