@@ -35,6 +35,10 @@ export function validateDestination(destination) {
       // the same token: keying it per server would make the owner save it twice
       // and then wonder which copy is live.
       'mcp-env',
+      // A Gmail OAuth token bundle behind one connected account. The account
+      // row names the secret (GMAIL_OAUTH_<UPPER_HEX>); the vault holds the
+      // refresh token, and the binding keeps it spendable only as gmail:oauth.
+      'gmail:oauth',
     ].includes(destination)
   )
     return destination;

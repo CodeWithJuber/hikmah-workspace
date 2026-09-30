@@ -96,6 +96,15 @@ const ALLOW = [
   // jev-client.ts: JEV_DEFAULT_TIMEOUT_MS is named by tests on purpose; the
   // timeout itself drives the Jev lane wait in the run pipeline.
   /^lib\/integrations\/jev-client\.ts$/,
+  // Gmail integration (PR-20): scope constants and small pure helpers exported
+  // so unit tests can name them on purpose; each is consumed within its own
+  // module by the /api/gmail request handlers the routes call. The check only
+  // counts cross-file uses, so these read as tested-only — the feature is
+  // wired, the heuristic is coarse.
+  // scopes.ts: GMAIL_SCOPE_READONLY/COMPOSE/SEND, parseScopes.
+  /^lib\/gmail\/scopes\.ts$/,
+  // messages.ts: base64UrlDecode (used by parseGmailPayload in the same module).
+  /^lib\/gmail\/messages\.ts$/,
   // v5 control layer (Phase 3, 2026-09-28): tested library modules staged for
   // Phase-4 agent-loop wiring. Budgets are stamped on every run via
   // enqueueRun() and visible in the run card; the feedback-recording and
