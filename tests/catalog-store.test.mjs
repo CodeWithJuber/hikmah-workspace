@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { createCatalogStore, CatalogStoreError } from '../lib/catalog/store.ts';
 import { generateSigningKey, signManifest, verifySignedManifest } from '../lib/catalog/signing.ts';
 
-const MIGRATION = readFileSync(new URL('../drizzle/0037_catalog.sql', import.meta.url), 'utf8');
+const MIGRATION = readFileSync(new URL('../drizzle/0039_catalog.sql', import.meta.url), 'utf8');
 
 function freshStore() {
   const db = new DatabaseSync(':memory:');
