@@ -9,7 +9,12 @@ import { enqueueRun, enqueueCap, EnqueueFullError } from '@/lib/runs/enqueue';
 import { phaseChunk } from '@/lib/runs/telemetry';
 import { createWorkflowStore } from '@/lib/workflow/store';
 import { answerIdFor } from '@/lib/runs/answer-id';
-import { contextBriefFor, knowledgeFor, resolveRunAccess } from '@/lib/runs/prepare';
+import {
+  contextBriefFor,
+  isToolFreeTurn,
+  knowledgeFor,
+  resolveRunAccess,
+} from '@/lib/runs/prepare';
 import { getStorage } from '@/server/storage.mjs';
 import { createChatSettingsStore } from '@/lib/chat/settings-store';
 import { composePrompt } from '@/lib/ai/compose-prompt';
@@ -362,6 +367,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,
         deepResearch: parsed.deepResearch,
+        // A greeting/filler turn gets no tools at all: the 24 tool
+        // definitions were ~15k of the 16.8k input tokens on a "Hi" run even
+        // after retrieval was skipped, and a greeting can never use a tool.
+        // Decided at creation like execution/media, from the same signal that
+        // skips retrieval. An explicit tool request wins: the Search switch
+        // or deep research keeps its tools even for a one-word turn.
+        toolFree: isToolFreeTurn(lastUserText(messages), {
+          webSearch: parsed.webSearch,
+          deepResearch: parsed.deepResearch,
+        }),
         // The interrupted card's last published view, when the UI's Resume
         // attached it: validated inside the research tool, never stored.
         researchResume: parsed.researchResume,

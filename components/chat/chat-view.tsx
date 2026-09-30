@@ -1477,6 +1477,14 @@ export function ChatView({
               Only the transition is announced — never the streamed answer
               text (per-chunk live updates break VoiceOver). */}
             <RunStatusLiveRegion busy={busy} outcome={justFinished} />
+            {/* End-of-transcript clearance: a real element's height, so the
+              last turn always scrolls fully above the floating composer.
+              (Bottom padding alone did not hold on phones — the
+              stick-to-bottom scroller nests inside the transcript box.)
+              Only with messages: the empty state's welcome stays centered. */}
+            {messages.length > 0 && (
+              <div aria-hidden="true" className="chat-transcript-end-spacer" />
+            )}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>

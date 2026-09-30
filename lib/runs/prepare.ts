@@ -137,9 +137,30 @@ export async function contextBriefFor(userId: string, messages: UIMessage[]): Pr
  * these can only return noise, and the receipt would then claim memories were
  * "used" that the answer never needed. A real question, even a short one,
  * still retrieves everything as before.
+ *
+ * Private: the runs route and the worker go through isToolFreeTurn below,
+ * which is the same signal plus the explicit-tool-request override. Nothing
+ * else needs the bare signal.
  */
 function skipRetrieval(query: string): boolean {
   return isFillerQuery(query);
+}
+
+/**
+ * Whether this turn is driven with no tools at all.
+ *
+ * A greeting/filler turn can never benefit from a tool, and the 24 tool
+ * definitions cost ~15k input tokens on every run — even a "direct" 0-call
+ * greeting. Same signal that skips retrieval. An explicit tool request wins:
+ * the composer's Search switch or deep research keeps its tools even when
+ * the turn's text is one word.
+ */
+export function isToolFreeTurn(
+  query: string,
+  options: { webSearch?: boolean; deepResearch?: boolean } = {},
+): boolean {
+  if (options.webSearch || options.deepResearch) return false;
+  return skipRetrieval(query);
 }
 
 /**

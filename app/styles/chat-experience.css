@@ -25,6 +25,27 @@
     padding: 24px 20px 36px;
     gap: 28px;
   }
+  /* Follow-up chips wrap instead of scrolling: on a 390px phone the shared
+     .n-chip-row scroll row left the last chip half-cut with no scroll
+     affordance, reading as broken. Wrapped chips flow to the next line, so
+     nothing is ever cut off; the min-width:0 chain above keeps the "Keep
+     going" label from clipping at the message's overflow edge. */
+  .workspace-experience [data-slot='follow-up-chips'] {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    overflow-x: visible;
+    mask-image: none;
+  }
+  /* End-of-transcript clearance, as a real element's height rather than
+     padding: the stick-to-bottom scroller nests inside the transcript box,
+     and bottom padding alone did not keep the last turn clear of the
+     floating composer on phones. A flex item's height always extends the
+     scroll area, so the last message can scroll fully above the composer.
+     Safe-area aware for the home-indicator zone. */
+  .workspace-experience .chat-transcript-end-spacer {
+    flex: none;
+    height: 96px;
+  }
   /* Transcript head (message count + Search/Shortcuts/Export): bound to the
      same 768px column as the messages so it doesn't stretch full-width. */
   .workspace-experience .chat-transcript-head {
@@ -580,13 +601,15 @@
       padding-block: 24px;
     }
     .workspace-experience .chat-transcript-content {
-      /* The composer sits in-flow below the transcript and is ~200px tall on
-         this range: without clearance the last turn's chips end up flush
-         against the floating card, reading as buried behind it. This padding
-         is inside the scroller, so the last message can always scroll clear
-         of the composer; safe-area aware for the home-indicator zone. */
-      padding: 20px 14px calc(228px + env(safe-area-inset-bottom, 0px));
+      /* The end-spacer below carries the composer clearance as a real
+         element's height; this padding is just the normal rhythm. */
+      padding: 20px 14px 24px;
       gap: 24px;
+    }
+    /* Phone clearance: the composer card is ~150-180px tall here, and the
+       end-spacer's height is what the scroller actually honours. */
+    .workspace-experience .chat-transcript-end-spacer {
+      height: calc(210px + env(safe-area-inset-bottom, 0px));
     }
     .workspace-experience .chat-welcome {
       padding-bottom: 24px;

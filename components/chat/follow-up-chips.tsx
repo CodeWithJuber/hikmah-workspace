@@ -19,10 +19,13 @@ export type FollowUpChipsProps = {
  * fills the composer as an editable draft — the user stays in control and
  * learns what the product can do, turn by turn.
  *
- * A horizontal scroll row (the shared .n-chip-row pattern), never a wrapped
- * one: on a 390px phone the wrapped rows clipped the "Keep going" label at
- * the message's overflow-hidden edge, and the row scrolls inside itself so
- * nothing is ever cut off. shrink-0 keeps every chip at its natural width.
+ * The chips wrap to multiple lines (the shared .n-chip-row pattern, with a
+ * wrap override in chat-experience.css): on a 390px phone the horizontal
+ * scroll row left the last chip half-cut with no scroll affordance, reading
+ * as broken. Wrapped chips flow to the next line, so nothing is ever cut
+ * off. shrink-0 keeps every chip at its natural width; the transcript's
+ * min-width:0 chain keeps the "Keep going" label from clipping at the
+ * message's overflow edge.
  */
 export function FollowUpChips({ suggestions, onSelect, loading = false }: FollowUpChipsProps) {
   if (loading) {

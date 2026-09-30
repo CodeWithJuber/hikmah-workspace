@@ -106,6 +106,13 @@ export type RunConfig = {
   enabledTools?: string[];
   /** Compare mode: also answer directly, with no tools, for contrast. */
   compare?: { model?: string };
+  /**
+   * This turn offers no tools: a greeting/filler turn, decided at creation
+   * in the runs route from the same signal that skips retrieval. Absent
+   * means the normal lane — every run row written before this existed
+   * behaves as it did, the same convention `execution` uses.
+   */
+  toolFree?: boolean;
   /** Offer `deep_research` this turn. */
   deepResearch?: boolean;
   /**
@@ -250,6 +257,9 @@ async function driveWithAgent({
     model: callModel,
     instructions: routed.instructions,
     maxSteps: config.maxSteps,
+    // A greeting/filler turn: no tool definitions reach the provider at
+    // all. The definitions were ~15k input tokens on every "Hi".
+    toolFree: config.toolFree === true,
     // buildRunAgent has accepted this since it was written and nothing passed
     // it, so the setting existed with nowhere to land.
     contextCharacters: config.contextCharacters,

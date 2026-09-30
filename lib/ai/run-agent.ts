@@ -148,6 +148,16 @@ export type RunAgentOptions = {
    * agreed to.
    */
   unattended?: boolean;
+  /**
+   * Offer no tools at all: a greeting/filler turn. The 24 tool definitions
+   * cost ~15k input tokens on every run, even a "direct" 0-call greeting —
+   * more than the rest of the prompt combined. A greeting can never benefit
+   * from a tool, so the definitions are withheld rather than sent and
+   * ignored. Decided per turn by the caller (the runs route, from the same
+   * signal that skips retrieval); an explicit Search/deep-research request
+   * keeps its tools.
+   */
+  toolFree?: boolean;
   model?: LanguageModel;
 };
 
@@ -187,6 +197,19 @@ export function createToolDecider(options: RunAgentOptions): {
    * the activity log — that every turn stopped on a person. */
   safeTools: Set<string>;
 } {
+  // A greeting/filler turn: no definitions reach the provider at all, and
+  // the decider denies by default anyway, so nothing can run. Early, before
+  // any tool module is assembled.
+  if (options.toolFree === true) {
+    return {
+      decide: async () => ({
+        gate: 'denied',
+        reason: 'This turn offers no tools.',
+      }),
+      tools: {},
+      safeTools: new Set<string>(),
+    };
+  }
   const disabled = new Set(options.disabledTools ?? []);
   const all = {
     ...researchTools({ savedSearchKey: options.savedSearchKey, signal: options.signal }),
