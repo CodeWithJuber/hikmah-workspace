@@ -239,3 +239,68 @@
     margin: 0;
   }
 }
+
+/* PR-24 commercial beta: the trial / stub-subscription section on the
+ * billing page. Kept at the end of the file: billing.css grows downward. */
+@layer components {
+  .beta-billing {
+    max-width: 840px;
+    margin: 26px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border: 1px dashed var(--warning);
+    border-radius: var(--radius);
+    padding: 20px;
+    background: var(--card);
+  }
+  .beta-billing__stub {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px dashed var(--warning);
+    border-radius: calc(var(--radius) - 4px);
+    padding: 12px 14px;
+    background: var(--warning-bg);
+  }
+  .beta-billing__stub p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+  }
+  .beta-billing__status p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+  }
+  .beta-billing__status code {
+    font-size: var(--font-size-xs);
+  }
+  .beta-billing__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .beta-billing__confirm {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: var(--font-size-sm);
+    flex-basis: 100%;
+  }
+  .beta-billing__confirm input {
+    margin-top: 3px;
+  }
+  .beta-billing__redeem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: var(--font-size-sm);
+  }
+  .beta-billing__redeem-row {
+    display: flex;
+    gap: 10px;
+  }
+  .beta-billing__redeem-row input {
+    flex: 1;
+  }
+}

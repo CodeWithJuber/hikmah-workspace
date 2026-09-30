@@ -142,6 +142,16 @@ const ALLOW = [
   // wrong record of the schema is worse than none.
   /^next-env\.d\.ts$/,
   /\.config\.(ts|mjs|js)$/,
+  // Commercial beta (2026-09-30, PR-24): pure units the beta tests name on
+  // purpose rather than asserting only through the routes — inviteExpired in
+  // lib/billing/beta.ts (the expiry predicate the redeem gate depends on;
+  // redeemCheck is the cross-file-used entry point), and StubPaymentProvider
+  // plus stubReceipt in lib/billing/provider-stub.ts (the stub class and the
+  // receipt builder whose $0/no-charge shape the honesty tests pin;
+  // paymentProvider() is the cross-file-used entry point). The features are
+  // wired — the beta routes call them — the heuristic is coarse.
+  /^lib\/billing\/beta\.ts$/,
+  /^lib\/billing\/provider-stub\.ts$/,
 ];
 
 /**
