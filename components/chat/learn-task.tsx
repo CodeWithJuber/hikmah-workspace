@@ -21,6 +21,19 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { clientFetch } from '@/lib/client/request';
 
+/** One key per dialog opening: a retry of the same start replays the same
+ * task server-side instead of dispatching a duplicate. A fresh opening gets
+ * a fresh key, so starting the same brief again on purpose still works. */
+function newIdempotencyKey(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      return crypto.randomUUID();
+  } catch {
+    /* fall through to the fallback */
+  }
+  return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export function LearnTaskDialog({
   open,
   onOpenChange,
@@ -36,6 +49,17 @@ export function LearnTaskDialog({
 }) {
   const [brief, setBrief] = useState('');
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
+  // One key per dialog opening (a render-phase state update — the endorsed
+  // way to adjust state when a prop changes): stable across a retry of the
+  // same start, so the server replays the task instead of dispatching a
+  // duplicate; fresh on the next opening, so starting the same brief again
+  // still dispatches a fresh task.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setIdempotencyKey(newIdempotencyKey());
+  }
 
   const start = async () => {
     const text = brief.trim();
@@ -45,14 +69,23 @@ export function LearnTaskDialog({
       const response = await clientFetch('/api/conversations/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...run, brief: text }),
+        body: JSON.stringify({ ...run, brief: text, idempotencyKey }),
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        resumed?: boolean;
+      };
       if (!response.ok) {
         toast.error(payload.error ?? 'The task could not be started.');
         return;
       }
-      toast('Research started. Follow it under Background tasks in your chat history.');
+      // The server recognised the key: this start already happened (a retry
+      // after a lost response). Nothing new was dispatched.
+      toast(
+        payload.resumed
+          ? 'This research is already running. Find it under Background tasks in your chat history.'
+          : 'Research started. Follow it under Background tasks in your chat history.',
+      );
       setBrief('');
       onOpenChange(false);
       onStarted?.();
