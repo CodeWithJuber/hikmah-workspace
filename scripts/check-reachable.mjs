@@ -184,7 +184,14 @@ const ALLOW = [
 // tests name on purpose; it is wired — buildRunAgent calls it to build the
 // agent's toolApproval — and the check only counts cross-file uses, so the
 // export reads as tested-only while the feature is live.
-const BASELINE = { orphanFiles: 0, testedOnly: 95, dead: 48 };
+// 95 → 97 for research grounding (2026-09-30, PR-19): parseClaims and
+// detectContradictions in lib/ai/tools/deep-research.ts are the pure rules
+// the contradiction display depends on (how SUPPORTS:/REFUTES: lines are
+// read, and how opposing claims become one shown disagreement through
+// PR-17's evaluateEvidence), each asserted directly rather than only through
+// a scripted fan-out — the same "named on purpose" pattern as
+// parseSubQuestions and isRateLimit above.
+const BASELINE = { orphanFiles: 0, testedOnly: 97, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {

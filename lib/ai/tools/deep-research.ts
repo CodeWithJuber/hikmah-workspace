@@ -35,41 +35,85 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import { safeDiagnostic } from '../../runs/safe-error.ts';
+import { evaluateEvidence } from '../../engines/agent-math.ts';
 
 export type LaneStatus = 'queued' | 'running' | 'done' | 'failed' | 'skipped';
+
+/** One page a lane read: the URL plus what the lane actually extracted from
+ * it, so every source is inspectable — open the source, see what came out. */
+export type SourceRecord = {
+  url: string;
+  /** Bounded head of the page text the lane actually saw. Absent when the
+   * lane predates extraction records or the read returned no text. */
+  excerpt?: string;
+  /** When the page was read, from the read_webpage result. */
+  retrievedAt?: string;
+};
+
+/** A discrete claim a lane declared about what it read, with its stance. */
+export type LaneClaim = {
+  text: string;
+  stance: 'supports' | 'refutes';
+};
 
 export type ResearchLane = {
   question: string;
   status: LaneStatus;
   /** What the lane concluded, bounded. */
   summary?: string;
-  /** The URLs it actually read. */
-  sources: string[];
+  /** The pages it actually read, with what it extracted from each. */
+  sources: SourceRecord[];
+  /** The lane's discrete claims, parsed off its SUPPORTS:/REFUTES: lines. */
+  claims?: LaneClaim[];
   error?: string;
+};
+
+/** One side of a contradiction: the lanes on that side and what they read. */
+export type ContradictionSide = {
+  /** The sub-question the lane answered. */
+  lane: string;
+  /** The URLs that lane read for this claim. */
+  sources: string[];
+};
+
+export type Contradiction = {
+  /** The claim the sources disagree on, in the lane's own words. */
+  claim: string;
+  supporting: ContradictionSide[];
+  refuting: ContradictionSide[];
 };
 
 /** Everything the card shows, published whole on every change. */
 export type ResearchView = {
-  status: 'planning' | 'running' | 'done' | 'failed';
+  status: 'planning' | 'running' | 'done' | 'failed' | 'interrupted';
   question: string;
   lanes: ResearchLane[];
   /** Sub-questions no lane answered. */
   gaps: string[];
   /** Why it stopped early, when it did. */
   note?: string;
+  /** Claims both supported and refuted by different lanes. Disagreement
+   * shown, never resolved — the evaluateEvidence contract. Present on the
+   * final publish; empty means none was found, not that none exists. */
+  contradictions?: Contradiction[];
 };
 
 export type LaneUsage = { inputTokens: number; outputTokens: number };
 
 export type LaneResult = {
   summary: string;
-  sources: string[];
+  sources: SourceRecord[];
+  claims?: LaneClaim[];
   usage?: LaneUsage;
 };
 
 export type DeepResearchContext = {
   /** The run's own model, shared by the planner and every lane. */
   model: LanguageModel;
+  /** A prior published view the server attached to this turn (the UI's
+   * Resume hands the interrupted card's view through the chat request).
+   * Validated inside; used only when its question matches this call's. */
+  resumeFrom?: unknown;
   /** The tools a lane may use. Already filtered for an unattended run. */
   tools: ToolSet;
   /** The run's instructions, so a lane answers in the same voice and language. */
@@ -106,11 +150,20 @@ const RESEARCH_TIMEOUT_MS = 240_000;
 const LANE_STEPS = 8;
 /** A finding is a paragraph the parent can quote, not a page. */
 const MAX_SUMMARY = 2_000;
+/** Discrete claims a lane may declare, each bounded like the finding. */
+const MAX_CLAIMS = 20;
+const MAX_CLAIM = 300;
+/** What the card shows of a page the lane read: the head of the text it saw. */
+const MAX_EXCERPT = 400;
+/** Contradictions shown on the final card; more than this is noise. */
+const MAX_CONTRADICTIONS = 10;
 /** Tokens across all lanes before no further lane is launched. A budget on the
  * call, not a cap on a lane already running. */
 const RESEARCH_TOKEN_BUDGET = 120_000;
 
-const LANE_BRIEF = `You are one research lane of a larger investigation, working unattended. Answer the sub-question below and nothing else. Search, then read the pages that matter — a search snippet is a lead, not a source — and write a finding of at most two paragraphs. Every claim must come from a page you actually read in this lane; name the exact URL beside it. Say plainly what you could not find or verify. Do not ask questions; nobody will answer.`;
+const LANE_BRIEF = `You are one research lane of a larger investigation, working unattended. Answer the sub-question below and nothing else. Search, then read the pages that matter — a search snippet is a lead, not a source — and write a finding of at most two paragraphs. Every claim must come from a page you actually read in this lane; name the exact URL beside it. Say plainly what you could not find or verify. Do not ask questions; nobody will answer.
+
+End with your key claims as a list, one per line: "SUPPORTS: <claim>" for what the pages you read support, "REFUTES: <claim>" for what they contradict. Each claim must come from a page you read in this lane; skip the list when you have no discrete claims.`;
 
 /** Break a question into sub-questions, one per numbered line.
  *
@@ -145,32 +198,64 @@ async function defaultPlan(
   return parseSubQuestions(text, breadth);
 }
 
+/** A lane's discrete claims, read off its SUPPORTS:/REFUTES: lines.
+ *
+ * A tolerant line parse in the parseSubQuestions tradition: most free models
+ * do not do schemas, and a list is what they write well. Lines that do not
+ * match are ignored, not errors — a lane with no parseable claims simply
+ * contributes no assertions. */
+export function parseClaims(text: string): LaneClaim[] {
+  const claims: LaneClaim[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const match = /^\s*(?:[-*•]\s*)?(supports?|refutes?)\s*:\s*(.+?)\s*$/i.exec(line);
+    if (!match) continue;
+    const stance = /^sup/i.test(match[1]) ? 'supports' : 'refutes';
+    const claim = match[2].replace(/\s+/g, ' ').trim();
+    if (claim.length < 4 || claim.length > MAX_CLAIM) continue;
+    if (claims.some((existing) => existing.text.toLowerCase() === claim.toLowerCase())) continue;
+    if (claims.length >= MAX_CLAIMS) break;
+    claims.push({ text: claim, stance });
+  }
+  return claims;
+}
+
 /** The URLs a lane opened, from its own steps: read_webpage calls that came
- * back without an error field. */
-function readUrls(
+ * back without an error field. Each record keeps what the lane extracted —
+ * the bounded head of the page text it actually saw — so the source is
+ * inspectable later, not just a link. */
+function readSources(
   steps: readonly { toolCalls?: readonly unknown[]; toolResults?: readonly unknown[] }[],
-): string[] {
-  const urls = new Set<string>();
+): SourceRecord[] {
+  const outputs = new Map<string, unknown>();
+  const records = new Map<string, SourceRecord>();
   for (const step of steps) {
-    const failed = new Set(
-      (step.toolResults ?? [])
-        .filter((result) => {
-          const output = (result as { output?: unknown }).output;
-          return output && typeof output === 'object' && 'error' in (output as object);
-        })
-        .map((result) => (result as { toolCallId?: string }).toolCallId),
-    );
+    for (const result of step.toolResults ?? []) {
+      const callId = (result as { toolCallId?: unknown }).toolCallId;
+      if (typeof callId === 'string' && !outputs.has(callId))
+        outputs.set(callId, (result as { output?: unknown }).output);
+    }
     for (const call of step.toolCalls ?? []) {
       const { toolName, toolCallId, input } = call as {
         toolName?: string;
         toolCallId?: string;
         input?: { url?: unknown };
       };
-      if (toolName !== 'read_webpage' || failed.has(toolCallId)) continue;
-      if (typeof input?.url === 'string' && input.url) urls.add(input.url);
+      if (toolName !== 'read_webpage' || typeof toolCallId !== 'string') continue;
+      const output = outputs.get(toolCallId);
+      if (output && typeof output === 'object' && 'error' in (output as object)) continue;
+      const url = input?.url;
+      if (typeof url !== 'string' || !url || records.has(url)) continue;
+      const record: SourceRecord = { url };
+      const content = (output as { content?: unknown } | null)?.content;
+      if (typeof content === 'string' && content.trim())
+        record.excerpt = content.replace(/\s+/g, ' ').trim().slice(0, MAX_EXCERPT);
+      const retrievedAt = (output as { retrievedAt?: unknown } | null)?.retrievedAt;
+      if (typeof retrievedAt === 'string' && retrievedAt)
+        record.retrievedAt = retrievedAt.slice(0, 64);
+      records.set(url, record);
     }
   }
-  return [...urls];
+  return [...records.values()];
 }
 
 async function defaultLane(
@@ -186,14 +271,97 @@ async function defaultLane(
   });
   const result = await agent.generate({ prompt: question, abortSignal: signal });
   const usage = result.totalUsage;
+  const text = result.text.trim();
   return {
-    summary: result.text.trim().slice(0, MAX_SUMMARY),
-    sources: readUrls(result.steps as never),
+    summary: text.slice(0, MAX_SUMMARY),
+    sources: readSources(result.steps as never),
+    claims: parseClaims(text),
     usage: {
       inputTokens: Number(usage?.inputTokens ?? 0) || 0,
       outputTokens: Number(usage?.outputTokens ?? 0) || 0,
     },
   };
+}
+
+/** Exact claim identity: only the same claim in the same scope can
+ * contradict. Near-misses never match — the evaluateEvidence contract. */
+function normalizeClaim(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.?!,;:]+$/, '');
+}
+
+/** Where lane claims disagree, show it — using the disagreement contract,
+ * not rebuilding it. Claims are grouped by exact normalized claim; a group
+ * both supported and refuted becomes one contradiction, evaluated through
+ * evaluateEvidence so the 'both' state is computed, not asserted. A lane
+ * with no parseable claims contributes nothing: no claims, no
+ * contradictions, never an invented one. */
+export function detectContradictions(
+  lanes: readonly ResearchLane[],
+  question: string,
+): Contradiction[] {
+  const scope = {
+    tenant: 'research',
+    project: question.trim().slice(0, 120) || 'research',
+    context: 'deep-research',
+  };
+  const groups = new Map<
+    string,
+    { display: string; supporting: ContradictionSide[]; refuting: ContradictionSide[] }
+  >();
+  lanes.forEach((lane) => {
+    for (const claim of lane.claims ?? []) {
+      const key = normalizeClaim(claim.text);
+      if (!key) continue;
+      let group = groups.get(key);
+      if (!group) {
+        group = { display: claim.text, supporting: [], refuting: [] };
+        groups.set(key, group);
+      }
+      const side: ContradictionSide = {
+        lane: lane.question,
+        sources: lane.sources.map((source) => source.url).slice(0, 10),
+      };
+      (claim.stance === 'supports' ? group.supporting : group.refuting).push(side);
+    }
+  });
+  const contradictions: Contradiction[] = [];
+  for (const group of groups.values()) {
+    if (!group.supporting.length || !group.refuting.length) continue;
+    if (contradictions.length >= MAX_CONTRADICTIONS) break;
+    // The contract call: assertions both ways on one proposition must come
+    // back 'both'. If it ever does not, the group is not shown — a
+    // contradiction the evidence state cannot see is not one to display.
+    try {
+      const assertions = [
+        ...group.supporting.map((side, index) => ({
+          id: `support-${index}`,
+          proposition: { id: normalizeClaim(group.display), scope },
+          polarity: 'positive' as const,
+          sourceRef: side.sources[0] ?? `lane:${side.lane}`,
+        })),
+        ...group.refuting.map((side, index) => ({
+          id: `refute-${index}`,
+          proposition: { id: normalizeClaim(group.display), scope },
+          polarity: 'negative' as const,
+          sourceRef: side.sources[0] ?? `lane:${side.lane}`,
+        })),
+      ];
+      const verdict = evaluateEvidence({ id: normalizeClaim(group.display), scope }, assertions);
+      if (verdict.state !== 'both') continue;
+    } catch {
+      continue;
+    }
+    contradictions.push({
+      claim: group.display,
+      supporting: group.supporting,
+      refuting: group.refuting,
+    });
+  }
+  return contradictions;
 }
 
 /** Whether a failure is the provider refusing on rate. The message is all a
@@ -206,17 +374,96 @@ export function isRateLimit(error: unknown): boolean {
   return status === 429 || /\b429\b|rate.?limit|too many requests/i.test(message);
 }
 
+/** The published view, as a Zod schema: the trust boundary for a resume
+ * snapshot arriving from the client or the model. Malformed snapshots are
+ * ignored — a resume that cannot be validated becomes a fresh run. */
+const sourceRecordSchema = z.object({
+  url: z.string().min(1).max(2000),
+  excerpt: z.string().max(2000).optional(),
+  retrievedAt: z.string().max(64).optional(),
+});
+/** Views published before extraction records existed carry bare URL strings;
+ * accept both shapes at the boundary and normalize after validation. */
+const sourceSchema = z.union([z.string().min(1).max(2000), sourceRecordSchema]);
+const laneClaimSchema = z.object({
+  text: z.string().min(1).max(MAX_CLAIM),
+  stance: z.enum(['supports', 'refutes']),
+});
+const researchLaneSchema = z.object({
+  question: z.string().min(1).max(2000),
+  status: z.enum(['queued', 'running', 'done', 'failed', 'skipped']),
+  summary: z.string().max(4000).optional(),
+  sources: z.array(sourceSchema).max(50).default([]),
+  claims: z.array(laneClaimSchema).max(MAX_CLAIMS).optional(),
+  error: z.string().max(2000).optional(),
+});
+const contradictionSideSchema = z.object({
+  lane: z.string().max(2000),
+  sources: z.array(z.string().max(2000)).max(50).default([]),
+});
+const contradictionSchema = z.object({
+  claim: z.string().min(1).max(MAX_CLAIM),
+  supporting: z.array(contradictionSideSchema).max(25).default([]),
+  refuting: z.array(contradictionSideSchema).max(25).default([]),
+});
+const researchViewSchema = z.object({
+  status: z.enum(['planning', 'running', 'done', 'failed', 'interrupted']),
+  question: z.string().min(1).max(2000),
+  lanes: z.array(researchLaneSchema).max(25),
+  gaps: z.array(z.string().max(2000)).max(25).default([]),
+  note: z.string().max(2000).optional(),
+  contradictions: z.array(contradictionSchema).max(MAX_CONTRADICTIONS).optional(),
+});
+
+const normalizeQuestion = (question: string): string =>
+  question.trim().toLowerCase().replace(/\s+/g, ' ');
+
+/** A resume snapshot survives only validation: anything malformed is not a
+ * snapshot, and the run starts fresh rather than failing on it. Old string
+ * sources are normalized to records here. */
+function validSnapshot(value: unknown): ResearchView | undefined {
+  const parsed = researchViewSchema.safeParse(value);
+  if (!parsed.success) return undefined;
+  const view = parsed.data as ResearchView & { lanes: { sources: (string | SourceRecord)[] }[] };
+  for (const lane of view.lanes)
+    lane.sources = lane.sources.map((source) =>
+      typeof source === 'string' ? { url: source } : source,
+    );
+  return view;
+}
+
+/** Lane results cross an injected seam in the tests; normalize a bare URL
+ * string into a record so both shapes land as SourceRecord[]. */
+function toSourceRecord(source: string | SourceRecord): SourceRecord {
+  if (typeof source === 'string') return { url: source };
+  const record: SourceRecord = { url: String(source.url ?? '') };
+  if (typeof source.excerpt === 'string' && source.excerpt) record.excerpt = source.excerpt;
+  if (typeof source.retrievedAt === 'string' && source.retrievedAt)
+    record.retrievedAt = source.retrievedAt;
+  return record;
+}
+
 /**
  * Plan, fan out, gather. Never throws for a lane's sake: a lane that fails is
  * a gap in the findings, and the parent is told so. Throws only when the
- * whole call is aborted, which is the run being cancelled.
+ * whole call is aborted, which is the run being cancelled — and even then it
+ * publishes an `interrupted` view first, so the card shows a resumable state
+ * instead of a stuck spinner.
+ *
+ * Resume: pass the last published view as `resumeFrom` (or attach it to the
+ * context, where it is used only when its question matches this call's).
+ * Lanes already done are kept and never re-run; the rest continue from
+ * where the interruption stopped them. A resume is a new call with its own
+ * token budget — the budget guards one call, and the snapshot is not
+ * trusted for accounting.
  */
 export async function deepResearch(
   context: DeepResearchContext,
-  input: { question: string; breadth?: number },
+  input: { question: string; breadth?: number; resumeFrom?: unknown },
 ): Promise<{
-  findings: { question: string; summary: string; sources: string[] }[];
+  findings: { question: string; summary: string; sources: SourceRecord[] }[];
   gaps: string[];
+  contradictions: Contradiction[];
   note?: string;
 }> {
   const cap = context.freeOnly ? FREE_BREADTH : MAX_BREADTH;
@@ -227,6 +474,19 @@ export async function deepResearch(
   const clock = new AbortController();
   const timer = setTimeout(() => clock.abort(), context.timeoutMs ?? RESEARCH_TIMEOUT_MS);
   const signal = AbortSignal.any([context.signal, clock.signal]);
+
+  // The explicit input wins; either snapshot applies only to the question it
+  // was published for, so a stale or mismatched snapshot is ignored and the
+  // run starts fresh rather than hijacking lanes from another question.
+  const explicit = validSnapshot(input.resumeFrom);
+  const attached = validSnapshot(context.resumeFrom);
+  const snapshot = explicit ?? attached;
+  const resumedLanes =
+    snapshot &&
+    normalizeQuestion(snapshot.question) === normalizeQuestion(input.question) &&
+    snapshot.lanes.length
+      ? snapshot.lanes
+      : undefined;
 
   let view: ResearchView = { status: 'planning', question: input.question, lanes: [], gaps: [] };
   const publish = (next: Partial<ResearchView>) => {
@@ -240,30 +500,47 @@ export async function deepResearch(
   publish({});
 
   let questions: string[];
-  try {
-    questions = await (context.plan ?? ((q, b, s) => defaultPlan(context, q, b, s)))(
-      input.question,
-      breadth,
-      signal,
-    );
-  } catch (error) {
-    if (context.signal.aborted) throw error;
-    // No plan is not no research: the question itself is one lane.
-    questions = [];
-  }
-  // Bounded here, not only asked for: a planner that lists more than it was
-  // asked has still only earned `breadth` lanes.
-  questions = questions.slice(0, breadth);
-  if (!questions.length) questions = [input.question];
+  if (resumedLanes) {
+    // No re-plan: the snapshot already holds the sub-questions. Lanes done
+    // in the interrupted run keep their findings; the rest re-run.
+    questions = resumedLanes.map((lane) => lane.question).slice(0, breadth);
+    publish({
+      status: 'running',
+      lanes: resumedLanes
+        .slice(0, breadth)
+        .map((lane) =>
+          lane.status === 'done' && lane.summary
+            ? { ...lane, status: 'done' as const }
+            : { question: lane.question, status: 'queued' as const, sources: [] },
+        ),
+    });
+  } else {
+    try {
+      questions = await (context.plan ?? ((q, b, s) => defaultPlan(context, q, b, s)))(
+        input.question,
+        breadth,
+        signal,
+      );
+    } catch (error) {
+      if (context.signal.aborted) throw error;
+      // No plan is not no research: the question itself is one lane.
+      questions = [];
+    }
+    // Bounded here, not only asked for: a planner that lists more than it was
+    // asked has still only earned `breadth` lanes.
+    questions = questions.slice(0, breadth);
+    if (!questions.length) questions = [input.question];
 
-  publish({
-    status: 'running',
-    lanes: questions.map((question) => ({ question, status: 'queued', sources: [] })),
-  });
+    publish({
+      status: 'running',
+      lanes: questions.map((question) => ({ question, status: 'queued', sources: [] })),
+    });
+  }
 
   let spent = 0;
   let stop: string | undefined;
   const runOne = async (index: number) => {
+    if (view.lanes[index]?.status === 'done') return;
     if (stop || signal.aborted || spent >= RESEARCH_TOKEN_BUDGET) {
       setLane(index, {
         status: 'skipped',
@@ -281,7 +558,12 @@ export async function deepResearch(
         spent += result.usage.inputTokens + result.usage.outputTokens;
         context.onLaneUsage?.(questions[index], result.usage);
       }
-      setLane(index, { status: 'done', summary: result.summary, sources: result.sources });
+      setLane(index, {
+        status: 'done',
+        summary: result.summary,
+        sources: result.sources.map(toSourceRecord),
+        ...(result.claims ? { claims: result.claims } : {}),
+      });
     } catch (error) {
       if (context.signal.aborted) throw error;
       const rate = isRateLimit(error);
@@ -303,6 +585,23 @@ export async function deepResearch(
     if (context.freeOnly)
       for (let index = 0; index < questions.length; index += 1) await runOne(index);
     else await Promise.all(questions.map((_, index) => runOne(index)));
+  } catch (error) {
+    if (context.signal.aborted) {
+      // The run was cancelled or the client went away: publish the resumable
+      // state before the throw, so the card is honest about where it stands.
+      const lanes = view.lanes.map((lane) =>
+        lane.status === 'done'
+          ? lane
+          : { ...lane, error: lane.error ?? 'Interrupted before it finished.' },
+      );
+      publish({
+        status: 'interrupted',
+        lanes,
+        gaps: lanes.filter((lane) => lane.status !== 'done').map((lane) => lane.question),
+        note: 'Interrupted — resume continues from the lanes already finished.',
+      });
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -315,19 +614,21 @@ export async function deepResearch(
       summary: lane.summary ?? '',
       sources: lane.sources,
     }));
+  const contradictions = detectContradictions(view.lanes, input.question);
   publish({
     status: findings.length ? 'done' : 'failed',
     gaps,
+    contradictions,
     note: stop ?? (clock.signal.aborted ? 'Stopped at the time limit.' : undefined),
   });
-  return { findings, gaps, ...(view.note ? { note: view.note } : {}) };
+  return { findings, gaps, contradictions, ...(view.note ? { note: view.note } : {}) };
 }
 
 export function deepResearchTools(context: DeepResearchContext) {
   return {
     deep_research: tool({
       description:
-        'Investigate a question thoroughly: it is broken into sub-questions, each researched in parallel by its own agent that searches and reads real pages, and the findings come back with the exact URLs each one read. Use for questions that need several sources compared, not for a fact one search would settle. Report the findings with their sources, and name the gaps it reports as unanswered rather than filling them from memory.',
+        'Investigate a question thoroughly: it is broken into sub-questions, each researched in parallel by its own agent that searches and reads real pages, and the findings come back with the exact URLs each one read plus what it extracted from each. Use for questions that need several sources compared, not for a fact one search would settle. Report the findings with their sources, and name the gaps it reports as unanswered rather than filling them from memory. When it returns contradictions, report them as disagreements between sources — shown, never resolved into a single claim. If a previous research run was interrupted, pass its last published research view as resumeFrom: lanes already finished are kept and never re-run, and the rest continue from where they stopped.',
       inputSchema: z.object({
         question: z.string().min(1).max(2000).describe('The question to investigate, in full.'),
         breadth: z
@@ -337,6 +638,11 @@ export function deepResearchTools(context: DeepResearchContext) {
           .max(MAX_BREADTH)
           .optional()
           .describe('How many sub-questions to pursue at most. Fewer is faster.'),
+        resumeFrom: researchViewSchema
+          .optional()
+          .describe(
+            'The last published research view of an interrupted run. Lanes already done are kept; the rest re-run.',
+          ),
       }),
       execute: async (input) => deepResearch(context, input),
     }),

@@ -422,19 +422,36 @@ function ComparisonLane({ view }: { view: CompareView }) {
   );
 }
 
-/** The research fan-out's state, as the tool publishes it. */
-type ResearchView = {
+/** The research fan-out's state, as the tool publishes it. Mirrors
+ * ResearchView in lib/ai/tools/deep-research.ts — data parts cross the
+ * stream as JSON, so this is a structural twin, not an import (the tool
+ * module pulls the AI SDK into the client bundle otherwise). */
+export type ResearchView = {
   status?: string;
   question?: string;
   lanes?: {
     question: string;
     status: string;
     summary?: string;
-    sources?: string[];
+    // Records going forward; plain URL strings in views published before
+    // extraction records existed (old cards in conversation history).
+    sources?: (ResearchSourceRecord | string)[];
     error?: string;
   }[];
   gaps?: string[];
   note?: string;
+  contradictions?: {
+    claim: string;
+    supporting: { lane: string; sources: string[] }[];
+    refuting: { lane: string; sources: string[] }[];
+  }[];
+};
+
+/** One researched source: the page, plus what the lane extracted from it. */
+export type ResearchSourceRecord = {
+  url: string;
+  excerpt?: string;
+  retrievedAt?: string;
 };
 
 const LANE_WORDS: Record<string, string> = {
@@ -445,27 +462,207 @@ const LANE_WORDS: Record<string, string> = {
   skipped: 'Skipped',
 };
 
+type ResearchStageState = 'done' | 'current' | 'pending';
+
+/** Where the research stands: the stages completed and the current one, not
+ * a spinner with no information. Derived from the published status — the
+ * tool's stage machine is planning → running → done/failed/interrupted. */
+function researchStages(status?: string): { label: string; state: ResearchStageState }[] {
+  switch (status) {
+    case 'planning':
+      return [
+        { label: 'Plan', state: 'current' },
+        { label: 'Research', state: 'pending' },
+        { label: 'Report', state: 'pending' },
+      ];
+    case 'running':
+      return [
+        { label: 'Plan', state: 'done' },
+        { label: 'Research', state: 'current' },
+        { label: 'Report', state: 'pending' },
+      ];
+    case 'interrupted':
+      // The report is what is missing: resume to finish it.
+      return [
+        { label: 'Plan', state: 'done' },
+        { label: 'Research', state: 'done' },
+        { label: 'Report', state: 'current' },
+      ];
+    case 'done':
+    case 'failed':
+      return [
+        { label: 'Plan', state: 'done' },
+        { label: 'Research', state: 'done' },
+        { label: 'Report', state: 'done' },
+      ];
+    default:
+      return [
+        { label: 'Plan', state: 'pending' },
+        { label: 'Research', state: 'pending' },
+        { label: 'Report', state: 'pending' },
+      ];
+  }
+}
+
+function ResearchStages({ status }: { status?: string }) {
+  const stages = researchStages(status);
+  return (
+    <ol className="chat-research-stages" aria-label="Research progress">
+      {stages.map((stage) => (
+        <li
+          key={stage.label}
+          className={'chat-research-stage chat-research-stage-' + stage.state}
+          {...(stage.state === 'current' ? { 'aria-current': 'step' } : {})}
+        >
+          <span aria-hidden="true" className="chat-research-stage-mark">
+            {stage.state === 'done' ? '✓' : stage.state === 'current' ? '●' : '○'}
+          </span>
+          <span>{stage.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** One source, inspectable: the link opens the page, and the disclosure
+ * shows what the lane extracted from it. */
+function ResearchSource({ source }: { source: ResearchSourceRecord }) {
+  return (
+    <li className="chat-research-source">
+      <details>
+        <summary className="chat-research-source-trigger">
+          <a href={source.url} target="_blank" rel="noreferrer noopener" dir="auto">
+            {source.url}
+          </a>
+          <span className="chat-research-state">
+            {source.excerpt ? 'extract available' : 'no extract recorded'}
+          </span>
+        </summary>
+        {source.excerpt ? (
+          <>
+            <p className="chat-research-extract-label">What was extracted</p>
+            <p className="chat-research-extract" dir="auto">
+              {source.excerpt}
+            </p>
+            {source.retrievedAt && <p className="chat-research-meta">Read {source.retrievedAt}</p>}
+          </>
+        ) : (
+          <p className="chat-research-note">
+            No extract was recorded for this source — the lane read it before extraction records
+            existed, or the read returned no text.
+          </p>
+        )}
+      </details>
+    </li>
+  );
+}
+
+/** Where sources contradict each other, shown explicitly: the claim, who
+ * says what, and the pages behind each side. Disagreement is displayed,
+ * never resolved — it does not decide which source is correct. */
+function ResearchContradictions({ view }: { view: ResearchView }) {
+  const contradictions = view.contradictions ?? [];
+  if (!contradictions.length) return null;
+  return (
+    <div className="chat-research-conflicts" role="group" aria-label="Source contradictions">
+      <strong className="chat-research-conflicts-title">Sources disagree</strong>
+      {contradictions.map((contradiction, index) => (
+        <details key={index} className="chat-research-conflict">
+          <summary dir="auto">{contradiction.claim}</summary>
+          <div className="chat-research-conflict-sides">
+            <div>
+              <p className="chat-research-conflict-side">Supports</p>
+              <ul>
+                {contradiction.supporting.map((side, at) => (
+                  <li key={at}>
+                    <span dir="auto">{side.lane}</span>
+                    {side.sources.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer noopener" dir="auto">
+                        {url}
+                      </a>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="chat-research-conflict-side">Refutes</p>
+              <ul>
+                {contradiction.refuting.map((side, at) => (
+                  <li key={at}>
+                    <span dir="auto">{side.lane}</span>
+                    {side.sources.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer noopener" dir="auto">
+                        {url}
+                      </a>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </details>
+      ))}
+      <p className="chat-research-note">
+        Disagreement is shown, not resolved: it does not decide which source is correct or turn
+        agreement into a probability.
+      </p>
+    </div>
+  );
+}
+
+/** Whether the card can continue from here: interrupted outright, or failed
+ * with lanes that never finished. Finished lanes are kept either way. */
+function researchResumable(view: ResearchView): boolean {
+  const lanes = view.lanes ?? [];
+  if (view.status === 'interrupted') return lanes.some((lane) => lane.status !== 'done');
+  if (view.status === 'failed') return lanes.some((lane) => lane.status !== 'done');
+  return false;
+}
+
 /** One row per lane, so the reader can watch the fan-out arrive and, when it
  * is done, open each finding with the pages it actually read. Closed rows on
  * a phone, like the working: the answer below is what they came for. */
-function ResearchCard({ view }: { view: ResearchView }) {
-  const lanes = view.lanes ?? [];
+export function ResearchCard({
+  view,
+  onResume,
+}: {
+  view: ResearchView;
+  onResume?: (view: ResearchView) => void;
+}) {
+  // Old published views carry bare URL strings; normalize once so every
+  // source below is a record with an inspectable extract slot.
+  const lanes = (view.lanes ?? []).map((lane) => ({
+    ...lane,
+    sources: (lane.sources ?? []).map((source): ResearchSourceRecord =>
+      typeof source === 'string' ? { url: source } : source,
+    ),
+  }));
   const done = lanes.filter((lane) => lane.status === 'done').length;
   const running = view.status === 'planning' || view.status === 'running';
+  const resumable = researchResumable(view);
+  const interrupted = view.status === 'interrupted';
   return (
     <section className="chat-research" aria-label="Deep research">
       <header>
         <strong>
           {view.status === 'planning'
             ? 'Planning the research…'
-            : `Deep research · ${lanes.length === 1 ? '1 lane' : `${lanes.length} lanes`}`}
+            : interrupted
+              ? 'Research interrupted'
+              : `Deep research · ${lanes.length === 1 ? '1 lane' : `${lanes.length} lanes`}`}
         </strong>
         {lanes.length > 0 && (
           <span className="chat-research-count">
-            {running ? `${done} of ${lanes.length} done` : `${done} of ${lanes.length} answered`}
+            {running
+              ? `${done} of ${lanes.length} done`
+              : interrupted
+                ? `${done} of ${lanes.length} finished`
+                : `${done} of ${lanes.length} answered`}
           </span>
         )}
       </header>
+      <ResearchStages status={view.status} />
       {lanes.length > 0 && (
         <ol>
           {lanes.map((lane, index) => (
@@ -495,12 +692,8 @@ function ResearchCard({ view }: { view: ResearchView }) {
                   <p dir="auto">{lane.summary}</p>
                   {!!lane.sources?.length && (
                     <ul className="chat-research-sources">
-                      {lane.sources.map((url) => (
-                        <li key={url}>
-                          <a href={url} target="_blank" rel="noreferrer noopener">
-                            {url}
-                          </a>
-                        </li>
+                      {lane.sources.map((source) => (
+                        <ResearchSource key={source.url} source={source} />
                       ))}
                     </ul>
                   )}
@@ -509,7 +702,9 @@ function ResearchCard({ view }: { view: ResearchView }) {
                 <span className="chat-research-row">
                   <span dir="auto">{lane.question}</span>
                   <span className="chat-research-state">
-                    {lane.error ?? LANE_WORDS[lane.status] ?? lane.status}
+                    {interrupted && lane.status !== 'done'
+                      ? 'Interrupted'
+                      : (lane.error ?? LANE_WORDS[lane.status] ?? lane.status)}
                   </span>
                 </span>
               )}
@@ -517,13 +712,28 @@ function ResearchCard({ view }: { view: ResearchView }) {
           ))}
         </ol>
       )}
+      <ResearchContradictions view={view} />
       {view.note && <p className="chat-research-note">{view.note}</p>}
-      {!running && !!view.gaps?.length && (
+      {!running && !interrupted && !!view.gaps?.length && (
         <p className="chat-research-note">
           Not answered:{' '}
           {view.gaps.length === 1 ? '1 sub-question' : `${view.gaps.length} sub-questions`}. The
           answer says so rather than filling them in.
         </p>
+      )}
+      {resumable && (
+        <div className="chat-research-resume-row">
+          <p className="chat-research-note">
+            {interrupted
+              ? 'Interrupted before it finished. Resume continues from the lanes already done — nothing re-runs.'
+              : 'Some lanes never finished. Resume retries only those — finished lanes are kept.'}
+          </p>
+          {onResume && (
+            <button type="button" className="chat-research-resume" onClick={() => onResume(view)}>
+              Resume research
+            </button>
+          )}
+        </div>
       )}
     </section>
   );
@@ -824,6 +1034,7 @@ function MessagePartsInner({
   memoryById,
   onJumpToMemory,
   onFollowUpSelect,
+  onResumeResearch,
   queryText,
 }: {
   message: UIMessage;
@@ -877,6 +1088,12 @@ function MessagePartsInner({
   onJumpToMemory?: (memoryId: string) => void;
   /** A follow-up chip fills the composer as an editable draft. */
   onFollowUpSelect?: (suggestion: string) => void;
+  /**
+   * The interrupted research card's Resume button: hands the card's last
+   * published view to the chat container, which restarts the run with it
+   * attached so research continues from the lanes already done.
+   */
+  onResumeResearch?: (view: ResearchView) => void;
   /** The question this answer answers (the nearest preceding user message's
    * text). Research answers restate it as a heading, so the reader sees what
    * was asked without scrolling up. */
@@ -1165,7 +1382,13 @@ function MessagePartsInner({
       return <ComparisonLane key={key} view={(part.data ?? {}) as CompareView} />;
 
     if (part.type === 'data-research')
-      return <ResearchCard key={key} view={(part.data ?? {}) as ResearchView} />;
+      return (
+        <ResearchCard
+          key={key}
+          view={(part.data ?? {}) as ResearchView}
+          onResume={onResumeResearch ? (view) => onResumeResearch(view) : undefined}
+        />
+      );
 
     // Which saved memories the prompt carried. The receipt below the answer
     // reads it; here it would be a line above the answer saying the same.

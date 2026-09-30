@@ -58,6 +58,14 @@ export type RunAgentOptions = {
    */
   deepResearch?: boolean;
   /**
+   * A resume snapshot for this turn's research: the interrupted card's last
+   * published view, handed through the chat request by the UI's Resume. It is
+   * validated inside the tool and used only when its question matches the
+   * question the model actually asks — a stale snapshot cannot hijack a new
+   * question, and a malformed one is ignored.
+   */
+  researchResume?: unknown;
+  /**
    * Search the web this turn: the composer's Search switch. `search_web` and
    * `read_webpage` are offered whatever the conversation's switches say, and
    * the instructions tell the model to search before it answers — a person
@@ -245,6 +253,7 @@ export function createToolDecider(options: RunAgentOptions): {
         signal: options.signal,
         freeOnly: options.provider.freeOnly === true,
         diagnosticSecrets: [options.provider.apiKey ?? ''],
+        resumeFrom: options.researchResume,
         publish: (view: ResearchView) =>
           options.onData?.({ type: 'data-' + RESEARCH_PART_ID, id: RESEARCH_PART_ID, data: view }),
         onLaneUsage: options.onLaneUsage,

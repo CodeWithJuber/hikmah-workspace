@@ -80,7 +80,7 @@ import { VoiceInput } from './voice-controls';
 import { ToolsMenu } from './tools-menu';
 import { ResearchBriefDialog } from '@/components/research/research-brief-dialog';
 import type { PreparedResearchBrief } from '@/lib/client/research-brief';
-import { MessageParts, messageText, type BranchInfo } from './message-parts';
+import { MessageParts, messageText, type BranchInfo, type ResearchView } from './message-parts';
 import type { GrantHandler } from './approval-card';
 import type { WorkspaceFiles } from '@/lib/playground/session';
 import type { FeedbackValue } from '@/lib/chat/feedback-store';
@@ -422,6 +422,13 @@ export function ChatView({
   // Optional help stays selected in this conversation until switched off.
   // Its chips remain visible so additional calls are never an invisible mode.
   const [deepResearch, setDeepResearch] = useState(false);
+  /**
+   * The interrupted card's last published view, stashed by its Resume button.
+   * It rides the next turn's request body as `researchResume`; the tool
+   * validates it and only resumes the matching question. One-shot: cleared
+   * when the turn is sent, so a later turn cannot silently re-attach it.
+   */
+  const [researchResume, setResearchResume] = useState<ResearchView | null>(null);
   // Explicit web search overrides the conversation's general tool switches.
   const [webSearch, setWebSearch] = useState(false);
   // A background research task is a separate conversation.
@@ -543,10 +550,13 @@ export function ChatView({
       ...run,
       compare: compare ? {} : undefined,
       deepResearch,
+      // A resume snapshot stashed by the card's Resume button: the next turn
+      // carries it, the run's tool validates it, then it is cleared.
+      researchResume: researchResume ?? undefined,
       webSearch,
       incognito,
     });
-  }, [transport, run, compare, deepResearch, webSearch, incognito]);
+  }, [transport, run, compare, deepResearch, researchResume, webSearch, incognito]);
 
   // Remember, by hand: your own message is saved as your words; an answer is
   // filed as the model's inference and waits for review. The route names the
@@ -820,6 +830,22 @@ export function ChatView({
   const pickFollowUp = useCallback(
     (suggestion: string) => {
       chooseStarter(suggestion);
+    },
+    [chooseStarter],
+  );
+
+  /**
+   * The interrupted research card's Resume button. The question becomes an
+   * editable draft (never sent on its own), the research switch turns on so
+   * the turn fans out again, and the card's last published view is stashed
+   * for the request body — finished lanes are kept, the rest re-run.
+   */
+  const resumeResearch = useCallback(
+    (view: ResearchView) => {
+      if (view.question) chooseStarter(view.question);
+      setDeepResearch(true);
+      setResearchResume(view);
+      composer.current?.focus();
     },
     [chooseStarter],
   );
@@ -1171,6 +1197,8 @@ export function ChatView({
       setRetried(true);
       setStopState('idle');
       setAttachmentError(null);
+      // A resume snapshot is one-shot: this turn carries it, then it is gone.
+      setResearchResume(null);
 
       // /image and /imagine never reach the agent: they are a media turn,
       // not a chat turn. Not while editing — there the text is the question.
@@ -1402,6 +1430,9 @@ export function ChatView({
                   memoryById={memoryById}
                   onJumpToMemory={jumpToMemory}
                   onFollowUpSelect={failure ? undefined : pickFollowUp}
+                  // An interrupted card's Resume button: stashes its last
+                  // published view and drafts the question again.
+                  onResumeResearch={failure ? undefined : resumeResearch}
                   // The question this answer answers, for the research
                   // heading. Undefined for the first turn and for anything
                   // without a preceding user message.

@@ -362,6 +362,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         enabledTools: parsed.enabledTools,
         compare: parsed.compare,
         deepResearch: parsed.deepResearch,
+        // The interrupted card's last published view, when the UI's Resume
+        // attached it: validated inside the research tool, never stored.
+        researchResume: parsed.researchResume,
         webSearch: parsed.webSearch,
       },
     });
