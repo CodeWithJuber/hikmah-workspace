@@ -1,0 +1,9 @@
+{
+  "name": "local-file-reader",
+  "version": "1.0.0",
+  "description": "Reads a text file inside one explicitly allowed directory and returns its content. Paths that escape the directory, including through symlinks, are refused.",
+  "permissions": ["files:read"],
+  "entrypoint": "local-file-reader",
+  "signature": "tOYRdG5GblCNO6ykBcs0d5ZHb0K4yqqCMjrEAI5SYtUPL1QPAr7vwuU6f2wMrv79CXZnxidxgYLq6klsERDFAA==",
+  "signer": "MCowBQYDK2VwAyEACrbfVnpXP+v0h+6QRgyWw4QXypI0Zr3jbqIlibaxIMI="
+}

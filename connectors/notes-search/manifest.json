@@ -1,0 +1,9 @@
+{
+  "name": "notes-search",
+  "version": "1.0.0",
+  "description": "Searches your workspace notes for a query and returns matching lines with file names and line numbers. Read-only: it never modifies notes.",
+  "permissions": ["notes:read"],
+  "entrypoint": "notes-search",
+  "signature": "1t8zMX/ZovvOZzEzWqa5hjZCKONAqsX9NusSLx3Nnmg3O2Zcv6SWfHswQddBd9gZgBTa7G1TEa8aInGnyAUBDA==",
+  "signer": "MCowBQYDK2VwAyEACrbfVnpXP+v0h+6QRgyWw4QXypI0Zr3jbqIlibaxIMI="
+}
