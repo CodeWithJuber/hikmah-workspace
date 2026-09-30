@@ -685,7 +685,8 @@ export async function deepResearch(
   // never opened, and the read list is the record of what it opened.
   if (context.publishDisagreement) {
     const read = new Set<string>();
-    for (const lane of view.lanes) for (const url of lane.sources) read.add(normLaneUrl(url));
+    for (const lane of view.lanes)
+      for (const source of lane.sources) read.add(normLaneUrl(toSourceRecord(source).url));
     const disagreements: { claim: string; parties: { url: string; says: string }[] }[] = [];
     for (const lane of view.lanes) {
       if (lane.status !== 'done' || !lane.summary) continue;
