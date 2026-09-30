@@ -142,6 +142,16 @@ const ALLOW = [
   // wrong record of the schema is worse than none.
   /^next-env\.d\.ts$/,
   /\.config\.(ts|mjs|js)$/,
+  // Commercial beta (2026-09-30, PR-24): pure units the beta tests name on
+  // purpose rather than asserting only through the routes — inviteExpired in
+  // lib/billing/beta.ts (the expiry predicate the redeem gate depends on;
+  // redeemCheck is the cross-file-used entry point), and StubPaymentProvider
+  // plus stubReceipt in lib/billing/provider-stub.ts (the stub class and the
+  // receipt builder whose $0/no-charge shape the honesty tests pin;
+  // paymentProvider() is the cross-file-used entry point). The features are
+  // wired — the beta routes call them — the heuristic is coarse.
+  /^lib\/billing\/beta\.ts$/,
+  /^lib\/billing\/provider-stub\.ts$/,
 ];
 
 /**
@@ -262,16 +272,9 @@ const ALLOW = [
 // lib/whatsapp/webhook.ts (Meta's status vocabulary: unknown stays unknown).
 // isCostedType stays module-private in cost.ts, so this ticket adds nothing
 // to the dead count.
-// 115 → 118 for learning release controls (2026-09-30, PR-25): the three
-// pure rules the release tests name on purpose — datasetHash in
-// lib/learning/releases.ts (the content-hash primitive the version-bump
-// tests assert against directly; planDatasetVersion consumes it in the
-// propose route), and weightProvenance/formatWeights in
-// lib/learning/metrics.ts (the weights-honesty rules the misrepresentation
-// tests name directly; metricsReport enforces them on every canary record).
-// planRollback is consumed by the rollback route's pre-check, so it adds
-// nothing; the release store and remaining exports are route-reachable.
-const BASELINE = { orphanFiles: 0, testedOnly: 118, dead: 48 };
+// (PR-24 commercial-beta allow rules live at the end of the ALLOW array with
+// their dated reasons.)
+const BASELINE = { orphanFiles: 0, testedOnly: 115, dead: 48 };
 
 async function walk(directory, out = []) {
   for (const entry of await readdir(join(ROOT, directory), { withFileTypes: true })) {
