@@ -225,6 +225,7 @@ test('MemoryAnnotations shows the aha moment for a recently corrected memory', (
     message: message([memoriesPart([{ id: 'a', title: 'Concise summaries', kind: 'preference' }])]),
     memoryById,
     onJump: (id) => seen.push(id),
+    now: NOW,
   });
   assert.match(html, /Your correction from last Friday just paid off/);
   assert.match(html, /Concise summaries/);

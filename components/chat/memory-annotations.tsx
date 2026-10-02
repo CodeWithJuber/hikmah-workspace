@@ -117,6 +117,7 @@ export function MemoryAnnotations({
   message,
   memoryById,
   onJump,
+  now,
 }: {
   /** The assistant message, read for its `data-memories` part. */
   message: { parts?: unknown };
@@ -125,6 +126,8 @@ export function MemoryAnnotations({
   memoryById?: Map<string, MemoryForAha>;
   /** One-click jump to the memory row (opens the Memory tab / screen). */
   onJump?: (memoryId: string) => void;
+  /** "Now" for the recency check; defaults to the current time (tests pin it). */
+  now?: Date;
 }) {
   const used = useMemo(() => extractUsedMemories(message), [message]);
   if (used.length === 0) return null;
@@ -132,7 +135,7 @@ export function MemoryAnnotations({
     <div className="flex flex-col items-start gap-1" aria-label="Memories this answer used">
       {used.map((memory) => {
         const row = memoryById?.get(memory.id);
-        const aha = row ? describeAha(row) : null;
+        const aha = row ? describeAha(row, now) : null;
         if (aha)
           return (
             <AhaMoment
