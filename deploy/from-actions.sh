@@ -41,7 +41,7 @@ remote 'bash /opt/hikmah/incoming/bootstrap.sh'
 remote "install -d -m 700 /opt/hikmah/incoming/$GITHUB_SHA"
 
 copy deploy/compose.yml deploy/Caddyfile deploy/configure.py deploy/release.sh \
-  artifact/image.tar.gz artifact/workbench.tar.gz artifact/image.sha256 "$temporary/config.json" "$destination:/opt/hikmah/incoming/$GITHUB_SHA/"
+  artifact/image.tar.gz artifact/workbench.tar.gz artifact/provenance.json artifact/image.sha256 "$temporary/config.json" "$destination:/opt/hikmah/incoming/$GITHUB_SHA/"
 remote "bash /opt/hikmah/incoming/$GITHUB_SHA/release.sh $GITHUB_SHA"
 for attempt in {1..30}; do
   if curl --fail --silent --show-error --max-time 10 --proto '=https' "https://$HIKMAH_DOMAIN/api/health" > "$temporary/health.json"; then
@@ -57,3 +57,4 @@ PY
 done
 echo 'The container was deployed, but public HTTPS verification failed. Check DNS and ports 80/443.' >&2
 exit 1
+

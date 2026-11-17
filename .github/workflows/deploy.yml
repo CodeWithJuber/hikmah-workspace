@@ -35,8 +35,7 @@ jobs:
     environment: production
     permissions:
       contents: read
-      # actions: read lets this run download the artifact of the workflow_run
-      # that triggered it.
+      # Read the verified manifest on the triggering run.
       actions: read
     env:
       VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -48,7 +47,15 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Download the verified image artifact
+      - name: Verify and restore the durable image pair
+        if: hashFiles('scripts/ci-image-store.sh') != ''
+        env:
+          BUILD_RUN: ${{ github.event.workflow_run.id }}
+          BUILD_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-image-store.sh restore
+      - name: Download the verified image from a pre-migration build
+        if: hashFiles('scripts/ci-image-store.sh') == ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: hikmah-images
@@ -70,7 +77,8 @@ jobs:
           assert head == sha, f'checkout is {head}, not the verified commit {sha}'
           print(f'Provenance confirmed: artifact and checkout are the verified commit {sha}.')
           PY
-      - name: Verify artifact checksums
+      - name: Verify checksums on a pre-migration image pair
+        if: hashFiles('scripts/ci-image-store.sh') == ''
         run: (cd artifact && sha256sum --check image.sha256)
       - name: Prepare SSH client
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends sshpass
