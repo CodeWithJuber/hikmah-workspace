@@ -72,7 +72,9 @@ test('a valid issued invite redeems', () => {
   assert.equal(invite.email, 'ada@example.com', 'emails are normalized on the way in');
   assert.equal(invite.status, 'issued');
   assert.equal(invite.cohort, 'beta-1', 'the default cohort');
-  assert.deepEqual(redeemCheck(invite, {}), { ok: true });
+  // Check at the store's pinned clock, not the wall clock, or the invite
+  // "expires" 30 days after the fixed base date and the test rots.
+  assert.deepEqual(redeemCheck(invite, {}, at(invite.created_at)), { ok: true });
   assert.equal(store.redeemInvite(invite.code, 'user-1'), true);
   assert.equal(store.inviteByCode(invite.code).status, 'redeemed');
 });
@@ -111,12 +113,17 @@ test('a revoked invite does not redeem', () => {
 test('the wrong cohort does not redeem', () => {
   const store = freshDb();
   const invite = store.createInvite({ email: 'a@x.test', invitedBy: 'owner-1', cohort: 'beta-2' });
-  assert.deepEqual(redeemCheck(invite, { cohort: 'beta-1' }), {
+  const now = at(invite.created_at);
+  assert.deepEqual(redeemCheck(invite, { cohort: 'beta-1' }, now), {
     ok: false,
     reason: 'wrong_cohort',
   });
-  assert.deepEqual(redeemCheck(invite, { cohort: 'beta-2' }), { ok: true });
-  assert.deepEqual(redeemCheck(invite, {}), { ok: true }, 'no cohort asked, no cohort checked');
+  assert.deepEqual(redeemCheck(invite, { cohort: 'beta-2' }, now), { ok: true });
+  assert.deepEqual(
+    redeemCheck(invite, {}, now),
+    { ok: true },
+    'no cohort asked, no cohort checked',
+  );
 });
 
 test('an unknown code is not an invite', () => {
