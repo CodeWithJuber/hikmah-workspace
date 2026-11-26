@@ -2,11 +2,8 @@
 
 Branch: `rebuild/v10` · Base: `main` @ 7d331ee9 · Started: 2026-09-27
 
-Full production-ready rebuild of hikmah-workspace. Audits that drove this plan:
-
-- `~/workspace/hikmah-research/audit-backend.md`
-- `~/workspace/hikmah-research/audit-frontend.md`
-- `~/workspace/hikmah-research/audit-research.md`
+Full production-ready rebuild of hikmah-workspace, driven by internal audits of the backend, the
+frontend and the research code. The audits themselves are not part of this repository.
 
 ## Principles
 
