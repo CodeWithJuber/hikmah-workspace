@@ -64,8 +64,6 @@ python3 -m unittest discover -s deploy -p 'test_*.py'
 
 The production smoke test stages the standalone build in an isolated directory, signs in, rejects spoofed identities and cross-origin writes, saves a large conversation, restarts the server, and verifies both the session and saved content. No model provider is called by these tests.
 
-See [validation](docs/selfhost-validation.md) for what was actually run and what remains unverified.
-
 ## Deploy through a new GitHub repository
 
 Use a **new private repository named `hikmah-workspace`**. This project is independent of `hikmah-stack` and does not require changing it. See [deployment instructions](docs/deployment.md) for the exact Actions settings and server setup.
