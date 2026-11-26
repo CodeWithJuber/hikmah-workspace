@@ -1,17 +1,24 @@
 name: Deploy Hikmah
-# The TRUSTED workflow. It only runs when the "Verify and build Hikmah"
-# workflow completes on main, and — critically — GitHub always runs THIS
-# file's definition from the default branch. A PR can edit ci.yml all it
-# wants; it can never touch this job, its `if` guards, or its secrets.
+# The TRUSTED workflow. It runs when the "Verify and build Hikmah" workflow
+# completes on main, or by hand from main, and GitHub always runs THIS file's
+# definition from the default branch. A PR can edit ci.yml all it wants; it
+# can never touch this job, its `if` guards, or its secrets.
 #
-# REQUIRED repo setup (one-time, owner side): create a `production`
+# It runs on a GitHub-hosted runner and reaches the server over SSH with a
+# deploy key only. REQUIRED repo setup (one-time, owner side): a `production`
 # environment in Settings -> Environments with protection rules (required
-# reviewers). Until that exists this job waits for approval that never comes.
+# reviewers) holding the secrets below. docs/deployment.md lists them.
 on:
   workflow_run:
     workflows: ['Verify and build Hikmah']
     types: [completed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'ID of a successful "Verify and build Hikmah" run on main to deploy. Empty: the latest one.'
+        required: false
+        type: string
 permissions:
   contents: read
 # Deploys are serialized: a second main push waits instead of racing the
@@ -21,76 +28,107 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    # Belt and braces on top of the branches: [main] filter: only a
-    # SUCCESSFUL verification run, never a pull_request event, and only when
-    # the operator has switched deploys on.
+    # Only when the operator has switched deploys on, and only for a
+    # SUCCESSFUL verification run of a push to this repository's main (never a
+    # pull_request event, never a fork whose branch happens to be called main),
+    # or for a manual run started from main.
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event != 'pull_request' &&
-      vars.DEPLOY_ENABLED == 'true'
-    # Same self-hosted runner: the deploy lands from the machine it runs on.
-    # DEPLOY_HOST should be the server's own address (SSH to self).
-    runs-on: [self-hosted, hikmah-prod]
-    timeout-minutes: 20
+      vars.DEPLOY_ENABLED == 'true' && (
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event != 'pull_request' &&
+         github.event.workflow_run.head_repository.full_name == github.repository)
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     environment: production
     permissions:
       contents: read
-      # Read the verified manifest on the triggering run.
+      # Read the verified run and download its images.
       actions: read
-    env:
-      VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
+      # Resolve which verification run to deploy and confirm, from GitHub's own
+      # record of it, that it passed on a push or manual run of main here.
+      - name: Find the verified build
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          TRIGGER_RUN: ${{ github.event.workflow_run.id }}
+          TRIGGER_SHA: ${{ github.event.workflow_run.head_sha }}
+          REQUESTED_RUN: ${{ inputs.run_id }}
+        run: |
+          if [ "$EVENT" = workflow_run ]; then
+            run_id=$TRIGGER_RUN
+          elif [ -n "$REQUESTED_RUN" ]; then
+            run_id=$REQUESTED_RUN
+          else
+            run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=20" \
+              --jq '[.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch")][0].id // empty')
+          fi
+          [[ $run_id =~ ^[0-9]+$ ]] || { echo 'No verified build run to deploy.' >&2; exit 1; }
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/run.json"
+          python3 - "$RUNNER_TEMP/run.json" <<'PY'
+          import json, os, re, sys
+          run = json.load(open(sys.argv[1]))
+          repo = os.environ['GITHUB_REPOSITORY']
+          assert run.get('path') == '.github/workflows/ci.yml', f"run {run.get('id')} is not a verification run"
+          assert run.get('conclusion') == 'success', f"run {run.get('id')} did not succeed"
+          assert run.get('head_branch') == 'main', 'the run is not on main'
+          assert run.get('event') in ('push', 'workflow_dispatch'), f"run event {run.get('event')} is not deployable"
+          assert (run.get('head_repository') or {}).get('full_name') == repo, 'the run is not from this repository'
+          sha = run.get('head_sha') or ''
+          assert re.fullmatch(r'[a-f0-9]{40}', sha), 'the run has no full commit SHA'
+          if os.environ['EVENT'] == 'workflow_run':
+              assert sha == os.environ['TRIGGER_SHA'], 'the run record and the trigger disagree on the commit'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"run_id={run['id']}\nsha={sha}\n")
+          print(f"Deploying run {run['id']}, commit {sha}.")
+          PY
       # Pinned to the exact commit the CI run verified — not a re-checkout of
       # the branch tip, which could have moved since verification.
       - name: Check out the exact verified commit
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ steps.build.outputs.sha }}
           persist-credentials: false
-      - name: Verify and restore the durable image pair
-        if: hashFiles('scripts/ci-image-store.sh') != ''
-        env:
-          BUILD_RUN: ${{ github.event.workflow_run.id }}
-          BUILD_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bash scripts/ci-image-store.sh restore
-      - name: Download the verified image from a pre-migration build
-        if: hashFiles('scripts/ci-image-store.sh') == ''
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - name: Download the verified images
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: hikmah-images
           path: artifact/
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.build.outputs.run_id }}
+          github-token: ${{ github.token }}
       # Deploy the exact SHA that passed verification. The artifact carries a
-      # provenance record written by the build job; the checkout is pinned to
-      # the same SHA. All three must agree before any credential is used.
+      # provenance record and checksums written by the build job; the checkout
+      # is pinned to the same SHA. All must agree before any credential is used.
       - name: Confirm the artifact is the verified SHA
+        env:
+          VERIFIED_SHA: ${{ steps.build.outputs.sha }}
+          VERIFIED_RUN: ${{ steps.build.outputs.run_id }}
         run: |
+          (cd artifact && sha256sum --check --strict image.sha256)
           python3 - <<'PY'
           import json, os, re, subprocess
           sha = os.environ.get('VERIFIED_SHA') or ''
           assert re.fullmatch(r'[a-f0-9]{40}', sha), 'VERIFIED_SHA is not a full commit SHA'
           prov = json.load(open('artifact/provenance.json'))
           assert prov.get('sha') == sha, f"provenance SHA {prov.get('sha')} != verified commit {sha}"
+          assert str(prov.get('run_id')) == os.environ['VERIFIED_RUN'], 'provenance names another run'
+          assert prov.get('repository') == os.environ['GITHUB_REPOSITORY'], 'provenance names another repository'
           head = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
           assert head == sha, f'checkout is {head}, not the verified commit {sha}'
           print(f'Provenance confirmed: artifact and checkout are the verified commit {sha}.')
           PY
-      - name: Verify checksums on a pre-migration image pair
-        if: hashFiles('scripts/ci-image-store.sh') == ''
-        run: (cd artifact && sha256sum --check image.sha256)
-      - name: Prepare SSH client
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends sshpass
       - name: Deploy the verified image and check HTTPS
         env:
-          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_SHA: ${{ steps.build.outputs.sha }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER || 'root' }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_SSH_PASSWORD: ${{ secrets.DEPLOY_SSH_PASSWORD }}
           HIKMAH_DOMAIN: ${{ vars.HIKMAH_DOMAIN }}
           HIKMAH_OWNER_EMAIL: ${{ secrets.HIKMAH_OWNER_EMAIL }}
           HIKMAH_SESSION_SECRET: ${{ secrets.HIKMAH_SESSION_SECRET }}

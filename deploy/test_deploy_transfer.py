@@ -1,4 +1,4 @@
-"""Rehearse compute storage and the real deployment transfer, without network/Docker."""
+"""Rehearse the real deployment transfer from the Actions artifact, without network/Docker."""
 import hashlib
 import json
 import os
@@ -19,11 +19,8 @@ root = pathlib.Path(os.environ['TEST_REMOTE'])
 name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 if name == 'curl':
-    if any('/actions/runs/' in arg for arg in args):
-        print(os.environ['TEST_JOBS'])
-    else:
-        assert args[-1] == 'https://fixture.invalid/api/health'
-        print(json.dumps({'status': 'ok', 'revision': os.environ['GITHUB_SHA']}))
+    assert args[-1] == 'https://fixture.invalid/api/health'
+    print(json.dumps({'status': 'ok', 'revision': os.environ['DEPLOY_SHA']}))
 elif name == 'scp':
     paths = []
     i = 0
@@ -47,7 +44,7 @@ elif name == 'ssh':
     elif command == 'bash /opt/hikmah/incoming/bootstrap.sh':
         pass
     else:
-        revision = os.environ['GITHUB_SHA']
+        revision = os.environ['DEPLOY_SHA']
         assert command == f'bash /opt/hikmah/incoming/{revision}/release.sh {revision}'
         release = (root / 'incoming' / revision / 'release.sh').read_text()
         gate = '(cd "$package" && sha256sum --check image.sha256)'
@@ -62,9 +59,9 @@ else:
 '''
 
 
-class ImageStoreTest(unittest.TestCase):
+class DeployTransferTest(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix='hikmah-image-test-')
+        self.temp = tempfile.TemporaryDirectory(prefix='hikmah-deploy-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.workspace = self.root / 'workspace'
@@ -75,13 +72,18 @@ class ImageStoreTest(unittest.TestCase):
             shutil.copy(ROOT / 'deploy' / name, deploy / name)
         for name in ('bootstrap.sh', 'compose.yml', 'Caddyfile'):
             (deploy / name).write_text('test fixture\n')
+        # What the build job of ci.yml uploads as the hikmah-images artifact.
         self.artifact = self.workspace / 'artifact'
         self.artifact.mkdir()
         (self.artifact / 'image.tar.gz').write_bytes(b'main image fixture')
         (self.artifact / 'workbench.tar.gz').write_bytes(b'workbench image fixture')
         (self.artifact / 'provenance.json').write_text(json.dumps({
-            'sha': SHA, 'run_id': '100', 'repository': 'CodeWithJuber/hikmah-workspace',
+            'sha': SHA, 'run_id': '100', 'repository': 'example/hikmah-workspace',
         }))
+        files = ('image.tar.gz', 'workbench.tar.gz', 'provenance.json')
+        (self.artifact / 'image.sha256').write_text(''.join(
+            hashlib.sha256((self.artifact / name).read_bytes()).hexdigest() + '  ' + name + '\n'
+            for name in files))
         tools = self.root / 'bin'
         tools.mkdir()
         for name in ('curl', 'ssh', 'scp'):
@@ -89,66 +91,55 @@ class ImageStoreTest(unittest.TestCase):
             path.write_text(TRANSPORT)
             path.chmod(0o700)
         self.env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'],
-            GITHUB_WORKSPACE=str(self.workspace), XDG_DATA_HOME=str(self.root / 'data'),
-            GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='2', GITHUB_OUTPUT=str(self.root / 'output'),
-            GITHUB_SHA=SHA, BUILD_RUN='100', BUILD_ATTEMPT='2', GITHUB_TOKEN='test-fixture',
-            GITHUB_API_URL='https://api.invalid', GITHUB_REPOSITORY='CodeWithJuber/hikmah-workspace',
-            TEST_REMOTE=str(self.root / 'remote'), DEPLOY_HOST='fixture.invalid', DEPLOY_USER='root',
-            DEPLOY_KNOWN_HOSTS='fixture.invalid test-fixture', DEPLOY_SSH_KEY='test-fixture',
-            HIKMAH_DOMAIN='fixture.invalid', HIKMAH_OWNER_EMAIL='owner@fixture.invalid',
-            HIKMAH_SESSION_SECRET='a' * 64, HIKMAH_OWNER_PASSWORD='')
+            DEPLOY_SHA=SHA, TEST_REMOTE=str(self.root / 'remote'), DEPLOY_HOST='fixture.invalid',
+            DEPLOY_USER='root', DEPLOY_KNOWN_HOSTS='fixture.invalid test-fixture',
+            DEPLOY_SSH_KEY='test-fixture', HIKMAH_DOMAIN='fixture.invalid',
+            HIKMAH_OWNER_EMAIL='owner@fixture.invalid', HIKMAH_SESSION_SECRET='a' * 64,
+            HIKMAH_OWNER_PASSWORD='')
+        self.env.pop('DEPLOY_SSH_PASSWORD', None)
 
-    def command(self, script, *args, check=True):
-        result = subprocess.run(['bash', str(script), *args], cwd=self.workspace,
-            env=self.env, text=True, capture_output=True)
+    def deploy(self, check=True):
+        result = subprocess.run(['bash', str(self.workspace / 'deploy' / 'from-actions.sh')],
+            cwd=self.workspace, env=self.env, text=True, capture_output=True)
         if check:
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
 
-    def save(self):
-        self.command(ROOT / 'scripts' / 'ci-image-store.sh', 'save')
-        digest = (self.root / 'output').read_text().strip().split('=', 1)[1]
-        self.env['TEST_JOBS'] = json.dumps({'jobs': [{
-            'name': 'Verified image manifest ' + digest, 'conclusion': 'success',
-        }]})
-        self.artifact.rmdir()
-        return self.root / 'data' / 'hikmah-ci' / 'images' / '100-2'
-
-    def test_store_restore_and_actual_deployment_transfer(self):
-        self.save()
-        self.command(ROOT / 'scripts' / 'ci-image-store.sh', 'restore')
-        self.command(self.workspace / 'deploy' / 'from-actions.sh')
+    def test_verified_artifact_passes_the_server_checksum_gate(self):
+        self.deploy()
         remote = self.root / 'remote'
         self.assertTrue((remote / 'checksum-gate-passed').exists())
         self.assertEqual((remote / 'incoming' / SHA / 'provenance.json').read_bytes(),
             (self.artifact / 'provenance.json').read_bytes())
 
-    def test_modified_image_is_rejected(self):
-        saved = self.save()
-        (saved / 'image.tar.gz').write_bytes(b'changed image')
-        result = self.command(ROOT / 'scripts' / 'ci-image-store.sh', 'restore', check=False)
+    def test_modified_image_is_rejected_on_the_server(self):
+        (self.artifact / 'image.tar.gz').write_bytes(b'changed image')
+        result = self.deploy(check=False)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('image.tar.gz: FAILED', result.stdout)
+        self.assertIn('image.tar.gz: FAILED', result.stdout + result.stderr)
+        self.assertFalse((self.root / 'remote' / 'checksum-gate-passed').exists())
 
-    def test_wrong_or_unsuccessful_github_manifest_is_rejected(self):
-        self.save()
-        good = json.loads(self.env['TEST_JOBS'])['jobs'][0]
-        for jobs in ([{'name': 'Verified image manifest ' + '0' * 64, 'conclusion': 'success'}],
-                [dict(good, conclusion='failure')], [good, good]):
-            with self.subTest(jobs=jobs):
-                self.env['TEST_JOBS'] = json.dumps({'jobs': jobs})
-                result = self.command(ROOT / 'scripts' / 'ci-image-store.sh', 'restore', check=False)
+    def test_password_login_is_not_offered(self):
+        del self.env['DEPLOY_SSH_KEY']
+        self.env['DEPLOY_SSH_PASSWORD'] = 'not-used'
+        result = self.deploy(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Missing Actions setting: DEPLOY_SSH_KEY', result.stderr)
+        self.assertFalse((self.root / 'remote').exists(), 'nothing may reach the server')
+
+    def test_loopback_host_is_refused(self):
+        for host in ('localhost', '127.0.0.1', 'app.localhost', '0.0.0.0'):
+            with self.subTest(host=host):
+                self.env['DEPLOY_HOST'] = host
+                result = self.deploy(check=False)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('did not record this image manifest', result.stderr)
-                shutil.rmtree(self.artifact)
+                self.assertIn('not a loopback address', result.stderr)
 
-    def test_pre_migration_manifest_still_deploys(self):
-        files = ('image.tar.gz', 'workbench.tar.gz')
-        (self.artifact / 'image.sha256').write_text(''.join(
-            hashlib.sha256((self.artifact / name).read_bytes()).hexdigest() + '  ' + name + '\n'
-            for name in files))
-        self.command(self.workspace / 'deploy' / 'from-actions.sh')
-        self.assertTrue((self.root / 'remote' / 'checksum-gate-passed').exists())
+    def test_partial_commit_sha_is_refused(self):
+        self.env['DEPLOY_SHA'] = SHA[:12]
+        result = self.deploy(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('DEPLOY_SHA', result.stderr)
 
 
 if __name__ == '__main__':

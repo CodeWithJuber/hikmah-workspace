@@ -1,27 +1,18 @@
 # GitHub Actions → your server
 
-This project includes a single-server deployment workflow for https://github.com/CodeWithJuber/hikmah-workspace. A successful verification job does not by itself mean the server has been deployed: the deployment job also requires the settings below, a reachable SSH host, and a working HTTPS hostname.
+This project includes a single-server deployment workflow. A successful verification run does not by itself mean the server has been deployed: the deployment job also requires the settings below, an SSH host reachable from GitHub-hosted runners, and a working HTTPS hostname.
 
-## 1. Create the new repository
+## 1. Use your own repository
 
-The private `CodeWithJuber/hikmah-workspace` repository has been created and is accessible to the GitHub connection. Keep this project separate from `hikmah-stack`. For a separate installation, create your own private repository, initialize it with a README, and grant your GitHub connection access. Configure Actions secrets and variables through a GitHub interface or API with the required repository permissions.
+To deploy your own installation, fork [CodeWithJuber/hikmah-workspace](https://github.com/CodeWithJuber/hikmah-workspace) or push a copy to a repository you control. The workflows run on standard GitHub-hosted runners. The deployment secrets live only in that repository's protected `production` environment, never in the code.
 
-If using an authenticated local GitHub CLI instead, from this source directory:
-
-```bash
-git init -b main
-git add .
-git commit -m "Ship Hikmah Workspace v9.1 self-hosted release"
-gh repo create hikmah-workspace --private --source . --remote origin --push
-```
-
-Do not run the creation command inside an unrelated repository. The workflow must be allowed by the account's Actions policy; workflow-file uploads may require the corresponding GitHub permission.
+Keep this project separate from `hikmah-stack`. The workflows must be allowed by the account's Actions policy; workflow-file uploads may require the corresponding GitHub permission.
 
 ## 2. Server requirements
 
 - Dedicated x86_64 Ubuntu 22.04/24.04 or Debian 12/13 host, root SSH access, at least 3 GiB RAM and sufficient disk for images and backups; 10 GiB free is a practical initial target.
 - A DNS hostname with its A record pointing to the server. If an AAAA record exists, IPv6 must also reach this server.
-- Inbound SSH for the runner, and public TCP ports 80 and 443 for HTTPS. No database or app port is published directly.
+- Inbound SSH from GitHub-hosted runners, and public TCP ports 80 and 443 for HTTPS. No database or app port is published directly. GitHub-hosted runners use changing addresses from GitHub's published ranges (`https://api.github.com/meta`, the `actions` list), so the SSH port is in practice open to the internet: allow public-key login only, disable password login, and consider a non-default port and rate limiting.
 - Outbound access to GitHub, package registries, certificate services and the chosen AI/web providers.
 
 The 3 GiB minimum comes from the four services and their configured limits. The
@@ -44,35 +35,36 @@ Keep an existing application on ports 80/443 until its migration has been planne
 
 ## 3. Configure Actions
 
-Add these repository settings. Create a GitHub environment named `production` with protection rules (required reviewers) — the deploy workflow only runs behind that environment. Put credentials in **Secrets** (repository level, or inside the `production` environment), never in workflow files or issue bodies.
+Add these repository settings. Create a GitHub environment named `production` with protection rules (required reviewers, and deployment branches limited to `main`) — the deploy workflow only runs behind that environment. Put credentials in **Secrets** of the `production` environment, never in repository-level secrets, workflow files or issue bodies.
 
-| Name                    | Type                | Value                                                                                          |
-| ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
-| `DEPLOY_ENABLED`        | Repository variable | `true` when the server settings are ready; otherwise only verification runs                    |
-| `HIKMAH_DOMAIN`         | Variable            | Your DNS hostname, without `https://` or a path                                                |
-| `DEPLOY_USER`           | Variable            | `root` for this bootstrap flow                                                                 |
-| `DEPLOY_PORT`           | Variable            | `22`, or your configured SSH port                                                              |
-| `DEPLOY_HOST`           | Secret              | Your deployment server IP or hostname                                                          |
-| `DEPLOY_KNOWN_HOSTS`    | Secret              | Verified SSH host-key entry for this host and port                                             |
-| `DEPLOY_SSH_KEY`        | Secret              | A deployment private key whose public key is authorized on the server; preferred               |
-| `DEPLOY_SSH_PASSWORD`   | Secret              | Password alternative if key authentication is not yet configured; leave unset when using a key |
-| `HIKMAH_OWNER_EMAIL`    | Secret              | Email used to create the owner account                                                         |
-| `HIKMAH_OWNER_PASSWORD` | Secret              | New app password, 12–128 characters, for the first deployment                                  |
-| `HIKMAH_SESSION_SECRET` | Secret              | Output of `openssl rand -hex 32`; keep stable across normal deployments                        |
+| Name                    | Type                | Value                                                                                            |
+| ----------------------- | ------------------- | ------------------------------------------------------------------------------------------------ |
+| `DEPLOY_ENABLED`        | Repository variable | `true` when the server settings are ready; otherwise only verification runs                      |
+| `HIKMAH_DOMAIN`         | Variable            | Your DNS hostname, without `https://` or a path                                                  |
+| `DEPLOY_USER`           | Variable            | `root` for this bootstrap flow                                                                   |
+| `DEPLOY_PORT`           | Variable            | `22`, or your configured SSH port                                                                |
+| `DEPLOY_HOST`           | Secret              | The server's public IP or hostname; never a loopback address, since the runner is not the server |
+| `DEPLOY_KNOWN_HOSTS`    | Secret              | Verified SSH host-key entry for this host and port                                               |
+| `DEPLOY_SSH_KEY`        | Secret              | A dedicated deployment private key whose public key is authorized on the server; required        |
+| `HIKMAH_OWNER_EMAIL`    | Secret              | Email used to create the owner account                                                           |
+| `HIKMAH_OWNER_PASSWORD` | Secret              | New app password, 12–128 characters, for the first deployment                                    |
+| `HIKMAH_SESSION_SECRET` | Secret              | Output of `openssl rand -hex 32`; keep stable across normal deployments                          |
 
 Verify the host fingerprint through your server console or a previously trusted SSH connection before accepting its known-host entry. A fresh `ssh-keyscan` result by itself does not authenticate the server. The workflow enforces strict host-key verification.
 
-The app's owner password is independent of the server's SSH password. The bootstrap password is removed from the server after account creation; remove `HIKMAH_OWNER_PASSWORD` from Actions after a successful first deployment. Normal restarts and updates do not need it. Changing the configured owner email is deliberately blocked on an existing deployment; the stored owner identity must be transferred explicitly.
+Password SSH login is not supported: the deploy script disables it and refuses to run without `DEPLOY_SSH_KEY`. Generate a key pair for deployment only (`ssh-keygen -t ed25519 -N '' -f hikmah-deploy -C hikmah-deploy`), add the public key to the deploy user's `authorized_keys`, and store the private key as `DEPLOY_SSH_KEY`.
+
+The app's owner password is independent of the server's login. The bootstrap password is removed from the server after account creation; remove `HIKMAH_OWNER_PASSWORD` from Actions after a successful first deployment. Normal restarts and updates do not need it. Changing the configured owner email is deliberately blocked on an existing deployment; the stored owner identity must be transferred explicitly.
 
 ## 4. Run and verify
 
-Push to `main`, or run **Verify and build Hikmah** from Actions. When verification passes on `main`, the separate **Deploy Hikmah** workflow deploys the exact verified commit — its workflow definition always comes from `main` (never from PR code), it is serialized by a concurrency group, and it confirms the artifact's provenance SHA before using any credential. Pull requests get verification without deployment credentials.
+Push to `main`, or run **Verify and build Hikmah** from Actions. When verification passes on `main`, the separate **Deploy Hikmah** workflow deploys the exact verified commit — its workflow definition always comes from `main` (never from PR code), it is serialized by a concurrency group, and it confirms the images' checksums and provenance SHA before using any credential. Pull requests get verification without deployment credentials. To redeploy, run **Deploy Hikmah** by hand from `main`; it takes the latest successful verification run of `main`, or the run ID you give it, as long as that run's images are still kept (one day).
 
 1. Install locked dependencies and run app, storage, auth, runtime and configuration tests.
 2. Audit production dependencies; high/critical advisories fail the gate.
 3. Build an image tagged with the full commit SHA.
 4. Start that image with restricted permissions, authenticate, save a large conversation, restart, and verify saved data and the session.
-5. Upload the verified image artifact, checksum and deployment files over SSH.
+5. Keep the verified images, their checksums and a provenance record as a one-day workflow artifact; the deploy workflow downloads exactly that artifact and uploads it with the deployment files over SSH.
 6. Back up an existing installation while the app is stopped, start the new image under the running Caddy, check its health/revision, then reload Caddy's configuration.
 7. Verify the same revision at the public HTTPS `/api/health` endpoint.
 

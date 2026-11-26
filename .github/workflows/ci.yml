@@ -84,9 +84,9 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with: { node-version: '24', package-manager-cache: false }
       - run: npm ci --ignore-scripts
-      # Check the exact compute-store/SSH/release handoff even when an unrelated
+      # Check the exact artifact/SSH/release handoff even when an unrelated
       # application test later fails. The rehearsal uses only temporary files.
-      - run: python3 -m unittest discover -s deploy -p 'test_image_store.py'
+      - run: python3 -m unittest discover -s deploy -p 'test_deploy_transfer.py'
       # PR fast path: smart test selection.
       # scripts/smart-test-select.mjs tiers the change (cosmetic/low/medium/high)
       # using deterministic signals first, then optional forge impact / LLM /
@@ -122,7 +122,7 @@ jobs:
         run: npm test
       - run: python3 -m unittest discover -s public/runtime -p 'test_*.py'
       - run: python3 -m unittest discover -s deploy -p 'test_*.py'
-      - run: bash -n deploy/bootstrap.sh deploy/release.sh deploy/from-actions.sh scripts/ci-image-store.sh scripts/smoke-container.sh scripts/smoke-workbench.sh
+      - run: bash -n deploy/bootstrap.sh deploy/release.sh deploy/from-actions.sh scripts/smoke-container.sh scripts/smoke-workbench.sh
       # The workbench is a separate package with its own dependencies, so it is
       # verified separately. A broken sidecar means no terminal and no SSH.
       - run: npm ci --ignore-scripts
@@ -149,8 +149,6 @@ jobs:
   # Build + container verification. Needs both checks and tests green.
   # The two docker builds run in parallel via shell background jobs.
   build:
-    outputs:
-      manifest: ${{ steps.store.outputs.manifest }}
     needs: [checks, tests]
     runs-on: [self-hosted, hikmah-prod]
     timeout-minutes: 20
@@ -191,9 +189,11 @@ jobs:
         env:
           SMOKE_REVISION: ${{ github.sha }}
       # The deploy workflow (deploy.yml) is only allowed to deploy this exact
-      # commit, so the verified SHA travels with the artifact it verified.
-      # deploy.yml confirms provenance.json before touching any credential.
-      - name: Package the verified image
+      # commit, so the verified SHA travels with the images it verified, with
+      # their checksums. deploy.yml confirms provenance.json and the checksums
+      # before touching any credential. Only main runs with deploys switched on
+      # keep the images, and only for a day.
+      - name: Package the verified images
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
         run: |
           mkdir artifact
@@ -201,19 +201,13 @@ jobs:
           docker save "hikmah-workbench:$GITHUB_SHA" | gzip -1 > artifact/workbench.tar.gz
           cd artifact
           python3 -c "import json,os; json.dump({'sha': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'], 'repository': os.environ['GITHUB_REPOSITORY']}, open('provenance.json','w'))"
-      - name: Keep the verified images on compute for seven days
+          sha256sum image.tar.gz workbench.tar.gz provenance.json > image.sha256
+      - name: Keep the verified images for the deploy workflow
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
-        id: store
-        run: bash scripts/ci-image-store.sh save
-
-  image-receipt:
-    needs: build
-    if: needs.build.outputs.manifest != ''
-    name: Verified image manifest ${{ needs.build.outputs.manifest }}
-    runs-on: [self-hosted, hikmah-prod]
-    permissions: {}
-    steps:
-      - name: Record the manifest for the deployment
-        env:
-          MANIFEST: ${{ needs.build.outputs.manifest }}
-        run: '[[ "$MANIFEST" =~ ^[0-9a-f]{64}$ ]]'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hikmah-images
+          path: artifact/
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
