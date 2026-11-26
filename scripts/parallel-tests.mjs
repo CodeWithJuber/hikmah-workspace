@@ -2,9 +2,9 @@
 /**
  * Run test files in parallel shards on this machine.
  *
- * Why: the self-hosted runner is a single machine, so GitHub-level parallel
- * jobs just queue up. But the machine has multiple CPU cores — shard the test
- * files across parallel `node --test` processes instead.
+ * Why: one machine runs the test files one after another, but it has
+ * multiple CPU cores — shard the test files across parallel `node --test`
+ * processes instead.
  *
  * Usage:
  *   node scripts/parallel-tests.mjs [test-file ...]

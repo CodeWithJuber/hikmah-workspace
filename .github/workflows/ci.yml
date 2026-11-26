@@ -5,6 +5,11 @@ name: Verify and build Hikmah
 # scripts/check-workflow-isolation.mjs, which runs in the `checks` job below.
 # Deployment lives in deploy.yml, which only ever runs this workflow's
 # definition from the default branch.
+#
+# Every job runs on a standard GitHub-hosted runner. A public repository must
+# never use a self-hosted runner: a pull request from anyone could run code on
+# that machine. The same script fails the build on a self-hosted or larger
+# runner.
 on:
   push:
     branches: [main]
@@ -14,27 +19,34 @@ permissions:
   contents: read
 concurrency:
   group: hikmah-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer push to a pull request supersedes the older run; runs on main
+  # always finish, because deploy.yml acts on them.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   auto-format:
-    # Permanent fix for repeated `format:check` failures: on every PR from this
-    # repo, prettier auto-fixes the branch and pushes the fix back, so a
-    # formatting slip can never block the pipeline again. Self-terminating:
-    # the follow-up run finds a clean tree and pushes nothing, so there is no
-    # push loop. The strict `format:check` in `verify` stays as the backstop.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, hikmah-prod]
+    # On a pull request from a branch of THIS repository (never a fork, never
+    # Dependabot, whose token is read-only), prettier fixes the branch and
+    # pushes the fix back. The strict `format:check` in `checks` stays as the
+    # backstop: a push made with GITHUB_TOKEN does not start a new run, so push
+    # an empty commit or re-run the checks to verify the fixed tree.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with: { node-version: '24', package-manager-cache: false }
       - run: npm ci --ignore-scripts
       - name: Auto-fix formatting with prettier
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           npx prettier --write .
           if ! git diff --quiet; then
@@ -42,26 +54,26 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A
             git commit -m "style: auto-format with prettier"
-            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
-            echo "Pushed formatting fixes; a fresh run will verify the fixed tree."
+            git push origin "HEAD:${HEAD_REF}"
+            echo "Pushed formatting fixes."
           else
             echo "Formatting already clean."
           fi
-  # Fast static checks: format, lint, design tokens, reachability. Fails fast
-  # so a style slip never waits for the full test suite.
+  # Fast static checks: workflow rules, format, lint, design tokens,
+  # reachability, types. Fails fast so a style slip never waits for the suite.
   checks:
-    runs-on: [self-hosted, hikmah-prod]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with: { persist-credentials: false }
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with: { node-version: '24', package-manager-cache: false }
       - run: npm ci --ignore-scripts
-      # CI isolation gate (PR-05): asserts the deploy trust boundary in the
-      # workflow files themselves — no production secrets in this untrusted
-      # workflow, deploy.yml pinned to the verified SHA behind the protected
-      # production environment.
+      # Workflow gate: no production secrets in this untrusted workflow,
+      # deploy.yml pinned to the verified SHA behind the protected production
+      # environment, every action pinned to a commit, only standard
+      # GitHub-hosted runners, and no pull_request_target checkout of PR code.
       - run: node scripts/check-workflow-isolation.mjs
       - run: npm run format:check
       - run: npm run lint
@@ -73,15 +85,72 @@ jobs:
       - run: npm run lint:reach
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high
+  # Every file must state its licence (REUSE.toml, LICENSES/).
+  licensing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with: { persist-credentials: false }
+      - uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+  # Secret scanning with gitleaks: the commits a pull request adds, the
+  # commits a push adds, or the whole history on a manual run.
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with: { persist-credentials: false, fetch-depth: 0 }
+      - name: Install gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --proto '=https' \
+            --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan for secrets
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) range="$PR_BASE..$PR_HEAD" ;;
+            push)
+              if [[ $PUSH_BEFORE =~ ^0+$ ]] || ! git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+                range=HEAD
+              else
+                range="$PUSH_BEFORE..$GITHUB_SHA"
+              fi ;;
+            *) range=HEAD ;;
+          esac
+          echo "Scanning $range"
+          "$RUNNER_TEMP/gitleaks" git --no-banner --redact --config .gitleaks.toml --log-opts="$range" .
+  # Licence and vulnerability review of the dependencies a pull request adds.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with: { persist-credentials: false }
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high
   # Unit + integration tests. Runs in parallel with `checks`; both must pass
   # before the build starts.
   tests:
-    runs-on: [self-hosted, hikmah-prod]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with: { persist-credentials: false }
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with: { node-version: '24', package-manager-cache: false }
       - run: npm ci --ignore-scripts
       # Check the exact artifact/SSH/release handoff even when an unrelated
@@ -95,9 +164,11 @@ jobs:
       - name: Smart test selection
         id: smart
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=100 2>/dev/null || true
-          SEL=$(node scripts/smart-test-select.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '{"tier":"high","tests":[]}')
+          git fetch origin "$BASE_REF" --depth=100 2>/dev/null || true
+          SEL=$(node scripts/smart-test-select.mjs --from-git "origin/$BASE_REF" 2>/dev/null || echo '{"tier":"high","tests":[]}')
           echo "$SEL" | python3 -c "import json,sys; d=json.load(sys.stdin); print('tier='+d.get('tier','high')); print('reason='+d.get('reason',''))"
           TIER=$(echo "$SEL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tier','high'))")
           TESTS=$(echo "$SEL" | python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('tests',[])))")
@@ -106,11 +177,13 @@ jobs:
           echo "Tier: ${TIER}"
       - name: Run selected tests (PR fast path)
         if: github.event_name == 'pull_request' && steps.smart.outputs.tier != 'high' && steps.smart.outputs.tier != 'cosmetic'
+        env:
+          TESTS: ${{ steps.smart.outputs.tests }}
+          TIER: ${{ steps.smart.outputs.tier }}
         run: |
-          TESTS='${{ steps.smart.outputs.tests }}'
           MAIN=$(echo "$TESTS" | python3 -c 'import json,sys; print(" ".join(t for t in json.load(sys.stdin) if t.startswith("tests/")))')
           if [ -n "$MAIN" ]; then
-            echo "Running selected main tests (tier=${{ steps.smart.outputs.tier }}): $MAIN"
+            echo "Running selected main tests (tier=$TIER): $MAIN"
             node --test $MAIN
           else
             echo "No selected main tests."
@@ -129,9 +202,12 @@ jobs:
         working-directory: workbench
       - name: Run workbench tests (selected on PR, full on main)
         working-directory: workbench
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            SEL=$(node ../scripts/smart-test-select.mjs --from-git "origin/${{ github.base_ref }}" 2>/dev/null || echo '{"tier":"high","tests":[]}')
+          if [ "$EVENT" = "pull_request" ]; then
+            SEL=$(node ../scripts/smart-test-select.mjs --from-git "origin/$BASE_REF" 2>/dev/null || echo '{"tier":"high","tests":[]}')
             TIER=$(echo "$SEL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tier','high'))")
             if [ "$TIER" = "high" ] || [ "$TIER" = "cosmetic" ]; then
               echo "Tier ${TIER}: running full workbench suite."
@@ -150,12 +226,12 @@ jobs:
   # The two docker builds run in parallel via shell background jobs.
   build:
     needs: [checks, tests]
-    runs-on: [self-hosted, hikmah-prod]
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with: { persist-credentials: false }
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with: { node-version: '24', package-manager-cache: false }
       - run: npm ci --ignore-scripts
       # A Caddyfile that fails to parse takes the whole site down, and the error
@@ -166,7 +242,7 @@ jobs:
       - run: docker run --rm -e HIKMAH_DOMAIN=hikmah.invalid -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
       # Stages the standalone build in an isolated directory, signs in, rejects
       # spoofed identities and cross-origin writes, restarts the process and
-      # re-reads the saved session. It existed but was never wired into CI.
+      # re-reads the saved session.
       - run: npm run build && npm run test:production
       - name: Build immutable images (parallel)
         run: |
@@ -181,13 +257,11 @@ jobs:
         run: |
           bash scripts/smoke-workbench.sh "hikmah-workbench:$GITHUB_SHA" &
           PID1=$!
-          SMOKE_REVISION="${{ github.sha }}" bash scripts/smoke-container.sh "hikmah-workspace:$GITHUB_SHA" &
+          SMOKE_REVISION="$GITHUB_SHA" bash scripts/smoke-container.sh "hikmah-workspace:$GITHUB_SHA" &
           PID2=$!
           wait $PID1 || { echo "workbench smoke failed"; exit 1; }
           wait $PID2 || { echo "container smoke failed"; exit 1; }
           echo "Both smoke tests passed."
-        env:
-          SMOKE_REVISION: ${{ github.sha }}
       # The deploy workflow (deploy.yml) is only allowed to deploy this exact
       # commit, so the verified SHA travels with the images it verified, with
       # their checksums. deploy.yml confirms provenance.json and the checksums

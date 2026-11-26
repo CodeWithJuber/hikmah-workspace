@@ -1,0 +1,11 @@
+# gitleaks configuration for CI (.github/workflows/ci.yml, job "secrets").
+# The default rules apply; the allowlist below only covers known false
+# positives.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "SHA-256 digests of research source files, recorded as provenance; not credentials"
+regexTarget = "line"
+regexes = ['''"sha256_[a-z_]+":\s*"[0-9a-f]{64}"''']

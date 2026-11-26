@@ -10,6 +10,13 @@
 //     protected `production` environment, and it deploys the exact SHA that
 //     ci.yml verified (provenance record + pinned checkout ref).
 //
+// Public-repository rules, for every workflow:
+//   - Jobs run on standard GitHub-hosted runners only. A self-hosted runner
+//     would run code from anyone's pull request on that machine, and larger
+//     runners are billed even for public repositories.
+//   - A pull_request_target workflow runs with a write token and secrets, so
+//     it must never check out or fetch the pull request's code.
+//
 // Usage: node scripts/check-workflow-isolation.mjs [--dir .github/workflows]
 // Exits 0 when every assertion holds, 1 with the violations printed otherwise.
 //
@@ -29,6 +36,15 @@ const PR_EVENTS = new Set(['pull_request', 'pull_request_target']);
 // GITHUB_TOKEN is minted per run and is not a production credential.
 const SECRET_RE = /\$\{\{\s*secrets\.([A-Za-z0-9_]+)/g;
 const PINNED_ACTION_RE = /^[^\s@]+@[0-9a-f]{40}$/;
+// Standard GitHub-hosted runner labels: free for public repositories. Anything
+// else (self-hosted labels, larger runners, runner groups, expressions) fails.
+const STANDARD_RUNNER_RE =
+  /^(ubuntu-(latest|24\.04|22\.04)(-arm)?|windows-(latest|2025|2022)|macos-(latest|15|14))$/;
+// Ways a workflow can reach the pull request's own code.
+const PR_CODE_RE =
+  /github\.event\.pull_request\.head\.|github\.head_ref|refs\/pull\/|gh pr checkout|github\.event\.pull_request\.merge_commit_sha/;
+// The workflow that builds the images deploy.yml ships.
+const BUILD_WORKFLOW = 'ci.yml';
 
 // js-yaml parses the bare key `on` as boolean true (YAML 1.1).
 const triggersOf = (doc) => doc['on'] ?? doc[true];
@@ -74,6 +90,16 @@ const checkoutSteps = (job) => {
   return steps;
 };
 
+const runSteps = (job) => (job.steps ?? []).filter((step) => typeof step?.run === 'string');
+
+/** Why a job's runner is not allowed in a public repository, or null. */
+const runnerProblem = (job) => {
+  if (typeof job.uses === 'string') return null; // reusable workflow: its own jobs are checked
+  const runsOn = job['runs-on'];
+  if (typeof runsOn === 'string' && STANDARD_RUNNER_RE.test(runsOn)) return null;
+  return `runs-on ${JSON.stringify(runsOn)} is not a standard GitHub-hosted runner (self-hosted and larger runners are not allowed)`;
+};
+
 /**
  * Parse every workflow file in dir and assert the CI/deploy trust boundary.
  * Returns an array of violation messages (empty = all green).
@@ -110,6 +136,30 @@ export function checkWorkflows(dir = DEFAULT_DIR) {
     for (const uses of collectUses(doc, [])) {
       if (!PINNED_ACTION_RE.test(uses) && !uses.startsWith('./') && !uses.startsWith('docker://')) {
         fail(file, `unpinned action reference: ${uses}`);
+      }
+    }
+
+    for (const [jobId, job] of Object.entries(jobs)) {
+      const problem = runnerProblem(job);
+      if (problem) fail(file, `job '${jobId}' ${problem}`);
+      if (events.includes('pull_request_target')) {
+        for (const step of checkoutSteps(job)) {
+          const target = JSON.stringify([step.with?.ref ?? '', step.with?.repository ?? '']);
+          if (PR_CODE_RE.test(target)) {
+            fail(
+              file,
+              `job '${jobId}' checks out pull request code in a pull_request_target workflow`,
+            );
+          }
+        }
+        for (const step of runSteps(job)) {
+          if (PR_CODE_RE.test(step.run)) {
+            fail(
+              file,
+              `job '${jobId}' fetches pull request code in a pull_request_target workflow`,
+            );
+          }
+        }
       }
     }
 
@@ -180,7 +230,7 @@ export function checkWorkflows(dir = DEFAULT_DIR) {
           `production secrets referenced in the untrusted CI workflow: ${[...stray].join(', ')}`,
         );
       }
-      if (!text.includes('provenance.json')) {
+      if (file === BUILD_WORKFLOW && !text.includes('provenance.json')) {
         fail(
           file,
           'CI workflow does not record artifact provenance (provenance.json) for the deploy step to confirm',
