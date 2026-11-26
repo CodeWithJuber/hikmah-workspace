@@ -1,0 +1,78 @@
+version = 1
+
+# Everything not listed below is the project's own work.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Juber Shaikh (Hostlelo)"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+# shadcn/ui: the Tailwind 4 stylesheet in vendor/ and the registry
+# components copied byte for byte into components/ui and hooks/.
+[[annotations]]
+path = ["vendor/**", "components/ui/**", "hooks/use-mobile.ts"]
+precedence = "override"
+SPDX-FileCopyrightText = "2023 shadcn"
+SPDX-License-Identifier = "MIT"
+
+# Vercel AI Elements registry components, with local edits marked in place.
+[[annotations]]
+path = "components/ai-elements/**"
+precedence = "override"
+SPDX-FileCopyrightText = ["2023 Vercel, Inc.", "2026 Juber Shaikh (Hostlelo)"]
+SPDX-License-Identifier = "Apache-2.0"
+
+# Universal Dependencies Parallel UD (PUD) treebanks and what is derived
+# from them: converted sentences, learned parser models, the reproduction
+# bundle and the frozen evaluation gates. Notices and revisions are in
+# public/research/v6/source-notices/ud-pud/.
+[[annotations]]
+path = [
+  "public/research/v6/data/ud-pud-*.json",
+  "public/research/v6/models/**",
+  "public/research/v6/pud-reproduction.zip",
+  "public/research/v6/source-notices/ud-pud/**",
+  "lib/context-model/frozen-gates.json",
+]
+precedence = "override"
+SPDX-FileCopyrightText = ["Universal Dependencies PUD contributors", "2026 Juber Shaikh (Hostlelo)"]
+SPDX-License-Identifier = "CC-BY-SA-3.0"
+
+# Aggregate association statistics learned from the OPUS release of Tatoeba.
+# No sentence text is included. Notices in source-notices/tatoeba/.
+[[annotations]]
+path = ["public/research/v6/lexical-associations.json", "public/research/v6/source-notices/tatoeba/**"]
+precedence = "override"
+SPDX-FileCopyrightText = ["Tatoeba contributors", "OPUS, Jörg Tiedemann", "2026 Juber Shaikh (Hostlelo)"]
+SPDX-License-Identifier = "LicenseRef-CC-BY-2.0-FR"
+
+# Parallel Meaning Bank 4.0 sample: 14 gold fixtures. Annotations are
+# ODC-BY 1.0; the German and Italian RTE-3 texts are CC BY 3.0 and the Dutch
+# texts CC BY 4.0. Notices in source-notices/pmb/.
+[[annotations]]
+path = "public/research/v6/formal-graph-fixtures.json"
+precedence = "override"
+SPDX-FileCopyrightText = ["Parallel Meaning Bank contributors", "RTE-3 dataset authors", "2026 Juber Shaikh (Hostlelo)"]
+SPDX-License-Identifier = "ODC-By-1.0 AND CC-BY-3.0 AND CC-BY-4.0"
+
+[[annotations]]
+path = [
+  "public/research/v6/source-notices/pmb/ODC-BY.txt",
+  "public/research/v6/source-notices/pmb/PMB_LICENSE.txt",
+  "public/research/v6/source-notices/pmb/provenance.json",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Parallel Meaning Bank contributors"
+SPDX-License-Identifier = "ODC-By-1.0"
+
+[[annotations]]
+path = ["public/research/v6/source-notices/pmb/RTE3-DE-README.txt", "public/research/v6/source-notices/pmb/RTE3-ITA-README.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "RTE-3 dataset authors"
+SPDX-License-Identifier = "CC-BY-3.0"
+
+[[annotations]]
+path = "public/research/v6/source-notices/pmb/RTE3-NL-README.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "RTE-3 dataset authors"
+SPDX-License-Identifier = "CC-BY-4.0"

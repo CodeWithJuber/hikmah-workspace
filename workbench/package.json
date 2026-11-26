@@ -1,6 +1,7 @@
 {
   "name": "hikmah-workbench",
   "version": "1.0.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "description": "Execution sidecar for Hikmah Workspace: terminal, SSH and sandboxed commands.",
