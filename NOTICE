@@ -1,0 +1,54 @@
+Hikmah Workspace
+Copyright (C) 2026 Juber Shaikh (Hostlelo)
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, version 3 (AGPL-3.0-only). It is distributed
+WITHOUT ANY WARRANTY; see the LICENSE file for details.
+
+REUSE.toml records the licence of every file in this repository, and the
+LICENSES/ directory holds each licence text. Third-party material included
+in this repository:
+
+shadcn/ui
+  vendor/shadcn-tailwind-4.13.0.css, components/ui/, hooks/use-mobile.ts
+  Copyright (c) 2023 shadcn. MIT License.
+
+AI Elements
+  components/ai-elements/
+  Copyright 2023 Vercel, Inc. Apache License 2.0. Local edits are marked in
+  the files.
+
+Universal Dependencies Parallel UD (PUD) treebanks
+  public/research/v6/data/ud-pud-*.json, public/research/v6/models/,
+  public/research/v6/pud-reproduction.zip,
+  lib/context-model/frozen-gates.json
+  Universal Dependencies PUD contributors (English, Arabic, Hindi, Spanish
+  and Turkish). Creative Commons Attribution-ShareAlike 3.0. Converted from
+  CoNLL-U to JSON and used to fit the research parser models. Revisions,
+  SHA-256 hashes and the original READMEs are in
+  public/research/v6/source-notices/ud-pud/.
+
+Tatoeba, distributed by OPUS
+  public/research/v6/lexical-associations.json
+  Association parameters derived from the OPUS Tatoeba v2026-07-08 sentence
+  collection, contributed by Tatoeba users and distributed by OPUS
+  (Jörg Tiedemann), under Creative Commons Attribution 2.0 France.
+  Transformation: normalization, grouping, train-only sparse statistical
+  association learning and pruning. Source sentence texts are not included.
+  J. Tiedemann, 2012, Parallel Data, Tools and Interfaces in OPUS. LREC 2012.
+  Provenance in public/research/v6/source-notices/tatoeba/.
+
+Parallel Meaning Bank 4.0 sample
+  public/research/v6/formal-graph-fixtures.json
+  Contains information from the Parallel Meaning Bank, made available under
+  the Open Data Commons Attribution License (ODC-BY) v1.0. The 14 selected
+  texts are German and Italian RTE-3 texts (CC BY 3.0) and Dutch RTE-3 texts
+  (CC BY 4.0). Abzianidze, Bjerva, Evang, Haagsma, van Noord, Ludmann,
+  Nguyen and Bos (2017), https://aclanthology.org/E17-2039/. Notices in
+  public/research/v6/source-notices/pmb/.
+
+No endorsement by these projects or their contributors is implied.
+
+npm and Python dependencies are installed from their registries and are not
+part of this repository; each keeps its own licence.

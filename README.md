@@ -1,5 +1,10 @@
 # Hikmah Workspace
 
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
+[![CI](https://github.com/CodeWithJuber/hikmah-workspace/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CodeWithJuber/hikmah-workspace/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CodeWithJuber/hikmah-workspace/badge)](https://scorecard.dev/viewer/?uri=github.com/CodeWithJuber/hikmah-workspace)
+[![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-green.svg)](REUSE.toml)
+
 Self-hosted chat, coding, agents and experimental context learning. This is the **v9.1 release candidate**, ported from the v9 app to Node.js for deployment on your own server. It includes the v8 provider/free-model fixes.
 
 The app version and research version are deliberately separate:
@@ -24,7 +29,7 @@ The sidebar, sign-in screen and `/api/health` identify the application release. 
 
 The context model is an experimental structured parser, not a general language model. Quranic roots are a research representation and design lens; this repository does not establish that every language derives from Arabic or that the system has human-level intelligence. Provider explanations and concise activity records are shown; hidden chain-of-thought is not collected or stored.
 
-## Local development
+## Quick start
 
 Use Node 24.15 or newer in the Node 24 line. The lockfile is committed.
 
@@ -41,6 +46,8 @@ Create `.data/bootstrap-owner-password` containing a new password of 12–128 ch
 npm run setup
 npm run dev
 ```
+
+`npm run dev` builds the browser sandbox worker first (`npm run build:worker`); it is build output and is not committed.
 
 For a production build on a local machine:
 
@@ -64,13 +71,13 @@ python3 -m unittest discover -s deploy -p 'test_*.py'
 
 The production smoke test stages the standalone build in an isolated directory, signs in, rejects spoofed identities and cross-origin writes, saves a large conversation, restarts the server, and verifies both the session and saved content. No model provider is called by these tests.
 
-## Deploy through a new GitHub repository
+## Deploy to your own server
 
-Use a **new private repository named `hikmah-workspace`**. This project is independent of `hikmah-stack` and does not require changing it. See [deployment instructions](docs/deployment.md) for the exact Actions settings and server setup.
+See [deployment instructions](docs/deployment.md) for the server requirements and the GitHub Actions settings. This project is independent of `hikmah-stack` and does not require changing it.
 
-GitHub Actions builds and tests the image. With deployment enabled, it uploads that same image to the configured SSH host, checks its revision, takes a local pre-update backup, and starts the app behind HTTPS. It verifies the exact commit again through the public URL.
+GitHub Actions builds and tests the image on GitHub-hosted runners. With deployment enabled, the deploy workflow takes that same verified image, copies it to your server over SSH with a deploy key, checks its revision, takes a local pre-update backup, and starts the app behind HTTPS. It verifies the exact commit again through the public URL.
 
-Full source and research assets are included. Credentials, private conversations, `.data`, installed dependencies and build output are excluded. Export saved sessions from the earlier hosted app and import them after signing in here; this code package does not migrate the old host's private database or model checkpoints automatically.
+Credentials, private conversations, `.data`, installed dependencies and build output are never part of the repository. Export saved sessions from an earlier installation and import them after signing in; the app does not migrate another host's database or model checkpoints automatically.
 
 ## Tools and services
 
@@ -89,3 +96,19 @@ holds no secrets of its own. Commands run in the workbench container, which has 
 writable `/workspace` and network access but no route to the app's database or
 its encrypted secrets. See `docs/architecture.md` for the trust boundaries, what
 is gated behind an approval and why, and what is deliberately not built.
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the checks a change must pass and the commit style. Every contributor signs the [Contributor License Agreement](CLA.md) once; the CLA bot asks on your first pull request. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Do not report vulnerabilities in public issues. Use GitHub's private vulnerability reporting, as described in [SECURITY.md](SECURITY.md).
+
+## Licence
+
+Hikmah Workspace is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License, version 3](LICENSE) (`AGPL-3.0-only`). If you run a modified version for others over a network, the AGPL requires you to offer them its source.
+
+Copyright (C) 2026 Juber Shaikh (Hostlelo).
+
+Some files are third-party material under their own licences: shadcn/ui (MIT), AI Elements (Apache-2.0), and research data derived from Universal Dependencies PUD (CC BY-SA 3.0), Tatoeba via OPUS (CC BY 2.0 FR) and the Parallel Meaning Bank (ODC-BY 1.0, with CC BY 3.0/4.0 texts). [REUSE.toml](REUSE.toml) records the licence of every file, the texts are in [LICENSES/](LICENSES), and [NOTICE](NOTICE) lists the attributions.
