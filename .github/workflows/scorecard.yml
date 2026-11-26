@@ -1,0 +1,37 @@
+name: OpenSSF Scorecard
+# Scores the repository's supply-chain practices, publishes the result to
+# scorecard.dev (the README badge) and lists the findings under Security ->
+# Code scanning. With publish_results the scorecard job may contain only
+# allowlisted actions and no `run` steps, `env` or `defaults`.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '37 4 * * 1'
+  branch_protection_rule:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analysis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      # Upload the results to code scanning.
+      security-events: write
+      # Publish the results to scorecard.dev.
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          sarif_file: results.sarif
