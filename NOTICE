@@ -48,6 +48,18 @@ Parallel Meaning Bank 4.0 sample
   Nguyen and Bos (2017), https://aclanthology.org/E17-2039/. Notices in
   public/research/v6/source-notices/pmb/.
 
+Quranic Arabic Corpus
+  lib/playground/root-study.json
+  public/research/v5/root-study.json
+  public/research/v6/root-context-seed-contrasts.json
+  The morphological tags of about 18 Quranic words (the qac_* and
+  morphological_observation fields) are read from the Quranic Arabic Corpus,
+  morphology version 0.4, Copyright (C) 2011 Kais Dukes, University of Leeds,
+  licensed under the GNU General Public License with the corpus's terms of use:
+  the source is the Quranic Arabic Corpus, https://corpus.quran.com, and each
+  tagged word links to its page there. The tags are copied as the corpus gives
+  them. The corpus and its full notice are at https://corpus.quran.com/download/.
+
 No endorsement by these projects or their contributors is implied.
 
 npm and Python dependencies are installed from their registries and are not
