@@ -206,6 +206,14 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
         run: |
+          # The shell wrappers cap a slot user at 96 processes and threads (ulimit -u), as in
+          # production, and these tests run them as the current user. The runner's own services
+          # run as `runner` and already use more than that, so the tests run as a new user with
+          # nothing else running, like a slot user, on its own copy of the checkout.
+          sudo useradd --create-home --shell /bin/bash hikmah-test
+          sudo cp -a "$GITHUB_WORKSPACE" /home/hikmah-test/repo
+          sudo chown -R hikmah-test: /home/hikmah-test/repo
+          as_slot() { sudo -u hikmah-test -H env "PATH=$PATH" bash -c 'cd /home/hikmah-test/repo/workbench && exec "$@"' bash "$@"; }
           if [ "$EVENT" = "pull_request" ]; then
             SEL=$(node ../scripts/smart-test-select.mjs --from-git "origin/$BASE_REF" 2>/dev/null || echo '{"tier":"high","tests":[]}')
             TIER=$(echo "$SEL" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tier','high'))")
@@ -215,13 +223,13 @@ jobs:
               WB=$(echo "$SEL" | python3 -c 'import json,sys; print(" ".join(t.split("/",1)[1] for t in json.load(sys.stdin).get("tests",[]) if t.startswith("workbench/")))')
               if [ -n "$WB" ]; then
                 echo "Running selected workbench tests (tier=${TIER}): $WB"
-                npm run typecheck && node --test $WB && npm audit --omit=dev --audit-level=high
+                npm run typecheck && as_slot node --test $WB && npm audit --omit=dev --audit-level=high
                 exit 0
               fi
               echo "No selected workbench tests; running full workbench suite."
             fi
           fi
-          npm run typecheck && npm test && npm audit --omit=dev --audit-level=high
+          npm run typecheck && as_slot npm test && npm audit --omit=dev --audit-level=high
   # Build + container verification. Needs both checks and tests green.
   # The two docker builds run in parallel via shell background jobs.
   build:
